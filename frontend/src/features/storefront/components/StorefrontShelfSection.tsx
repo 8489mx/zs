@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
+import { StorefrontDealSpotlight } from './StorefrontDealSpotlight';
 import { IconArrowUpRight } from './StorefrontIcons';
 
 /**
@@ -217,59 +218,143 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         </div>
       </div>
 
-      <div className="storefront-shelf-wrapper">
-        {/* Floating Right Chevron (Previous in RTL) */}
-        {canScroll && (
-          <button
-            type="button"
-            className="storefront-shelf-floating-arrow storefront-shelf-arrow-prev"
-            onClick={() => scrollBy('prev')}
-            aria-label="السابق"
-            title="السابق"
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
-
+      {/* 1. Single Deal Spotlight Layout */}
+      {isSmartDeal && products.length === 1 ? (
+        <StorefrontDealSpotlight
+          product={products[0]}
+          cartQuantity={cartMap.get(products[0].id) || 0}
+          whatsappPhone={whatsappPhone}
+          onAddToCart={onAddToCart}
+          onUpdateQuantity={onUpdateQuantity}
+          onQuickView={onQuickView}
+          isFavorite={favoriteIds?.has(products[0].id)}
+          onToggleFavorite={onToggleFavorite}
+        />
+      ) : isSmartDeal && products.length === 2 ? (
+        /* 2. Two Balanced Deal Cards Grid */
         <div
-          className="storefront-shelf"
-          ref={trackRef}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px',
+          }}
         >
           {products.map((product) => (
-            <div className="storefront-shelf-item" key={product.id}>
-              <StorefrontProductCard
-                product={product}
-                cartQuantity={cartMap.get(product.id) || 0}
-                whatsappPhone={whatsappPhone}
-                isSmartDeal={isSmartDeal}
-                onAddToCart={onAddToCart}
-                onUpdateQuantity={onUpdateQuantity}
-                onOpenReviewModal={onOpenReviewModal}
-                isFavorite={favoriteIds?.has(product.id)}
-                onToggleFavorite={onToggleFavorite}
-                onQuickView={onQuickView}
-              />
-            </div>
+            <StorefrontProductCard
+              key={product.id}
+              product={product}
+              cartQuantity={cartMap.get(product.id) || 0}
+              whatsappPhone={whatsappPhone}
+              isSmartDeal={isSmartDeal}
+              onAddToCart={onAddToCart}
+              onUpdateQuantity={onUpdateQuantity}
+              onOpenReviewModal={onOpenReviewModal}
+              isFavorite={favoriteIds?.has(product.id)}
+              onToggleFavorite={onToggleFavorite}
+              onQuickView={onQuickView}
+            />
           ))}
         </div>
+      ) : (
+        /* 3. Standard Shelf Carousel Track */
+        <div className="storefront-shelf-wrapper">
+          {/* Floating Right Chevron (Previous in RTL) */}
+          {canScroll && (
+            <button
+              type="button"
+              className="storefront-shelf-floating-arrow storefront-shelf-arrow-prev"
+              onClick={() => scrollBy('prev')}
+              aria-label="السابق"
+              title="السابق"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
 
-        {/* Floating Left Chevron (Next in RTL) */}
-        {canScroll && (
-          <button
-            type="button"
-            className="storefront-shelf-floating-arrow storefront-shelf-arrow-next"
-            onClick={() => scrollBy('next')}
-            aria-label="التالي"
-            title="التالي"
+          <div
+            className="storefront-shelf"
+            ref={trackRef}
           >
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-      </div>
+            {products.map((product) => (
+              <div className="storefront-shelf-item" key={product.id}>
+                <StorefrontProductCard
+                  product={product}
+                  cartQuantity={cartMap.get(product.id) || 0}
+                  whatsappPhone={whatsappPhone}
+                  isSmartDeal={isSmartDeal}
+                  onAddToCart={onAddToCart}
+                  onUpdateQuantity={onUpdateQuantity}
+                  onOpenReviewModal={onOpenReviewModal}
+                  isFavorite={favoriteIds?.has(product.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  onQuickView={onQuickView}
+                />
+              </div>
+            ))}
+
+            {/* If a regular category shelf has only 1 product, show an elegant dashed companion tile */}
+            {!isSmartDeal && products.length === 1 && (
+              <div
+                className="storefront-shelf-item"
+                style={{
+                  minWidth: '220px',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: '14px',
+                  background: '#f8fafc',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '10px',
+                    color: '#64748b',
+                  }}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+                  قريباً بهذا القسم
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.45' }}>
+                  جاري إضافة المزيد من المنتجات الجديدة لهذا القسم
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Floating Left Chevron (Next in RTL) */}
+          {canScroll && (
+            <button
+              type="button"
+              className="storefront-shelf-floating-arrow storefront-shelf-arrow-next"
+              onClick={() => scrollBy('next')}
+              aria-label="التالي"
+              title="التالي"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 });

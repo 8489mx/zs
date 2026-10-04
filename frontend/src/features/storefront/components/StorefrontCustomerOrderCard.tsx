@@ -1,4 +1,4 @@
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { 
@@ -56,7 +56,7 @@ function getStatusBadge(status: string) {
     case 'shipped':
       return { label: 'خرج للتوصيل مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
     case 'delivered':
-      return { label: 'تم التسليم ومكتمل', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
+      return { label: 'تم التسليم بنجاح', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
     case 'cancelled':
       return { label: 'طلب ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
     default:
@@ -184,11 +184,12 @@ export function StorefrontCustomerOrderCard({
             <div
               style={{
                 position: 'absolute',
-                top: '15px',
-                left: '20px',
-                right: '20px',
-                height: '3px',
+                top: '18px',
+                left: '28px',
+                right: '28px',
+                height: '4px',
                 background: '#e2e8f0',
+                borderRadius: '999px',
                 zIndex: 1,
               }}
             >
@@ -196,6 +197,7 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   height: '100%',
                   background: '#170e5e',
+                  borderRadius: '999px',
                   width: `${(currentStepIndex / (TRACKING_STEPS.length - 1)) * 100}%`,
                   transition: 'width 0.4s ease',
                 }}
@@ -211,7 +213,7 @@ export function StorefrontCustomerOrderCard({
                 ? '#16a34a'
                 : '#94a3b8';
               const circleBg = isCurrent
-                ? '#f0f3ff'
+                ? '#eef2ff'
                 : isPassed
                 ? '#dcfce7'
                 : '#ffffff';
@@ -231,29 +233,29 @@ export function StorefrontCustomerOrderCard({
                 >
                   <div
                     style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '38px',
+                      height: '38px',
                       borderRadius: '50%',
                       background: circleBg,
-                      border: `2px solid ${circleColor}`,
+                      border: `2.5px solid ${circleColor}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 800,
                       color: circleColor,
                       boxShadow: isCurrent
-                        ? '0 0 0 4px rgba(23, 14, 94, 0.15)'
-                        : '0 1px 3px rgba(0,0,0,0.05)',
+                        ? '0 0 0 4px rgba(23, 14, 94, 0.14)'
+                        : '0 1px 3px rgba(0,0,0,0.06)',
                       transition: 'all 0.3s ease',
-                      marginBottom: '6px',
+                      marginBottom: '8px',
                     }}
                   >
-                    {isPassed ? <CheckIcon size={13} strokeWidth={3} /> : idx + 1}
+                    {isPassed ? <CheckIcon size={16} strokeWidth={3} /> : idx + 1}
                   </div>
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: '12px',
                       fontWeight: isCurrent ? 800 : 600,
                       color: isCurrent ? '#170e5e' : isPassed ? '#166534' : '#64748b',
                     }}
@@ -263,13 +265,17 @@ export function StorefrontCustomerOrderCard({
                   {isCurrent && (
                     <span
                       style={{
-                        fontSize: '9.5px',
+                        fontSize: '10px',
                         fontWeight: 700,
-                        color: '#2563eb',
-                        marginTop: '2px',
+                        color: '#1d4ed8',
+                        background: '#dbeafe',
+                        border: '1px solid #bfdbfe',
+                        padding: '1px 7px',
+                        borderRadius: '999px',
+                        marginTop: '4px',
                       }}
                     >
-                      (الوضع الحالي)
+                      الوضع الحالي
                     </span>
                   )}
                 </div>
@@ -279,20 +285,21 @@ export function StorefrontCustomerOrderCard({
 
           <div
             style={{
-              marginTop: '14px',
-              padding: '8px 12px',
+              marginTop: '16px',
+              padding: '10px 14px',
               background: '#f8fafc',
-              borderRadius: '8px',
+              borderRadius: '10px',
               border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: '6px',
+              gap: '8px',
             }}
           >
-            <div style={{ fontSize: '11.5px', color: '#475569' }}>
-              <strong>الحالة الآن:</strong> {TRACKING_STEPS[currentStepIndex]?.desc}
+            <div style={{ fontSize: '12.5px', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 800, color: '#170e5e' }}>الحالة الآن:</span>
+              <span>{TRACKING_STEPS[currentStepIndex]?.desc}</span>
             </div>
             {storeInquiryUrl && (
               <a
@@ -303,13 +310,17 @@ export function StorefrontCustomerOrderCard({
                   color: '#16a34a',
                   textDecoration: 'none',
                   fontWeight: 700,
-                  fontSize: '11px',
+                  fontSize: '12px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
+                  background: '#f0fdf4',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #bbf7d0',
                 }}
               >
-                <MessageSquareIcon size={13} />
+                <MessageSquareIcon size={14} />
                 <span>استفسار واتساب</span>
               </a>
             )}
@@ -343,34 +354,36 @@ export function StorefrontCustomerOrderCard({
             background: '#faf5ff',
             border: '1.5px solid #d8b4fe',
             borderRadius: '12px',
-            padding: '12px 14px',
+            padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '10px',
+            gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
                 background: '#f3e8ff',
                 color: '#7e22ce',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                border: '1px solid #e9d5ff',
+                flexShrink: 0,
               }}
             >
-              <TruckIcon size={20} color="#7e22ce" />
+              <TruckIcon size={22} color="#7e22ce" />
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#6b21a8', fontWeight: 700 }}>
+              <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: 800 }}>
                 طلبك في الطريق مع المندوب
               </div>
-              <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                 {order.deliveryRepName || 'مندوب توصيل المتجر'}
               </div>
             </div>
@@ -378,14 +391,14 @@ export function StorefrontCustomerOrderCard({
 
           {/* Quick Rep Call / WhatsApp Actions */}
           {order.deliveryRepPhone && (
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <a
                 href={`tel:${repPhoneClean}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
+                  gap: '5px',
+                  padding: '7px 14px',
                   borderRadius: '8px',
                   background: '#170e5e',
                   color: '#ffffff',
@@ -394,7 +407,7 @@ export function StorefrontCustomerOrderCard({
                   textDecoration: 'none',
                 }}
               >
-                <SmartphoneIcon size={13} />
+                <SmartphoneIcon size={14} />
                 <span>اتصال</span>
               </a>
               <a
@@ -406,8 +419,8 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
+                  gap: '5px',
+                  padding: '7px 14px',
                   borderRadius: '8px',
                   background: '#25D366',
                   color: '#ffffff',
@@ -416,7 +429,7 @@ export function StorefrontCustomerOrderCard({
                   textDecoration: 'none',
                 }}
               >
-                <MessageSquareIcon size={13} />
+                <MessageSquareIcon size={14} />
                 <span>واتساب</span>
               </a>
             </div>
@@ -535,8 +548,9 @@ export function StorefrontCustomerOrderCard({
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {it.name} <span style={{ color: '#64748b', fontWeight: 600 }}>(×{it.quantity})</span>
                 </span>
-                <span style={{ fontWeight: 700, flexShrink: 0, marginInlineStart: '8px' }}>
-                  {it.total.toFixed(0)} ج
+                <span style={{ fontWeight: 700, flexShrink: 0, marginInlineStart: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>{it.total.toFixed(0)}</span>
+                  <CurrencySymbol />
                 </span>
               </div>
             ))}
@@ -564,7 +578,10 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <span>خدمة التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
-                <span>{order.deliveryFee.toFixed(0)} ج</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>{order.deliveryFee.toFixed(0)}</span>
+                  <CurrencySymbol />
+                </span>
               </div>
             )}
 
@@ -579,7 +596,10 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <span>خصم الكوبون {order.couponCode ? `(${order.couponCode})` : ''}:</span>
-                <span>-{(order.discountAmount ?? 0).toFixed(0)} ج</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>-{(order.discountAmount ?? 0).toFixed(0)}</span>
+                  <CurrencySymbol />
+                </span>
               </div>
             )}
           </div>
@@ -594,35 +614,38 @@ export function StorefrontCustomerOrderCard({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '10px',
-          paddingTop: '10px',
+          paddingTop: '12px',
           borderTop: '1px solid #f1f5f9',
         }}
       >
-        <div style={{ fontSize: '13px' }}>
+        <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ color: '#64748b' }}>إجمالي الفاتورة: </span>
-          <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '15px' }}>
-            {order.totalAmount.toFixed(0)} {info.currency || getGlobalCurrencySymbol()}
+          <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>{order.totalAmount.toFixed(0)}</span>
+            <CurrencySymbol />
           </strong>
         </div>
 
         {/* Action buttons (only if pending) */}
         {isPending ? (
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
               onClick={() => onEditOrder(order)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '6px 12px',
+                gap: '5px',
+                padding: '7px 14px',
                 borderRadius: '8px',
                 background: '#f0f3ff',
                 border: '1px solid #c7d2fe',
                 color: '#170e5e',
-                fontSize: '12px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.15s ease',
               }}
             >
               <span>تعديل الطلب</span>
@@ -635,15 +658,17 @@ export function StorefrontCustomerOrderCard({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '6px 12px',
+                gap: '5px',
+                padding: '7px 14px',
                 borderRadius: '8px',
                 background: '#fff1f2',
                 border: '1px solid #fecdd3',
                 color: '#be123c',
-                fontSize: '12px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: isCancelling ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.15s ease',
               }}
             >
               <span>إلغاء</span>
@@ -651,7 +676,7 @@ export function StorefrontCustomerOrderCard({
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>
+            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
               {order.status === 'cancelled'
                 ? 'الطلب ملغي'
                 : order.status === 'delivered'
@@ -665,15 +690,16 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '6px 12px',
+                  padding: '7px 14px',
                   borderRadius: '8px',
                   background: info.brandColor || '#170e5e',
                   border: 'none',
                   color: '#ffffff',
-                  fontSize: '12px',
+                  fontSize: '12.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
+                  transition: 'opacity 0.15s ease',
                 }}
               >
                 اطلب تاني

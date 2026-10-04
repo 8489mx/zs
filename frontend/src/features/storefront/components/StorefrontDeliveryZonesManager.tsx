@@ -701,7 +701,7 @@ export function StorefrontDeliveryZonesManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      رسوم التوصيل (${getGlobalCurrencySymbol()}): <span style={{ color: '#ef4444' }}>*</span>
+                      رسوم التوصيل ({getGlobalCurrencySymbol()}): <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="number"

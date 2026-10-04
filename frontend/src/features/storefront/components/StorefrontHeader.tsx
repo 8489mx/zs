@@ -184,11 +184,11 @@ export function StorefrontHeader({
         style={{
           maxWidth: 'var(--storefront-container, 1440px)',
           margin: '0 auto',
-          padding: '12px 24px',
+          padding: '10px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '20px',
+          gap: '16px',
         }}
       >
         {/* Brand & Store Name (Clickable to go home / reset) */}
@@ -219,9 +219,9 @@ export function StorefrontHeader({
               alt={info.title || info.businessName}
               className="storefront-brand-avatar"
               style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
                 objectFit: 'contain',
                 background: '#ffffff',
                 border: '1.5px solid #e2e8f0',
@@ -237,7 +237,7 @@ export function StorefrontHeader({
               style={{
                 width: '40px',
                 height: '40px',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, var(--storefront-primary-color, #170e5e) 0%, #312e81 100%)',
                 color: '#ffffff',
                 display: 'flex',
@@ -271,23 +271,22 @@ export function StorefrontHeader({
               </span>
               <span
                 className="storefront-brand-verified"
+                title="علامة تجارية موثقة ومعتمدة"
                 style={{
-                  fontSize: '11px',
-                  background: '#f0fdf4',
-                  color: '#166534',
-                  border: '1px solid #bbf7d0',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap',
+                  justifyContent: 'center',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #bbf7d0',
+                  color: '#16a34a',
                   flexShrink: 0,
+                  boxShadow: '0 1px 2px rgba(22, 101, 52, 0.08)',
                 }}
               >
-                <IconCheckCircle size={12} color="#16a34a" strokeWidth={2.4} />
-                <span>متجر معتمد</span>
+                <IconCheckCircle size={13} color="#16a34a" strokeWidth={2.6} />
               </span>
             </div>
             {brand.address ? (
@@ -377,7 +376,7 @@ export function StorefrontHeader({
                 alignItems: 'center',
                 gap: '7px',
                 padding: '0 14px',
-                height: '38px',
+                height: '40px',
                 borderRadius: '10px',
                 background: '#ffffff',
                 border: '1.5px solid #e2e8f0',
@@ -425,7 +424,7 @@ export function StorefrontHeader({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '0 14px',
-                height: '38px',
+                height: '40px',
                 borderRadius: '10px',
                 background: '#ffffff',
                 border: '1.5px solid #e2e8f0',
@@ -466,7 +465,7 @@ export function StorefrontHeader({
               alignItems: 'center',
               gap: '8px',
               padding: '0 18px',
-              height: '38px',
+              height: '40px',
               borderRadius: '10px',
               background: 'var(--storefront-primary-color, #170e5e)',
               color: 'var(--storefront-primary-contrast, #ffffff)',

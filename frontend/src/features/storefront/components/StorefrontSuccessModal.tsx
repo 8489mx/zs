@@ -50,8 +50,8 @@ export function StorefrontSuccessModal({
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '460px',
+          width: 'min(520px, 94vw)',
+          maxWidth: '520px',
           background: '#ffffff',
           borderRadius: '20px',
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
@@ -122,42 +122,51 @@ export function StorefrontSuccessModal({
             ملخص الطلب:
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
             {activeOrder.items.map((i, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: '#334155' }}>
-                <span>
-                  {i.name} (×{i.quantity})
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', color: '#334155', gap: '12px' }}>
+                <span style={{ flex: 1, wordBreak: 'break-word', lineHeight: 1.4 }}>
+                  {i.name} <span style={{ color: '#64748b', fontWeight: 600, fontSize: '12px' }}>(×{i.quantity})</span>
                 </span>
-                <span style={{ fontWeight: 600 }}>{i.total.toFixed(0)} <CurrencySymbol /></span>
+                <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>{i.total.toFixed(0)}</span>
+                  <CurrencySymbol />
+                </span>
               </div>
             ))}
 
             {activeOrder.tableNumber ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px', gap: '12px' }}>
                 <span>نوع الطلب:</span>
-                <span style={{ fontWeight: 700 }}>صالة (طاولة رقم {activeOrder.tableNumber})</span>
+                <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>صالة (طاولة رقم {activeOrder.tableNumber})</span>
               </div>
             ) : activeOrder.orderType === 'pickup' ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)', fontSize: '12.5px', gap: '12px' }}>
                 <span>نوع الطلب:</span>
-                <span style={{ fontWeight: 700 }}>استلام من الفرع (تيك أواي)</span>
+                <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>استلام من الفرع (تيك أواي)</span>
               </div>
             ) : activeOrder.deliveryFee === 0 ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px', gap: '12px' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
-                <span style={{ fontWeight: 700 }}>مجاناً</span>
+                <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>مجاناً</span>
               </div>
             ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px', gap: '12px' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
-                <span style={{ fontWeight: 600 }}>{activeOrder.deliveryFee.toFixed(0)} <CurrencySymbol /></span>
+                <span style={{ fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>{activeOrder.deliveryFee.toFixed(0)}</span>
+                  <CurrencySymbol />
+                </span>
               </div>
             )}
 
             {(activeOrder.discountAmount ?? 0) > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px', gap: '12px' }}>
                 <span>خصم الكوبون {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
-                <span style={{ fontWeight: 700 }}>-{(activeOrder.discountAmount ?? 0).toFixed(0)} <CurrencySymbol /></span>
+                <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>-{(activeOrder.discountAmount ?? 0).toFixed(0)}</span>
+                  <CurrencySymbol />
+                </span>
               </div>
             )}
 
@@ -165,16 +174,21 @@ export function StorefrontSuccessModal({
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                paddingTop: '8px',
+                alignItems: 'center',
+                paddingTop: '10px',
                 marginTop: '6px',
                 borderTop: '1px dashed #cbd5e1',
                 fontWeight: 800,
                 color: '#0f172a',
-                fontSize: '15px',
+                fontSize: '15.5px',
+                gap: '12px',
               }}
             >
               <span>المطلوب دفعه:</span>
-              <span>{activeOrder.totalAmount.toFixed(0)} <CurrencySymbol /></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                <span>{activeOrder.totalAmount.toFixed(0)}</span>
+                <CurrencySymbol />
+              </span>
             </div>
 
             {(activeOrder as any).paymentStatus === 'paid' && (

@@ -70,7 +70,7 @@ export function StorefrontHero({
               }}
             >
               <IconCheckCircle size={14} color="#60a5fa" strokeWidth={2.2} />
-              <span>متجر رسمي معتمد</span>
+              <span>تسوق إلكتروني موثوق</span>
             </span>
             <span
               style={{

@@ -192,17 +192,6 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             border-radius: 8px !important;
             gap: 4px !important;
           }
-          .storefront-product-quick-add {
-            width: 24px !important;
-            height: 24px !important;
-            min-width: 24px !important;
-            min-height: 24px !important;
-            max-width: 24px !important;
-            max-height: 24px !important;
-            padding: 0 !important;
-            border-radius: 50% !important;
-            box-sizing: border-box !important;
-          }
           .storefront-product-stepper {
             padding: 2px !important;
             border-radius: 8px !important;
@@ -458,56 +447,6 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
-
-          {/* Bottom Left: Quick Add Float Button (Compact & Sleek) */}
-          {!isOutOfStock && !isZeroPrice && cartQuantity === 0 && (
-            <button
-              className="storefront-product-quick-add"
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAdd();
-              }}
-              title="إضافة سريعة للسلة"
-              style={{
-                position: 'absolute',
-                bottom: '8px',
-                left: '8px',
-                width: '30px',
-                height: '30px',
-                minWidth: '30px',
-                minHeight: '30px',
-                maxWidth: '30px',
-                maxHeight: '30px',
-                padding: 0,
-                boxSizing: 'border-box',
-                borderRadius: '50%',
-                background: 'var(--storefront-primary-color, #170e5e)',
-                color: 'var(--storefront-primary-contrast, #ffffff)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.18))',
-                zIndex: 3,
-                transition: 'transform 0.15s ease, filter 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.15)';
-                e.currentTarget.style.filter = 'brightness(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.filter = 'none';
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Category & Star Rating Row */}
@@ -618,10 +557,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             style={{
               display: 'flex',
               alignItems: 'center',
-              height: '26px',
-              minHeight: '26px',
-              maxHeight: '26px',
-              margin: '2px 0 4px',
+              minHeight: '28px',
+              margin: '3px 0 6px',
             }}
           >
             <span
@@ -640,38 +577,40 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             className="storefront-product-price-row"
             style={{
               display: 'flex',
-              alignItems: 'baseline',
-              flexWrap: 'nowrap',
-              gap: '4px',
-              margin: '2px 0 4px',
-              height: '26px',
-              minHeight: '26px',
-              maxHeight: '26px',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '6px',
+              margin: '3px 0 6px',
+              minHeight: '28px',
             }}
           >
-            <span
-              className="storefront-product-price-main"
-              style={{
-                fontSize: '20px',
-                fontWeight: 900,
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-              }}
-            >
-              {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </span>
-            <span className="storefront-product-price-curr" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}><CurrencySymbol /></span>
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px' }}>
+              <span
+                className="storefront-product-price-main"
+                style={{
+                  fontSize: '19px',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  lineHeight: 1,
+                }}
+              >
+                {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </span>
+              <span className="storefront-product-price-curr" style={{ fontSize: '11.5px', fontWeight: 800, color: '#475569' }}>
+                <CurrencySymbol />
+              </span>
+            </div>
+
             {hasDiscount && (
-              <>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <span
                   className="storefront-product-price-old"
                   style={{
                     fontSize: '11.5px',
+                    fontWeight: 600,
                     color: '#94a3b8',
                     textDecoration: 'line-through',
-                    marginRight: '4px',
                   }}
                 >
                   {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <CurrencySymbol />
@@ -680,17 +619,21 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                   className="storefront-product-price-save"
                   style={{
                     fontSize: '10.5px',
-                    fontWeight: 700,
-                    color: '#16a34a',
-                    background: '#f0fdf4',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    marginRight: '2px',
+                    fontWeight: 800,
+                    color: '#15803d',
+                    background: '#dcfce7',
+                    border: '1px solid #bbf7d0',
+                    padding: '1.5px 6px',
+                    borderRadius: '6px',
+                    lineHeight: '1.3',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   وفر {Math.round((oldPrice - product.price) * 100) / 100} <CurrencySymbol />
                 </span>
-              </>
+              </div>
             )}
           </div>
         )}

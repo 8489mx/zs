@@ -614,9 +614,10 @@ export function StorefrontCheckoutModal({
       onClick={handleModalClose}
     >
       <div
+        className="storefront-checkout-modal-container"
         style={{
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '860px',
           maxHeight: 'min(92vh, calc(100dvh - 24px))',
           background: '#ffffff',
           borderRadius: '16px',
@@ -630,6 +631,27 @@ export function StorefrontCheckoutModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <style>{`
+          .storefront-checkout-modal-container {
+            width: 100%;
+            max-width: 860px;
+          }
+          .storefront-checkout-grid {
+            display: grid;
+            grid-template-columns: 1.12fr 0.88fr;
+            gap: 18px;
+            align-items: start;
+          }
+          @media (max-width: 768px) {
+            .storefront-checkout-modal-container {
+              max-width: 480px !important;
+            }
+            .storefront-checkout-grid {
+              grid-template-columns: 1fr !important;
+              gap: 14px !important;
+            }
+          }
+        `}</style>
         {/* Header */}
         <div
           style={{
@@ -643,13 +665,33 @@ export function StorefrontCheckoutModal({
             zIndex: 10,
           }}
         >
-          <div>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : 'إتمام وتأكيد الطلب'}
-            </h2>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-              {editingOrderNumber ? 'تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر' : 'الدفع نقداً عند استلام الطلب'}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: '#eef2ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #e0e7ff',
+                flexShrink: 0,
+              }}
+            >
+              <PackageIcon size={20} color="#170e5e" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                  {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : 'إتمام وتأكيد الطلب'}
+                </h2>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                {editingOrderNumber ? 'تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر' : 'الدفع نقداً عند استلام الطلب'}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -711,864 +753,886 @@ export function StorefrontCheckoutModal({
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Fulfillment Type Toggle (Delivery vs Pickup) - Hidden for Dine-in */}
-            {!isDineIn && info?.pickupEnabled !== false && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '2px' }}>
-                <button
-                  type="button"
-                  onClick={() => setFulfillmentType('delivery')}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: fulfillmentType === 'delivery' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                    background: fulfillmentType === 'delivery' ? '#f8fafc' : '#ffffff',
-                    color: fulfillmentType === 'delivery' ? brandColor : '#475569',
-                    fontWeight: 700,
-                    fontSize: '12.5px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <TruckIcon size={16} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
-                  <span>توصيل للمنزل</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFulfillmentType('pickup')}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: fulfillmentType === 'pickup' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                    background: fulfillmentType === 'pickup' ? '#f8fafc' : '#ffffff',
-                    color: fulfillmentType === 'pickup' ? brandColor : '#475569',
-                    fontWeight: 700,
-                    fontSize: '12.5px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <PackageIcon size={16} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
-                  <span>استلام من الفرع</span>
-                  <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px' }}>مجاني</span>
-                </button>
-              </div>
-            )}
-
-            {canExpress && (
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: `1.5px solid ${brandColor}`,
-                  borderRadius: '12px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                    {isDineIn ? 'الطلب باسم' : isPickup ? 'الاستلام باسم' : 'التوصيل إلى'}
+            <div className="storefront-checkout-grid">
+              {/* Column 1: Fulfillment, Customer Details & Address */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Fulfillment Type Toggle (Delivery vs Pickup) - Hidden for Dine-in */}
+                {!isDineIn && info?.pickupEnabled !== false && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentType('delivery')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: fulfillmentType === 'delivery' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
+                        background: fulfillmentType === 'delivery' ? 'rgba(23, 14, 94, 0.05)' : '#ffffff',
+                        color: fulfillmentType === 'delivery' ? brandColor : '#475569',
+                        fontWeight: 700,
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <TruckIcon size={16} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
+                      <span>توصيل للمنزل</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentType('pickup')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: fulfillmentType === 'pickup' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
+                        background: fulfillmentType === 'pickup' ? 'rgba(23, 14, 94, 0.05)' : '#ffffff',
+                        color: fulfillmentType === 'pickup' ? brandColor : '#475569',
+                        fontWeight: 700,
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <PackageIcon size={16} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
+                      <span>استلام من الفرع</span>
+                      <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px' }}>مجاني</span>
+                    </button>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
-                  <div style={{ fontSize: '12.5px', color: '#334155', direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>{customerPhone}</div>
-                  {!isDineIn && !isPickup && (
-                    <div style={{ fontSize: '12.5px', color: '#334155', marginTop: '2px', lineHeight: 1.5, wordBreak: 'break-word' }}>{customerAddress}</div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setExpressMode(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: brandColor,
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    whiteSpace: 'nowrap',
-                    fontFamily: 'inherit',
-                    padding: 0,
-                  }}
-                >
-                  تعديل البيانات
-                </button>
-              </div>
-            )}
-
-            {!canExpress && (<>
-            {/* Field 1: Customer Phone & Country Selector (First field) */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                  رقم الهاتف (للتواصل وتأكيد الطلب) <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                {customerPhone.length > 0 && (
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: phoneStatus.isValid ? '#16a34a' : '#e11d48',
-                    }}
-                  >
-                    {phoneStatus.message}
-                  </span>
                 )}
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  value={selectedCountry}
-                  onChange={(e) => {
-                    setSelectedCountry(e.target.value);
-                    setCustomerPhone('');
-                  }}
-                  style={{
-                    width: '120px',
-                    padding: '10px 8px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '12.5px',
-                    background: '#f8fafc',
-                    fontFamily: 'inherit',
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    flexShrink: 0,
-                  }}
-                >
-                  {COUNTRY_OPTIONS.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name} ({c.dialCode})
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  required
-                  maxLength={selectedCountry === 'EG' ? 11 : selectedCountry === 'SA' || selectedCountry === 'AE' ? 10 : 15}
-                  autoFocus
-                  value={customerPhone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  onBlur={recordAbandonedCartSilent}
-                  placeholder={COUNTRY_OPTIONS.find((c) => c.code === selectedCountry)?.placeholder || 'رقم الهاتف'}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border:
-                      customerPhone.length > 0
-                        ? phoneStatus.isValid
-                          ? '1.5px solid #22c55e'
-                          : '1.5px solid #f87171'
-                        : '1.5px solid #cbd5e1',
-                    fontSize: '14px',
-                    outline: 'none',
-                    background: '#f8fafc',
-                    fontFamily: 'inherit',
-                    direction: 'ltr',
-                    textAlign: 'right',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                />
-              </div>
 
-              {/* Reassurance security badge if matched on this device */}
-              {isDeviceMatched && (
-                <div
-                  style={{
-                    background: '#f0fdf4',
-                    border: '1px solid #86efac',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11.5px',
-                    color: '#166534',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: '8px',
-                    animation: 'fadeIn 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>
-                      <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت من هذا الهاتف مسبقاً (بياناتك مؤمنة ومحفوظة على جهازك فقط).
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomerName('');
-                      setCustomerAddress('');
-                      setIsDeviceMatched(false);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#15803d',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      whiteSpace: 'nowrap',
-                      marginRight: '8px',
-                    }}
-                  >
-                    تغيير
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Field 2: Customer Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                الاسم بالكامل <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                onBlur={recordAbandonedCartSilent}
-                placeholder="مثال: علي محمد / مازن أحمد"
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  border:
-                    customerName.length > 0
-                      ? nameStatus.isValid
-                        ? '1.5px solid #22c55e'
-                        : '1.5px solid #f87171'
-                      : '1.5px solid #cbd5e1',
-                  fontSize: '14px',
-                  outline: 'none',
-                  background: '#f8fafc',
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.2s ease',
-                }}
-              />
-            </div>
-
-            </>)}
-
-            {/* Field: Delivery Zone Matrix Selector (Hidden for Dine-In and Pickup) */}
-            {!isDineIn && !isPickup && activeDeliveryZones.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                    منطقة / حي التوصيل <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  {selectedZone?.estimatedTime && (
-                    <span style={{ fontSize: '11px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 600 }}>
-                      التوصيل المتوقع: {selectedZone.estimatedTime}
-                    </span>
-                  )}
-                </div>
-
-                <select
-                  value={selectedZone?.id ?? ''}
-                  onChange={(e) => handleZoneSelect(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    background: '#f8fafc',
-                    fontFamily: 'inherit',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {activeDeliveryZones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ${getGlobalCurrencySymbol()}`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Field 3: Customer Address, Pickup Notice, or Dine-In Table Badge */}
-            {isDineIn ? (
-              <div
-                style={{
-                  background: '#f0fdf4',
-                  border: '1.5px solid #86efac',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <UtensilsIcon size={20} color="#166534" strokeWidth={2} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, color: '#166534', fontSize: '13px' }}>
-                    طلب مباشر من الصالة / الكافيه
-                  </div>
-                  <div style={{ color: '#15803d', fontSize: '12px' }}>
-                    طاولة رقم: <strong>{tableNumber || 'غير محدد'}</strong> (لا حاجة لعنوان توصيل)
-                  </div>
-                </div>
-              </div>
-            ) : isPickup ? (
-              <div
-                style={{
-                  background: '#eff6ff',
-                  border: '1.5px solid #93c5fd',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <PackageIcon size={20} color="#1e40af" strokeWidth={2} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '13px' }}>
-                    استلام ذاتي من الفرع (Click & Collect)
-                  </div>
-                  <div style={{ color: '#2563eb', fontSize: '12px' }}>
-                    سيتم تجهيز طلبك في الفرع لتستلمه مباشرة، بدون أي رسوم شحن أو انتظار للمندوب.
-                  </div>
-                </div>
-              </div>
-            ) : canExpress ? null : (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  onBlur={recordAbandonedCartSilent}
-                  placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة (مثال: أمام مسجد التقوى / بجوار صيدلية...)"
-                  style={{
-                    width: '100%',
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    border:
-                      customerAddress.length > 0
-                        ? addressStatus.isValid
-                          ? '1.5px solid #22c55e'
-                          : '1.5px solid #f87171'
-                        : '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    background: '#f8fafc',
-                    fontFamily: 'inherit',
-                    resize: 'none',
-                    minHeight: '52px',
-                    maxHeight: '64px',
-                    lineHeight: '1.4',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Delivery Notes with rich examples */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                ملاحظات خاصة للأصناف أو التوصيل (اختياري)
-              </label>
-              <textarea
-                rows={3}
-                value={customerNotes}
-                onChange={(e) => setCustomerNotes(e.target.value)}
-                placeholder={"اكتب أي تعليمات لتحضير طلبك أو للتوصيل، مثلاً:\n• الجبنة كل ربع كيلو في علبة لوحدها\n• 5 كيلو أرز مقسمين (2 كيلو لوحدهم و 3 لوحدهم في شنطة)\n• البوابة مقفولة، رن الجرس مرتين أو كلمني قبل ما توصل"}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #cbd5e1',
-                  fontSize: '12.5px',
-                  outline: 'none',
-                  background: '#f8fafc',
-                  fontFamily: 'inherit',
-                  resize: 'none',
-                  minHeight: '85px',
-                  lineHeight: '1.5',
-                }}
-              />
-              <div style={{ fontSize: '11px', color: '#047857', marginTop: '4px', lineHeight: '1.4', background: '#ecfdf5', padding: '5px 10px', borderRadius: '6px', border: '1px solid #d1fae5' }}>
-                ملاحظاتك تصل لإدارة المحل والكاشير فوراً لتجهيز الأصناف وتغليفها بدقة دون الحاجة للاتصال تليفونياً.
-              </div>
-            </div>
-
-            {/* Payment Method Selector */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                طريقة الدفع
-              </label>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: info?.onlinePaymentEnabled ? 'repeat(auto-fit, minmax(130px, 1fr))' : '1fr 1fr',
-                  gap: '8px',
-                }}
-              >
-                {/* COD Option */}
-                <div
-                  onClick={() => setPaymentMethod('cod')}
-                  style={{
-                    border: paymentMethod === 'cod' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                    background: paymentMethod === 'cod' ? '#f8fafc' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                      {isDineIn ? 'الدفع في الصالة' : fulfillmentType === 'pickup' ? 'الدفع عند الاستلام من الفرع' : 'الدفع عند الاستلام'}
-                    </span>
-                    <div
-                      style={{
-                        width: '13px',
-                        height: '13px',
-                        borderRadius: '50%',
-                        border: paymentMethod === 'cod' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                        background: '#ffffff',
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                    {isDineIn
-                      ? 'الدفع نقداً أو بالبطاقة مع الويتر / عند الكاشير'
-                      : fulfillmentType === 'pickup'
-                      ? 'الدفع نقداً أو بالفيزا عند استلام طلبك من الفرع'
-                      : 'الدفع نقداً للمندوب عند المعاينة'}
-                  </span>
-                </div>
-
-                {/* Pre-payment Option */}
-                <div
-                  onClick={() => setPaymentMethod('instapay_wallet')}
-                  style={{
-                    border: paymentMethod === 'instapay_wallet' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                    background: paymentMethod === 'instapay_wallet' ? '#f8fafc' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                      إنستاباي / محفظة
-                    </span>
-                    <div
-                      style={{
-                        width: '13px',
-                        height: '13px',
-                        borderRadius: '50%',
-                        border: paymentMethod === 'instapay_wallet' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                        background: '#ffffff',
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                    تحويل مسبق لحساب المتجر
-                  </span>
-                </div>
-
-                {/* Credit Card Online Payment Option */}
-                {info?.onlinePaymentEnabled && (
+                {canExpress && (
                   <div
-                    onClick={() => setPaymentMethod('credit_card')}
                     style={{
-                      border: paymentMethod === 'credit_card' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                      background: paymentMethod === 'credit_card' ? '#f8fafc' : '#ffffff',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      cursor: 'pointer',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                      transition: 'all 0.15s ease',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                        بطاقة بنكية
-                      </span>
-                      <div
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                          {isDineIn ? 'الطلب باسم' : isPickup ? 'الاستلام باسم' : 'بيانات التوصيل'}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '10px',
+                          }}
+                        >
+                          <CheckIcon size={11} color="#15803d" strokeWidth={3} />
+                          بيانات محفوظة
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
+                      <div style={{ fontSize: '12px', color: '#334155', direction: 'ltr', textAlign: 'right', marginTop: '2px', fontWeight: 600 }}>
+                        {customerPhone}
+                      </div>
+                      {!isDineIn && !isPickup && (
+                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                          {customerAddress}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpressMode(false)}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        color: brandColor,
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        fontFamily: 'inherit',
+                        padding: '5px 10px',
+                      }}
+                    >
+                      تعديل
+                    </button>
+                  </div>
+                )}
+
+                {!canExpress && (
+                  <>
+                    {/* Customer Phone & Country Selector */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                          رقم الهاتف (للتواصل وتأكيد الطلب) <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        {customerPhone.length > 0 && (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: phoneStatus.isValid ? '#16a34a' : '#e11d48',
+                            }}
+                          >
+                            {phoneStatus.message}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <select
+                          value={selectedCountry}
+                          onChange={(e) => {
+                            setSelectedCountry(e.target.value);
+                            setCustomerPhone('');
+                          }}
+                          style={{
+                            width: '115px',
+                            padding: '9px 8px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: '12px',
+                            background: '#f8fafc',
+                            fontFamily: 'inherit',
+                            fontWeight: 600,
+                            color: '#1e293b',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {COUNTRY_OPTIONS.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.name} ({c.dialCode})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={selectedCountry === 'EG' ? 11 : selectedCountry === 'SA' || selectedCountry === 'AE' ? 10 : 15}
+                          autoFocus
+                          value={customerPhone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          onBlur={recordAbandonedCartSilent}
+                          placeholder={COUNTRY_OPTIONS.find((c) => c.code === selectedCountry)?.placeholder || 'رقم الهاتف'}
+                          style={{
+                            flex: 1,
+                            padding: '9px 12px',
+                            borderRadius: '8px',
+                            border:
+                              customerPhone.length > 0
+                                ? phoneStatus.isValid
+                                  ? '1.5px solid #22c55e'
+                                  : '1.5px solid #f87171'
+                                : '1.5px solid #cbd5e1',
+                            fontSize: '13.5px',
+                            outline: 'none',
+                            background: '#f8fafc',
+                            fontFamily: 'inherit',
+                            direction: 'ltr',
+                            textAlign: 'right',
+                            transition: 'border-color 0.2s ease',
+                          }}
+                        />
+                      </div>
+
+                      {isDeviceMatched && (
+                        <div
+                          style={{
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            fontSize: '11px',
+                            color: '#166534',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '6px',
+                          }}
+                        >
+                          <span>
+                            <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت من هذا الهاتف مسبقاً.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomerName('');
+                              setCustomerAddress('');
+                              setIsDeviceMatched(false);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#15803d',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              whiteSpace: 'nowrap',
+                              marginRight: '6px',
+                            }}
+                          >
+                            تغيير
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Customer Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                        الاسم بالكامل <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder="مثال: علي محمد / مازن أحمد"
                         style={{
-                          width: '13px',
-                          height: '13px',
-                          borderRadius: '50%',
-                          border: paymentMethod === 'credit_card' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                          background: '#ffffff',
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border:
+                            customerName.length > 0
+                              ? nameStatus.isValid
+                                ? '1.5px solid #22c55e'
+                                : '1.5px solid #f87171'
+                              : '1.5px solid #cbd5e1',
+                          fontSize: '13.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          transition: 'border-color 0.2s ease',
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                      فيزا / ماستركارد / ميزة
-                    </span>
+                  </>
+                )}
+
+                {/* Delivery Zone Matrix Selector (Hidden for Dine-In and Pickup) */}
+                {!isDineIn && !isPickup && activeDeliveryZones.length > 0 && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                        منطقة / حي التوصيل <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      {selectedZone?.estimatedTime && (
+                        <span style={{ fontSize: '11px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 600 }}>
+                          التوصيل المتوقع: {selectedZone.estimatedTime}
+                        </span>
+                      )}
+                    </div>
+
+                    <select
+                      value={selectedZone?.id ?? ''}
+                      onChange={(e) => handleZoneSelect(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '12.5px',
+                        outline: 'none',
+                        background: '#f8fafc',
+                        fontFamily: 'inherit',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {activeDeliveryZones.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ${getGlobalCurrencySymbol()}`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
-              </div>
 
-              {/* Notice if credit_card is selected */}
-              {paymentMethod === 'credit_card' && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    background: '#f0f9ff',
-                    border: '1px solid #bae6fd',
-                    borderRadius: '10px',
-                    padding: '10px 14px',
-                    fontSize: '12px',
-                    color: '#0369a1',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                  }}
-                >
-                  <div style={{ fontWeight: 800 }}>
-                    دفع إلكتروني فوري وآمن:
-                  </div>
-                  <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
-                    سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) ببطاقتك البنكية فور الضغط على إرسال الطلب.
-                  </div>
-                </div>
-              )}
-
-              {/* Notice if instapay/wallet is selected */}
-              {paymentMethod === 'instapay_wallet' && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '10px',
-                    padding: '10px 14px',
-                    fontSize: '12px',
-                    color: '#166534',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                  }}
-                >
-                  <div style={{ fontWeight: 800 }}>
-                    رقم التحويل (إنستاباي / كاش):{' '}
-                    <span style={{ direction: 'ltr', display: 'inline-block', color: brandColor, fontWeight: 900 }}>
-                      {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
-                    </span>
-                  </div>
-                  <div style={{ color: '#15803d', fontSize: '11px', lineHeight: '1.4' }}>
-                    يرجى تحويل مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Automatic Free Shipping Callout (Hidden for Dine-In) */}
-            {!isDineIn && info?.freeShippingEnabled && (
-              <div>
-                {isAutoFreeShipping ? (
+                {/* Customer Address, Pickup Notice, or Dine-In Table Badge */}
+                {isDineIn ? (
                   <div
                     style={{
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
+                      background: '#f0fdf4',
+                      border: '1.5px solid #86efac',
                       borderRadius: '8px',
-                      padding: '8px 12px',
+                      padding: '10px 12px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      color: '#065f46',
-                      fontSize: '12px',
-                      fontWeight: 700,
+                      gap: '10px',
                     }}
                   >
-                    <span>
-                      مبروك! مشترياتك تجاوزت {freeShippingThreshold} <CurrencySymbol /> وحصلت على شحن مجاني (توفير {rawDeliveryFee.toFixed(0)} <CurrencySymbol />).
-                    </span>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <UtensilsIcon size={18} color="#166534" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
+                        طلب مباشر من الصالة / الكافيه
+                      </div>
+                      <div style={{ color: '#15803d', fontSize: '11.5px' }}>
+                        طاولة رقم: <strong>{tableNumber || 'غير محدد'}</strong>
+                      </div>
+                    </div>
                   </div>
-                ) : freeShippingRemaining > 0 ? (
+                ) : isPickup ? (
                   <div
                     style={{
-                      background: '#f0f9ff',
-                      border: '1px solid #bae6fd',
+                      background: '#eff6ff',
+                      border: '1.5px solid #93c5fd',
                       borderRadius: '8px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <PackageIcon size={18} color="#1e40af" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '12.5px' }}>
+                        استلام ذاتي من الفرع (Click & Collect)
+                      </div>
+                      <div style={{ color: '#2563eb', fontSize: '11.5px' }}>
+                        تجهيز الطلب للاستلام المباشر بدون رسوم شحن.
+                      </div>
+                    </div>
+                  </div>
+                ) : canExpress ? null : (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                      عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                      onBlur={recordAbandonedCartSilent}
+                      placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border:
+                          customerAddress.length > 0
+                            ? addressStatus.isValid
+                              ? '1.5px solid #22c55e'
+                              : '1.5px solid #f87171'
+                            : '1.5px solid #cbd5e1',
+                        fontSize: '12.5px',
+                        outline: 'none',
+                        background: '#f8fafc',
+                        fontFamily: 'inherit',
+                        resize: 'none',
+                        minHeight: '48px',
+                        lineHeight: '1.4',
+                        transition: 'border-color 0.2s ease',
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Delivery Notes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                    ملاحظات خاصة للأصناف أو التوصيل (اختياري)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customerNotes}
+                    onChange={(e) => setCustomerNotes(e.target.value)}
+                    placeholder="اكتب أي تعليمات لتحضير طلبك أو للتوصيل (اختياري)..."
+                    style={{
+                      width: '100%',
                       padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      outline: 'none',
+                      background: '#f8fafc',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                      minHeight: '48px',
+                      lineHeight: '1.4',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Column 2: Payment, Promo, Summary */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Payment Method Selector */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                    طريقة الدفع
+                  </label>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: info?.onlinePaymentEnabled ? 'repeat(auto-fit, minmax(110px, 1fr))' : '1fr 1fr',
+                      gap: '8px',
+                    }}
+                  >
+                    {/* COD Option */}
+                    <div
+                      onClick={() => setPaymentMethod('cod')}
+                      style={{
+                        border: paymentMethod === 'cod' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
+                        background: paymentMethod === 'cod' ? '#f8fafc' : '#ffffff',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                          {isDineIn ? 'الدفع في الصالة' : fulfillmentType === 'pickup' ? 'عند الاستلام' : 'الدفع عند الاستلام'}
+                        </span>
+                        <div
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            border: paymentMethod === 'cod' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
+                            background: '#ffffff',
+                          }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
+                        {isDineIn
+                          ? 'نقداً أو بالبطاقة'
+                          : fulfillmentType === 'pickup'
+                          ? 'نقداً أو بالفيزا بالفرع'
+                          : 'نقداً للمندوب'}
+                      </span>
+                    </div>
+
+                    {/* Pre-payment Option */}
+                    <div
+                      onClick={() => setPaymentMethod('instapay_wallet')}
+                      style={{
+                        border: paymentMethod === 'instapay_wallet' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
+                        background: paymentMethod === 'instapay_wallet' ? '#f8fafc' : '#ffffff',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                          إنستاباي / محفظة
+                        </span>
+                        <div
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            border: paymentMethod === 'instapay_wallet' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
+                            background: '#ffffff',
+                          }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
+                        تحويل إلكتروني مسبق
+                      </span>
+                    </div>
+
+                    {/* Credit Card Online Payment Option */}
+                    {info?.onlinePaymentEnabled && (
+                      <div
+                        onClick={() => setPaymentMethod('credit_card')}
+                        style={{
+                          border: paymentMethod === 'credit_card' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
+                          background: paymentMethod === 'credit_card' ? '#f8fafc' : '#ffffff',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                            بطاقة بنكية
+                          </span>
+                          <div
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              border: paymentMethod === 'credit_card' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
+                              background: '#ffffff',
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
+                          فيزا / ماستركارد / ميزة
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notice if credit_card is selected */}
+                  {paymentMethod === 'credit_card' && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        background: '#f0f9ff',
+                        border: '1px solid #bae6fd',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        fontSize: '11.5px',
+                        color: '#0369a1',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800 }}>
+                        دفع إلكتروني فوري وآمن:
+                      </div>
+                      <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
+                        سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) ببطاقتك البنكية فور الضغط على إرسال الطلب.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notice if instapay/wallet is selected */}
+                  {paymentMethod === 'instapay_wallet' && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        fontSize: '11.5px',
+                        color: '#166534',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800 }}>
+                        رقم التحويل (إنستاباي / كاش):{' '}
+                        <span style={{ direction: 'ltr', display: 'inline-block', color: brandColor, fontWeight: 900 }}>
+                          {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
+                        </span>
+                      </div>
+                      <div style={{ color: '#15803d', fontSize: '11px', lineHeight: '1.4' }}>
+                        يرجى تحويل مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Automatic Free Shipping Callout (Hidden for Dine-In) */}
+                {!isDineIn && info?.freeShippingEnabled && (
+                  <div>
+                    {isAutoFreeShipping ? (
+                      <div
+                        style={{
+                          background: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          color: '#065f46',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span>
+                          مبروك! مشترياتك تجاوزت {freeShippingThreshold} <CurrencySymbol /> وحصلت على شحن مجاني{rawDeliveryFee > 0 ? <> (توفير {rawDeliveryFee.toFixed(0)} <CurrencySymbol />)</> : ''}.
+                        </span>
+                      </div>
+                    ) : freeShippingRemaining > 0 ? (
+                      <div
+                        style={{
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          color: '#0369a1',
+                          fontSize: '11.5px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <TruckIcon size={14} color="#0284c7" />
+                          <span>
+                            أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> إضافية للحصول على شحن مجاني!
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          عرض الشحن
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Promo Code Input Box */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '9px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                      كود الخصم أو الكوبون:
+                    </label>
+                    {appliedCoupon?.ok && (
+                      <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
+                        <span>تم التطبيق</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {appliedCoupon?.ok ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: '#ecfdf5',
+                        border: '1px solid #86efac',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <TagIcon size={14} color="#166534" strokeWidth={2} />
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
+                          {appliedCoupon.code}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#15803d', marginRight: '4px' }}>
+                          {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#dc2626',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '2px 4px',
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input
+                          type="text"
+                          value={couponCodeInput}
+                          onChange={(e) => {
+                            setCouponCodeInput(e.target.value.toUpperCase().replace(/\s+/g, ''));
+                            setCouponError('');
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                          placeholder="أدخل كود الكوبون هنا..."
+                          style={{
+                            flex: 1,
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            border: couponError ? '1.5px solid #f87171' : '1px solid #cbd5e1',
+                            fontSize: '12px',
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            direction: 'ltr',
+                            textAlign: 'right',
+                            background: '#ffffff',
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading || !couponCodeInput.trim()}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            background: brandColor,
+                            color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: couponLoading || !couponCodeInput.trim() ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {couponLoading ? 'جاري...' : 'تطبيق'}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <span style={{ display: 'block', fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: 600 }}>
+                          {couponError}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Total Summary */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                    <span>مجموع الأصناف:</span>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
+                  </div>
+
+                  {bogoSavings > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>
+                      <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
+                      <strong style={{ fontWeight: 800 }}>- {bogoSavings.toFixed(0)} <CurrencySymbol /></strong>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                    <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
+                    {isDineIn ? (
+                      <strong style={{ color: '#166534' }}>مجاناً (طلب صالة)</strong>
+                    ) : effectiveDeliveryFee === 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {rawDeliveryFee > 0 && (
+                          <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{rawDeliveryFee.toFixed(0)} ج</span>
+                        )}
+                        <strong style={{ color: '#166534' }}>توصيل مجاني</strong>
+                      </div>
+                    ) : (
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} <CurrencySymbol /></span>
+                    )}
+                  </div>
+
+                  {discountAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#16a34a' }}>
+                      <span>خصم الكوبون ({appliedCoupon?.code}):</span>
+                      <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} <CurrencySymbol /></strong>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      color: '#0369a1',
-                      fontSize: '11.5px',
+                      paddingTop: '6px',
+                      marginTop: '2px',
+                      borderTop: '1px dashed #cbd5e1',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <TruckIcon size={14} color="#0284c7" />
-                      <span>
-                        أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} ${getGlobalCurrencySymbol()}</strong> إضافية للحصول على شحن مجاني!
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '10.5px',
-                        background: '#e0f2fe',
-                        color: '#0369a1',
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      عرض الشحن
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                      المبلغ الإجمالي للدفع:
+                    </span>
+                    <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                      {total.toFixed(0)} <CurrencySymbol />
                     </span>
                   </div>
-                ) : null}
-              </div>
-            )}
+                </div>
 
-            {/* Promo Code Input Box */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '10px 12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                  كود الخصم أو الكوبون (Promo Code):
-                </label>
-                {appliedCoupon?.ok && (
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
-                    <span>تم التطبيق</span>
-                  </span>
-                )}
-              </div>
-
-              {appliedCoupon?.ok ? (
-                <div
+                {/* Remember details checkbox (default checked) */}
+                <label
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: '#ecfdf5',
-                    border: '1px solid #86efac',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    color: '#334155',
+                    userSelect: 'none',
+                    background: '#f8fafc',
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <TagIcon size={14} color="#166534" strokeWidth={2} />
-                    <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
-                      {appliedCoupon.code}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#15803d', marginRight: '4px' }}>
-                      {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoupon}
+                  <input
+                    type="checkbox"
+                    checked={rememberDevice}
+                    onChange={(e) => setRememberDevice(e.target.checked)}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#dc2626',
-                      fontSize: '11px',
-                      fontWeight: 700,
+                      width: '14px',
+                      height: '14px',
+                      accentColor: brandColor,
                       cursor: 'pointer',
-                      padding: '2px 4px',
+                      flexShrink: 0,
                     }}
-                  >
-                    إلغاء
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <input
-                      type="text"
-                      value={couponCodeInput}
-                      onChange={(e) => {
-                        setCouponCodeInput(e.target.value.toUpperCase().replace(/\s+/g, ''));
-                        setCouponError('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleApplyCoupon();
-                        }
-                      }}
-                      placeholder="أدخل كود الكوبون هنا..."
-                      style={{
-                        flex: 1,
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: couponError ? '1.5px solid #f87171' : '1px solid #cbd5e1',
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        direction: 'ltr',
-                        textAlign: 'right',
-                        background: '#ffffff',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCodeInput.trim()}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        background: brandColor,
-                        color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        border: 'none',
-                        cursor: couponLoading || !couponCodeInput.trim() ? 'not-allowed' : 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {couponLoading ? 'جاري...' : 'تطبيق'}
-                    </button>
-                  </div>
-                  {couponError && (
-                    <span style={{ display: 'block', fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: 600 }}>
-                      {couponError}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Order Total Summary */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
-                <span>مجموع الأصناف:</span>
-                <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} ${getGlobalCurrencySymbol()}</span>
-              </div>
-
-              {bogoSavings > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>
-                  <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
-                  <strong style={{ fontWeight: 800 }}>- {bogoSavings.toFixed(0)} <CurrencySymbol /></strong>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
-                <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
-                {isDineIn ? (
-                  <strong style={{ color: '#16a34a' }}>مجاناً (طلب صالة)</strong>
-                ) : effectiveDeliveryFee === 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {rawDeliveryFee > 0 && (
-                      <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{rawDeliveryFee.toFixed(0)} ج</span>
-                    )}
-                    <strong style={{ color: '#16a34a' }}>توصيل مجاني</strong>
-                  </div>
-                ) : (
-                  <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} <CurrencySymbol /></span>
-                )}
-              </div>
-
-              {discountAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#16a34a' }}>
-                  <span>خصم الكوبون ({appliedCoupon?.code}):</span>
-                  <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} <CurrencySymbol /></strong>
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingTop: '6px',
-                  marginTop: '2px',
-                  borderTop: '1px dashed #cbd5e1',
-                }}
-              >
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                  المبلغ الإجمالي للدفع:
-                </span>
-                <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                  {total.toFixed(0)} ${getGlobalCurrencySymbol()}
-                </span>
+                  />
+                  <span style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                    تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
+                  </span>
+                </label>
               </div>
             </div>
-
-            {/* Remember details checkbox (default checked) */}
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                fontSize: '11px',
-                color: '#334155',
-                userSelect: 'none',
-                background: '#f8fafc',
-                padding: '7px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={rememberDevice}
-                onChange={(e) => setRememberDevice(e.target.checked)}
-                style={{
-                  width: '14px',
-                  height: '14px',
-                  accentColor: brandColor,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
-                تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
-              </span>
-            </label>
-          </div>
         </div>
 
         {/* Sticky Bottom Actions Bar (Always visible & accessible on all screens) */}

@@ -5,6 +5,7 @@ import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { StorefrontFreeShippingBar } from './StorefrontFreeShippingBar';
 import { calculateCartSubtotal, calculateCartLinePricing } from '../lib/storefront-cart-pricing';
+import { resolveProductPhoto } from '../lib/storefront-photo-matcher';
 
 interface StorefrontCartDrawerProps {
   isOpen: boolean;
@@ -183,7 +184,9 @@ export function StorefrontCartDrawer({
               </p>
             </div>
           ) : (
-            cartItems.map((item) => (
+            cartItems.map((item) => {
+              const photo = item.product.imageUrl || resolveProductPhoto(item.product.name, item.product.categoryName)?.url;
+              return (
               <div
                 key={item.product.id}
                 style={{
@@ -211,9 +214,9 @@ export function StorefrontCartDrawer({
                     border: '1px solid #e2e8f0',
                   }}
                 >
-                  {item.product.imageUrl ? (
+                  {photo ? (
                     <img
-                      src={item.product.imageUrl}
+                      src={photo}
                       alt={item.product.name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       onError={(e) => (e.currentTarget.style.display = 'none')}
@@ -243,16 +246,18 @@ export function StorefrontCartDrawer({
                     return (
                       <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                         <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                          {linePricing.lineTotal.toFixed(0)} ج
+                          {linePricing.lineTotal.toFixed(0)} <CurrencySymbol />
                         </span>
                         {linePricing.savings > 0 && (
                           <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
-                            {linePricing.originalLineTotal.toFixed(0)} ج
+                            {linePricing.originalLineTotal.toFixed(0)} <CurrencySymbol />
                           </span>
                         )}
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          ({linePricing.unitPrice.toFixed(0)} × {item.quantity})
-                        </span>
+                        {item.quantity > 1 && (
+                          <span style={{ fontSize: '10.5px', color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                            ({linePricing.unitPrice.toFixed(0)} × {item.quantity})
+                          </span>
+                        )}
                         {linePricing.isBogoApplied && (
                           <span style={{ fontSize: '9.5px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
                             {linePricing.offerBadge}
@@ -328,8 +333,8 @@ export function StorefrontCartDrawer({
                   </button>
                 </div>
               </div>
-            ))
-          )}
+            );
+          }))}
         </div>
 
         {/* Drawer Footer: Summary & Checkout Button */}

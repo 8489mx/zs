@@ -16,7 +16,7 @@ import {
 import { IconStar, IconFlame } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
-import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { generatePremiumProductSvg, resolveProductPhoto } from '../lib/storefront-photo-matcher';
 import { getContrastTextColor } from '../lib/storefront-theme-contrast';
 
 interface StorefrontProductQuickViewModalProps {
@@ -47,19 +47,36 @@ export function StorefrontProductQuickViewModal({
   const [activePhoto, setActivePhoto] = useState('');
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
 
+  // Escape key closes the QuickView modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (product) {
       setQty(1);
       setCopied(false);
       setAddedAnimation(false);
       const gallery = (product as any).gallery || [];
-      setActivePhoto(gallery[0] || product.imageUrl || '');
+      const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
+      const defaultPhoto = gallery[0] || product.imageUrl || autoPhoto.url || '';
+      setActivePhoto(defaultPhoto);
       const variants = (product as any).variants || [];
       setSelectedVariantIndex(variants.length > 0 ? 0 : null);
     }
   }, [product]);
 
   if (!isOpen || !product) return null;
+
+  const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
+  const displayPrimaryPhoto = product.imageUrl || autoPhoto.url || '';
 
   const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
   const brandSurfaceColor = info?.brandSurfaceColor || 'var(--storefront-surface-color, #f8fafc)';
@@ -69,13 +86,14 @@ export function StorefrontProductQuickViewModal({
 
   const gallery: string[] = (product as any).gallery && (product as any).gallery.length > 0
     ? (product as any).gallery
-    : (product.imageUrl ? [product.imageUrl] : []);
+    : (displayPrimaryPhoto ? [displayPrimaryPhoto] : []);
 
   const variants = getProductVariants(product);
   const selectedVariant = selectedVariantIndex !== null ? variants[selectedVariantIndex] || null : null;
 
   // Same rule as the server's pricing engine (SF-4), so the cart shows what checkout will charge.
   const basePrice = resolveVariantUnitPrice(product.price, selectedVariant) ?? product.price;
+  const isZeroPrice = Number(basePrice || 0) <= 0;
   const cartHasOtherVariant = Boolean(
     cartLine && (cartLine.variantName || null) !== (selectedVariant?.name || null),
   );
@@ -103,7 +121,7 @@ export function StorefrontProductQuickViewModal({
   };
 
   const handleAdd = () => {
-    if (!inStock) return;
+    if (!inStock || isZeroPrice) return;
     const finalProduct = buildCartProduct(product, selectedVariant?.name);
     if (!finalProduct) return;
 
@@ -239,31 +257,45 @@ export function StorefrontProductQuickViewModal({
             <div
               style={{
                 width: '100%',
-                height: '240px',
-                maxHeight: '35vh',
+                aspectRatio: '1 / 1',
+                maxHeight: '300px',
+                maxWidth: '300px',
+                margin: '0 auto',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#ffffff',
                 border: '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
+                padding: '10px',
+                boxSizing: 'border-box',
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
               }}
             >
-              {activePhoto ? (
+              {activePhoto || displayPrimaryPhoto ? (
                 <img
-                  src={activePhoto}
+                  src={activePhoto || displayPrimaryPhoto}
                   alt={product.name}
                   onError={(e) => {
                     e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
                   }}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    transition: 'transform 0.25s ease',
+                  }}
                 />
               ) : (
-                <div style={{ color: '#94a3b8', fontSize: '36px', fontWeight: 800 }}>
-                  {product.icon || product.name.charAt(0)}
-                </div>
+                <img
+                  src={generatePremiumProductSvg(product.name, product.categoryName)}
+                  alt={product.name}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                />
               )}
 
               {/* Urgency Badge overlay on image */}
@@ -293,7 +325,7 @@ export function StorefrontProductQuickViewModal({
 
             {/* Gallery Thumbnails (if multiple images) */}
             {gallery.length > 1 && (
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', justifyContent: 'center' }}>
                 {gallery.map((imgUrl, i) => (
                   <button
                     key={i}
@@ -346,51 +378,79 @@ export function StorefrontProductQuickViewModal({
             {/* Price & Stock status */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
-                  {basePrice.toLocaleString()}
-                </span>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
-                  <CurrencySymbol />
-                </span>
-                {product.hasDiscount && product.originalPrice && product.originalPrice > product.price && (
-                    <span style={{ fontSize: '13.5px', color: '#94a3b8', textDecoration: 'line-through', marginInlineStart: '4px' }}>
-                      {product.originalPrice.toLocaleString()} <CurrencySymbol />
+                {isZeroPrice ? (
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>
+                    السعر عند التواصل
+                  </span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
+                      {basePrice.toLocaleString()}
                     </span>
-                )}
-                {(product.hasDiscount || product.offerType === 'bogo') && product.offerBadge && (
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        background: 'var(--storefront-secondary-color, #e11d48)',
-                        color: 'var(--storefront-secondary-contrast, #ffffff)',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        marginInlineStart: '4px',
-                      }}
-                    >
-                      {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : 'عرض خاص')}
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
+                      <CurrencySymbol />
                     </span>
+                    {product.hasDiscount && product.originalPrice && product.originalPrice > product.price && (
+                      <span style={{ fontSize: '13.5px', color: '#94a3b8', textDecoration: 'line-through', marginInlineStart: '4px' }}>
+                        {product.originalPrice.toLocaleString()} <CurrencySymbol />
+                      </span>
+                    )}
+                    {(product.hasDiscount || product.offerType === 'bogo') && product.offerBadge && (
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          background: 'var(--storefront-secondary-color, #e11d48)',
+                          color: 'var(--storefront-secondary-contrast, #ffffff)',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          marginInlineStart: '4px',
+                        }}
+                      >
+                        {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : 'عرض خاص')}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
-              <span
-                style={{
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  padding: '3px 9px',
-                  borderRadius: '20px',
-                  backgroundColor: inStock ? '#dcfce7' : '#f8fafc',
-                  color: inStock ? '#15803d' : '#64748b',
-                  border: inStock ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                {inStock ? <CheckCircleIcon size={13} color="#16a34a" /> : <ClockIcon size={13} color="#64748b" />}
-                <span>{inStock ? (product.stockQty >= 999 ? 'متوفر للطلب الفوري' : `متوفر بالمخزون (${product.stockQty})`) : 'ستتوفر قريباً'}</span>
-              </span>
+              {isZeroPrice ? (
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    padding: '3px 9px',
+                    borderRadius: '20px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <ClockIcon size={13} color="#475569" />
+                  <span>تواصل لمعرفة السعر</span>
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    padding: '3px 9px',
+                    borderRadius: '20px',
+                    backgroundColor: inStock ? '#dcfce7' : '#f8fafc',
+                    color: inStock ? '#15803d' : '#64748b',
+                    border: inStock ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  {inStock ? <CheckCircleIcon size={13} color="#16a34a" /> : <ClockIcon size={13} color="#64748b" />}
+                  <span>{inStock ? (product.stockQty >= 999 ? 'متوفر للطلب الفوري' : `متوفر بالمخزون (${product.stockQty})`) : 'ستتوفر قريباً'}</span>
+                </span>
+              )}
             </div>
 
             {/* Product Variants (e.g. Size / Options) */}
@@ -561,120 +621,164 @@ export function StorefrontProductQuickViewModal({
             width: '100%',
           }}
         >
-          {/* Quantity Stepper */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '2px',
-              flexShrink: 0,
-            }}
-          >
-            <button
-              type="button"
-              disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
-              onClick={() => setQty((prev) => prev + 1)}
+          {isZeroPrice ? (
+            <a
+              href={
+                info?.whatsapp
+                  ? `https://wa.me/${(info.whatsapp || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن سعر وتوفر صنف: ${product.name}`)}`
+                  : '#'
+              }
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#ffffff',
+                width: '100%',
+                height: '42px',
+                borderRadius: '8px',
+                backgroundColor: '#f0fdf4',
+                color: '#166534',
+                border: '1.5px solid #bbf7d0',
+                fontSize: '13.5px',
+                fontWeight: 800,
+                textDecoration: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
-                opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                fontWeight: 800,
-                fontSize: '15px',
-                color: '#0f172a',
+                gap: '8px',
+                boxSizing: 'border-box',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#dcfce7';
+                e.currentTarget.style.borderColor = '#86efac';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0fdf4';
+                e.currentTarget.style.borderColor = '#bbf7d0';
               }}
             >
-              <PlusIcon size={14} color="#0f172a" />
-            </button>
-            <span
-              style={{
-                minWidth: '28px',
-                textAlign: 'center',
-                fontSize: '14px',
-                fontWeight: 800,
-                color: '#0f172a',
-              }}
-            >
-              {qty}
-            </span>
-            <button
-              type="button"
-              disabled={qty <= 1 || !inStock}
-              onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: qty <= 1 || !inStock ? 'not-allowed' : 'pointer',
-                opacity: qty <= 1 ? 0.4 : 1,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                fontWeight: 800,
-                fontSize: '15px',
-                color: '#0f172a',
-              }}
-            >
-              -
-            </button>
-          </div>
+              <svg width="18" height="18" fill="#25d366" viewBox="0 0 24 24">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
+              </svg>
+              <span>استفسر عن السعر عبر واتساب</span>
+            </a>
+          ) : (
+            <>
+              {/* Quantity Stepper */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '2px',
+                  flexShrink: 0,
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
+                  onClick={() => setQty((prev) => prev + 1)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
+                    opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    fontWeight: 800,
+                    fontSize: '15px',
+                    color: '#0f172a',
+                  }}
+                >
+                  <PlusIcon size={14} color="#0f172a" />
+                </button>
+                <span
+                  style={{
+                    minWidth: '28px',
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                  }}
+                >
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  disabled={qty <= 1 || !inStock}
+                  onClick={() => setQty((prev) => Math.max(1, prev - 1))}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: qty <= 1 || !inStock ? 'not-allowed' : 'pointer',
+                    opacity: qty <= 1 ? 0.4 : 1,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    fontWeight: 800,
+                    fontSize: '15px',
+                    color: '#0f172a',
+                  }}
+                >
+                  -
+                </button>
+              </div>
 
-          {/* Add to Cart CTA */}
-          <button
-            type="button"
-            disabled={!inStock}
-            onClick={handleAdd}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              height: '42px',
-              borderRadius: '8px',
-              backgroundColor: inStock ? brandColor : '#f8fafc',
-              color: inStock ? (brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)') : '#64748b',
-              border: inStock ? 'none' : '1px solid #e2e8f0',
-              fontSize: '13.5px',
-              fontWeight: 800,
-              cursor: inStock ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxShadow: inStock ? '0 2px 8px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
-              transition: 'all 0.15s ease',
-              whiteSpace: 'nowrap',
-              padding: '0 10px',
-            }}
-          >
-            {addedAnimation ? (
-              <>
-                <CheckIcon size={16} color="#ffffff" />
-                <span>تمت الإضافة بنجاح!</span>
-              </>
-            ) : inStock ? (
-              <>
-                <ShoppingBagIcon size={16} color="#ffffff" />
-                <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
-              </>
-            ) : (
-              <>
-                <ClockIcon size={16} color="#64748b" />
-                <span>ستتوفر قريباً</span>
-              </>
-            )}
-          </button>
+              {/* Add to Cart CTA */}
+              <button
+                type="button"
+                disabled={!inStock}
+                onClick={handleAdd}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  height: '42px',
+                  borderRadius: '8px',
+                  backgroundColor: inStock ? brandColor : '#f8fafc',
+                  color: inStock ? (brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)') : '#64748b',
+                  border: inStock ? 'none' : '1px solid #e2e8f0',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  cursor: inStock ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: inStock ? '0 2px 8px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                  padding: '0 10px',
+                }}
+              >
+                {addedAnimation ? (
+                  <>
+                    <CheckIcon size={16} color="#ffffff" />
+                    <span>تمت الإضافة بنجاح!</span>
+                  </>
+                ) : inStock ? (
+                  <>
+                    <ShoppingBagIcon size={16} color="#ffffff" />
+                    <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
+                  </>
+                ) : (
+                  <>
+                    <ClockIcon size={16} color="#64748b" />
+                    <span>ستتوفر قريباً</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

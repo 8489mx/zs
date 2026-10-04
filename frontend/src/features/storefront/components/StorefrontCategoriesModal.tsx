@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconFolder, IconClose, IconSearch, IconShoppingBag } from './StorefrontIcons';
@@ -13,49 +13,56 @@ interface StorefrontCategoriesModalProps {
   onSelectCategory: (id: number | 'all') => void;
 }
 
-function parseCategoryLabel(name: string): { main: string; sub?: string } {
-  if (!name) return { main: 'عام' };
+function parseCategory(name: string): { group: string; label: string } {
+  if (!name) return { group: 'أقسام عامة', label: 'عام' };
   const trimmed = name.trim();
   if (trimmed.includes(' - ')) {
     const parts = trimmed.split(' - ').map((s) => s.trim()).filter(Boolean);
     if (parts.length >= 2) {
-      return { main: parts[parts.length - 1], sub: parts.slice(0, -1).join(' - ') };
+      return { group: parts[0], label: parts.slice(1).join(' - ') };
     }
   }
   if (trimmed.includes(' / ')) {
     const parts = trimmed.split(' / ').map((s) => s.trim()).filter(Boolean);
     if (parts.length >= 2) {
-      return { main: parts[parts.length - 1], sub: parts.slice(0, -1).join(' / ') };
+      return { group: parts[0], label: parts.slice(1).join(' / ') };
     }
   }
-  return { main: trimmed };
+  return { group: 'أقسام عامة', label: trimmed };
 }
 
-function getCategoryColorTheme(subOrMain?: string) {
-  const text = (subOrMain || '').toLowerCase();
-  if (text.includes('فلاجشيب') || text.includes('flagship') || text.includes('apple') || text.includes('ايفون') || text.includes('آيفون')) {
-    return { bg: '#f3e8ff', color: '#7e22ce', border: '#e9d5ff' };
+function getFamilyIcon(groupName: string) {
+  const g = groupName.toLowerCase();
+  if (g.includes('صوت') || g.includes('سماع') || g.includes('إكسسوار') || g.includes('اكسسوار') || g.includes('شواحن') || g.includes('كابل')) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+      </svg>
+    );
   }
-  if (text.includes('اقتصادي') || text.includes('شاومي') || text.includes('xiaomi') || text.includes('realme') || text.includes('infinix')) {
-    return { bg: '#fef3c7', color: '#b45309', border: '#fde68a' };
+  if (g.includes('فلاجشيب') || g.includes('flagship') || g.includes('برو') || g.includes('pro')) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    );
   }
-  if (text.includes('إكسسوار') || text.includes('شواحن') || text.includes('كابل') || text.includes('صوت')) {
-    return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
+  if (g.includes('اقتصادي') || g.includes('توفير') || g.includes('مخفّض')) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    );
   }
-  if (text.includes('samsung') || text.includes('سامسونج') || text.includes('honor') || text.includes('oppo')) {
-    return { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd' };
-  }
-  return { bg: '#eef2ff', color: '#3730a3', border: '#c7d2fe' };
-}
-
-function getCategoryMonogram(name: string): string {
-  if (!name) return 'GP';
-  const clean = name.trim();
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) {
-    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-  }
-  return clean.slice(0, 2).toUpperCase();
+  // Default Smartphone
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+  );
 }
 
 export function StorefrontCategoriesModal({
@@ -67,96 +74,125 @@ export function StorefrontCategoriesModal({
   onSelectCategory,
 }: StorefrontCategoriesModalProps) {
   const [modalSearch, setModalSearch] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [activeGroup, setActiveGroup] = useState<string>('');
 
-  const categoryGroups = useMemo(() => {
-    const groups = new Map<string, number>();
-    for (const cat of categories) {
-      const parsed = parseCategoryLabel(cat.name);
-      if (parsed.sub) {
-        groups.set(parsed.sub, (groups.get(parsed.sub) || 0) + 1);
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
       }
-    }
-    if (groups.size < 2) return [];
-    return Array.from(groups.entries()).map(([name, count]) => ({ name, count }));
-  }, [categories]);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
-  const filteredCategories = useMemo(() => {
-    let result = categories;
-    if (selectedGroup !== 'all') {
-      result = result.filter((c) => {
-        const parsed = parseCategoryLabel(c.name);
-        return parsed.sub === selectedGroup;
-      });
+  // Group categories by family
+  const groupedFamilies = useMemo(() => {
+    const map = new Map<string, StorefrontCategory[]>();
+    for (const cat of categories) {
+      const parsed = parseCategory(cat.name);
+      const grp = parsed.group;
+      if (!map.has(grp)) {
+        map.set(grp, []);
+      }
+      map.get(grp)!.push(cat);
     }
+    return Array.from(map.entries()).map(([groupName, cats]) => {
+      const totalCount = cats.reduce((sum, c) => sum + (categoryCounts.get(c.id) || 0), 0);
+      return {
+        groupName,
+        categories: cats,
+        totalCount,
+      };
+    });
+  }, [categories, categoryCounts]);
+
+  // Initialize or keep active group valid
+  useEffect(() => {
+    if (groupedFamilies.length > 0 && !activeGroup) {
+      setActiveGroup(groupedFamilies[0].groupName);
+    }
+  }, [groupedFamilies, activeGroup]);
+
+  // Current items to show in the right detail panel
+  const displayedCategories = useMemo(() => {
     if (modalSearch.trim()) {
       const q = modalSearch.trim().toLowerCase();
-      result = result.filter((c) => c.name.toLowerCase().includes(q));
+      return categories.filter((c) => c.name.toLowerCase().includes(q));
     }
-    return result;
-  }, [categories, modalSearch, selectedGroup]);
+    const targetGroup = activeGroup || (groupedFamilies[0]?.groupName ?? '');
+    const found = groupedFamilies.find((f) => f.groupName === targetGroup);
+    return found ? found.categories : categories;
+  }, [categories, modalSearch, activeGroup, groupedFamilies]);
 
   if (!isOpen) return null;
+
+  const totalAllCount = categoryCounts.get('all') || 0;
+  const currentFamilyObj = groupedFamilies.find((f) => f.groupName === activeGroup);
 
   return (
     <DialogShell
       open={isOpen}
       onClose={onClose}
-      width="min(920px, 96vw)"
+      width="min(1160px, 96vw)"
       ariaLabel="جميع أقسام وتصنيفات المتجر"
     >
       <div
         style={{
           background: '#ffffff',
           width: '100%',
-          maxHeight: '88vh',
+          height: '540px',
+          maxHeight: 'min(540px, 88vh)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           direction: 'rtl',
         }}
       >
-        {/* Header with Search and Group Pills */}
+        {/* Top Header Bar: Clean & Integrated */}
         <div
           style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #e2e8f0',
+            padding: '12px 20px',
+            borderBottom: '1.5px solid #e2e8f0',
             background: '#ffffff',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <IconFolder size={20} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2} />
-              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تصفح أقسام المتجر ({categories.length} قسم)
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={onClose}
+          {/* Title Area - Aligned exactly with 260px sidebar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '240px', minWidth: '240px', boxSizing: 'border-box', flexShrink: 0 }}>
+            <div
               style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: '#f1f5f9',
-                border: 'none',
-                color: '#475569',
-                cursor: 'pointer',
+                background: 'var(--storefront-primary-subtle, #f0f3ff)',
+                color: 'var(--storefront-primary-color, #170e5e)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
-              <IconClose size={15} strokeWidth={2.2} />
-            </button>
+              <IconFolder size={18} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+                تصفح أقسام المتجر
+              </h2>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                {categories.length} قسماً وتصنيفاً معتمداً
+              </span>
+            </div>
           </div>
 
-          {/* Quick Filter Search Input inside Modal */}
-          <div style={{ position: 'relative' }}>
+          {/* Quick Filter Search Input */}
+          <div style={{ position: 'relative', flex: 1, maxWidth: '440px' }}>
             <input
               type="text"
               value={modalSearch}
@@ -167,17 +203,21 @@ export function StorefrontCategoriesModal({
                 padding: '8px 36px 8px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
-                fontSize: '13px',
+                fontSize: '12.5px',
                 background: '#f8fafc',
                 fontFamily: 'inherit',
                 outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s ease',
               }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--storefront-primary-color, #170e5e)')}
+              onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
             />
             <span
               style={{
                 position: 'absolute',
                 top: '50%',
-                right: '12px',
+                right: '11px',
                 transform: 'translateY(-50%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -186,310 +226,480 @@ export function StorefrontCategoriesModal({
             >
               <IconSearch size={15} color="#94a3b8" />
             </span>
-          </div>
-
-          {/* Category Group Family Pills (if multiple families exist) */}
-          {categoryGroups.length > 0 && !modalSearch.trim() && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                overflowX: 'auto',
-                paddingBottom: '2px',
-                scrollbarWidth: 'none',
-              }}
-            >
+            {modalSearch.trim() && (
               <button
                 type="button"
-                onClick={() => setSelectedGroup('all')}
+                onClick={() => setModalSearch('')}
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: '999px',
-                  fontSize: '12px',
-                  fontWeight: 700,
+                  position: 'absolute',
+                  top: '50%',
+                  left: '10px',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
                   border: 'none',
+                  color: '#94a3b8',
                   cursor: 'pointer',
-                  background: selectedGroup === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#f1f5f9',
-                  color: selectedGroup === 'all' ? 'var(--storefront-primary-contrast, #ffffff)' : '#475569',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
+                  fontSize: '11px',
+                  fontWeight: 700,
                 }}
               >
-                الكل ({categories.length})
+                مسح
               </button>
-              {categoryGroups.map((grp) => {
-                const isGrpActive = selectedGroup === grp.name;
-                return (
-                  <button
-                    key={grp.name}
-                    type="button"
-                    onClick={() => setSelectedGroup(grp.name)}
+            )}
+          </div>
+
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              border: 'none',
+              color: '#475569',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+            title="إغلاق (Esc)"
+          >
+            <IconClose size={15} strokeWidth={2.2} />
+          </button>
+        </div>
+
+        {/* Main Two-Column Split Panel Body */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {/* Right Sidebar: Master Category Families (260px) */}
+          <div
+            style={{
+              width: '260px',
+              flexShrink: 0,
+              background: '#f8fafc',
+              borderLeft: '1.5px solid #e2e8f0',
+              padding: '14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* Master Item: All Products Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectCategory('all');
+                  onClose();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: selectedCategoryId === 'all'
+                    ? '1.5px solid var(--storefront-primary-color, #170e5e)'
+                    : '1px solid #e2e8f0',
+                  background: selectedCategoryId === 'all'
+                    ? 'var(--storefront-primary-subtle, #f0f3ff)'
+                    : '#ffffff',
+                  color: '#0f172a',
+                  cursor: 'pointer',
+                  textAlign: 'right',
+                  transition: 'all 0.15s ease',
+                  marginBottom: '6px',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
+                  e.currentTarget.style.transform = 'translateX(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#e2e8f0';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
                     style={{
-                      padding: '5px 12px',
-                      borderRadius: '999px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: isGrpActive ? 'var(--storefront-primary-color, #170e5e)' : '#f1f5f9',
-                      color: isGrpActive ? 'var(--storefront-primary-contrast, #ffffff)' : '#475569',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.15s ease',
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '6px',
+                      background: 'var(--storefront-primary-color, #170e5e)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {grp.name} ({grp.count})
+                    <IconShoppingBag size={14} color="#ffffff" strokeWidth={2.2} />
+                  </div>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800 }}>
+                    جميع المنتجات
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    color: 'var(--storefront-primary-color, #170e5e)',
+                    background: '#f1f5f9',
+                    padding: '2px 6px',
+                    borderRadius: '5px',
+                  }}
+                >
+                  {totalAllCount}
+                </span>
+              </button>
+
+              {/* Sidebar Section Divider */}
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#64748b',
+                  padding: '4px 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span style={{ width: '3px', height: '10px', backgroundColor: '#94a3b8', borderRadius: '2px', display: 'inline-block' }} />
+                <span>فئات وأقسام المتجر</span>
+              </div>
+
+              {/* Category Families List */}
+              {groupedFamilies.map((fam) => {
+                const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
+                return (
+                  <button
+                    key={fam.groupName}
+                    type="button"
+                    onClick={() => {
+                      setModalSearch('');
+                      setActiveGroup(fam.groupName);
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'transparent';
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: isActive
+                        ? '1px solid var(--storefront-primary-color, #170e5e)'
+                        : '1px solid transparent',
+                      background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
+                      color: isActive ? '#ffffff' : '#334155',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      transition: 'all 0.12s ease',
+                      boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
+                        {getFamilyIcon(fam.groupName)}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
+                        {fam.groupName}
+                      </span>
+                    </div>
+
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                        background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
+                        color: isActive ? '#ffffff' : '#475569',
+                      }}
+                    >
+                      {fam.categories.length}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Robust Grid of Categories (Fixed Heights, Brand-First Hierarchy) */}
-        <div
-          style={{
-            padding: '20px',
-            overflowY: 'auto',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: '14px',
-          }}
-        >
-          {/* Card: All Categories */}
-          {!modalSearch && selectedGroup === 'all' && (
+          {/* Left Detail Panel: Dedicated Category Cards Grid */}
+          <div
+            style={{
+              flex: 1,
+              padding: '18px 22px',
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Active Group Header Bar */}
             <div
-              onClick={() => {
-                onSelectCategory('all');
-                onClose();
-              }}
               style={{
-                borderRadius: '12px',
-                border: selectedCategoryId === 'all' ? '2px solid var(--storefront-primary-color, #170e5e)' : '1px solid #e2e8f0',
-                background: selectedCategoryId === 'all' ? 'var(--storefront-primary-subtle, #f0f3ff)' : '#f8fafc',
-                padding: '14px',
-                height: '136px',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                justifyContent: 'space-between',
+                paddingBottom: '12px',
+                marginBottom: '14px',
+                borderBottom: '1px solid #f1f5f9',
+                flexShrink: 0,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <div
-                style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '50%',
-                  background: 'var(--storefront-primary-color, #170e5e)',
-                  color: 'var(--storefront-primary-contrast, #ffffff)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '8px',
-                }}
-              >
-                <IconShoppingBag size={20} color="var(--storefront-primary-contrast, #ffffff)" strokeWidth={2} />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      width: '3px',
+                      height: '14px',
+                      backgroundColor: 'var(--storefront-primary-color, #170e5e)',
+                      borderRadius: '2px',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span>
+                    {modalSearch.trim()
+                      ? `نتائج البحث عن «${modalSearch}»`
+                      : activeGroup || 'أقسام المتجر'}
+                  </span>
+                </h3>
+                <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
+                  {modalSearch.trim()
+                    ? `تم العثور على ${displayedCategories.length} قسماً مطابقاً للبحث`
+                    : `اختر الماركة أو القسم لتصفح الأصناف المعروضة (${displayedCategories.length} تصنيف متاح)`}
+                </span>
               </div>
-              <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', marginBottom: '2px' }}>
-                جميع المنتجات
-              </span>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                {categoryCounts.get('all') || 0} صنف
-              </span>
-            </div>
-          )}
 
-          {/* Each Category Card with Distinct Brand-First Layout */}
-          {filteredCategories.map((cat) => {
-            const count = categoryCounts.get(cat.id) || 0;
-            const isSelected = selectedCategoryId === cat.id;
-            const parsed = parseCategoryLabel(cat.name);
-            const colorTheme = getCategoryColorTheme(parsed.sub || parsed.main);
-            const photoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
-            const hasRealPhoto = Boolean(cat.imageUrl || (photoUrl && !photoUrl.startsWith('data:image/svg')));
-
-            return (
-              <div
-                key={cat.id}
-                onClick={() => {
-                  onSelectCategory(cat.id);
-                  onClose();
-                }}
-                style={{
-                  borderRadius: '12px',
-                  border: isSelected ? '2px solid var(--storefront-primary-color, #170e5e)' : '1px solid #e2e8f0',
-                  background: '#ffffff',
-                  height: '136px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  position: 'relative',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(0,0,0,0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
-                }}
-              >
-                {/* Photo / Distinct Squircle Badge Container */}
-                <div
+              {!modalSearch.trim() && currentFamilyObj && (
+                <span
                   style={{
-                    width: '100%',
-                    height: '82px',
-                    minHeight: '82px',
-                    maxHeight: '82px',
-                    flexShrink: 0,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    background: hasRealPhoto ? '#f1f5f9' : '#f8fafc',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#475569',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
                   }}
                 >
-                  {hasRealPhoto ? (
-                    <>
-                      <img
-                        src={photoUrl}
-                        alt={cat.name}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
-                        }}
+                  إجمالي {currentFamilyObj.totalCount} صنف
+                </span>
+              )}
+            </div>
+
+            {/* Grid of Categories - 5 columns for 5 items, else 4 columns */}
+            {displayedCategories.length > 0 ? (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: displayedCategories.length === 5 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)',
+                  gap: '12px',
+                  flex: 1,
+                  alignContent: 'start',
+                }}
+              >
+                {displayedCategories.map((cat) => {
+                  const count = categoryCounts.get(cat.id) || 0;
+                  const isSelected = selectedCategoryId === cat.id;
+                  const parsed = parseCategory(cat.name);
+                  const photoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
+                  const hasRealPhoto = Boolean(cat.imageUrl || (photoUrl && !photoUrl.startsWith('data:image/svg')));
+
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => {
+                        onSelectCategory(cat.id);
+                        onClose();
+                      }}
+                      style={{
+                        borderRadius: '11px',
+                        border: isSelected
+                          ? '2px solid var(--storefront-primary-color, #170e5e)'
+                          : '1px solid #e2e8f0',
+                        background: isSelected ? 'var(--storefront-primary-subtle, #f0f3ff)' : '#ffffff',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'all 0.16s ease',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
+                        position: 'relative',
+                        height: '136px',
+                        boxSizing: 'border-box',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 14px rgba(15, 23, 42, 0.08)';
+                        e.currentTarget.style.borderColor = isSelected
+                          ? 'var(--storefront-primary-color, #170e5e)'
+                          : '#cbd5e1';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(15, 23, 42, 0.02)';
+                        e.currentTarget.style.borderColor = isSelected
+                          ? 'var(--storefront-primary-color, #170e5e)'
+                          : '#e2e8f0';
+                      }}
+                    >
+                      {/* Photo Container */}
+                      <div
                         style={{
                           width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'linear-gradient(to top, rgba(15,23,42,0.45) 0%, transparent 60%)',
-                        }}
-                      />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          bottom: '4px',
-                          right: '6px',
-                          fontSize: '10.5px',
-                          fontWeight: 800,
-                          color: '#ffffff',
-                          background: 'rgba(0,0,0,0.6)',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {count} صنف
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <div
-                        style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '13px',
-                          background: colorTheme.bg,
-                          border: `1.5px solid ${colorTheme.border}`,
-                          color: colorTheme.color,
+                          height: '84px',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          background: '#f8fafc',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '15px',
-                          fontWeight: 800,
-                          letterSpacing: '-0.2px',
+                          flexShrink: 0,
                         }}
                       >
-                        {getCategoryMonogram(parsed.main)}
-                      </div>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          bottom: '4px',
-                          right: '6px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          color: '#64748b',
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {count} صنف
-                      </span>
-                    </>
-                  )}
-                </div>
+                        {hasRealPhoto ? (
+                          <img
+                            src={photoUrl}
+                            alt={cat.name}
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                            }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--storefront-primary-color, #170e5e)',
+                            }}
+                          >
+                            <IconFolder size={26} color="var(--storefront-primary-color, #170e5e)" strokeWidth={1.8} />
+                          </div>
+                        )}
 
-                {/* Title Container: Brand-First & Clear Hierarchy */}
-                <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '5px 8px',
-                    background: isSelected ? 'var(--storefront-primary-subtle, #f0f3ff)' : '#ffffff',
-                    textAlign: 'center',
-                    gap: '2px',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
-                      lineHeight: '1.25',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                    }}
-                    title={cat.name}
-                  >
-                    {parsed.main}
-                  </span>
-                  {parsed.sub ? (
-                    <span
-                      style={{
-                        fontSize: '10.5px',
-                        fontWeight: 600,
-                        color: '#64748b',
-                        lineHeight: '1.2',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        maxWidth: '100%',
-                      }}
-                    >
-                      {parsed.sub}
-                    </span>
-                  ) : null}
+                        {/* Frosted Count Pill on Image */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: '5px',
+                            left: '6px',
+                            fontSize: '9.5px',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            background: 'rgba(255, 255, 255, 0.94)',
+                            border: '1px solid rgba(226, 232, 240, 0.9)',
+                            backdropFilter: 'blur(4px)',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
+                          }}
+                        >
+                          {count} {count === 1 ? 'صنف' : count === 2 ? 'صنفان' : count <= 10 ? 'أصناف' : 'صنف'}
+                        </span>
+                      </div>
+
+                      {/* Text Container */}
+                      <div
+                        style={{
+                          padding: '6px 8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          gap: '1px',
+                          flex: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 800,
+                            color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
+                            lineHeight: 1.25,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '100%',
+                          }}
+                          title={cat.name}
+                        >
+                          {parsed.label}
+                        </span>
+
+                        {modalSearch.trim() && parsed.group && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              color: '#64748b',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '100%',
+                            }}
+                          >
+                            {parsed.group}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: '#64748b',
+                  textAlign: 'center',
+                  padding: '20px',
+                }}
+              >
+                <IconFolder size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
+                <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#334155' }}>
+                  لا توجد أقسام تطابق «{modalSearch}»
+                </div>
+                <div style={{ fontSize: '12px', marginTop: '4px', color: '#94a3b8' }}>
+                  تأكد من كتابة الكلمة بشكل صحيح أو اضغط على «مسح» للعودة.
                 </div>
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
       </div>
     </DialogShell>

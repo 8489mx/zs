@@ -432,7 +432,7 @@ export function StorefrontCouponsManager() {
                       {/* Min Order */}
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle', color: '#475569' }}>
                         {coupon.minOrderAmount > 0 ? (
-                          <span>{coupon.minOrderAmount} ${getGlobalCurrencySymbol()} فما فوق</span>
+                          <span>{coupon.minOrderAmount} {getGlobalCurrencySymbol()} فما فوق</span>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>بدون حد أدنى</span>
                         )}
@@ -674,7 +674,7 @@ export function StorefrontCouponsManager() {
                         color: formDiscountType === 'fixed' ? '#170e5e' : '#475569',
                       }}
                     >
-                      مبلغ ثابت (${getGlobalCurrencySymbol()})
+                      مبلغ ثابت ({getGlobalCurrencySymbol()})
                     </button>
                     <button
                       type="button"
@@ -728,7 +728,7 @@ export function StorefrontCouponsManager() {
                     {formDiscountType === 'percentage' && (
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                          أقصى خصم (${getGlobalCurrencySymbol()}) [اختياري]:
+                          أقصى خصم ({getGlobalCurrencySymbol()}) [اختياري]:
                         </label>
                         <input
                           type="number"
@@ -754,7 +754,7 @@ export function StorefrontCouponsManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      الحد الأدنى للطلب (${getGlobalCurrencySymbol()}):
+                      الحد الأدنى للطلب ({getGlobalCurrencySymbol()}):
                     </label>
                     <input
                       type="number"

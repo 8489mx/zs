@@ -29,8 +29,7 @@
 
 .storefront-products-grid {
   display: grid;
-  /* 200px بدل 220px: كثافة أعلى بصف واحد إضافي على الشاشات المتوسطة والكبيرة */
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
   gap: 16px;
 }
 
@@ -107,13 +106,13 @@
   cursor: pointer;
   z-index: 10;
   transition: opacity 0.22s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.75;
+  pointer-events: auto;
 }
 
 .storefront-shelf-wrapper:hover .storefront-shelf-floating-arrow,
 .storefront-section-card:hover .storefront-shelf-floating-arrow {
-  opacity: 0.92;
+  opacity: 1;
   pointer-events: auto;
 }
 
@@ -152,13 +151,35 @@
   .storefront-shelf::-webkit-scrollbar {
     display: none;
   }
-  .storefront-shelf-item {
-    flex: 0 0 calc((100% - (16px * 5)) / 6);
-    min-width: 185px;
-    max-width: 230px;
-  }
   .storefront-shelf-arrows {
     display: none !important;
+  }
+}
+
+/* الشاشات الكبيرة (1200px فما فوق): 5 منتجات مريحة وواسعة في الصف بدل 6 متكدسة */
+@media (min-width: 1200px) {
+  .storefront-shelf-item {
+    flex: 0 0 calc((100% - (16px * 4)) / 5);
+    min-width: 215px;
+    max-width: 270px;
+  }
+}
+
+/* الشاشات المتوسطة (900px إلى 1199px): 4 منتجات في الصف */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .storefront-shelf-item {
+    flex: 0 0 calc((100% - (16px * 3)) / 4);
+    min-width: 200px;
+    max-width: 260px;
+  }
+}
+
+/* أجهزة التابلت والشاشات الصغيرة (641px إلى 899px): 3 منتجات في الصف */
+@media (min-width: 641px) and (max-width: 899px) {
+  .storefront-shelf-item {
+    flex: 0 0 calc((100% - (16px * 2)) / 3);
+    min-width: 190px;
+    max-width: 250px;
   }
 }
 

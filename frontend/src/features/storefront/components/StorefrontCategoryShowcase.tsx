@@ -87,8 +87,8 @@ export function StorefrontCategoryShowcase({
             width: max-content !important;
           }
           .storefront-cat-item {
-            min-width: 60px !important;
-            max-width: 74px !important;
+            min-width: 58px !important;
+            max-width: 72px !important;
           }
           .storefront-cat-avatar {
             width: 52px !important;
@@ -133,14 +133,14 @@ export function StorefrontCategoryShowcase({
               width: '66px',
               height: '66px',
               borderRadius: '50%',
-              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : 'var(--storefront-surface-color, #f8fafc)',
+              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#ffffff',
               color: selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #170e5e)',
               border: selectedCategoryId === 'all' ? '2.5px solid var(--storefront-primary-color, #170e5e)' : '1.5px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '6px',
-              boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 6px rgba(0,0,0,0.03)',
+              boxShadow: selectedCategoryId === 'all' ? '0 4px 14px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))' : '0 2px 6px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.2s ease',
             }}
           >
@@ -151,7 +151,7 @@ export function StorefrontCategoryShowcase({
             style={{
               fontSize: '12px',
               fontWeight: 800,
-              color: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#334155',
+              color: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
               textAlign: 'center',
             }}
           >
@@ -191,9 +191,9 @@ export function StorefrontCategoryShowcase({
                   height: '66px',
                   borderRadius: '50%',
                   overflow: 'hidden',
-                  border: isSelected ? '2.5px solid var(--storefront-primary-color, #170e5e)' : '2px solid #e2e8f0',
+                  border: isSelected ? '2.5px solid var(--storefront-primary-color, #170e5e)' : '1.5px solid #e2e8f0',
                   marginBottom: '6px',
-                  boxShadow: isSelected ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 6px rgba(0,0,0,0.03)',
+                  boxShadow: isSelected ? '0 4px 14px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))' : '0 2px 6px rgba(15, 23, 42, 0.04)',
                   position: 'relative',
                   background: 'var(--storefront-surface-color, #f8fafc)',
                   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
@@ -215,15 +215,15 @@ export function StorefrontCategoryShowcase({
                     pointerEvents: 'none',
                     transition: 'transform 0.3s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 />
               </div>
               <span
                 style={{
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#1e293b',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -234,7 +234,7 @@ export function StorefrontCategoryShowcase({
               >
                 {formatSmartCategoryName(cat.name)}
               </span>
-              <span className="storefront-cat-count" style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+              <span className="storefront-cat-count" style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '1px' }}>
                 {count} صنف
               </span>
             </div>
@@ -258,18 +258,19 @@ export function StorefrontCategoryShowcase({
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
             <div
+              className="storefront-cat-avatar"
               style={{
                 width: '66px',
                 height: '66px',
                 borderRadius: '50%',
-                background: 'var(--storefront-surface-color, #f8fafc)',
+                background: '#ffffff',
                 color: 'var(--storefront-primary-color, #170e5e)',
                 border: '1.5px dashed #cbd5e1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '6px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -277,7 +278,7 @@ export function StorefrontCategoryShowcase({
             </div>
             <span
               style={{
-                fontSize: '11.5px',
+                fontSize: '12px',
                 fontWeight: 800,
                 color: 'var(--storefront-primary-color, #170e5e)',
                 textAlign: 'center',
@@ -285,7 +286,7 @@ export function StorefrontCategoryShowcase({
             >
               باقي الأقسام
             </span>
-            <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+            <span className="storefront-cat-count" style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '1px' }}>
               +{remainingCount} قسم
             </span>
           </div>

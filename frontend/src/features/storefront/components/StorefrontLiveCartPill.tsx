@@ -37,45 +37,48 @@ export function StorefrontLiveCartPill({
 
   return (
     <div
+      className="storefront-live-cart-pill"
       style={{
-        background: 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderRadius: '999px',
-        border: '1px solid rgba(255, 255, 255, 0.9)',
-        borderRight: '4.5px solid var(--storefront-primary-color, #170e5e)',
-        boxShadow: '0 12px 32px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
-        padding: '8px 14px',
+        background: '#ffffff',
+        borderRadius: '9999px',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 14px 34px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
+        padding: '8px 15px',
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
         animation: 'liveCartSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         cursor: 'pointer',
         userSelect: 'none',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
+      title="اضغط لعرض تفاصيل السلة"
       onClick={onExpand}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
+        e.currentTarget.style.boxShadow = '0 18px 40px -4px rgba(15, 23, 42, 0.24), 0 6px 16px -2px rgba(15, 23, 42, 0.10)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#cbd5e1';
+        e.currentTarget.style.boxShadow = '0 14px 34px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08)';
+      }}
     >
-      <style>{`
-        @media (max-width: 480px) {
-          .storefront-pill-view-btn {
-            display: none !important;
-          }
-        }
-      `}</style>
       <div
         style={{
-          width: '32px',
-          height: '32px',
+          width: '35px',
+          height: '35px',
           borderRadius: '50%',
-          background: '#eff6ff',
-          color: '#1d4ed8',
+          background: 'var(--storefront-primary-color, #170e5e)',
+          color: 'var(--storefront-primary-contrast, #ffffff)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
           flexShrink: 0,
+          boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))',
         }}
       >
         <span
@@ -83,8 +86,8 @@ export function StorefrontLiveCartPill({
             position: 'absolute',
             top: '-1px',
             right: '-1px',
-            width: '8px',
-            height: '8px',
+            width: '9px',
+            height: '9px',
             borderRadius: '50%',
             background: '#22c55e',
             border: '2px solid #ffffff',
@@ -99,39 +102,19 @@ export function StorefrontLiveCartPill({
       </div>
 
       {/* Exactly 2 clean lines: Line 1 = Items & Pieces, Line 2 = Total */}
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-        <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-          {itemsCount} صنف • {totalQuantity} قطعة
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+          <strong style={{ color: '#0f172a', fontWeight: 800 }}>{itemsCount}</strong> صنف • <strong style={{ color: '#0f172a', fontWeight: 800 }}>{totalQuantity}</strong> قطعة
         </div>
-        <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', whiteSpace: 'nowrap' }}>
-          الإجمالي: {total.toFixed(0)} <CurrencySymbol />
+        <div style={{ fontSize: '13px', fontWeight: 900, color: '#166534', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <span>الإجمالي:</span>
+          <span>{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+          <CurrencySymbol />
         </div>
       </div>
 
       {/* Action Buttons & Dismiss */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: 'auto', flexShrink: 0 }}>
-        <button
-          className="storefront-pill-view-btn"
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onExpand();
-          }}
-          style={{
-            background: '#f1f5f9',
-            border: '1px solid #cbd5e1',
-            color: '#334155',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            padding: '5px 10px',
-            borderRadius: '999px',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          عرض السلة ⤢
-        </button>
-
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto', flexShrink: 0 }}>
         <button
           type="button"
           onClick={(e) => {
@@ -145,14 +128,31 @@ export function StorefrontLiveCartPill({
             border: 'none',
             fontSize: '12px',
             fontWeight: 800,
-            padding: '6px 14px',
+            padding: '7px 15px',
             borderRadius: '999px',
             cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-            boxShadow: isMinOrderMet ? '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))' : 'none',
+            boxShadow: isMinOrderMet ? '0 2px 7px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.28))' : 'none',
             whiteSpace: 'nowrap',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'transform 0.15s ease, filter 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (isMinOrderMet) {
+              e.currentTarget.style.filter = 'brightness(1.1)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isMinOrderMet) {
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
           }}
         >
-          إتمام الطلب ←
+          <span>إتمام الطلب</span>
+          <span style={{ fontSize: '13.5px', lineHeight: 1 }}>←</span>
         </button>
 
         {onDismiss && (
@@ -162,18 +162,15 @@ export function StorefrontLiveCartPill({
               e.stopPropagation();
               onDismiss();
             }}
-            aria-label="إخفاء السلة مؤقتاً"
-            title="إخفاء السلة مؤقتاً"
+            aria-label="تصغير وإخفاء الشريط مؤقتاً"
+            title="تصغير وإخفاء الشريط مؤقتاً"
             style={{
               width: '26px',
               height: '26px',
               minWidth: '26px',
               minHeight: '26px',
-              maxWidth: '26px',
-              maxHeight: '26px',
-              aspectRatio: '1 / 1',
               borderRadius: '50%',
-              background: 'rgba(241, 245, 249, 0.95)',
+              background: '#f1f5f9',
               color: '#64748b',
               border: '1px solid #e2e8f0',
               display: 'inline-flex',
@@ -181,24 +178,23 @@ export function StorefrontLiveCartPill({
               justifyContent: 'center',
               cursor: 'pointer',
               flexShrink: 0,
-              alignSelf: 'center',
               boxSizing: 'border-box',
               padding: 0,
               transition: 'all 0.15s ease',
-              marginRight: '2px',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#e2e8f0';
               e.currentTarget.style.color = '#0f172a';
+              e.currentTarget.style.borderColor = '#cbd5e1';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(241, 245, 249, 0.95)';
+              e.currentTarget.style.background = '#f1f5f9';
               e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.borderColor = '#e2e8f0';
             }}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
         )}

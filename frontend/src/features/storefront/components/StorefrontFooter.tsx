@@ -58,8 +58,8 @@ export function StorefrontFooter({
         }
         .sf-footer-directory {
           display: grid;
-          grid-template-columns: 1.4fr 1fr 1fr 1.2fr;
-          gap: 36px;
+          grid-template-columns: 1.35fr 1.1fr 1fr 1.15fr;
+          gap: 32px;
         }
         .sf-footer-link-btn {
           background: none;
@@ -74,6 +74,7 @@ export function StorefrontFooter({
           display: inline-flex;
           align-items: center;
           gap: 6px;
+          white-space: nowrap;
         }
         .sf-footer-link-btn:hover {
           color: var(--storefront-primary-color, #170e5e);
@@ -83,15 +84,17 @@ export function StorefrontFooter({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 5px 9px;
-          border-radius: 7px;
-          background: #f8fafc;
+          height: 28px;
+          padding: 0 9px;
+          border-radius: 6px;
+          background: #ffffff;
           border: 1px solid #e2e8f0;
           font-size: 11px;
           font-weight: 700;
           color: #334155;
           letter-spacing: 0.2px;
           user-select: none;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
         }
         @media (max-width: 960px) {
           .sf-footer-trust-strip {
@@ -281,22 +284,12 @@ export function StorefrontFooter({
                 </div>
               )}
               <div>
-                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
-                  {brand.title}
+                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{brand.title}</span>
+                  <span title="متجر موثق" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <IconCheckCircle size={13} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.5} />
+                  </span>
                 </h3>
-                <span
-                  style={{
-                    fontSize: '10.5px',
-                    color: 'var(--storefront-primary-color, #170e5e)',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <IconCheckCircle size={11} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
-                  <span>متجر رسمي معتمد</span>
-                </span>
               </div>
             </div>
 
@@ -321,58 +314,40 @@ export function StorefrontFooter({
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>روابط سريعة</span>
             </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 12px' }}>
               {onGoHome && (
-                <li>
-                  <button type="button" onClick={onGoHome} className="sf-footer-link-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    <span>الصفحة الرئيسية</span>
-                  </button>
-                </li>
+                <button type="button" onClick={onGoHome} className="sf-footer-link-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>الرئيسية</span>
+                </button>
               )}
               {onOpenCategories && (
-                <li>
-                  <button type="button" onClick={onOpenCategories} className="sf-footer-link-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    <span>تصفح جميع الأقسام</span>
-                  </button>
-                </li>
+                <button type="button" onClick={onOpenCategories} className="sf-footer-link-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>تصفح الأقسام</span>
+                </button>
               )}
               {onToggleDeals && (
-                <li>
-                  <button type="button" onClick={onToggleDeals} className="sf-footer-link-btn" style={{ color: '#dc2626' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    <span>العروض والتخفيضات المميزة</span>
-                  </button>
-                </li>
+                <button type="button" onClick={onToggleDeals} className="sf-footer-link-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>العروض الحصرية</span>
+                </button>
               )}
               {onOpenOrders && (
-                <li>
-                  <button type="button" onClick={onOpenOrders} className="sf-footer-link-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    <span>متابعة وتتبع طلباتي</span>
-                  </button>
-                </li>
+                <button type="button" onClick={onOpenOrders} className="sf-footer-link-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>تتبع طلباتي</span>
+                </button>
               )}
-              {onOpenCart && (
-                <li>
-                  <button type="button" onClick={onOpenCart} className="sf-footer-link-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    <span>عرض سلة المشتريات</span>
-                  </button>
-                </li>
-              )}
-            </ul>
+            </div>
           </div>
 
           {/* Col 3: Customer Care & WhatsApp */}
@@ -393,27 +368,30 @@ export function StorefrontFooter({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '9px 15px',
-                  borderRadius: '10px',
-                  background: '#25d366',
-                  color: '#ffffff',
+                  padding: '8px 14px',
+                  borderRadius: '9px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #bbf7d0',
+                  color: '#166534',
                   fontSize: '12.5px',
                   fontWeight: 800,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(37, 211, 102, 0.22)',
-                  transition: 'transform 0.15s ease, filter 0.15s ease',
+                  boxShadow: '0 1px 2px rgba(22, 101, 52, 0.05)',
+                  transition: 'all 0.15s ease',
                   marginBottom: '10px',
                 }}
                 onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#dcfce7';
+                  e.currentTarget.style.borderColor = '#86efac';
                   e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.filter = 'brightness(1.06)';
                 }}
                 onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f0fdf4';
+                  e.currentTarget.style.borderColor = '#bbf7d0';
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.filter = 'none';
                 }}
               >
-                <svg width="17" height="17" fill="#ffffff" viewBox="0 0 24 24">
+                <svg width="17" height="17" fill="#16a34a" viewBox="0 0 24 24">
                   <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
                 </svg>
                 <span>محادثة واتساب فورية</span>
@@ -424,17 +402,17 @@ export function StorefrontFooter({
             </div>
           </div>
 
-          {/* Col 4: Payment Badges & SSL - Unified Clean Palette */}
+          {/* Col 4: Payment Badges & SSL */}
           <div>
             <h4 style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>طرق الدفع والضمان</span>
             </h4>
             
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
               {/* Cash On Delivery */}
-              <div className="sf-pay-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="sf-pay-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: '4px' }}>
                   <rect x="2" y="6" width="20" height="12" rx="2" />
                   <circle cx="12" cy="12" r="2" />
                   <path d="M6 12h.01M18 12h.01" />
@@ -443,12 +421,12 @@ export function StorefrontFooter({
               </div>
 
               {/* Visa */}
-              <div className="sf-pay-badge" style={{ fontFamily: 'sans-serif', fontWeight: 900, color: '#1e293b', letterSpacing: '0.5px' }}>
+              <div className="sf-pay-badge" style={{ fontFamily: 'sans-serif', fontWeight: 900, color: '#1e293b', letterSpacing: '0.8px' }}>
                 VISA
               </div>
 
               {/* Mastercard */}
-              <div className="sf-pay-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <div className="sf-pay-badge" style={{ gap: '4px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                   <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#eb001b', display: 'inline-block', opacity: 0.9 }} />
                   <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f79e1b', display: 'inline-block', marginLeft: '-4px', opacity: 0.9 }} />
@@ -467,22 +445,22 @@ export function StorefrontFooter({
               </div>
             </div>
 
-            {/* SSL Badge - Clean Unified Slate */}
+            {/* SSL Badge - Clean Unified Slate Trust Pill */}
             <div
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '8px 12px',
-                borderRadius: '8px',
+                gap: '7px',
+                padding: '6px 12px',
+                borderRadius: '6px',
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
-                color: '#334155',
+                color: '#475569',
                 fontSize: '11px',
                 fontWeight: 700,
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>

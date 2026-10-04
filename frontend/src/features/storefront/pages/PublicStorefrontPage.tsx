@@ -118,6 +118,13 @@ export function PublicStorefrontPage() {
     isHomepageMultiRow,
   } = usePublicStorefront(cleanSlug);
 
+  const handleBannerClick = () => {
+    const target = document.querySelector('.storefront-main-content') || document.querySelector('.storefront-subnav');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   /*
    * رابط التتبع: يسجّل الطلب على هذا الجهاز (فيظهر في «طلباتي» هنا أيضاً) ثم يفتح «طلباتي»،
    * ويمسح التوكن من شريط العنوان فوراً حتى لا يُنسخ أو يُشارك بالخطأ مع رابط المتجر.
@@ -327,6 +334,7 @@ export function PublicStorefrontPage() {
           bannerPosition={info.bannerPosition || 'center'}
           bannerPositions={info.bannerPositions}
           bannerIntervalSeconds={info.bannerIntervalSeconds || 4}
+          onBannerClick={handleBannerClick}
         />
       )}
 

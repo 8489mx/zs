@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
 import { IconSearch } from './StorefrontIcons';
@@ -26,6 +27,13 @@ interface StorefrontFilteredGridProps {
   onQuickView?: (product: StorefrontProduct) => void;
 }
 
+const SORT_OPTIONS: { id: 'featured' | 'price-asc' | 'price-desc' | 'name'; label: string }[] = [
+  { id: 'featured', label: 'المتوفر أولاً (افتراضي)' },
+  { id: 'price-asc', label: 'السعر: من الأقل للأعلى' },
+  { id: 'price-desc', label: 'السعر: من الأعلى للأقل' },
+  { id: 'name', label: 'أبجدياً (أ - ي)' },
+];
+
 export function StorefrontFilteredGrid({
   searchTerm,
   onlyFavorites,
@@ -49,6 +57,27 @@ export function StorefrontFilteredGrid({
   onToggleFavorite,
   onQuickView,
 }: StorefrontFilteredGridProps) {
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isSortOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSortOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSortOpen]);
+
   const currentCategory = categories.find((c) => c.id === selectedCategory);
   const title = searchTerm
     ? `بحث: "${searchTerm}"`
@@ -164,52 +193,145 @@ export function StorefrontFilteredGrid({
           </span>
         </div>
 
-        {/* Compact Sorting Icon Button with Native Select Overlay */}
+        {/* Luxury Custom Sort Popover */}
         <div
-          title="ترتيب المنتجات"
-          style={{
-            position: 'relative',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: '#1e293b',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.15s ease',
-          }}
+          ref={sortRef}
+          style={{ position: 'relative', display: 'inline-flex' }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="21" y1="6" x2="3" y2="6" />
-            <line x1="17" y1="12" x2="7" y2="12" />
-            <line x1="13" y1="18" x2="11" y2="18" />
-          </svg>
-
-          <select
-            value={sortBy}
-            onChange={(e) => onSortChange(e.target.value as any)}
+          <button
+            type="button"
+            onClick={() => setIsSortOpen((prev) => !prev)}
+            title="ترتيب المنتجات"
             aria-label="ترتيب المنتجات"
+            aria-expanded={isSortOpen}
+            aria-haspopup="true"
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              opacity: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              height: '32px',
+              padding: sortBy !== 'featured' ? '0 10px' : '0 8px',
+              borderRadius: '8px',
+              background: isSortOpen || sortBy !== 'featured' ? '#eff6ff' : '#f8fafc',
+              border: `1px solid ${isSortOpen || sortBy !== 'featured' ? '#bfdbfe' : '#cbd5e1'}`,
+              color: isSortOpen || sortBy !== 'featured' ? '#1d4ed8' : '#1e293b',
               cursor: 'pointer',
-              appearance: 'none',
-              WebkitAppearance: 'none',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+              fontSize: '12px',
+              fontWeight: 600,
             }}
           >
-            <option value="featured">المتوفر أولاً (افتراضي)</option>
-            <option value="price-asc">السعر: من الأقل للأعلى</option>
-            <option value="price-desc">السعر: من الأعلى للأقل</option>
-            <option value="name">أبجدياً (أ - ي)</option>
-          </select>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="21" y1="6" x2="3" y2="6" />
+              <line x1="17" y1="12" x2="7" y2="12" />
+              <line x1="13" y1="18" x2="11" y2="18" />
+            </svg>
+            {sortBy !== 'featured' && (
+              <span style={{ fontSize: '11px', fontWeight: 700 }}>
+                {SORT_OPTIONS.find((o) => o.id === sortBy)?.label.split(':')[0] || 'ترتيب'}
+              </span>
+            )}
+          </button>
+
+          {isSortOpen && (
+            <div
+              dir="rtl"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                zIndex: 100,
+                minWidth: '210px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+                padding: '6px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  padding: '4px 8px 6px',
+                  borderBottom: '1px solid #f1f5f9',
+                  marginBottom: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>ترتيب حسب</span>
+                {sortBy !== 'featured' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSortChange('featured');
+                      setIsSortOpen(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    استعادة الافتراضي
+                  </button>
+                )}
+              </div>
+
+              {SORT_OPTIONS.map((opt) => {
+                const isSelected = sortBy === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onSortChange(opt.id);
+                      setIsSortOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isSelected ? '#eff6ff' : 'transparent',
+                      color: isSelected ? '#1d4ed8' : '#334155',
+                      fontSize: '12px',
+                      fontWeight: isSelected ? 800 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      transition: 'background 0.12s ease',
+                      marginBottom: '2px',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

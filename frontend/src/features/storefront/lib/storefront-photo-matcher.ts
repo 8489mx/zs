@@ -611,10 +611,11 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     nameAr: 'سماعات وهيدفون وايربودز ومكبرات صوت',
     keywords: [
       'سماعات هيدفون كمبيوتر', 'سماعات', 'هيدفون', 'ايربودز', 'سماعه', 
-      'سماعة', 'headphone', 'earbuds', 'headset', 'صب', 'مكبر صوت'
+      'سماعة', 'headphone', 'earbuds', 'headset', 'صب', 'مكبر صوت',
+      'صوتيات', 'صوت', 'audio'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 93,
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=75&fm=webp',
+    weight: 98,
   },
   {
     id: 'laptop_chargers',
@@ -909,7 +910,7 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
       'انفينكس', 'إنفينكس', 'infinix', 'انفينكس هوت', 'انفينكس نوت',
       'هواتف ذكية - infinix', 'هواتف اقتصادية - infinix'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: 'https://images.unsplash.com/photo-1567581935884-3349723552ca?auto=format&fit=crop&w=400&q=75&fm=webp',
     weight: 96,
   },
   {
@@ -919,7 +920,7 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
       'هونر', 'honor', 'هونر ماجيك', 'honor magic', 'هونر x',
       'هواتف ذكية - honor', 'هواتف فلاجشيب - honor'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=400&q=75&fm=webp',
     weight: 96,
   },
   {
@@ -929,7 +930,7 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
       'قابلة للطي', 'قابله للطي', 'فولد', 'فليب', 'fold', 'flip',
       'z fold', 'z flip', 'هواتف ذكية - قابلة للطي'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: 'https://images.unsplash.com/photo-1584006682522-dc17d6c0d9ac?auto=format&fit=crop&w=400&q=75&fm=webp',
     weight: 97,
   },
   {

@@ -1546,7 +1546,7 @@ export function StorefrontSettingsTab() {
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', minWidth: 0 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    رسوم التوصيل (${getGlobalCurrencySymbol()}):
+                    رسوم التوصيل ({getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -1567,7 +1567,7 @@ export function StorefrontSettingsTab() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الحد الأدنى للطلب (${getGlobalCurrencySymbol()}):
+                    الحد الأدنى للطلب ({getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -1673,7 +1673,7 @@ export function StorefrontSettingsTab() {
                     }}
                   >
                     <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534' }}>
-                      شحن مجاني عند الطلب بمبلغ (${getGlobalCurrencySymbol()}) أو أكثر:
+                      شحن مجاني عند الطلب بمبلغ ({getGlobalCurrencySymbol()}) أو أكثر:
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <input

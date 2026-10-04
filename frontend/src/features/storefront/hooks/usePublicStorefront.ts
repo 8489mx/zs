@@ -127,7 +127,13 @@ export function usePublicStorefront(cleanSlug: string) {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(cartStorageKey);
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item) => item?.product && Number(item.product.price || 0) > 0);
+        }
+      }
+      return [];
     } catch {
       return [];
     }
@@ -184,6 +190,8 @@ export function usePublicStorefront(cleanSlug: string) {
   // One cart line per product (the sales engine invoices one row per product): picking a different
   // variant of a product already in the cart switches that line to the new variant.
   const handleAddToCart = useCallback((product: StorefrontProduct, quantity: number = 1) => {
+    // Financial Invariant: Unpriced (<= 0) products can NEVER be added to cart
+    if (!product || Number(product.price || 0) <= 0) return;
     const addQty = Math.max(1, Math.floor(Number(quantity) || 1));
     setCartItems((prev) => {
       const pNum = Number(product.id);

@@ -8,6 +8,7 @@ interface StorefrontBannerCarouselProps {
   bannerPositions?: string[];
   autoPlayIntervalMs?: number;
   bannerIntervalSeconds?: number;
+  onBannerClick?: (index: number) => void;
 }
 
 export function StorefrontBannerCarousel({
@@ -18,6 +19,7 @@ export function StorefrontBannerCarousel({
   bannerPositions,
   autoPlayIntervalMs,
   bannerIntervalSeconds = 4,
+  onBannerClick,
 }: StorefrontBannerCarouselProps) {
   const validBanners = banners.filter(Boolean);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -82,7 +84,7 @@ export function StorefrontBannerCarousel({
       style={{
         maxWidth: 'var(--storefront-container, 1440px)',
         width: '100%',
-        margin: '16px auto 10px',
+        margin: '14px auto 8px',
         padding: '0 20px',
         boxSizing: 'border-box',
         direction: 'rtl',
@@ -105,35 +107,41 @@ export function StorefrontBannerCarousel({
         }
         .storefront-banner-dots {
           position: absolute;
-          bottom: 6px !important;
+          bottom: 12px !important;
           left: 50%;
           transform: translateX(-50%);
           display: flex;
           align-items: center;
-          gap: 4px !important;
-          padding: 0 !important;
-          background: transparent !important;
-          backdrop-filter: none !important;
+          gap: 6px !important;
+          padding: 3px 10px !important;
+          background: rgba(15, 23, 42, 0.45) !important;
+          backdrop-filter: blur(6px) !important;
+          border: 1px solid rgba(255, 255, 255, 0.18) !important;
+          border-radius: 999px !important;
           z-index: 3;
-          pointer-events: none;
+          pointer-events: auto;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
         .storefront-banner-dot {
-          width: 4px !important;
-          height: 4px !important;
-          min-width: 4px !important;
-          min-height: 4px !important;
+          width: 6px !important;
+          height: 6px !important;
+          min-width: 6px !important;
+          min-height: 6px !important;
           border-radius: 50% !important;
           border: none !important;
           padding: 0 !important;
-          background: rgba(255, 255, 255, 0.65) !important;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+          background: rgba(255, 255, 255, 0.55) !important;
           transition: all 0.25s ease !important;
-          pointer-events: auto;
+          cursor: pointer !important;
+        }
+        .storefront-banner-dot:hover {
+          background: rgba(255, 255, 255, 0.9) !important;
         }
         .storefront-banner-dot.active {
-          width: 10px !important;
+          width: 18px !important;
           border-radius: 999px !important;
           background: #ffffff !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
         }
         @media (max-width: 640px) {
           .storefront-banner-carousel-wrapper {
@@ -152,22 +160,35 @@ export function StorefrontBannerCarousel({
             display: none !important;
           }
           .storefront-banner-dots {
-            bottom: 4px !important;
-            gap: 3px !important;
+            bottom: 6px !important;
+            padding: 2px 8px !important;
+            gap: 4px !important;
           }
           .storefront-banner-dot {
-            width: 3.5px !important;
-            height: 3.5px !important;
-            min-width: 3.5px !important;
-            min-height: 3.5px !important;
+            width: 4.5px !important;
+            height: 4.5px !important;
+            min-width: 4.5px !important;
+            min-height: 4.5px !important;
           }
           .storefront-banner-dot.active {
-            width: 8px !important;
+            width: 12px !important;
+          }
+          .storefront-banner-cta-chip {
+            display: none !important;
           }
         }
       `}</style>
       <div
         className="storefront-banner-carousel-inner"
+        onClick={() => onBannerClick?.(currentIndex)}
+        role={onBannerClick ? 'button' : undefined}
+        tabIndex={onBannerClick ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (onBannerClick && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onBannerClick(currentIndex);
+          }
+        }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={handleTouchStart}
@@ -189,6 +210,7 @@ export function StorefrontBannerCarousel({
           userSelect: 'none',
           isolation: 'isolate',
           WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+          cursor: onBannerClick ? 'pointer' : 'default',
         }}
       >
         {/* Slides Container - Absolute layered slides for 100% stable zero-layout-shift height */}
@@ -258,12 +280,46 @@ export function StorefrontBannerCarousel({
                     borderRadius: 'inherit',
                     pointerEvents: 'none',
                     filter: bannerFit === 'contain' ? 'drop-shadow(0 6px 24px rgba(0, 0, 0, 0.45))' : 'none',
+                    transform: isHovered && onBannerClick ? 'scale(1.012)' : 'scale(1)',
+                    transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                   }}
                 />
               </div>
             );
           })}
         </div>
+
+        {/* Floating CTA Chip on Desktop */}
+        {onBannerClick && (
+          <div
+            className="storefront-banner-cta-chip"
+            style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '18px',
+              zIndex: 3,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '999px',
+              background: isHovered ? 'var(--storefront-primary-color, #170e5e)' : 'rgba(15, 23, 42, 0.72)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.22)',
+              color: '#ffffff',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.28)',
+              pointerEvents: 'none',
+              transition: 'all 0.25s ease',
+            }}
+          >
+            <span>تصفح العروض والمنتجات</span>
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        )}
 
         {/* Navigation Arrows (Shown when more than 1 banner) */}
         {total > 1 && (
@@ -272,7 +328,10 @@ export function StorefrontBannerCarousel({
             <button
               className="storefront-banner-nav-btn"
               type="button"
-              onClick={prevSlide}
+              onClick={(e) => {
+                e.stopPropagation();
+                prevSlide();
+              }}
               aria-label="البانر السابق"
               style={{
                 position: 'absolute',
@@ -314,7 +373,10 @@ export function StorefrontBannerCarousel({
             <button
               className="storefront-banner-nav-btn"
               type="button"
-              onClick={nextSlide}
+              onClick={(e) => {
+                e.stopPropagation();
+                nextSlide();
+              }}
               aria-label="البانر التالي"
               style={{
                 position: 'absolute',
@@ -356,41 +418,19 @@ export function StorefrontBannerCarousel({
 
         {/* Carousel Pagination Indicator Dots (Clean & Sleek) */}
         {total > 1 && (
-          <div
-            className="storefront-banner-dots"
-            style={{
-              position: 'absolute',
-              bottom: '5px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '0',
-              background: 'transparent',
-              zIndex: 3,
-            }}
-          >
+          <div className="storefront-banner-dots">
             {validBanners.map((_, idx) => {
               const isActive = idx === currentIndex;
               return (
                 <button
                   key={`dot-${idx}`}
                   type="button"
-                  onClick={() => goToSlide(idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToSlide(idx);
+                  }}
                   aria-label={`الانتقال إلى شريحة ${idx + 1}`}
                   className={`storefront-banner-dot ${isActive ? 'active' : ''}`}
-                  style={{
-                    width: isActive ? '10px' : '4px',
-                    height: '4px',
-                    borderRadius: '999px',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    background: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
-                    transition: 'all 0.25s ease',
-                  }}
                 />
               );
             })}
