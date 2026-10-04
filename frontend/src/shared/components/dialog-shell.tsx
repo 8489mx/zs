@@ -131,10 +131,10 @@ export function DialogShell({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => {
       if (frameId !== null) window.cancelAnimationFrame(frameId);
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
       previousActiveElementRef.current?.focus();
 
       activeDialogCount = Math.max(0, activeDialogCount - 1);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -30,6 +31,21 @@ export function StorefrontCartDrawer({
   onClearCart,
   onProceedToCheckout,
 }: StorefrontCartDrawerProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const cartTotals = calculateCartSubtotal(cartItems);

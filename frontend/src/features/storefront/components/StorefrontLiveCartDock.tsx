@@ -48,7 +48,7 @@ export function StorefrontLiveCartDock({
   const prevItemsCount = useRef(cartItems.length);
   const prevTotalQuantity = useRef(0);
 
-  // Close clear confirmation on click outside or escape
+  // Close clear confirmation on click outside
   useEffect(() => {
     if (!showClearConfirm) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -56,16 +56,31 @@ export function StorefrontLiveCartDock({
         setShowClearConfirm(false);
       }
     };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowClearConfirm(false);
-    };
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [showClearConfirm]);
+
+  // Close live cart drawer (or clear confirmation first) on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (showClearConfirm) {
+          setShowClearConfirm(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isOpen, showClearConfirm, onClose]);
 
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartTotals = calculateCartSubtotal(cartItems);

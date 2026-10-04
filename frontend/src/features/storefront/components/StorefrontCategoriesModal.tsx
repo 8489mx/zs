@@ -131,12 +131,14 @@ export function StorefrontCategoriesModal({
 
   const totalAllCount = categoryCounts.get('all') || 0;
   const currentFamilyObj = groupedFamilies.find((f) => f.groupName === activeGroup);
+  const hasMultipleFamilies = groupedFamilies.length > 1;
 
   return (
     <DialogShell
       open={isOpen}
       onClose={onClose}
-      width="min(1160px, 96vw)"
+      width="min(1240px, 95vw)"
+      maxHeight="min(88vh, 780px)"
       shellClassName="storefront-cat-modal-shell"
       ariaLabel="جميع أقسام وتصنيفات المتجر"
     >
@@ -260,29 +262,52 @@ export function StorefrontCategoriesModal({
             <span className="storefront-cat-modal-chip-badge">{totalAllCount}</span>
           </button>
 
-          {groupedFamilies.map((fam) => {
-            const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
-            return (
-              <button
-                key={fam.groupName}
-                type="button"
-                onClick={(e) => {
-                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-                  setModalSearch('');
-                  setActiveGroup(fam.groupName);
-                }}
-                className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  {getFamilyIcon(fam.groupName, 11)}
-                </span>
-                <span>{fam.groupName}</span>
-                <span className="storefront-cat-modal-chip-badge">
-                  {fam.categories.length}
-                </span>
-              </button>
-            );
-          })}
+          {hasMultipleFamilies ? (
+            groupedFamilies.map((fam) => {
+              const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
+              return (
+                <button
+                  key={fam.groupName}
+                  type="button"
+                  onClick={(e) => {
+                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                    setModalSearch('');
+                    setActiveGroup(fam.groupName);
+                  }}
+                  className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {getFamilyIcon(fam.groupName, 11)}
+                  </span>
+                  <span>{fam.groupName}</span>
+                  <span className="storefront-cat-modal-chip-badge">
+                    {fam.categories.length}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            categories.map((cat) => {
+              const isActive = selectedCategoryId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                    onSelectCategory(cat.id);
+                    onClose();
+                  }}
+                  className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
+                >
+                  <span>{cat.name}</span>
+                  <span className="storefront-cat-modal-chip-badge">
+                    {categoryCounts.get(cat.id) || 0}
+                  </span>
+                </button>
+              );
+            })
+          )}
         </div>
 
         {/* Main Two-Column Split Panel Body */}
@@ -375,70 +400,137 @@ export function StorefrontCategoriesModal({
                 <span>فئات وأقسام المتجر</span>
               </div>
 
-              {/* Category Families List */}
-              {groupedFamilies.map((fam) => {
-                const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
-                return (
-                  <button
-                    key={fam.groupName}
-                    type="button"
-                    onClick={() => {
-                      setModalSearch('');
-                      setActiveGroup(fam.groupName);
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = '#ffffff';
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.borderColor = 'transparent';
-                      }
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      border: isActive
-                        ? '1px solid var(--storefront-primary-color, #170e5e)'
-                        : '1px solid transparent',
-                      background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
-                      color: isActive ? '#ffffff' : '#334155',
-                      cursor: 'pointer',
-                      textAlign: 'right',
-                      transition: 'all 0.12s ease',
-                      boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
-                        {getFamilyIcon(fam.groupName)}
-                      </span>
-                      <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
-                        {fam.groupName}
-                      </span>
-                    </div>
-
-                    <span
+              {/* Category Families or Categories List */}
+              {hasMultipleFamilies ? (
+                groupedFamilies.map((fam) => {
+                  const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
+                  return (
+                    <button
+                      key={fam.groupName}
+                      type="button"
+                      onClick={() => {
+                        setModalSearch('');
+                        setActiveGroup(fam.groupName);
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = '#e2e8f0';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                        }
+                      }}
                       style={{
-                        fontSize: '10.5px',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: '999px',
-                        background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
-                        color: isActive ? '#ffffff' : '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: isActive
+                          ? '1px solid var(--storefront-primary-color, #170e5e)'
+                          : '1px solid transparent',
+                        background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
+                        color: isActive ? '#ffffff' : '#334155',
+                        cursor: 'pointer',
+                        textAlign: 'right',
+                        transition: 'all 0.12s ease',
+                        boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
                       }}
                     >
-                      {fam.categories.length}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
+                          {getFamilyIcon(fam.groupName)}
+                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
+                          {fam.groupName}
+                        </span>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '999px',
+                          background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
+                          color: isActive ? '#ffffff' : '#475569',
+                        }}
+                      >
+                        {fam.categories.length}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                categories.map((cat) => {
+                  const count = categoryCounts.get(cat.id) || 0;
+                  const isActive = selectedCategoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectCategory(cat.id);
+                        onClose();
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = '#e2e8f0';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: isActive
+                          ? '1px solid var(--storefront-primary-color, #170e5e)'
+                          : '1px solid transparent',
+                        background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
+                        color: isActive ? '#ffffff' : '#334155',
+                        cursor: 'pointer',
+                        textAlign: 'right',
+                        transition: 'all 0.12s ease',
+                        boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
+                          {getFamilyIcon(cat.name)}
+                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
+                          {cat.name}
+                        </span>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '999px',
+                          background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
+                          color: isActive ? '#ffffff' : '#475569',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -460,7 +552,9 @@ export function StorefrontCategoriesModal({
                   <span>
                     {modalSearch.trim()
                       ? `نتائج البحث عن «${modalSearch}»`
-                      : activeGroup || 'أقسام المتجر'}
+                      : hasMultipleFamilies
+                        ? activeGroup
+                        : 'أقسام وتصنيفات المتجر'}
                   </span>
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
