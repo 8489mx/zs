@@ -48,15 +48,18 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
     const minOrder = Number(info.minOrder || 0);
 
     let promoText = '';
+    let mobilePromoText = '';
     if (freeShippingAt > 0) {
       promoText = `توصيل مجاني لجميع الطلبات بقيمة ${formatMoney(freeShippingAt, currency)} فأكثر`;
+      mobilePromoText = `توصيل مجاني للطلبات من ${formatMoney(freeShippingAt, currency)}`;
     } else if (isAllFree) {
       promoText = 'توصيل مجاني لجميع الطلبات';
+      mobilePromoText = 'توصيل مجاني لجميع الطلبات';
     } else {
       return null;
     }
 
-    return { currency, estimatedTime, minOrder, promoText };
+    return { currency, estimatedTime, minOrder, promoText, mobilePromoText };
   }, [info]);
 
   if (!signals) return null;
@@ -72,6 +75,48 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
         boxSizing: 'border-box',
       }}
     >
+      <style>{`
+        .sf-promo-text-mobile {
+          display: none;
+        }
+        @media (max-width: 640px) {
+          .storefront-delivery-info-bar-container {
+            margin: 6px auto !important;
+            padding: 0 8px !important;
+          }
+          .storefront-delivery-info-pill {
+            padding: 6px 10px !important;
+            border-radius: 8px !important;
+            gap: 6px !important;
+            flex-wrap: nowrap !important;
+            justify-content: center !important;
+          }
+          .storefront-delivery-info-text {
+            gap: 6px !important;
+            font-size: clamp(10.5px, 3.1vw, 12px) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            display: inline-flex !important;
+            align-items: center !important;
+          }
+          .storefront-delivery-info-text svg {
+            width: 15px !important;
+            height: 15px !important;
+            flex-shrink: 0 !important;
+          }
+          .sf-promo-text-full {
+            display: none !important;
+          }
+          .sf-promo-text-mobile {
+            display: inline !important;
+            white-space: nowrap !important;
+          }
+          .storefront-delivery-info-time {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div
         className="storefront-delivery-info-pill"
         style={{
@@ -89,12 +134,13 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
           boxShadow: '0 1px 3px rgba(23, 14, 94, 0.04)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 700 }}>
+        <div className="storefront-delivery-info-text" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 700 }}>
           <IconTruck size={17} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
-          <span>{signals.promoText}</span>
+          <span className="sf-promo-text-full">{signals.promoText}</span>
+          <span className="sf-promo-text-mobile">{signals.mobilePromoText}</span>
         </div>
         {signals.estimatedTime && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--storefront-primary-color, #170e5e)', opacity: 0.85, fontSize: '0.78rem' }}>
+          <div className="storefront-delivery-info-time" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--storefront-primary-color, #170e5e)', opacity: 0.85, fontSize: '0.78rem' }}>
             <span>• التوصيل المتوقع:</span>
             <strong>{signals.estimatedTime}</strong>
           </div>

@@ -149,12 +149,15 @@ export function StorefrontBannerCarousel({
             margin: 6px auto 4px !important;
           }
           .storefront-banner-carousel-inner {
-            aspect-ratio: auto !important;
-            height: clamp(140px, 34vw, 260px) !important;
-            border-radius: 14px !important;
+            aspect-ratio: 2.7 / 1 !important;
+            height: auto !important;
+            min-height: 95px !important;
+            max-height: 155px !important;
+            border-radius: 12px !important;
           }
           .storefront-banner-img {
-            border-radius: 14px !important;
+            border-radius: 12px !important;
+            object-fit: cover !important;
           }
           .storefront-banner-nav-btn {
             display: none !important;

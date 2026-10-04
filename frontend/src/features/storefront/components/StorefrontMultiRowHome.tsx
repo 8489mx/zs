@@ -89,6 +89,7 @@ export function StorefrontMultiRowHome({
 
       {/* Bottom Invitation Banner to browse remaining categories */}
       <div
+        className="storefront-explore-banner"
         style={{
           background: '#ffffff',
           border: '1.5px dashed #cbd5e1',

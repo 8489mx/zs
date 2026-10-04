@@ -48,17 +48,17 @@ function getStepIndex(status: string): number {
 function getStatusBadge(status: string) {
   switch (status) {
     case 'pending':
-      return { label: 'قيد الانتظار (يمكن التعديل)', bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
+      return { label: 'قيد الانتظار', bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
     case 'confirmed':
-      return { label: 'تم الاعتماد والتأكيد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
+      return { label: 'تم الاعتماد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
     case 'processing':
-      return { label: 'جاري التجهيز في المتجر', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
+      return { label: 'جاري التجهيز', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
     case 'shipped':
-      return { label: 'خرج للتوصيل مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
+      return { label: 'مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
     case 'delivered':
-      return { label: 'تم التسليم بنجاح', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
+      return { label: 'تم التسليم', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
     case 'cancelled':
-      return { label: 'طلب ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
+      return { label: 'ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
     default:
       return { label: status, bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
   }
@@ -96,13 +96,13 @@ export function StorefrontCustomerOrderCard({
     <div
       style={{
         border: '1px solid #e2e8f0',
-        borderRadius: '14px',
-        padding: '16px',
+        borderRadius: '12px',
+        padding: '13px',
         background: '#ffffff',
-        boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '10px',
         transition: 'all 0.2s ease',
       }}
     >
@@ -112,38 +112,38 @@ export function StorefrontCustomerOrderCard({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
           gap: '8px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <span
             dir="ltr"
             style={{
               fontWeight: 800,
-              fontSize: '13.5px',
+              fontSize: '12.5px',
               color: '#0f172a',
               background: '#f1f5f9',
-              padding: '3px 8px',
-              borderRadius: '7px',
+              padding: '2.5px 7px',
+              borderRadius: '6px',
               border: '1px solid #e2e8f0',
-              letterSpacing: '0.3px',
+              letterSpacing: '0.2px',
+              whiteSpace: 'nowrap',
             }}
           >
             #{order.orderNumber}
           </span>
-          <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+          <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
             {orderTimeStr}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
           {order.paymentStatus === 'paid' && (
             <span
               style={{
-                fontSize: '11px',
+                fontSize: '10.5px',
                 fontWeight: 700,
-                padding: '3px 8px',
+                padding: '2px 7px',
                 borderRadius: '999px',
                 background: '#dcfce7',
                 color: '#15803d',
@@ -151,14 +151,14 @@ export function StorefrontCustomerOrderCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              مدفوع أونلاين
+              مدفوع
             </span>
           )}
           <span
             style={{
-              fontSize: '11.5px',
+              fontSize: '11px',
               fontWeight: 700,
-              padding: '3px 10px',
+              padding: '2.5px 8px',
               borderRadius: '999px',
               background: badge.bg,
               color: badge.text,
@@ -172,7 +172,7 @@ export function StorefrontCustomerOrderCard({
       </div>
 
       {order.status !== 'cancelled' ? (
-        <div style={{ padding: '8px 0 12px' }}>
+        <div style={{ padding: '4px 0 6px' }}>
           <div
             style={{
               display: 'flex',
@@ -181,13 +181,14 @@ export function StorefrontCustomerOrderCard({
               position: 'relative',
             }}
           >
+            {/* Stepper Connecting Line */}
             <div
               style={{
                 position: 'absolute',
-                top: '18px',
-                left: '28px',
-                right: '28px',
-                height: '4px',
+                top: '15px',
+                left: '24px',
+                right: '24px',
+                height: '3px',
                 background: '#e2e8f0',
                 borderRadius: '999px',
                 zIndex: 1,
@@ -199,7 +200,7 @@ export function StorefrontCustomerOrderCard({
                   background: '#170e5e',
                   borderRadius: '999px',
                   width: `${(currentStepIndex / (TRACKING_STEPS.length - 1)) * 100}%`,
-                  transition: 'width 0.4s ease',
+                  transition: 'width 0.35s ease',
                 }}
               />
             </div>
@@ -211,12 +212,17 @@ export function StorefrontCustomerOrderCard({
                 ? '#170e5e'
                 : isPassed
                 ? '#16a34a'
-                : '#94a3b8';
+                : '#cbd5e1';
               const circleBg = isCurrent
-                ? '#eef2ff'
+                ? '#170e5e'
                 : isPassed
                 ? '#dcfce7'
                 : '#ffffff';
+              const circleText = isCurrent
+                ? '#ffffff'
+                : isPassed
+                ? '#16a34a'
+                : '#94a3b8';
 
               return (
                 <div
@@ -233,95 +239,95 @@ export function StorefrontCustomerOrderCard({
                 >
                   <div
                     style={{
-                      width: '38px',
-                      height: '38px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
                       background: circleBg,
-                      border: `2.5px solid ${circleColor}`,
+                      border: `2px solid ${circleColor}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '13px',
+                      fontSize: '12px',
                       fontWeight: 800,
-                      color: circleColor,
+                      color: circleText,
                       boxShadow: isCurrent
-                        ? '0 0 0 4px rgba(23, 14, 94, 0.14)'
-                        : '0 1px 3px rgba(0,0,0,0.06)',
-                      transition: 'all 0.3s ease',
-                      marginBottom: '8px',
+                        ? '0 0 0 3px rgba(23, 14, 94, 0.15)'
+                        : '0 1px 2px rgba(0,0,0,0.04)',
+                      transition: 'all 0.25s ease',
+                      marginBottom: '6px',
                     }}
                   >
-                    {isPassed ? <CheckIcon size={16} strokeWidth={3} /> : idx + 1}
+                    {isPassed ? <CheckIcon size={14} strokeWidth={3} /> : idx + 1}
                   </div>
                   <span
                     style={{
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: isCurrent ? 800 : 600,
                       color: isCurrent ? '#170e5e' : isPassed ? '#166534' : '#64748b',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {step.label}
                   </span>
-                  {isCurrent && (
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        color: '#1d4ed8',
-                        background: '#dbeafe',
-                        border: '1px solid #bfdbfe',
-                        padding: '1px 7px',
-                        borderRadius: '999px',
-                        marginTop: '4px',
-                      }}
-                    >
-                      الوضع الحالي
-                    </span>
-                  )}
                 </div>
               );
             })}
           </div>
 
+          {/* Unified Compact Status Callout */}
           <div
             style={{
-              marginTop: '16px',
-              padding: '10px 14px',
+              marginTop: '12px',
+              padding: '9px 12px',
               background: '#f8fafc',
-              borderRadius: '10px',
+              borderRadius: '9px',
               border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '8px',
+              gap: '10px',
             }}
           >
-            <div style={{ fontSize: '12.5px', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: 800, color: '#170e5e' }}>الحالة الآن:</span>
-              <span>{TRACKING_STEPS[currentStepIndex]?.desc}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#170e5e',
+                  flexShrink: 0,
+                }}
+              />
+              <div style={{ fontSize: '11.5px', color: '#334155', minWidth: 0, lineHeight: 1.4 }}>
+                <strong style={{ color: '#0f172a', fontWeight: 800, marginInlineEnd: '4px' }}>الحالة:</strong>
+                <span>{TRACKING_STEPS[currentStepIndex]?.desc}</span>
+              </div>
             </div>
+
             {storeInquiryUrl && (
               <a
                 href={storeInquiryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                title="استفسار عبر واتساب المتجر"
                 style={{
                   color: '#16a34a',
                   textDecoration: 'none',
                   fontWeight: 700,
-                  fontSize: '12px',
+                  fontSize: '11px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '4px',
                   background: '#f0fdf4',
-                  padding: '4px 10px',
+                  padding: '4px 8px',
                   borderRadius: '6px',
                   border: '1px solid #bbf7d0',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <MessageSquareIcon size={14} />
-                <span>استفسار واتساب</span>
+                <MessageSquareIcon size={12} />
+                <span>استفسار</span>
               </a>
             )}
           </div>
@@ -331,19 +337,17 @@ export function StorefrontCustomerOrderCard({
           style={{
             background: '#fef2f2',
             border: '1px solid #fee2e2',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            fontSize: '12.5px',
+            borderRadius: '9px',
+            padding: '9px 12px',
+            fontSize: '11.5px',
             color: '#991b1b',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '7px',
           }}
         >
-          <XIcon size={16} />
-          <span>
-            تم إلغاء هذا الطلب. إذا كان لديك أي استفسار، يرجى التواصل مع إدارة المتجر مباشرة.
-          </span>
+          <XIcon size={15} />
+          <span>تم إلغاء هذا الطلب. للتفاصيل يرجى التواصل مع المتجر.</span>
         </div>
       )}
 
@@ -352,22 +356,21 @@ export function StorefrontCustomerOrderCard({
         <div
           style={{
             background: '#faf5ff',
-            border: '1.5px solid #d8b4fe',
-            borderRadius: '12px',
-            padding: '12px 16px',
+            border: '1px solid #e9d5ff',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
+            gap: '10px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '9px',
                 background: '#f3e8ff',
                 color: '#7e22ce',
                 display: 'flex',
@@ -377,13 +380,13 @@ export function StorefrontCustomerOrderCard({
                 flexShrink: 0,
               }}
             >
-              <TruckIcon size={22} color="#7e22ce" />
+              <TruckIcon size={18} color="#7e22ce" />
             </div>
-            <div>
-              <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: 800 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '10.5px', color: '#7e22ce', fontWeight: 800 }}>
                 طلبك في الطريق مع المندوب
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {order.deliveryRepName || 'مندوب توصيل المتجر'}
               </div>
             </div>
@@ -391,23 +394,23 @@ export function StorefrontCustomerOrderCard({
 
           {/* Quick Rep Call / WhatsApp Actions */}
           {order.deliveryRepPhone && (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <a
                 href={`tel:${repPhoneClean}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  padding: '7px 14px',
-                  borderRadius: '8px',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '7px',
                   background: '#170e5e',
                   color: '#ffffff',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 700,
                   textDecoration: 'none',
                 }}
               >
-                <SmartphoneIcon size={14} />
+                <SmartphoneIcon size={12} />
                 <span>اتصال</span>
               </a>
               <a
@@ -419,17 +422,17 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  padding: '7px 14px',
-                  borderRadius: '8px',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '7px',
                   background: '#25D366',
                   color: '#ffffff',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 700,
                   textDecoration: 'none',
                 }}
               >
-                <MessageSquareIcon size={14} />
+                <MessageSquareIcon size={12} />
                 <span>واتساب</span>
               </a>
             </div>
@@ -441,48 +444,51 @@ export function StorefrontCustomerOrderCard({
       {(order.customerAddress || order.customerNotes) && (
         <div
           style={{
-            fontSize: '12px',
+            fontSize: '11.5px',
             color: '#475569',
             background: '#f8fafc',
-            padding: '8px 12px',
+            padding: '8px 11px',
             borderRadius: '8px',
             border: '1px solid #e2e8f0',
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            gap: '5px',
           }}
         >
           {order.customerAddress && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <MapPinIcon size={13} color="#170e5e" />
-              <span style={{ fontWeight: 600 }}>العنوان:</span>
-              <span style={{ color: '#0f172a' }}>{order.customerAddress}</span>
-              {order.deliveryZoneName && (
-                <span
-                  style={{
-                    background: '#f0f3ff',
-                    color: '#170e5e',
-                    padding: '1px 7px',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    border: '1px solid #d8e0fc',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                  }}
-                >
-                  <MapPinIcon size={11} />
-                  <span>{order.deliveryZoneName}</span>
-                </span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <MapPinIcon size={13} color="#170e5e" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
+                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>العنوان:</span>
+                <span style={{ color: '#0f172a' }}>{order.customerAddress}</span>
+                {order.deliveryZoneName && (
+                  <span
+                    style={{
+                      marginInlineStart: '6px',
+                      background: '#f0f3ff',
+                      color: '#170e5e',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      border: '1px solid #d8e0fc',
+                      display: 'inline-block',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {order.deliveryZoneName}
+                  </span>
+                )}
+              </div>
             </div>
           )}
           {order.customerNotes && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MessageSquareIcon size={13} color="#64748b" />
-              <span style={{ fontWeight: 600 }}>ملاحظاتك:</span>
-              <span style={{ color: '#0f172a' }}>{order.customerNotes}</span>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <MessageSquareIcon size={13} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
+                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>ملاحظاتك:</span>
+                <span style={{ color: '#0f172a' }}>{order.customerNotes}</span>
+              </div>
             </div>
           )}
         </div>
@@ -498,23 +504,25 @@ export function StorefrontCustomerOrderCard({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'none',
-            border: 'none',
-            padding: '6px 2px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '7px 11px',
             cursor: 'pointer',
-            fontSize: '12.5px',
+            fontSize: '12px',
             fontWeight: 700,
             color: '#170e5e',
             fontFamily: 'inherit',
+            transition: 'background 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShoppingCartIcon size={14} color="#170e5e" />
-            <span>تفاصيل الأصناف ({order.items.length} منتجات)</span>
+            <ShoppingCartIcon size={13} color="#170e5e" />
+            <span>تفاصيل الأصناف ({order.items.length})</span>
           </div>
           <span style={{ fontSize: '11px', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span>{showDetails ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}</span>
-            {showDetails ? <ChevronUpIcon size={13} /> : <ChevronDownIcon size={13} />}
+            <span>{showDetails ? 'إخفاء' : 'عرض'}</span>
+            {showDetails ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
           </span>
         </button>
 
@@ -606,21 +614,21 @@ export function StorefrontCustomerOrderCard({
         )}
       </div>
 
-      {/* Bottom Footer: Total Amount & Actions */}
+      {/* Bottom Footer: Total Amount & Actions (Strict Single Row) */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px',
-          paddingTop: '12px',
+          gap: '8px',
+          paddingTop: '10px',
           borderTop: '1px solid #f1f5f9',
+          flexWrap: 'nowrap',
         }}
       >
-        <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#64748b' }}>إجمالي الفاتورة: </span>
-          <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span>
+          <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '14.5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
             <span>{order.totalAmount.toFixed(0)}</span>
             <CurrencySymbol />
           </strong>
@@ -628,24 +636,25 @@ export function StorefrontCustomerOrderCard({
 
         {/* Action buttons (only if pending) */}
         {isPending ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => onEditOrder(order)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '7px 14px',
-                borderRadius: '8px',
+                height: '30px',
+                padding: '0 10px',
+                borderRadius: '7px',
                 background: '#f0f3ff',
                 border: '1px solid #c7d2fe',
                 color: '#170e5e',
-                fontSize: '12.5px',
+                fontSize: '11px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               <span>تعديل الطلب</span>
@@ -658,30 +667,31 @@ export function StorefrontCustomerOrderCard({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '7px 14px',
-                borderRadius: '8px',
+                height: '30px',
+                padding: '0 10px',
+                borderRadius: '7px',
                 background: '#fff1f2',
                 border: '1px solid #fecdd3',
                 color: '#be123c',
-                fontSize: '12.5px',
+                fontSize: '11px',
                 fontWeight: 700,
                 cursor: isCancelling ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               <span>إلغاء</span>
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
               {order.status === 'cancelled'
                 ? 'الطلب ملغي'
                 : order.status === 'delivered'
                 ? 'اكتمل التوصيل بنجاح'
-                : 'الطلب معتمد ولا يمكن تعديله'}
+                : 'الطلب معتمد'}
             </span>
             {onReorder && (order.status === 'delivered' || order.status === 'cancelled') && (
               <button
@@ -690,16 +700,18 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '7px 14px',
-                  borderRadius: '8px',
+                  height: '30px',
+                  padding: '0 10px',
+                  borderRadius: '7px',
                   background: info.brandColor || '#170e5e',
                   border: 'none',
                   color: '#ffffff',
-                  fontSize: '12.5px',
+                  fontSize: '11px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   transition: 'opacity 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 اطلب تاني

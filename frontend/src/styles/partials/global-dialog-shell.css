@@ -1,3 +1,14 @@
+/* Global modal background scroll lock standard */
+html.dialog-shell-open,
+body.dialog-shell-open,
+html.dialog-shell-open #root,
+body.dialog-shell-open #root {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
 /* Global dialog shell positioning
    Ensures all DialogShell-based popups render as spacious, centered modals with proper breathing room. */
 
@@ -23,6 +34,7 @@
   max-width: calc(100vw - 36px);
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+  overscroll-behavior: contain !important;
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 14px;
   background: #ffffff;

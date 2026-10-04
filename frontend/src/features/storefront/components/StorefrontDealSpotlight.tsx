@@ -115,18 +115,132 @@ export function StorefrontDealSpotlight({
             grid-column: 1 / -1 !important;
           }
         }
+        .sf-guarantee-mobile {
+          display: none;
+        }
         @media (max-width: 768px) {
           .storefront-deal-spotlight-card {
             grid-template-columns: 1fr !important;
-            gap: 16px !important;
-            padding: 14px !important;
+            gap: 8px !important;
+            padding: 8px 10px !important;
           }
           .storefront-deal-spotlight-photo-box {
             max-width: 100% !important;
-            height: 240px !important;
+            height: clamp(125px, 34vw, 155px) !important;
+          }
+          .sf-deal-fav-btn {
+            width: clamp(30px, 8vw, 34px) !important;
+            height: clamp(30px, 8vw, 34px) !important;
+            min-width: clamp(30px, 8vw, 34px) !important;
+            min-height: clamp(30px, 8vw, 34px) !important;
+            max-width: clamp(30px, 8vw, 34px) !important;
+            max-height: clamp(30px, 8vw, 34px) !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+            top: 8px !important;
+            left: 8px !important;
+          }
+          .sf-deal-fav-btn svg {
+            width: 17px !important;
+            height: 17px !important;
+            min-width: 17px !important;
+            min-height: 17px !important;
+            flex-shrink: 0 !important;
+            stroke-width: 2.3 !important;
+          }
+          .storefront-deal-spotlight-title {
+            font-size: clamp(13px, 3.6vw, 15px) !important;
+            margin-bottom: 4px !important;
+            line-height: 1.25 !important;
+          }
+          .storefront-deal-description {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            margin-bottom: 5px !important;
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+          }
+          .storefront-deal-badges-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 4px !important;
+            margin-bottom: 5px !important;
+          }
+          .storefront-deal-badge-item {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 4px 2px !important;
+            gap: 2px !important;
+          }
+          .storefront-deal-badge-item .storefront-deal-badge-icon {
+            width: 20px !important;
+            height: 20px !important;
+          }
+          .storefront-deal-badge-item .storefront-deal-badge-icon svg {
+            width: 11px !important;
+            height: 11px !important;
+          }
+          .storefront-deal-badge-item .storefront-deal-badge-title {
+            font-size: 9px !important;
+            line-height: 1.15 !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+          }
+          .storefront-deal-badge-item .storefront-deal-badge-sub {
+            display: none !important;
+          }
+          .storefront-deal-guarantee {
+            margin-bottom: 4px !important;
+            font-size: 9.5px !important;
+            white-space: nowrap !important;
+          }
+          .sf-guarantee-full {
+            display: none !important;
+          }
+          .sf-guarantee-mobile {
+            display: inline !important;
+            font-size: 9.5px !important;
+            white-space: nowrap !important;
           }
           .storefront-deal-buy-box {
             grid-column: auto !important;
+            padding: 8px 10px !important;
+            gap: 6px !important;
+            border-radius: 10px !important;
+          }
+          .storefront-deal-buy-box-header {
+            padding-bottom: 4px !important;
+          }
+          .storefront-deal-price-val {
+            font-size: 22px !important;
+          }
+          .storefront-deal-add-btn {
+            height: 36px !important;
+            font-size: 12px !important;
+            border-radius: 8px !important;
+          }
+          .storefront-deal-wa-btn {
+            height: 32px !important;
+            font-size: 11.5px !important;
+            border-radius: 8px !important;
+          }
+          .storefront-deal-specs-btn {
+            padding: 2px 0 !important;
+            font-size: 10.5px !important;
+          }
+          .storefront-deal-stepper {
+            height: 36px !important;
           }
         }
       `}</style>
@@ -193,6 +307,7 @@ export function StorefrontDealSpotlight({
         {/* Favorite Heart Button on Top Left */}
         <button
           type="button"
+          className="sf-deal-fav-btn"
           onClick={handleToggleFav}
           aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
           style={{
@@ -201,30 +316,41 @@ export function StorefrontDealSpotlight({
             left: '10px',
             width: '32px',
             height: '32px',
+            minWidth: '32px',
+            minHeight: '32px',
+            maxWidth: '32px',
+            maxHeight: '32px',
+            aspectRatio: '1 / 1',
             borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.92)',
+            padding: 0,
+            margin: 0,
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            background: 'rgba(255, 255, 255, 0.94)',
             backdropFilter: 'blur(4px)',
             border: '1px solid rgba(226, 232, 240, 0.9)',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             boxShadow: '0 2px 6px rgba(15, 23, 42, 0.1)',
             zIndex: 2,
             transition: 'transform 0.15s ease',
+            lineHeight: 1,
           }}
           onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
           onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <svg
-            width="16"
-            height="16"
+            width="17"
+            height="17"
             viewBox="0 0 24 24"
             fill={isFavorite ? '#ef4444' : 'none'}
-            stroke={isFavorite ? '#ef4444' : '#64748b'}
-            strokeWidth="2.2"
+            stroke={isFavorite ? '#ef4444' : '#475569'}
+            strokeWidth="2.3"
             strokeLinecap="round"
             strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
           >
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
@@ -297,6 +423,7 @@ export function StorefrontDealSpotlight({
 
         {/* Product Title */}
         <h3
+          className="storefront-deal-spotlight-title"
           onClick={() => onQuickView?.(product)}
           style={{
             margin: '0 0 10px',
@@ -315,6 +442,7 @@ export function StorefrontDealSpotlight({
 
         {/* Product Description */}
         <p
+          className="storefront-deal-description"
           style={{
             margin: '0 0 16px',
             fontSize: '13px',
@@ -330,6 +458,7 @@ export function StorefrontDealSpotlight({
 
         {/* Trust Badges - 3 Unified Luxury Monochrome Micro-Cards */}
         <div
+          className="storefront-deal-badges-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
@@ -339,6 +468,7 @@ export function StorefrontDealSpotlight({
         >
           {/* Badge 1: Quality & Warranty */}
           <div
+            className="storefront-deal-badge-item"
             style={{
               background: '#ffffff',
               border: '1px solid #e2e8f0',
@@ -350,6 +480,7 @@ export function StorefrontDealSpotlight({
             }}
           >
             <div
+              className="storefront-deal-badge-icon"
               style={{
                 width: '30px',
                 height: '30px',
@@ -366,13 +497,14 @@ export function StorefrontDealSpotlight({
               <IconShieldCheck size={16} color="#334155" strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>أصلي ومضمون</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>ضمان استبدال معتمد</div>
+              <div className="storefront-deal-badge-title" style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>أصلي ومضمون</div>
+              <div className="storefront-deal-badge-sub" style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>ضمان استبدال معتمد</div>
             </div>
           </div>
 
           {/* Badge 2: Fast Delivery */}
           <div
+            className="storefront-deal-badge-item"
             style={{
               background: '#ffffff',
               border: '1px solid #e2e8f0',
@@ -384,6 +516,7 @@ export function StorefrontDealSpotlight({
             }}
           >
             <div
+              className="storefront-deal-badge-icon"
               style={{
                 width: '30px',
                 height: '30px',
@@ -400,13 +533,14 @@ export function StorefrontDealSpotlight({
               <IconTruck size={16} color="#334155" strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>شحن لباب المنزل</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>خلال 24-48 ساعة</div>
+              <div className="storefront-deal-badge-title" style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>شحن لباب المنزل</div>
+              <div className="storefront-deal-badge-sub" style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>خلال 24-48 ساعة</div>
             </div>
           </div>
 
           {/* Badge 3: Inspection Before Payment */}
           <div
+            className="storefront-deal-badge-item"
             style={{
               background: '#ffffff',
               border: '1px solid #e2e8f0',
@@ -418,6 +552,7 @@ export function StorefrontDealSpotlight({
             }}
           >
             <div
+              className="storefront-deal-badge-icon"
               style={{
                 width: '30px',
                 height: '30px',
@@ -434,14 +569,15 @@ export function StorefrontDealSpotlight({
               <EyeIcon size={15} color="#334155" />
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>معاينة وفحص</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>افحص طلبك قبل الدفع</div>
+              <div className="storefront-deal-badge-title" style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>معاينة وفحص</div>
+              <div className="storefront-deal-badge-sub" style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>افحص طلبك قبل الدفع</div>
             </div>
           </div>
         </div>
 
         {/* Small Reassurance Note */}
         <div
+          className="storefront-deal-guarantee"
           style={{
             fontSize: '11px',
             color: '#64748b',
@@ -451,7 +587,8 @@ export function StorefrontDealSpotlight({
           }}
         >
           <IconCheckCircle size={13} color="#64748b" strokeWidth={2.2} />
-          <span>الدفع عند الاستلام نقداً أو إلكترونياً • إمكانية الإرجاع والاستبدال السريع</span>
+          <span className="sf-guarantee-full">الدفع عند الاستلام نقداً أو إلكترونياً • إمكانية الإرجاع والاستبدال السريع</span>
+          <span className="sf-guarantee-mobile">دفع عند الاستلام • إرجاع واستبدال فوري</span>
         </div>
       </div>
 
@@ -470,7 +607,7 @@ export function StorefrontDealSpotlight({
         }}
       >
         {/* Buy Box Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+        <div className="storefront-deal-buy-box-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>سعر العرض الحصري</span>
           {savingsAmount > 0 && (
             <span
@@ -493,6 +630,7 @@ export function StorefrontDealSpotlight({
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
             <span
+              className="storefront-deal-price-val"
               style={{
                 fontSize: '28px',
                 fontWeight: 900,
@@ -530,6 +668,7 @@ export function StorefrontDealSpotlight({
           {cartQuantity > 0 ? (
             /* Strict RTL Stepper Standard: [+] first (right), quantity in middle, [-] last (left) */
             <div
+              className="storefront-deal-stepper"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -611,6 +750,7 @@ export function StorefrontDealSpotlight({
             </div>
           ) : (
             <button
+              className="storefront-deal-add-btn"
               type="button"
               onClick={handleAdd}
               disabled={isOutOfStock}
@@ -643,6 +783,7 @@ export function StorefrontDealSpotlight({
         {/* WhatsApp Direct Inquiry */}
         {formattedPhone && (
           <a
+            className="storefront-deal-wa-btn"
             href={`https://wa.me/${formattedPhone}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن عرض: ${product.name}`)}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -682,6 +823,7 @@ export function StorefrontDealSpotlight({
         {/* Quick View Link */}
         {onQuickView && (
           <button
+            className="storefront-deal-specs-btn"
             type="button"
             onClick={() => onQuickView(product)}
             style={{

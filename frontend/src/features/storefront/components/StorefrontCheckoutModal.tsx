@@ -147,6 +147,8 @@ export function StorefrontCheckoutModal({
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+  const [showCouponInput, setShowCouponInput] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay_wallet' | 'credit_card'>('cod');
   const [paymentSession, setPaymentSession] = useState<StorefrontPaymentSessionResponse | null>(null);
   const [createdOrderForPayment, setCreatedOrderForPayment] = useState<CreateOnlineOrderResponse | null>(null);
@@ -639,23 +641,50 @@ export function StorefrontCheckoutModal({
           .storefront-checkout-grid {
             display: grid;
             grid-template-columns: 1.12fr 0.88fr;
-            gap: 18px;
+            gap: 16px;
             align-items: start;
+          }
+          .storefront-checkout-col {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .storefront-checkout-header {
+            padding: 10px 16px;
+          }
+          .storefront-checkout-body {
+            padding: 10px 14px;
+          }
+          .storefront-checkout-footer {
+            padding: 8px 14px;
           }
           @media (max-width: 768px) {
             .storefront-checkout-modal-container {
               max-width: 480px !important;
+              max-height: calc(100dvh - 12px) !important;
             }
             .storefront-checkout-grid {
               grid-template-columns: 1fr !important;
-              gap: 14px !important;
+              gap: 6px !important;
+            }
+            .storefront-checkout-col {
+              gap: 6px !important;
+            }
+            .storefront-checkout-header {
+              padding: 7px 12px !important;
+            }
+            .storefront-checkout-body {
+              padding: 6px 10px !important;
+            }
+            .storefront-checkout-footer {
+              padding: 6px 10px !important;
             }
           }
         `}</style>
         {/* Header */}
         <div
+          className="storefront-checkout-header"
           style={{
-            padding: '16px 20px',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
@@ -665,12 +694,12 @@ export function StorefrontCheckoutModal({
             zIndex: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
                 background: '#eef2ff',
                 display: 'flex',
                 alignItems: 'center',
@@ -679,16 +708,16 @@ export function StorefrontCheckoutModal({
                 flexShrink: 0,
               }}
             >
-              <PackageIcon size={20} color="#170e5e" />
+              <PackageIcon size={16} color="#170e5e" />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '3px', height: '12px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <h2 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
                   {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : 'إتمام وتأكيد الطلب'}
                 </h2>
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+              <p style={{ margin: '1px 0 0', fontSize: '10.5px', color: '#64748b' }}>
                 {editingOrderNumber ? 'تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر' : 'الدفع نقداً عند استلام الطلب'}
               </p>
             </div>
@@ -699,18 +728,25 @@ export function StorefrontCheckoutModal({
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              width: '32px',
-              height: '32px',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              aspectRatio: '1 / 1',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               color: '#64748b',
-              fontSize: '16px',
+              padding: 0,
+              boxSizing: 'border-box',
+              flexShrink: 0,
+              transition: 'background 0.15s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
+            title="إغلاق (Esc)"
           >
-            <XIcon size={16} color="#64748b" strokeWidth={2} />
+            <XIcon size={14} color="#64748b" strokeWidth={2.2} />
           </button>
         </div>
 
@@ -728,13 +764,13 @@ export function StorefrontCheckoutModal({
           {/* Scrollable Fields Body */}
           <div
             ref={scrollBodyRef}
+            className="storefront-checkout-body"
             style={{
               flex: 1,
               minHeight: 0,
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
               overscrollBehavior: 'contain',
-              padding: '18px 20px',
             }}
           >
             {errorMsg && (
@@ -755,54 +791,72 @@ export function StorefrontCheckoutModal({
 
             <div className="storefront-checkout-grid">
               {/* Column 1: Fulfillment, Customer Details & Address */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="storefront-checkout-col">
                 {/* Fulfillment Type Toggle (Delivery vs Pickup) - Hidden for Dine-in */}
                 {!isDineIn && info?.pickupEnabled !== false && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: '6px',
+                      width: '100%',
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => setFulfillmentType('delivery')}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
+                        flex: 1,
+                        minWidth: 0,
+                        padding: '0 8px',
+                        height: '32px',
+                        borderRadius: '8px',
                         border: fulfillmentType === 'delivery' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                         background: fulfillmentType === 'delivery' ? 'rgba(23, 14, 94, 0.05)' : '#ffffff',
                         color: fulfillmentType === 'delivery' ? brandColor : '#475569',
                         fontWeight: 700,
-                        fontSize: '12.5px',
+                        fontSize: '11px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
+                        gap: '5px',
+                        whiteSpace: 'nowrap',
+                        boxSizing: 'border-box',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <TruckIcon size={16} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
-                      <span>توصيل للمنزل</span>
+                      <TruckIcon size={14} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>توصيل للمنزل</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setFulfillmentType('pickup')}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
+                        flex: 1,
+                        minWidth: 0,
+                        padding: '0 8px',
+                        height: '32px',
+                        borderRadius: '8px',
                         border: fulfillmentType === 'pickup' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
                         background: fulfillmentType === 'pickup' ? 'rgba(23, 14, 94, 0.05)' : '#ffffff',
                         color: fulfillmentType === 'pickup' ? brandColor : '#475569',
                         fontWeight: 700,
-                        fontSize: '12.5px',
+                        fontSize: '11px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
+                        gap: '4px',
+                        whiteSpace: 'nowrap',
+                        boxSizing: 'border-box',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <PackageIcon size={16} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
-                      <span>استلام من الفرع</span>
-                      <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px' }}>مجاني</span>
+                      <PackageIcon size={14} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>استلام من الفرع</span>
+                      <span style={{ fontSize: '9px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '1px 3px', borderRadius: '4px', flexShrink: 0 }}>مجاني</span>
                     </button>
                   </div>
                 )}
@@ -812,8 +866,8 @@ export function StorefrontCheckoutModal({
                     style={{
                       background: '#ffffff',
                       border: '1px solid #cbd5e1',
-                      borderRadius: '10px',
-                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
                       display: 'flex',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
@@ -822,8 +876,8 @@ export function StorefrontCheckoutModal({
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
                           {isDineIn ? 'الطلب باسم' : isPickup ? 'الاستلام باسم' : 'بيانات التوصيل'}
                         </span>
                         <span
@@ -833,22 +887,22 @@ export function StorefrontCheckoutModal({
                             gap: '3px',
                             background: '#dcfce7',
                             color: '#15803d',
-                            fontSize: '10.5px',
+                            fontSize: '10px',
                             fontWeight: 700,
-                            padding: '1px 6px',
-                            borderRadius: '10px',
+                            padding: '1px 5px',
+                            borderRadius: '8px',
                           }}
                         >
-                          <CheckIcon size={11} color="#15803d" strokeWidth={3} />
+                          <CheckIcon size={10} color="#15803d" strokeWidth={3} />
                           بيانات محفوظة
                         </span>
                       </div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
-                      <div style={{ fontSize: '12px', color: '#334155', direction: 'ltr', textAlign: 'right', marginTop: '2px', fontWeight: 600 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
+                      <div style={{ fontSize: '11.5px', color: '#334155', direction: 'ltr', textAlign: 'right', marginTop: '1px', fontWeight: 600 }}>
                         {customerPhone}
                       </div>
                       {!isDineIn && !isPickup && (
-                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                        <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '2px', lineHeight: 1.4, wordBreak: 'break-word' }}>
                           {customerAddress}
                         </div>
                       )}
@@ -861,12 +915,12 @@ export function StorefrontCheckoutModal({
                         border: '1px solid #cbd5e1',
                         borderRadius: '6px',
                         color: brandColor,
-                        fontSize: '11.5px',
+                        fontSize: '11px',
                         fontWeight: 700,
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         fontFamily: 'inherit',
-                        padding: '5px 10px',
+                        padding: '4px 8px',
                       }}
                     >
                       تعديل
@@ -878,14 +932,14 @@ export function StorefrontCheckoutModal({
                   <>
                     {/* Customer Phone & Country Selector */}
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
                           رقم الهاتف (للتواصل وتأكيد الطلب) <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         {customerPhone.length > 0 && (
                           <span
                             style={{
-                              fontSize: '11px',
+                              fontSize: '10px',
                               fontWeight: 700,
                               color: phoneStatus.isValid ? '#16a34a' : '#e11d48',
                             }}
@@ -894,7 +948,7 @@ export function StorefrontCheckoutModal({
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
                         <select
                           value={selectedCountry}
                           onChange={(e) => {
@@ -902,11 +956,12 @@ export function StorefrontCheckoutModal({
                             setCustomerPhone('');
                           }}
                           style={{
-                            width: '115px',
-                            padding: '9px 8px',
+                            width: '95px',
+                            padding: '4px 6px',
+                            height: '32px',
                             borderRadius: '8px',
                             border: '1.5px solid #cbd5e1',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             background: '#f8fafc',
                             fontFamily: 'inherit',
                             fontWeight: 600,
@@ -933,7 +988,9 @@ export function StorefrontCheckoutModal({
                           placeholder={COUNTRY_OPTIONS.find((c) => c.code === selectedCountry)?.placeholder || 'رقم الهاتف'}
                           style={{
                             flex: 1,
-                            padding: '9px 12px',
+                            padding: '4px 10px',
+                            height: '32px',
+                            boxSizing: 'border-box',
                             borderRadius: '8px',
                             border:
                               customerPhone.length > 0
@@ -941,7 +998,7 @@ export function StorefrontCheckoutModal({
                                   ? '1.5px solid #22c55e'
                                   : '1.5px solid #f87171'
                                 : '1.5px solid #cbd5e1',
-                            fontSize: '13.5px',
+                            fontSize: '12.5px',
                             outline: 'none',
                             background: '#f8fafc',
                             fontFamily: 'inherit',
@@ -957,18 +1014,18 @@ export function StorefrontCheckoutModal({
                           style={{
                             background: '#f0fdf4',
                             border: '1px solid #86efac',
-                            borderRadius: '8px',
-                            padding: '6px 10px',
-                            fontSize: '11px',
+                            borderRadius: '6px',
+                            padding: '3px 8px',
+                            fontSize: '10px',
                             color: '#166534',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            marginTop: '6px',
+                            marginTop: '3px',
                           }}
                         >
                           <span>
-                            <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت من هذا الهاتف مسبقاً.
+                            <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت مسبقاً.
                           </span>
                           <button
                             type="button"
@@ -981,7 +1038,7 @@ export function StorefrontCheckoutModal({
                               background: 'none',
                               border: 'none',
                               color: '#15803d',
-                              fontSize: '11px',
+                              fontSize: '10px',
                               fontWeight: 700,
                               cursor: 'pointer',
                               textDecoration: 'underline',
@@ -997,7 +1054,7 @@ export function StorefrontCheckoutModal({
 
                     {/* Customer Name */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
                         الاسم بالكامل <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       <input
@@ -1009,7 +1066,9 @@ export function StorefrontCheckoutModal({
                         placeholder="مثال: علي محمد / مازن أحمد"
                         style={{
                           width: '100%',
-                          padding: '9px 12px',
+                          padding: '4px 10px',
+                          height: '32px',
+                          boxSizing: 'border-box',
                           borderRadius: '8px',
                           border:
                             customerName.length > 0
@@ -1017,7 +1076,7 @@ export function StorefrontCheckoutModal({
                                 ? '1.5px solid #22c55e'
                                 : '1.5px solid #f87171'
                               : '1.5px solid #cbd5e1',
-                          fontSize: '13.5px',
+                          fontSize: '12px',
                           outline: 'none',
                           background: '#f8fafc',
                           fontFamily: 'inherit',
@@ -1031,13 +1090,13 @@ export function StorefrontCheckoutModal({
                 {/* Delivery Zone Matrix Selector (Hidden for Dine-In and Pickup) */}
                 {!isDineIn && !isPickup && activeDeliveryZones.length > 0 && (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
                         منطقة / حي التوصيل <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       {selectedZone?.estimatedTime && (
-                        <span style={{ fontSize: '11px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 600 }}>
-                          التوصيل المتوقع: {selectedZone.estimatedTime}
+                        <span style={{ fontSize: '10px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                          {selectedZone.estimatedTime}
                         </span>
                       )}
                     </div>
@@ -1047,10 +1106,11 @@ export function StorefrontCheckoutModal({
                       onChange={(e) => handleZoneSelect(Number(e.target.value))}
                       style={{
                         width: '100%',
-                        padding: '9px 12px',
+                        padding: '4px 8px',
+                        height: '32px',
                         borderRadius: '8px',
                         border: '1.5px solid #cbd5e1',
-                        fontSize: '12.5px',
+                        fontSize: '11.5px',
                         outline: 'none',
                         background: '#f8fafc',
                         fontFamily: 'inherit',
@@ -1075,20 +1135,20 @@ export function StorefrontCheckoutModal({
                       background: '#f0fdf4',
                       border: '1.5px solid #86efac',
                       borderRadius: '8px',
-                      padding: '10px 12px',
+                      padding: '6px 10px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
+                      gap: '8px',
                     }}
                   >
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <UtensilsIcon size={18} color="#166534" strokeWidth={2} />
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <UtensilsIcon size={15} color="#166534" strokeWidth={2} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
+                      <div style={{ fontWeight: 800, color: '#166534', fontSize: '11.5px' }}>
                         طلب مباشر من الصالة / الكافيه
                       </div>
-                      <div style={{ color: '#15803d', fontSize: '11.5px' }}>
+                      <div style={{ color: '#15803d', fontSize: '10.5px' }}>
                         طاولة رقم: <strong>{tableNumber || 'غير محدد'}</strong>
                       </div>
                     </div>
@@ -1099,39 +1159,39 @@ export function StorefrontCheckoutModal({
                       background: '#eff6ff',
                       border: '1.5px solid #93c5fd',
                       borderRadius: '8px',
-                      padding: '10px 12px',
+                      padding: '6px 10px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
+                      gap: '8px',
                     }}
                   >
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <PackageIcon size={18} color="#1e40af" strokeWidth={2} />
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <PackageIcon size={15} color="#1e40af" strokeWidth={2} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '12.5px' }}>
+                      <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '11.5px' }}>
                         استلام ذاتي من الفرع (Click & Collect)
                       </div>
-                      <div style={{ color: '#2563eb', fontSize: '11.5px' }}>
+                      <div style={{ color: '#2563eb', fontSize: '10.5px' }}>
                         تجهيز الطلب للاستلام المباشر بدون رسوم شحن.
                       </div>
                     </div>
                   </div>
                 ) : canExpress ? null : (
                   <div>
-                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
                       عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <textarea
                       required
-                      rows={2}
+                      rows={1}
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
                       onBlur={recordAbandonedCartSilent}
                       placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة..."
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
+                        padding: '4px 10px',
                         borderRadius: '8px',
                         border:
                           customerAddress.length > 0
@@ -1139,12 +1199,14 @@ export function StorefrontCheckoutModal({
                               ? '1.5px solid #22c55e'
                               : '1.5px solid #f87171'
                             : '1.5px solid #cbd5e1',
-                        fontSize: '12.5px',
+                        fontSize: '11.5px',
                         outline: 'none',
                         background: '#f8fafc',
                         fontFamily: 'inherit',
                         resize: 'none',
-                        minHeight: '48px',
+                        minHeight: '32px',
+                        height: '32px',
+                        boxSizing: 'border-box',
                         lineHeight: '1.4',
                         transition: 'border-color 0.2s ease',
                       }}
@@ -1152,83 +1214,138 @@ export function StorefrontCheckoutModal({
                   </div>
                 )}
 
-                {/* Delivery Notes */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                    ملاحظات خاصة للأصناف أو التوصيل (اختياري)
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={customerNotes}
-                    onChange={(e) => setCustomerNotes(e.target.value)}
-                    placeholder="اكتب أي تعليمات لتحضير طلبك أو للتوصيل (اختياري)..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '12px',
-                      outline: 'none',
-                      background: '#f8fafc',
-                      fontFamily: 'inherit',
-                      resize: 'none',
-                      minHeight: '48px',
-                      lineHeight: '1.4',
-                    }}
-                  />
+                {/* Optional Notes & Promo Link Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '1px 2px' }}>
+                  {!showNotes && !customerNotes.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowNotes(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: brandColor,
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: '2px 0',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      + إضافة ملاحظات للطلب (اختياري)
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>ملاحظات الطلب</span>
+                  )}
+
+                  {!showCouponInput && !appliedCoupon?.ok ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCouponInput(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#b45309',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: '2px 0',
+                        fontFamily: 'inherit',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <TagIcon size={12} color="#b45309" />
+                      <span>لديك كوبون خصم؟</span>
+                    </button>
+                  ) : null}
                 </div>
+
+                {/* Collapsed Notes Field (visible when clicked or has content) */}
+                {(showNotes || customerNotes.trim()) && (
+                  <div>
+                    <textarea
+                      rows={1}
+                      autoFocus={showNotes && !customerNotes}
+                      value={customerNotes}
+                      onChange={(e) => setCustomerNotes(e.target.value)}
+                      placeholder="اكتب أي تعليمات لتحضير طلبك أو للتوصيل (اختياري)..."
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '11.5px',
+                        outline: 'none',
+                        background: '#f8fafc',
+                        fontFamily: 'inherit',
+                        resize: 'none',
+                        minHeight: '34px',
+                        height: '34px',
+                        boxSizing: 'border-box',
+                        lineHeight: '1.4',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Column 2: Payment, Promo, Summary */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="storefront-checkout-col">
                 {/* Payment Method Selector */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '3px' }}>
                     طريقة الدفع
                   </label>
 
                   <div
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: info?.onlinePaymentEnabled ? 'repeat(auto-fit, minmax(110px, 1fr))' : '1fr 1fr',
-                      gap: '8px',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: '6px',
+                      width: '100%',
                     }}
                   >
                     {/* COD Option */}
                     <div
                       onClick={() => setPaymentMethod('cod')}
                       style={{
+                        flex: 1,
+                        minWidth: 0,
                         border: paymentMethod === 'cod' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                        background: paymentMethod === 'cod' ? '#f8fafc' : '#ffffff',
+                        background: paymentMethod === 'cod' ? 'rgba(23, 14, 94, 0.04)' : '#ffffff',
                         borderRadius: '8px',
-                        padding: '8px 10px',
+                        padding: '4px 8px',
                         cursor: 'pointer',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '2px',
+                        alignItems: 'center',
+                        gap: '5px',
+                        height: '32px',
+                        boxSizing: 'border-box',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                          {isDineIn ? 'الدفع في الصالة' : fulfillmentType === 'pickup' ? 'عند الاستلام' : 'الدفع عند الاستلام'}
-                        </span>
-                        <div
-                          style={{
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            border: paymentMethod === 'cod' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                            background: '#ffffff',
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                        {isDineIn
-                          ? 'نقداً أو بالبطاقة'
-                          : fulfillmentType === 'pickup'
-                          ? 'نقداً أو بالفيزا بالفرع'
-                          : 'نقداً للمندوب'}
+                      <div
+                        style={{
+                          width: '11px',
+                          height: '11px',
+                          borderRadius: '50%',
+                          border: paymentMethod === 'cod' ? `3.5px solid ${brandColor}` : '1.5px solid #94a3b8',
+                          background: '#ffffff',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: paymentMethod === 'cod' ? brandColor : '#0f172a',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {isDineIn ? 'في الصالة' : fulfillmentType === 'pickup' ? 'عند الاستلام' : 'الدفع عند الاستلام'}
                       </span>
                     </div>
 
@@ -1236,33 +1353,42 @@ export function StorefrontCheckoutModal({
                     <div
                       onClick={() => setPaymentMethod('instapay_wallet')}
                       style={{
+                        flex: 1,
+                        minWidth: 0,
                         border: paymentMethod === 'instapay_wallet' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                        background: paymentMethod === 'instapay_wallet' ? '#f8fafc' : '#ffffff',
+                        background: paymentMethod === 'instapay_wallet' ? 'rgba(23, 14, 94, 0.04)' : '#ffffff',
                         borderRadius: '8px',
-                        padding: '8px 10px',
+                        padding: '4px 8px',
                         cursor: 'pointer',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '2px',
+                        alignItems: 'center',
+                        gap: '5px',
+                        height: '32px',
+                        boxSizing: 'border-box',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                          إنستاباي / محفظة
-                        </span>
-                        <div
-                          style={{
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            border: paymentMethod === 'instapay_wallet' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                            background: '#ffffff',
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                        تحويل إلكتروني مسبق
+                      <div
+                        style={{
+                          width: '11px',
+                          height: '11px',
+                          borderRadius: '50%',
+                          border: paymentMethod === 'instapay_wallet' ? `3.5px solid ${brandColor}` : '1.5px solid #94a3b8',
+                          background: '#ffffff',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: paymentMethod === 'instapay_wallet' ? brandColor : '#0f172a',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        إنستاباي / محفظة
                       </span>
                     </div>
 
@@ -1271,33 +1397,42 @@ export function StorefrontCheckoutModal({
                       <div
                         onClick={() => setPaymentMethod('credit_card')}
                         style={{
+                          flex: 1,
+                          minWidth: 0,
                           border: paymentMethod === 'credit_card' ? `2px solid ${brandColor}` : '1.5px solid #cbd5e1',
-                          background: paymentMethod === 'credit_card' ? '#f8fafc' : '#ffffff',
+                          background: paymentMethod === 'credit_card' ? 'rgba(23, 14, 94, 0.04)' : '#ffffff',
                           borderRadius: '8px',
-                          padding: '8px 10px',
+                          padding: '4px 8px',
                           cursor: 'pointer',
                           display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
+                          alignItems: 'center',
+                          gap: '5px',
+                          height: '32px',
+                          boxSizing: 'border-box',
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                            بطاقة بنكية
-                          </span>
-                          <div
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '50%',
-                              border: paymentMethod === 'credit_card' ? `4px solid ${brandColor}` : '1.5px solid #94a3b8',
-                              background: '#ffffff',
-                            }}
-                          />
-                        </div>
-                        <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
-                          فيزا / ماستركارد / ميزة
+                        <div
+                          style={{
+                            width: '11px',
+                            height: '11px',
+                            borderRadius: '50%',
+                            border: paymentMethod === 'credit_card' ? `3.5px solid ${brandColor}` : '1.5px solid #94a3b8',
+                            background: '#ffffff',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            color: paymentMethod === 'credit_card' ? brandColor : '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          بطاقة بنكية
                         </span>
                       </div>
                     )}
@@ -1307,22 +1442,22 @@ export function StorefrontCheckoutModal({
                   {paymentMethod === 'credit_card' && (
                     <div
                       style={{
-                        marginTop: '8px',
+                        marginTop: '6px',
                         background: '#f0f9ff',
                         border: '1px solid #bae6fd',
-                        borderRadius: '8px',
-                        padding: '8px 12px',
-                        fontSize: '11.5px',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11px',
                         color: '#0369a1',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '3px',
+                        gap: '2px',
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
                         دفع إلكتروني فوري وآمن:
                       </div>
-                      <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
+                      <div style={{ color: '#0c4a6e', fontSize: '10.5px', lineHeight: '1.3' }}>
                         سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) ببطاقتك البنكية فور الضغط على إرسال الطلب.
                       </div>
                     </div>
@@ -1332,16 +1467,16 @@ export function StorefrontCheckoutModal({
                   {paymentMethod === 'instapay_wallet' && (
                     <div
                       style={{
-                        marginTop: '8px',
+                        marginTop: '6px',
                         background: '#f0fdf4',
                         border: '1px solid #bbf7d0',
-                        borderRadius: '8px',
-                        padding: '8px 12px',
-                        fontSize: '11.5px',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11px',
                         color: '#166534',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '3px',
+                        gap: '2px',
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
@@ -1350,7 +1485,7 @@ export function StorefrontCheckoutModal({
                           {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
                         </span>
                       </div>
-                      <div style={{ color: '#15803d', fontSize: '11px', lineHeight: '1.4' }}>
+                      <div style={{ color: '#15803d', fontSize: '10.5px', lineHeight: '1.3' }}>
                         يرجى تحويل مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
                       </div>
                     </div>
@@ -1365,13 +1500,13 @@ export function StorefrontCheckoutModal({
                         style={{
                           background: '#ecfdf5',
                           border: '1px solid #a7f3d0',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px',
+                          gap: '6px',
                           color: '#065f46',
-                          fontSize: '11.5px',
+                          fontSize: '10.5px',
                           fontWeight: 700,
                         }}
                       >
@@ -1384,27 +1519,27 @@ export function StorefrontCheckoutModal({
                         style={{
                           background: '#f0f9ff',
                           border: '1px solid #bae6fd',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           color: '#0369a1',
-                          fontSize: '11.5px',
+                          fontSize: '10.5px',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <TruckIcon size={14} color="#0284c7" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <TruckIcon size={12} color="#0284c7" />
                           <span>
-                            أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> إضافية للحصول على شحن مجاني!
+                            أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> لشحن مجاني!
                           </span>
                         </div>
                         <span
                           style={{
-                            fontSize: '10.5px',
+                            fontSize: '9.5px',
                             background: '#e0f2fe',
                             color: '#0369a1',
-                            padding: '2px 7px',
+                            padding: '1px 5px',
                             borderRadius: '4px',
                             fontWeight: 700,
                           }}
@@ -1416,122 +1551,127 @@ export function StorefrontCheckoutModal({
                   </div>
                 )}
 
-                {/* Promo Code Input Box */}
-                <div
-                  style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '9px 12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                      كود الخصم أو الكوبون:
-                    </label>
-                    {appliedCoupon?.ok && (
-                      <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
-                        <span>تم التطبيق</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {appliedCoupon?.ok ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: '#ecfdf5',
-                        border: '1px solid #86efac',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <TagIcon size={14} color="#166534" strokeWidth={2} />
-                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
-                          {appliedCoupon.code}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#15803d', marginRight: '4px' }}>
-                          {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#dc2626',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          padding: '2px 4px',
-                        }}
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <input
-                          type="text"
-                          value={couponCodeInput}
-                          onChange={(e) => {
-                            setCouponCodeInput(e.target.value.toUpperCase().replace(/\s+/g, ''));
-                            setCouponError('');
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleApplyCoupon();
-                            }
-                          }}
-                          placeholder="أدخل كود الكوبون هنا..."
-                          style={{
-                            flex: 1,
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            border: couponError ? '1.5px solid #f87171' : '1px solid #cbd5e1',
-                            fontSize: '12px',
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            direction: 'ltr',
-                            textAlign: 'right',
-                            background: '#ffffff',
-                            outline: 'none',
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleApplyCoupon}
-                          disabled={couponLoading || !couponCodeInput.trim()}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: '6px',
-                            background: brandColor,
-                            color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            border: 'none',
-                            cursor: couponLoading || !couponCodeInput.trim() ? 'not-allowed' : 'pointer',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {couponLoading ? 'جاري...' : 'تطبيق'}
-                        </button>
-                      </div>
-                      {couponError && (
-                        <span style={{ display: 'block', fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: 600 }}>
-                          {couponError}
+                {/* Promo Code Input Box (Visible when toggled or applied) */}
+                {(showCouponInput || appliedCoupon?.ok) && (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
+                        كود الخصم أو الكوبون:
+                      </label>
+                      {appliedCoupon?.ok && (
+                        <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <CheckIcon size={11} color="#16a34a" strokeWidth={2.5} />
+                          <span>تم التطبيق</span>
                         </span>
                       )}
                     </div>
-                  )}
-                </div>
+
+                    {appliedCoupon?.ok ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: '#ecfdf5',
+                          border: '1px solid #86efac',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <TagIcon size={12} color="#166534" strokeWidth={2} />
+                          <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '11.5px' }}>
+                            {appliedCoupon.code}
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#15803d', marginRight: '4px' }}>
+                            {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#dc2626',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: '1px 3px',
+                          }}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            value={couponCodeInput}
+                            onChange={(e) => {
+                              setCouponCodeInput(e.target.value.toUpperCase().replace(/\s+/g, ''));
+                              setCouponError('');
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleApplyCoupon();
+                              }
+                            }}
+                            placeholder="أدخل كود الكوبون هنا..."
+                            style={{
+                              flex: 1,
+                              padding: '4px 8px',
+                              height: '30px',
+                              boxSizing: 'border-box',
+                              borderRadius: '6px',
+                              border: couponError ? '1.5px solid #f87171' : '1px solid #cbd5e1',
+                              fontSize: '11px',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              direction: 'ltr',
+                              textAlign: 'right',
+                              background: '#ffffff',
+                              outline: 'none',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={couponLoading || !couponCodeInput.trim()}
+                            style={{
+                              padding: '4px 10px',
+                              height: '30px',
+                              borderRadius: '6px',
+                              background: brandColor,
+                              color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: couponLoading || !couponCodeInput.trim() ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {couponLoading ? 'جاري...' : 'تطبيق'}
+                          </button>
+                        </div>
+                        {couponError && (
+                          <span style={{ display: 'block', fontSize: '10px', color: '#dc2626', marginTop: '2px', fontWeight: 600 }}>
+                            {couponError}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Order Total Summary */}
                 <div
@@ -1539,25 +1679,25 @@ export function StorefrontCheckoutModal({
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
                     borderRadius: '8px',
-                    padding: '10px 14px',
+                    padding: '6px 10px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px',
+                    gap: '3px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
                     <span>مجموع الأصناف:</span>
                     <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
                   </div>
 
                   {bogoSavings > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#059669', background: '#ecfdf5', padding: '2px 5px', borderRadius: '4px' }}>
                       <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
                       <strong style={{ fontWeight: 800 }}>- {bogoSavings.toFixed(0)} <CurrencySymbol /></strong>
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
                     <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
                     {isDineIn ? (
                       <strong style={{ color: '#166534' }}>مجاناً (طلب صالة)</strong>
@@ -1574,7 +1714,7 @@ export function StorefrontCheckoutModal({
                   </div>
 
                   {discountAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#16a34a' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#16a34a' }}>
                       <span>خصم الكوبون ({appliedCoupon?.code}):</span>
                       <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} <CurrencySymbol /></strong>
                     </div>
@@ -1585,15 +1725,15 @@ export function StorefrontCheckoutModal({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      paddingTop: '6px',
-                      marginTop: '2px',
+                      paddingTop: '3px',
+                      marginTop: '1px',
                       borderTop: '1px dashed #cbd5e1',
                     }}
                   >
-                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
                       المبلغ الإجمالي للدفع:
                     </span>
-                    <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    <span style={{ fontSize: '14.5px', fontWeight: 900, color: '#0f172a' }}>
                       {total.toFixed(0)} <CurrencySymbol />
                     </span>
                   </div>
@@ -1604,15 +1744,12 @@ export function StorefrontCheckoutModal({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '5px',
                     cursor: 'pointer',
-                    fontSize: '11px',
-                    color: '#334155',
+                    fontSize: '10px',
+                    color: '#475569',
                     userSelect: 'none',
-                    background: '#f8fafc',
-                    padding: '7px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0',
+                    margin: '0 2px',
                   }}
                 >
                   <input
@@ -1620,14 +1757,14 @@ export function StorefrontCheckoutModal({
                     checked={rememberDevice}
                     onChange={(e) => setRememberDevice(e.target.checked)}
                     style={{
-                      width: '14px',
-                      height: '14px',
+                      width: '12px',
+                      height: '12px',
                       accentColor: brandColor,
                       cursor: 'pointer',
                       flexShrink: 0,
                     }}
                   />
-                  <span style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
                     تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
                   </span>
                 </label>
@@ -1637,12 +1774,12 @@ export function StorefrontCheckoutModal({
 
         {/* Sticky Bottom Actions Bar (Always visible & accessible on all screens) */}
         <div
+          className="storefront-checkout-footer"
           style={{
-            padding: '12px 20px',
             borderTop: '1px solid #e2e8f0',
             background: '#ffffff',
             display: 'flex',
-            gap: '10px',
+            gap: '8px',
             flexShrink: 0,
             boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.04)',
             zIndex: 10,
@@ -1653,33 +1790,41 @@ export function StorefrontCheckoutModal({
             disabled={loading}
             style={{
               flex: 1,
-              padding: '12px 20px',
-              borderRadius: '10px',
+              height: '38px',
+              padding: '0 16px',
+              borderRadius: '8px',
               background: brandColor,
               color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
-              fontSize: '15px',
+              fontSize: '13px',
               fontWeight: 800,
               border: 'none',
               cursor: loading ? 'wait' : 'pointer',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)',
+              boxShadow: '0 3px 10px rgba(0, 0, 0, 0.16)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               transition: 'all 0.15s ease',
             }}
           >
-            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : isDineIn ? `إرسال الطلب للمطبخ (طاولة ${tableNumber || ''})` : 'إرسال وتأكيد الطلب الآن'}
+            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : isDineIn ? `إرسال للمطبخ (طاولة ${tableNumber || ''})` : 'إرسال وتأكيد الطلب الآن'}
           </button>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
             style={{
-              padding: '12px 18px',
-              borderRadius: '10px',
+              height: '38px',
+              padding: '0 14px',
+              borderRadius: '8px',
               border: '1px solid #cbd5e1',
               background: '#ffffff',
               color: '#475569',
-              fontSize: '13px',
+              fontSize: '11.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             إلغاء

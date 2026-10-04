@@ -23,9 +23,9 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
-        padding: '7px 9px',
-        borderRadius: '10px',
+        gap: '8px',
+        padding: '5px 8px',
+        borderRadius: '9px',
         background: '#f8fafc',
         border: '1px solid #f1f5f9',
         transition: 'background 0.15s ease',
@@ -34,9 +34,9 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
       {/* Product Thumbnail */}
       <div
         style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '8px',
+          width: '35px',
+          height: '35px',
+          borderRadius: '7px',
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           display: 'flex',

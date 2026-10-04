@@ -147,6 +147,34 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             font-size: 9px !important;
             padding: 1px 5px !important;
           }
+          .storefront-product-fav-btn {
+            width: clamp(28px, 7.5vw, 32px) !important;
+            height: clamp(28px, 7.5vw, 32px) !important;
+            min-width: clamp(28px, 7.5vw, 32px) !important;
+            min-height: clamp(28px, 7.5vw, 32px) !important;
+            max-width: clamp(28px, 7.5vw, 32px) !important;
+            max-height: clamp(28px, 7.5vw, 32px) !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+            top: 6px !important;
+            left: 6px !important;
+          }
+          .storefront-product-fav-btn svg {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            flex-shrink: 0 !important;
+            stroke-width: 2.3 !important;
+          }
           .storefront-product-meta-row {
             margin-bottom: 3px !important;
           }
@@ -408,18 +436,27 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               left: '8px',
               width: '30px',
               height: '30px',
+              minWidth: '30px',
+              minHeight: '30px',
+              maxWidth: '30px',
+              maxHeight: '30px',
+              aspectRatio: '1 / 1',
               padding: 0,
-              background: 'rgba(255, 255, 255, 0.88)',
+              margin: 0,
+              boxSizing: 'border-box',
+              flexShrink: 0,
+              background: 'rgba(255, 255, 255, 0.92)',
               backdropFilter: 'blur(8px)',
               borderRadius: '50%',
               border: '1px solid rgba(255, 255, 255, 0.95)',
               boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
               outline: 'none',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 3,
+              lineHeight: 1,
               transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             }}
             onMouseEnter={(e) => {
@@ -428,7 +465,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.92)';
             }}
           >
             <svg
@@ -437,10 +474,11 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               viewBox="0 0 24 24"
               fill={isFavorite ? '#ef4444' : 'none'}
               stroke={isFavorite ? '#ef4444' : '#475569'}
-              strokeWidth="2.4"
+              strokeWidth="2.3"
               strokeLinecap="round"
               strokeLinejoin="round"
               style={{
+                flexShrink: 0,
                 transition: 'all 0.2s ease',
               }}
             >

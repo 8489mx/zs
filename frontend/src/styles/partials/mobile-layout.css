@@ -1293,6 +1293,18 @@
     touch-action: pan-x pan-y pinch-zoom !important;
   }
 
+  /* When any modal dialog is open, freeze page root and lock background completely */
+  html.dialog-shell-open,
+  body.dialog-shell-open,
+  html.dialog-shell-open #root,
+  body.dialog-shell-open #root,
+  html.dialog-shell-open .app-root,
+  body.dialog-shell-open .app-root {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    touch-action: none !important;
+  }
+
   /* Prevent ghost drag & mouse drag-lock on mobile */
   * {
     -webkit-user-drag: none !important;

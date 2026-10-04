@@ -142,6 +142,7 @@ export function StorefrontProductQuickViewModal({
   return (
     <div
       dir="rtl"
+      className="sf-quickview-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -155,7 +156,221 @@ export function StorefrontProductQuickViewModal({
       }}
       onClick={onClose}
     >
+      <style>{`
+        .sf-highlight-text-mobile {
+          display: none;
+        }
+        .sf-highlight-text-full {
+          display: inline;
+        }
+        @media (max-width: 640px) {
+          .sf-quickview-backdrop {
+            padding: clamp(8px, 2vh, 16px) clamp(8px, 2.5vw, 16px) !important;
+            align-items: center !important;
+          }
+          .sf-quickview-shell {
+            max-height: 94vh !important;
+            border-radius: 16px !important;
+            width: 100% !important;
+            max-width: min(100%, 460px) !important;
+          }
+          .sf-quickview-header {
+            padding: clamp(9px, 1.8vh, 12px) 14px !important;
+          }
+          .sf-quickview-cat-badge {
+            font-size: clamp(11.5px, 3.2vw, 12.5px) !important;
+            padding: 3px 9px !important;
+          }
+          .sf-quickview-close-btn {
+            width: clamp(30px, 8vw, 34px) !important;
+            height: clamp(30px, 8vw, 34px) !important;
+            min-width: clamp(30px, 8vw, 34px) !important;
+            min-height: clamp(30px, 8vw, 34px) !important;
+            max-width: clamp(30px, 8vw, 34px) !important;
+            max-height: clamp(30px, 8vw, 34px) !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+          }
+          .sf-quickview-close-btn svg {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            flex-shrink: 0 !important;
+            stroke-width: 2.2 !important;
+          }
+          .sf-quickview-body {
+            padding: clamp(8px, 1.8vh, 14px) clamp(10px, 3.5vw, 16px) !important;
+            gap: clamp(8px, 1.5vh, 12px) !important;
+          }
+          .sf-quickview-photo-wrap {
+            gap: 6px !important;
+          }
+          .sf-quickview-photo-box {
+            max-height: clamp(140px, 24vh, 185px) !important;
+            height: clamp(140px, 24vh, 185px) !important;
+            max-width: clamp(200px, 60vw, 260px) !important;
+            aspect-ratio: auto !important;
+            padding: 4px 8px !important;
+            border-radius: 12px !important;
+            margin: 0 auto !important;
+          }
+          .sf-quickview-photo-img {
+            max-height: 100% !important;
+            object-fit: contain !important;
+          }
+          .sf-quickview-lowstock-badge {
+            top: 6px !important;
+            right: 6px !important;
+            font-size: 10px !important;
+            padding: 2px 7px !important;
+          }
+          .sf-quickview-thumbs {
+            gap: 6px !important;
+            padding-bottom: 2px !important;
+          }
+          .sf-quickview-thumbs button {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 6px !important;
+          }
+          .sf-quickview-info-section {
+            margin-top: 0 !important;
+          }
+          .sf-quickview-title {
+            font-size: clamp(14px, 4vw, 16.5px) !important;
+            line-height: 1.35 !important;
+            margin-bottom: 3px !important;
+            font-weight: 800 !important;
+          }
+          .sf-quickview-barcode {
+            font-size: 9.5px !important;
+            padding: 1.5px 5px !important;
+          }
+          .sf-quickview-price-stock-row {
+            margin-top: 3px !important;
+            gap: 6px !important;
+          }
+          .sf-quickview-price-val {
+            font-size: clamp(20px, 5.5vw, 24px) !important;
+          }
+          .sf-quickview-discount-badge {
+            font-size: 10px !important;
+            padding: 2px 6px !important;
+          }
+          .sf-quickview-stock-badge {
+            font-size: 10px !important;
+            padding: 2px 7px !important;
+          }
+          .sf-quickview-variants-box {
+            margin-top: 4px !important;
+            padding: 5px 8px !important;
+          }
+          .sf-quickview-variants-box button {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+          }
+          .sf-quickview-desc {
+            margin-top: 4px !important;
+            padding: 6px 10px !important;
+            font-size: 11.5px !important;
+            line-height: 1.4 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+          }
+          .sf-highlight-text-mobile {
+            display: inline !important;
+          }
+          .sf-highlight-text-full {
+            display: none !important;
+          }
+          .sf-quickview-highlights-box {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-evenly !important;
+            align-items: center !important;
+            gap: 6px !important;
+            padding: 6px 8px !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+          }
+          .sf-quickview-highlight-item {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+          }
+          .sf-quickview-highlight-icon {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            flex-shrink: 0 !important;
+          }
+          .sf-quickview-highlight-icon svg {
+            width: 11px !important;
+            height: 11px !important;
+            flex-shrink: 0 !important;
+          }
+          .sf-quickview-highlight-text {
+            font-size: clamp(9.5px, 2.7vw, 11px) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .sf-quickview-share-bar {
+            padding: 3px 0 !important;
+            margin-top: 2px !important;
+          }
+          .sf-quickview-share-label {
+            font-size: 10.5px !important;
+          }
+          .sf-quickview-share-btn {
+            padding: 3px 7px !important;
+            font-size: 10.5px !important;
+            border-radius: 6px !important;
+          }
+          .sf-quickview-footer {
+            padding: clamp(8px, 1.6vh, 12px) 14px !important;
+            gap: 8px !important;
+          }
+          .sf-quickview-stepper {
+            padding: 2px !important;
+            border-radius: 8px !important;
+          }
+          .sf-quickview-stepper-btn {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 15px !important;
+          }
+          .sf-quickview-stepper-val {
+            min-width: 24px !important;
+            font-size: 13.5px !important;
+            font-weight: 800 !important;
+          }
+          .sf-quickview-cta-btn {
+            height: 42px !important;
+            font-size: 13px !important;
+            font-weight: 800 !important;
+            padding: 0 10px !important;
+            border-radius: 8px !important;
+          }
+        }
+      `}</style>
       <div
+        className="sf-quickview-shell"
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
@@ -173,6 +388,7 @@ export function StorefrontProductQuickViewModal({
       >
         {/* Header with Category and Close */}
         <div
+          className="sf-quickview-header"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -186,6 +402,7 @@ export function StorefrontProductQuickViewModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
+              className="sf-quickview-cat-badge"
               style={{
                 fontSize: '12px',
                 fontWeight: 700,
@@ -223,19 +440,31 @@ export function StorefrontProductQuickViewModal({
 
           <button
             type="button"
+            className="sf-quickview-close-btn"
             onClick={onClose}
+            aria-label="إغلاق النافذة"
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               width: '32px',
               height: '32px',
+              minWidth: '32px',
+              minHeight: '32px',
+              maxWidth: '32px',
+              maxHeight: '32px',
+              aspectRatio: '1 / 1',
               borderRadius: '50%',
-              display: 'flex',
+              padding: 0,
+              margin: 0,
+              boxSizing: 'border-box',
+              flexShrink: 0,
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#64748b',
+              color: '#475569',
               transition: 'all 0.15s ease',
+              lineHeight: 1,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#fee2e2';
@@ -243,18 +472,19 @@ export function StorefrontProductQuickViewModal({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.color = '#475569';
             }}
           >
-            <XIcon size={16} />
+            <XIcon size={16} strokeWidth={2.4} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="sf-quickview-body thin-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Main Product Image & Multi-photo Gallery */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="sf-quickview-photo-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div
+              className="sf-quickview-photo-box"
               style={{
                 width: '100%',
                 aspectRatio: '1 / 1',
@@ -276,6 +506,7 @@ export function StorefrontProductQuickViewModal({
             >
               {activePhoto || displayPrimaryPhoto ? (
                 <img
+                  className="sf-quickview-photo-img"
                   src={activePhoto || displayPrimaryPhoto}
                   alt={product.name}
                   onError={(e) => {
@@ -292,6 +523,7 @@ export function StorefrontProductQuickViewModal({
                 />
               ) : (
                 <img
+                  className="sf-quickview-photo-img"
                   src={generatePremiumProductSvg(product.name, product.categoryName)}
                   alt={product.name}
                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
@@ -301,6 +533,7 @@ export function StorefrontProductQuickViewModal({
               {/* Urgency Badge overlay on image */}
               {isLowStock && (
                 <div
+                  className="sf-quickview-lowstock-badge"
                   style={{
                     position: 'absolute',
                     top: '10px',
@@ -325,7 +558,7 @@ export function StorefrontProductQuickViewModal({
 
             {/* Gallery Thumbnails (if multiple images) */}
             {gallery.length > 1 && (
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', justifyContent: 'center' }}>
+              <div className="sf-quickview-thumbs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', justifyContent: 'center' }}>
                 {gallery.map((imgUrl, i) => (
                   <button
                     key={i}
@@ -352,13 +585,14 @@ export function StorefrontProductQuickViewModal({
           </div>
 
           {/* Product Title, Barcode & Price */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0', lineHeight: 1.35 }}>
+          <div className="sf-quickview-info-section">
+            <div className="sf-quickview-title-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+              <h2 className="sf-quickview-title" style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0', lineHeight: 1.35 }}>
                 {product.name}
               </h2>
               {product.barcode && (
                 <span
+                  className="sf-quickview-barcode"
                   style={{
                     fontSize: '11px',
                     fontWeight: 700,
@@ -376,7 +610,7 @@ export function StorefrontProductQuickViewModal({
             </div>
 
             {/* Price & Stock status */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+            <div className="sf-quickview-price-stock-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                 {isZeroPrice ? (
                   <span style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>
@@ -384,7 +618,7 @@ export function StorefrontProductQuickViewModal({
                   </span>
                 ) : (
                   <>
-                    <span style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
+                    <span className="sf-quickview-price-val" style={{ fontSize: '24px', fontWeight: 900, color: brandColor, letterSpacing: '-0.5px' }}>
                       {basePrice.toLocaleString()}
                     </span>
                     <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
@@ -397,6 +631,7 @@ export function StorefrontProductQuickViewModal({
                     )}
                     {(product.hasDiscount || product.offerType === 'bogo') && product.offerBadge && (
                       <span
+                        className="sf-quickview-discount-badge"
                         style={{
                           fontSize: '11px',
                           fontWeight: 800,
@@ -416,6 +651,7 @@ export function StorefrontProductQuickViewModal({
 
               {isZeroPrice ? (
                 <span
+                  className="sf-quickview-stock-badge"
                   style={{
                     fontSize: '11.5px',
                     fontWeight: 800,
@@ -434,6 +670,7 @@ export function StorefrontProductQuickViewModal({
                 </span>
               ) : (
                 <span
+                  className="sf-quickview-stock-badge"
                   style={{
                     fontSize: '11.5px',
                     fontWeight: 800,
@@ -455,7 +692,7 @@ export function StorefrontProductQuickViewModal({
 
             {/* Product Variants (e.g. Size / Options) */}
             {variants.length > 0 && (
-              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div className="sf-quickview-variants-box" style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TagIcon size={12} color={brandColor} />
                   <span>اختر المقاس / الحجم:</span>
@@ -503,6 +740,7 @@ export function StorefrontProductQuickViewModal({
             {/* Description */}
             {product.description && (
               <div
+                className="sf-quickview-desc"
                 style={{
                   marginTop: '10px',
                   fontSize: '12.5px',
@@ -523,6 +761,7 @@ export function StorefrontProductQuickViewModal({
 
           {/* Social Proof & Delivery Highlights */}
           <div
+            className="sf-quickview-highlights-box"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -533,26 +772,29 @@ export function StorefrontProductQuickViewModal({
               border: '1px solid #e2e8f0',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="sf-quickview-highlight-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="sf-quickview-highlight-icon" style={{ width: 26, height: 26, borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <TruckIcon size={13} color="#170e5e" />
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                توصيل سريع حتى باب منزلك
+              <span className="sf-quickview-highlight-text" style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                <span className="sf-highlight-text-full">توصيل سريع حتى باب منزلك</span>
+                <span className="sf-highlight-text-mobile">توصيل سريع للباب</span>
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="sf-quickview-highlight-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="sf-quickview-highlight-icon" style={{ width: 26, height: 26, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ClockIcon size={13} color="#b45309" />
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                تجهيز فوري طازج عند الطلب
+              <span className="sf-quickview-highlight-text" style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                <span className="sf-highlight-text-full">تجهيز فوري طازج عند الطلب</span>
+                <span className="sf-highlight-text-mobile">تجهيز فوري للطلب</span>
               </span>
             </div>
           </div>
 
           {/* Share Product Bar */}
           <div
+            className="sf-quickview-share-bar"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -561,10 +803,11 @@ export function StorefrontProductQuickViewModal({
               borderTop: '1px solid #f1f5f9',
             }}
           >
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>مشاركة الصنف:</span>
+            <span className="sf-quickview-share-label" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>مشاركة الصنف:</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 type="button"
+                className="sf-quickview-share-btn"
                 onClick={handleShareWhatsApp}
                 style={{
                   display: 'inline-flex',
@@ -584,6 +827,7 @@ export function StorefrontProductQuickViewModal({
               </button>
               <button
                 type="button"
+                className="sf-quickview-share-btn"
                 onClick={handleCopyLink}
                 style={{
                   display: 'inline-flex',
@@ -608,6 +852,7 @@ export function StorefrontProductQuickViewModal({
 
         {/* Sticky Pinned Bottom Footer (Always Visible, Zero Clipping) */}
         <div
+          className="sf-quickview-footer"
           style={{
             flexShrink: 0,
             background: '#ffffff',
@@ -623,6 +868,7 @@ export function StorefrontProductQuickViewModal({
         >
           {isZeroPrice ? (
             <a
+              className="sf-quickview-cta-btn"
               href={
                 (info?.whatsappPhone || (info as any)?.whatsapp)
                   ? `https://wa.me/${((info?.whatsappPhone || (info as any)?.whatsapp) || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن سعر وتوفر صنف: ${product.name}`)}`
@@ -665,6 +911,7 @@ export function StorefrontProductQuickViewModal({
             <>
               {/* Quantity Stepper */}
               <div
+                className="sf-quickview-stepper"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -677,6 +924,7 @@ export function StorefrontProductQuickViewModal({
               >
                 <button
                   type="button"
+                  className="sf-quickview-stepper-btn"
                   disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
                   onClick={() => setQty((prev) => prev + 1)}
                   style={{
@@ -699,6 +947,7 @@ export function StorefrontProductQuickViewModal({
                   <PlusIcon size={14} color="#0f172a" />
                 </button>
                 <span
+                  className="sf-quickview-stepper-val"
                   style={{
                     minWidth: '28px',
                     textAlign: 'center',
@@ -711,6 +960,7 @@ export function StorefrontProductQuickViewModal({
                 </span>
                 <button
                   type="button"
+                  className="sf-quickview-stepper-btn"
                   disabled={qty <= 1 || !inStock}
                   onClick={() => setQty((prev) => Math.max(1, prev - 1))}
                   style={{
@@ -737,6 +987,7 @@ export function StorefrontProductQuickViewModal({
               {/* Add to Cart CTA */}
               <button
                 type="button"
+                className="sf-quickview-cta-btn"
                 disabled={!inStock}
                 onClick={handleAdd}
                 style={{

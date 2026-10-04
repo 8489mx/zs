@@ -105,25 +105,115 @@ export function StorefrontFooter({
             gap: 28px;
           }
         }
-        @media (max-width: 600px) {
+        @media (max-width: 640px) {
           .sf-footer-trust-strip {
-            grid-template-columns: 1fr;
-            gap: 10px;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .sf-footer-trust-item {
+            padding: 10px 8px !important;
+            gap: 8px !important;
+            border-radius: 10px !important;
+          }
+          .sf-footer-trust-icon {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            border-radius: 8px !important;
+          }
+          .sf-footer-trust-icon svg {
+            width: 17px !important;
+            height: 17px !important;
+          }
+          .sf-footer-trust-title {
+            font-size: 12px !important;
+            margin-bottom: 2px !important;
+          }
+          .sf-footer-trust-desc {
+            font-size: 10.5px !important;
+            line-height: 1.35 !important;
+          }
+          .sf-footer-directory-wrapper {
+            padding: 18px 14px 16px !important;
           }
           .sf-footer-directory {
-            grid-template-columns: 1fr;
-            gap: 24px;
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .sf-footer-brand-header {
+            margin-bottom: 6px !important;
+            gap: 8px !important;
+          }
+          .sf-footer-brand-desc {
+            margin: 0 0 6px !important;
+            font-size: 11.5px !important;
+            line-height: 1.45 !important;
+          }
+          .sf-footer-section-title {
+            margin: 0 0 7px !important;
+            font-size: 13px !important;
+          }
+          .sf-footer-care-desc {
+            margin: 0 0 6px !important;
+            font-size: 11.5px !important;
+            line-height: 1.4 !important;
+          }
+          .sf-footer-whatsapp-link {
+            margin-bottom: 5px !important;
+            padding: 6px 12px !important;
+          }
+          .sf-footer-pay-badges {
+            margin-bottom: 6px !important;
+            gap: 5px !important;
+          }
+          .sf-footer-quick-links {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 6px 7px !important;
+          }
+          .sf-footer-quick-links .sf-footer-link-btn {
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 5px 10px !important;
+            border-radius: 7px !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            color: #334155 !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.15s ease !important;
+          }
+          .sf-footer-quick-links .sf-footer-link-btn:active {
+            background: #eef2ff !important;
+            border-color: #c7d2fe !important;
+            color: var(--storefront-primary-color, #170e5e) !important;
+          }
+          .sf-footer-quick-links .sf-footer-link-btn svg {
+            display: none !important;
+          }
+          .sf-footer-trust-wrapper {
+            padding: 12px 10px !important;
+          }
+          .sf-footer-bottom-bar {
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 8px !important;
           }
         }
       `}</style>
 
       {/* Top Enterprise Trust Strip - Unified Subtle Slate Palette */}
-      <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '18px 20px' }}>
+      <div className="sf-footer-trust-wrapper" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '18px 20px' }}>
         <div style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto' }}>
           <div className="sf-footer-trust-strip">
             {/* Value 1: Fast Shipping */}
             <div className="sf-footer-trust-item">
               <div
+                className="sf-footer-trust-icon"
                 style={{
                   width: '38px',
                   height: '38px',
@@ -144,10 +234,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   توصيل سريع وآمن
                 </h4>
-                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
+                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   شحن مباشر مع متابعة دقيقة لحالة الطلب
                 </p>
               </div>
@@ -156,6 +246,7 @@ export function StorefrontFooter({
             {/* Value 2: Original Quality */}
             <div className="sf-footer-trust-item">
               <div
+                className="sf-footer-trust-icon"
                 style={{
                   width: '38px',
                   height: '38px',
@@ -174,10 +265,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   منتجات أصلية 100%
                 </h4>
-                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
+                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   فحص وضمان جودة لكافة الأصناف المعروضة
                 </p>
               </div>
@@ -186,6 +277,7 @@ export function StorefrontFooter({
             {/* Value 3: Flexible Payment */}
             <div className="sf-footer-trust-item">
               <div
+                className="sf-footer-trust-icon"
                 style={{
                   width: '38px',
                   height: '38px',
@@ -204,10 +296,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   دفع آمن ومرن
                 </h4>
-                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
+                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   كاش عند الاستلام أو بطاقات ومحافظ رقمية
                 </p>
               </div>
@@ -216,6 +308,7 @@ export function StorefrontFooter({
             {/* Value 4: Customer Care */}
             <div className="sf-footer-trust-item">
               <div
+                className="sf-footer-trust-icon"
                 style={{
                   width: '38px',
                   height: '38px',
@@ -233,10 +326,10 @@ export function StorefrontFooter({
                 </svg>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   خدمة عملاء مباشرة
                 </h4>
-                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
+                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
                   دعم واستفسارات فورية عبر محادثة واتساب
                 </p>
               </div>
@@ -246,11 +339,11 @@ export function StorefrontFooter({
       </div>
 
       {/* Main Directory & Storefront Details */}
-      <div style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto', padding: '34px 20px 28px' }}>
+      <div className="sf-footer-directory-wrapper" style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto', padding: '34px 20px 28px' }}>
         <div className="sf-footer-directory">
           {/* Col 1: Store Brand Info */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div className="sf-footer-brand-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               {info.logo_url || info.logoUrl ? (
                 <img
                   src={info.logo_url || info.logoUrl}
@@ -293,7 +386,7 @@ export function StorefrontFooter({
               </div>
             </div>
 
-            <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#475569', lineHeight: 1.6, maxWidth: '340px' }}>
+            <p className="sf-footer-brand-desc" style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#475569', lineHeight: 1.6, maxWidth: '340px' }}>
               {info.bio || 'وجهتك الأولى لتسوق أفضل المنتجات بأفضل الأسعار، جودة مضمونة وسرعة في تنفيذ وتوصيل الطلبات.'}
             </p>
 
@@ -310,11 +403,11 @@ export function StorefrontFooter({
 
           {/* Col 2: Quick Links */}
           <div>
-            <h4 style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>روابط سريعة</span>
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 12px' }}>
+            <div className="sf-footer-quick-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 12px' }}>
               {onGoHome && (
                 <button type="button" onClick={onGoHome} className="sf-footer-link-btn">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
@@ -360,15 +453,16 @@ export function StorefrontFooter({
 
           {/* Col 3: Customer Care & WhatsApp */}
           <div>
-            <h4 style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>خدمة العملاء</span>
             </h4>
-            <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+            <p className="sf-footer-care-desc" style={{ margin: '0 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
               فريقنا متواجد للرد على كافة الاستفسارات ومساعدتك في اختيار المنتجات:
             </p>
             {cleanPhone ? (
               <a
+                className="sf-footer-whatsapp-link"
                 href={`https://wa.me/${cleanPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -412,12 +506,12 @@ export function StorefrontFooter({
 
           {/* Col 4: Payment Badges & SSL */}
           <div>
-            <h4 style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>طرق الدفع والضمان</span>
             </h4>
             
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+            <div className="sf-footer-pay-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
               {/* Cash On Delivery */}
               <div className="sf-pay-badge">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: '4px' }}>
@@ -487,6 +581,7 @@ export function StorefrontFooter({
         }}
       >
         <div
+          className="sf-footer-bottom-bar"
           style={{
             maxWidth: 'var(--storefront-container, 1440px)',
             margin: '0 auto',
@@ -499,11 +594,11 @@ export function StorefrontFooter({
             color: '#64748b',
           }}
         >
-          <div>
+          <div style={{ textAlign: 'center' }}>
             جميع الحقوق محفوظة © {currentYear} <strong style={{ color: '#0f172a' }}>{brand.title}</strong>
           </div>
 
-          <div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <a
               href="https://zsystemai.com/erp"
               target="_blank"

@@ -49,7 +49,7 @@ export function StorefrontSubNav({
       <style>{`
         @media (max-width: 640px) {
           .storefront-subnav {
-            padding: 6px 10px !important;
+            padding: 5px 8px !important;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
@@ -63,23 +63,25 @@ export function StorefrontSubNav({
           }
           .storefront-subnav-inner {
             flex-wrap: nowrap !important;
-            gap: 8px !important;
+            gap: 6px !important;
             width: max-content !important;
             min-width: 100% !important;
+            padding-inline-end: 10px !important;
           }
           .storefront-subnav-pills {
             flex-wrap: nowrap !important;
-            gap: 6px !important;
+            gap: 5px !important;
             flex-shrink: 0 !important;
+            padding-inline-end: 10px !important;
           }
           .storefront-subnav-active-cat {
             flex-shrink: 0 !important;
           }
           .storefront-subnav-pill {
-            padding: 7px 11px !important;
-            font-size: 11.5px !important;
+            padding: 5px 7px !important;
+            font-size: clamp(9.5px, 2.6vw, 11px) !important;
             white-space: nowrap;
-            min-height: 34px;
+            min-height: 28px !important;
             border-radius: 7px !important;
           }
           .storefront-subnav-hint {

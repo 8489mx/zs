@@ -35,7 +35,10 @@ export function StorefrontCartDrawer({
   const cartTotals = calculateCartSubtotal(cartItems);
   const subtotal = cartTotals.subtotal;
   const totalSavings = cartTotals.totalSavings;
-  const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
+  const freeShippingThreshold = info?.freeShippingMinOrder || 500;
+  const isFreeShippingQualified = Boolean(info?.freeShippingEnabled && subtotal >= freeShippingThreshold);
+  const baseDeliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
+  const deliveryFee = isFreeShippingQualified ? 0 : baseDeliveryFee;
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
   const isMinOrderMet = minOrder <= 0 || subtotal >= minOrder;
@@ -119,7 +122,7 @@ export function StorefrontCartDrawer({
 
         {/* Free Shipping Progress inside Drawer */}
         {info?.freeShippingEnabled && (
-          <div style={{ padding: '12px 20px 0' }}>
+          <div style={{ padding: '6px 14px 0' }}>
             <StorefrontFreeShippingBar
               subtotal={subtotal}
               freeShippingEnabled={info.freeShippingEnabled}
@@ -378,8 +381,13 @@ export function StorefrontCartDrawer({
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
                 <span>رسوم التوصيل:</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                  {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ${getGlobalCurrencySymbol()}` : 'مجاناً'}
+                <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  {deliveryFee === 0 && baseDeliveryFee > 0 && (
+                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px' }}>
+                      {baseDeliveryFee.toFixed(0)} <CurrencySymbol />
+                    </span>
+                  )}
+                  <span>{deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ${getGlobalCurrencySymbol()}` : 'مجاناً'}</span>
                 </span>
               </div>
               <div

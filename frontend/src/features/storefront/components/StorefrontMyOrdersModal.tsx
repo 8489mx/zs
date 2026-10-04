@@ -1,6 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PackageIcon, ShoppingCartIcon, RefreshCwIcon, ClockIcon, XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import {
+  PackageIcon,
+  ShoppingCartIcon,
+  RefreshCwIcon,
+  ClockIcon,
+  XIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+} from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontOrderDateGroupCard, DateGroupedOrders } from './StorefrontOrderDateGroupCard';
@@ -129,35 +138,26 @@ export function StorefrontMyOrdersModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        direction: 'rtl',
-      }}
-      onClick={onClose}
+    <DialogShell
+      open={isOpen}
+      onClose={onClose}
+      width="min(580px, calc(100vw - 20px))"
+      ariaLabel="متابعة طلباتي"
     >
       <div
+        className="full-bleed"
+        dir="rtl"
         style={{
-          width: 'min(760px, 96vw)',
-          maxHeight: '90vh',
           background: '#ffffff',
-          borderRadius: '18px',
-          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+          borderRadius: '16px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          border: '1px solid #e2e8f0',
+          maxHeight: 'min(88vh, 720px)',
+          direction: 'rtl',
           position: 'relative',
+          fontFamily: 'inherit',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Custom Cancel Order Confirmation Overlay */}
         {cancellingOrder && (
@@ -171,7 +171,7 @@ export function StorefrontMyOrdersModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '20px',
+              padding: '16px',
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -180,12 +180,12 @@ export function StorefrontMyOrdersModal({
           >
             <div
               style={{
-                width: 'min(420px, 92vw)',
+                width: 'min(380px, 92vw)',
                 background: '#ffffff',
-                borderRadius: '16px',
+                borderRadius: '14px',
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
-                padding: '24px',
+                padding: '20px',
                 textAlign: 'center',
                 direction: 'rtl',
               }}
@@ -193,8 +193,8 @@ export function StorefrontMyOrdersModal({
             >
               <div
                 style={{
-                  width: '48px',
-                  height: '48px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '12px',
                   background: '#fef2f2',
                   border: '1px solid #fee2e2',
@@ -202,32 +202,32 @@ export function StorefrontMyOrdersModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 14px',
+                  margin: '0 auto 12px',
                 }}
               >
-                <AlertTriangleIcon size={24} color="#dc2626" />
+                <AlertTriangleIcon size={22} color="#dc2626" />
               </div>
 
-              <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+              <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                 تأكيد إلغاء الطلب #{cancellingOrder.orderNumber}
               </h4>
-              <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+              <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.5 }}>
                 هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.
               </p>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                 <button
                   type="button"
                   onClick={() => setCancellingOrder(null)}
                   disabled={cancelMutation.isPending}
                   style={{
                     flex: 1,
-                    padding: '10px 16px',
-                    borderRadius: '10px',
+                    height: '36px',
+                    borderRadius: '9px',
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#334155',
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     cursor: cancelMutation.isPending ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
@@ -241,12 +241,12 @@ export function StorefrontMyOrdersModal({
                   disabled={cancelMutation.isPending}
                   style={{
                     flex: 1,
-                    padding: '10px 16px',
-                    borderRadius: '10px',
+                    height: '36px',
+                    borderRadius: '9px',
                     background: '#dc2626',
                     border: '1px solid #b91c1c',
                     color: '#ffffff',
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     cursor: cancelMutation.isPending ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit',
@@ -258,81 +258,118 @@ export function StorefrontMyOrdersModal({
             </div>
           </div>
         )}
-        {/* Header */}
+
+        {/* Compact, Clean Premium Header */}
         <div
           style={{
-            padding: '18px 24px',
+            padding: '12px 18px',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#f8fafc',
+            background: '#ffffff',
+            gap: '10px',
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Title Area */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                background: '#eef2ff',
+                width: '34px',
+                height: '34px',
+                borderRadius: '9px',
+                background: 'var(--storefront-primary-subtle, #f0f3ff)',
+                color: 'var(--storefront-primary-color, #170e5e)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid #e0e7ff',
+                border: '1px solid rgba(23, 14, 94, 0.1)',
                 flexShrink: 0,
               }}
             >
-              <PackageIcon size={22} color="#170e5e" />
+              <PackageIcon size={18} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-                <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    width: '3px',
+                    height: '13px',
+                    backgroundColor: 'var(--storefront-primary-color, #170e5e)',
+                    borderRadius: '2px',
+                    display: 'inline-block',
+                    flexShrink: 0,
+                  }}
+                />
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '15px',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   متابعة طلباتي
                 </h3>
               </div>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                تتبع حالة ومسار طلباتك، وإمكانية تعديلها أو إلغائها قبل اعتمادها
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: '#64748b',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block',
+                  marginTop: '1px',
+                }}
+              >
+                تتبع حالة ومسار طلباتك وإدارتها
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+          {/* Action Buttons: Refresh + Close */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => ordersQuery.refetch()}
               disabled={ordersQuery.isFetching}
-              title="تحديث البيانات فوراً"
+              title="تحديث البيانات"
               style={{
-                background: '#ffffff',
+                background: '#f8fafc',
                 border: '1px solid #cbd5e1',
                 borderRadius: '8px',
-                height: '34px',
-                padding: '0 12px',
+                height: '30px',
+                padding: '0 9px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 cursor: ordersQuery.isFetching ? 'not-allowed' : 'pointer',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontWeight: 700,
-                color: '#170e5e',
+                color: 'var(--storefront-primary-color, #170e5e)',
                 fontFamily: 'inherit',
                 transition: 'all 0.15s ease',
               }}
             >
-              {ordersQuery.isFetching ? <ClockIcon size={14} /> : <RefreshCwIcon size={14} />}
-              <span>{ordersQuery.isFetching ? 'جاري التحديث...' : 'تحديث'}</span>
+              {ordersQuery.isFetching ? <ClockIcon size={13} /> : <RefreshCwIcon size={13} />}
+              <span>{ordersQuery.isFetching ? 'جاري...' : 'تحديث'}</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
+              title="إغلاق (Esc)"
               style={{
-                background: '#ffffff',
+                background: '#f8fafc',
                 border: '1px solid #cbd5e1',
                 borderRadius: '8px',
-                width: '34px',
-                height: '34px',
+                width: '30px',
+                height: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -341,58 +378,78 @@ export function StorefrontMyOrdersModal({
                 transition: 'all 0.15s ease',
               }}
             >
-              <XIcon size={16} />
+              <XIcon size={15} strokeWidth={2.2} />
             </button>
           </div>
         </div>
 
-        {/* Device notice + errors */}
-        <div style={{ padding: '12px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
-            تظهر هنا الطلبات التي تمت من هذا الجهاز فقط حفاظاً على خصوصية بياناتك. لمتابعة طلب من جهاز آخر، يرجى التواصل مع المتجر برقم الطلب.
-          </p>
-          {actionError && (
-            <div
-              style={{
-                marginTop: '8px',
-                padding: '8px 12px',
-                background: '#fee2e2',
-                color: '#991b1b',
-                borderRadius: '8px',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                border: '1px solid #fecaca',
-              }}
-            >
-              <AlertTriangleIcon size={15} color="#991b1b" />
-              <span>{actionError}</span>
-            </div>
-          )}
+        {/* Compact Device Notice Banner */}
+        <div
+          style={{
+            padding: '7px 16px',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            color: '#64748b',
+            flexShrink: 0,
+          }}
+        >
+          <InfoIcon size={13} color="#64748b" style={{ flexShrink: 0 }} />
+          <span style={{ lineHeight: 1.35 }}>
+            تظهر هنا الطلبات المسجلة من هذا الجهاز فقط. لمتابعة طلب من جهاز آخر، تواصل برقم الطلب.
+          </span>
         </div>
 
+        {/* Action Error Banner if any */}
+        {actionError && (
+          <div
+            style={{
+              padding: '6px 16px',
+              background: '#fee2e2',
+              color: '#991b1b',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderBottom: '1px solid #fecaca',
+            }}
+          >
+            <AlertTriangleIcon size={14} color="#991b1b" />
+            <span>{actionError}</span>
+          </div>
+        )}
+
         {/* Orders List Content */}
-        <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+        <div
+          style={{
+            padding: '12px 14px',
+            overflowY: 'auto',
+            flex: 1,
+            boxSizing: 'border-box',
+          }}
+        >
           {ordersQuery.isLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
               جاري البحث عن طلباتك...
             </div>
           ) : groupedOrders.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-                <ShoppingCartIcon size={42} color="#94a3b8" />
+            <div style={{ padding: '36px 20px', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <ShoppingCartIcon size={38} color="#94a3b8" />
               </div>
-              <h4 style={{ margin: '0 0 4px', fontSize: '15px', color: '#0f172a' }}>
+              <h4 style={{ margin: '0 0 4px', fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
                 لا توجد طلبات مسجلة حالياً
               </h4>
-              <p style={{ margin: 0, fontSize: '12.5px', color: '#94a3b8' }}>
-                ستظهر طلباتك هنا تلقائياً بعد إتمام أي طلب من هذا الجهاز.
+              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+                ستظهر طلباتك هنا تلقائياً بعد إتمام أي طلب من هذا المتجر.
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {groupedOrders.map((group) => (
                 <StorefrontOrderDateGroupCard
                   key={group.dateKey}
@@ -410,6 +467,6 @@ export function StorefrontMyOrdersModal({
           )}
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 }

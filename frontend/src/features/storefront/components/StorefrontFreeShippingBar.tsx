@@ -30,8 +30,8 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
       style={{
         background: isUnlocked ? '#f0fdf4' : '#f8fafc',
         border: `1px solid ${isUnlocked ? '#bbf7d0' : '#e2e8f0'}`,
-        borderRadius: compact ? '8px' : '12px',
-        padding: compact ? '8px 12px' : '10px 16px',
+        borderRadius: compact ? '7px' : '12px',
+        padding: compact ? '5px 10px 6px' : '10px 16px',
         transition: 'all 0.3s ease',
         boxShadow: isUnlocked ? '0 2px 8px rgba(22, 163, 74, 0.08)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
       }}
@@ -41,15 +41,15 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '10px',
-          marginBottom: '6px',
+          gap: compact ? '6px' : '10px',
+          marginBottom: compact ? '3px' : '6px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: compact ? '6px' : '8px' }}>
           <div
             style={{
-              width: compact ? 22 : 26,
-              height: compact ? 22 : 26,
+              width: compact ? 18 : 26,
+              height: compact ? 18 : 26,
               borderRadius: '50%',
               background: isUnlocked ? '#16a34a' : '#170e5e',
               color: '#ffffff',
@@ -59,20 +59,21 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
               flexShrink: 0,
             }}
           >
-            {isUnlocked ? <CheckIcon size={14} strokeWidth={2.5} /> : <TruckIcon size={14} strokeWidth={2.2} />}
+            {isUnlocked ? <CheckIcon size={compact ? 11 : 14} strokeWidth={2.5} /> : <TruckIcon size={compact ? 11 : 14} strokeWidth={2.2} />}
           </div>
           <span
             style={{
-              fontSize: compact ? '11.5px' : '12.5px',
+              fontSize: compact ? '11px' : '12.5px',
               fontWeight: 800,
               color: isUnlocked ? '#166534' : '#1e293b',
+              lineHeight: 1.2,
             }}
           >
             {isUnlocked ? (
-              <span>تهانينا! لقد حصلت على <strong>شحن مجاني</strong> لطلبك بالكامل!</span>
+              <span>تهانينا! حصلت على <strong>شحن مجاني</strong> لطلبك!</span>
             ) : (
               <span>
-                أضف بـ <strong>{remaining.toFixed(0)} <CurrencySymbol /></strong> إضافية لتستمتع بـ <strong>شحن مجاني</strong>
+                أضف بـ <strong>{remaining.toFixed(0)} <CurrencySymbol /></strong> إضافية لـ <strong>شحن مجاني</strong>
               </span>
             )}
           </span>
@@ -80,7 +81,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
 
         <span
           style={{
-            fontSize: compact ? '11px' : '12px',
+            fontSize: compact ? '10px' : '12px',
             fontWeight: 800,
             color: isUnlocked ? '#16a34a' : '#64748b',
           }}
@@ -93,7 +94,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
       <div
         style={{
           width: '100%',
-          height: compact ? '5px' : '6px',
+          height: compact ? '4px' : '6px',
           borderRadius: '999px',
           background: '#e2e8f0',
           overflow: 'hidden',

@@ -77,26 +77,26 @@ export function StorefrontCategoryShowcase({
       <style>{`
         @media (max-width: 640px) {
           .storefront-cat-showcase {
-            padding: 8px 10px !important;
+            padding: 7px 8px !important;
             width: 100% !important;
             max-width: 100vw !important;
             box-sizing: border-box !important;
           }
           .storefront-cat-showcase-inner {
-            gap: 10px !important;
+            gap: 8px !important;
             width: max-content !important;
           }
           .storefront-cat-item {
-            min-width: 58px !important;
-            max-width: 72px !important;
+            min-width: 52px !important;
+            max-width: 68px !important;
           }
           .storefront-cat-avatar {
-            width: 52px !important;
-            height: 52px !important;
-            margin-bottom: 4px !important;
+            width: clamp(44px, 12vw, 50px) !important;
+            height: clamp(44px, 12vw, 50px) !important;
+            margin-bottom: 3px !important;
           }
           .storefront-cat-label {
-            font-size: 11px !important;
+            font-size: clamp(9.5px, 2.7vw, 11px) !important;
           }
         }
       `}</style>

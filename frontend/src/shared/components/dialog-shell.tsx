@@ -26,6 +26,11 @@ function getFocusableElements(root: HTMLElement) {
   )).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
 }
 
+// Module-level state to track nested dialogs and safely restore original overflow
+let activeDialogCount = 0;
+let savedBodyOverflow = '';
+let savedHtmlOverflow = '';
+
 export function DialogShell({
   open,
   isOpen,
@@ -46,6 +51,7 @@ export function DialogShell({
 }: DialogShellProps) {
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   const onCloseRef = useRef(onClose);
@@ -55,9 +61,24 @@ export function DialogShell({
 
   useEffect(() => {
     if (!isVisible || typeof document === 'undefined') return;
-    const previousOverflow = document.body.style.overflow;
+
+    if (activeDialogCount === 0) {
+      savedBodyOverflow = document.body.style.overflow;
+      savedHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.setProperty('overflow', 'hidden', 'important');
+      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+      document.body.classList.add('dialog-shell-open');
+      document.documentElement.classList.add('dialog-shell-open');
+      const rootEl = document.getElementById('root');
+      if (rootEl) {
+        rootEl.style.setProperty('overflow', 'hidden', 'important');
+        rootEl.style.setProperty('overflow-y', 'hidden', 'important');
+        rootEl.style.setProperty('touch-action', 'none', 'important');
+      }
+    }
+    activeDialogCount++;
+
     previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    document.body.style.overflow = 'hidden';
 
     const focusDialog = () => {
       const shell = shellRef.current;
@@ -113,11 +134,90 @@ export function DialogShell({
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       if (frameId !== null) window.cancelAnimationFrame(frameId);
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
       previousActiveElementRef.current?.focus();
+
+      activeDialogCount = Math.max(0, activeDialogCount - 1);
+      if (activeDialogCount === 0) {
+        if (savedBodyOverflow) {
+          document.body.style.overflow = savedBodyOverflow;
+        } else {
+          document.body.style.removeProperty('overflow');
+        }
+        if (savedHtmlOverflow) {
+          document.documentElement.style.overflow = savedHtmlOverflow;
+        } else {
+          document.documentElement.style.removeProperty('overflow');
+        }
+        document.body.classList.remove('dialog-shell-open');
+        document.documentElement.classList.remove('dialog-shell-open');
+        const rootEl = document.getElementById('root');
+        if (rootEl) {
+          rootEl.style.removeProperty('overflow');
+          rootEl.style.removeProperty('overflow-y');
+          rootEl.style.removeProperty('touch-action');
+        }
+      }
     };
   }, [isVisible, autoFocus]);
+
+  // Bulletproof background scroll trap: intercepts any touch dragging or mouse wheel outside or at edges of the dialog
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const preventBackgroundTouch = (e: TouchEvent) => {
+      const shell = shellRef.current;
+      // If the touch originated outside the active modal, block background scrolling completely
+      if (shell && !shell.contains(e.target as Node)) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const preventBackgroundWheel = (e: WheelEvent) => {
+      const shell = shellRef.current;
+      if (!shell) return;
+
+      // If the mouse wheel is outside the modal, block 100%
+      if (!shell.contains(e.target as Node)) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      // If inside the modal, check if the targeted container has reached its scroll boundary
+      let el = e.target as HTMLElement | null;
+      let hasScrollRoom = false;
+      while (el && el !== shell && el !== document.body) {
+        const style = window.getComputedStyle(el);
+        const overflowY = style.overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          const atTop = el.scrollTop <= 0 && e.deltaY < 0;
+          const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && e.deltaY > 0;
+          if (!atTop && !atBottom) {
+            hasScrollRoom = true;
+          }
+          break;
+        }
+        el = el.parentElement;
+      }
+
+      // If no scroll room or reached top/bottom boundary, prevent scroll chaining to the background
+      if (!hasScrollRoom && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventBackgroundTouch, { passive: false });
+    document.addEventListener('wheel', preventBackgroundWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchmove', preventBackgroundTouch);
+      document.removeEventListener('wheel', preventBackgroundWheel);
+    };
+  }, [isVisible]);
 
   if (!isVisible || typeof document === 'undefined') return null;
 
@@ -134,6 +234,7 @@ export function DialogShell({
 
   return createPortal(
     <div
+      ref={overlayRef}
       className={`dialog-overlay ${overlayClassName}`.trim()}
       style={{ zIndex: effectiveZIndex }}
       onClick={(event) => {

@@ -82,81 +82,118 @@ export function StorefrontHeader({
         }
         @media (max-width: 640px) {
           .storefront-navbar {
-            flex-direction: column !important;
-            align-items: stretch !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            grid-template-rows: auto auto !important;
+            gap: 8px 8px !important;
             padding: 8px 12px 10px !important;
-            gap: 8px !important;
+            align-items: center !important;
           }
           .storefront-brand-btn {
+            grid-column: 1 / 2 !important;
+            grid-row: 1 !important;
             gap: 8px !important;
-            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            width: auto !important;
             justify-content: flex-start !important;
           }
           .storefront-brand-avatar {
-            width: 32px !important;
-            height: 32px !important;
+            width: 34px !important;
+            height: 34px !important;
             border-radius: 8px !important;
+            flex-shrink: 0 !important;
+          }
+          .storefront-brand-title-row {
+            gap: 5px !important;
+            min-width: 0 !important;
           }
           .storefront-brand-title {
-            font-size: 15px !important;
+            font-size: clamp(11.5px, 3.3vw, 13px) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: calc(100vw - 175px) !important;
           }
           .storefront-brand-verified {
-            font-size: 10px !important;
-            padding: 1px 6px !important;
+            display: inline-flex !important;
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            border-width: 1px !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
           }
-          .storefront-brand-subtitle {
+          .storefront-brand-verified svg {
+            width: 10px !important;
+            height: 10px !important;
+            min-width: 10px !important;
+            min-height: 10px !important;
+            flex-shrink: 0 !important;
+            stroke-width: 2.8 !important;
+          }
+          .storefront-brand-subtitle,
+          .storefront-brand-address {
             display: none !important;
           }
           .storefront-nav-bottom-row {
-            display: flex !important;
-            align-items: center !important;
-            gap: 6px !important;
-            width: 100% !important;
-          }
-          .storefront-search-wrapper {
-            flex: 1 !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-          }
-          .storefront-search-box {
-            padding: 3px 4px 3px 10px !important;
-            border-radius: 8px !important;
-          }
-          .storefront-search-input {
-            font-size: 12.5px !important;
-            padding: 5px 4px !important;
-          }
-          .storefront-search-btn {
-            padding: 6px 10px !important;
-            border-radius: 6px !important;
-          }
-          .storefront-search-btn-text {
-            display: none !important;
+            display: contents !important;
           }
           .storefront-actions {
+            grid-column: 2 / 3 !important;
+            grid-row: 1 !important;
             display: flex !important;
             align-items: center !important;
             gap: 5px !important;
             flex-shrink: 0 !important;
             margin: 0 !important;
+            justify-content: flex-end !important;
           }
           .storefront-action-label {
             display: none !important;
           }
           .storefront-action-btn {
-            padding: 7px 9px !important;
-            border-radius: 8px !important;
+            padding: 0 !important;
+            width: 36px !important;
             min-width: 36px !important;
+            max-width: 36px !important;
             height: 36px !important;
+            border-radius: 8px !important;
             justify-content: center !important;
           }
           .storefront-cart-btn {
-            padding: 7px 10px !important;
+            padding: 0 10px !important;
             border-radius: 8px !important;
             height: 36px !important;
             justify-content: center !important;
             gap: 4px !important;
+          }
+          .storefront-search-wrapper {
+            grid-column: 1 / -1 !important;
+            grid-row: 2 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            flex: none !important;
+          }
+          .storefront-search-box {
+            padding: 3px 6px 3px 12px !important;
+            border-radius: 9px !important;
+            height: 38px !important;
+          }
+          .storefront-search-input {
+            font-size: 13px !important;
+            padding: 6px 4px !important;
+          }
+          .storefront-search-btn {
+            display: none !important;
           }
         }
       `}</style>
@@ -255,7 +292,7 @@ export function StorefrontHeader({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+            <div className="storefront-brand-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
               <span
                 className="storefront-brand-title"
                 style={{
