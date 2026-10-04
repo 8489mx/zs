@@ -168,6 +168,10 @@ export function translateErrorMessageFromCode(code?: string | null, fallbackMess
     return ERROR_CODE_MESSAGES.VALIDATION_ERROR;
   }
 
+  if (fallback && looksArabic(fallback) && fallback !== ERROR_CODE_MESSAGES[code || '']) {
+    return fallback;
+  }
+
   if (code) {
     if (ERROR_CODE_MESSAGES[code]) return ERROR_CODE_MESSAGES[code];
   }

@@ -102,6 +102,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     items: payload.items
       .map((item) => ({
         productId: Number(item.productId || 0),
+        name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : undefined,
         qty: Number((item as any).qty ?? (item as any).quantity ?? 0),
         price: Number((item as any).price ?? (item as any).unitPrice ?? 0),
         originalPrice: item.originalPrice != null && Number(item.originalPrice) > 0 ? Number(item.originalPrice) : undefined,

@@ -231,7 +231,28 @@ export class SalesWriteService {
       frontier = lines.map((line) => Number(line.component_product_id)).filter((id) => id > 0);
       frontier.forEach((id) => productIds.add(id));
     }
-    await lockStockProducts(trx, { ...scope, productIds: [...productIds] });
+    try {
+      await lockStockProducts(trx, { ...scope, productIds: [...productIds] });
+    } catch (err: any) {
+      if (err instanceof AppError && err.code === 'PRODUCT_NOT_FOUND') {
+        const missingMatch = err.message.match(/#(\d+)/);
+        if (missingMatch) {
+          const missingId = Number(missingMatch[1]);
+          const matchedItem = items.find(
+            (it) => Number(it.productId ?? it.product_id) === missingId,
+          );
+          const itemName = matchedItem?.name || (matchedItem as any)?.productName;
+          if (itemName) {
+            throw new AppError(
+              `الصنف "${itemName}" (#${missingId}) غير موجود بقاعدة بيانات هذه المنشأة أو ليس لديك صلاحية للوصول إليه`,
+              'PRODUCT_NOT_FOUND',
+              404,
+            );
+          }
+        }
+      }
+      throw err;
+    }
   }
 
   private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {

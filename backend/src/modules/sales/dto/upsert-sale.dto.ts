@@ -17,6 +17,10 @@ class SaleItemDto {
   @Min(1)
   productId!: number;
 
+  @IsOptional()
+  @IsString()
+  name?: string;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0.001)

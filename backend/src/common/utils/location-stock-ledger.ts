@@ -150,7 +150,11 @@ export async function lockStockProducts(
     .orderBy('id', 'asc')
     .forUpdate()
     .execute();
-  if (rows.length !== ids.length) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
+  if (rows.length !== ids.length) {
+    const foundIds = new Set(rows.map((r) => Number(r.id)));
+    const missing = ids.filter((id) => !foundIds.has(id));
+    throw new AppError(`الصنف رقم #${missing.join(', ')} غير موجود أو ليس لديك صلاحية للوصول إليه`, 'PRODUCT_NOT_FOUND', 404);
+  }
 }
 
 async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & { productId: number }): Promise<LockedState> {
@@ -163,7 +167,7 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
     .where('account_id', '=', scope.accountId)
     .forUpdate()
     .executeTakeFirst();
-  if (!product) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
+  if (!product) throw new AppError(`الصنف رقم #${params.productId} غير موجود أو ليس لديك صلاحية للوصول إليه`, 'PRODUCT_NOT_FOUND', 404);
   let balancesQuery = db
     .selectFrom('product_location_stock')
     .select(['id', 'product_id', 'branch_id', 'location_id', 'qty', sql<number | null>`COALESCE(reserved_qty, 0)`.as('reserved_qty')])
