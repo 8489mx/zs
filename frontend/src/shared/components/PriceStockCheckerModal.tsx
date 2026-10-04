@@ -1,5 +1,4 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';

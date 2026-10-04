@@ -347,6 +347,14 @@ export function StorefrontFooter({
                   <span>تتبع طلباتي</span>
                 </button>
               )}
+              {onOpenCart && (
+                <button type="button" onClick={onOpenCart} className="sf-footer-link-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <span>سلة المشتريات</span>
+                </button>
+              )}
             </div>
           </div>
 

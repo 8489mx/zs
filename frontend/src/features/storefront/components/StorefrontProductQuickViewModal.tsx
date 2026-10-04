@@ -624,8 +624,8 @@ export function StorefrontProductQuickViewModal({
           {isZeroPrice ? (
             <a
               href={
-                info?.whatsapp
-                  ? `https://wa.me/${(info.whatsapp || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن سعر وتوفر صنف: ${product.name}`)}`
+                (info?.whatsappPhone || (info as any)?.whatsapp)
+                  ? `https://wa.me/${((info?.whatsappPhone || (info as any)?.whatsapp) || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن سعر وتوفر صنف: ${product.name}`)}`
                   : '#'
               }
               target="_blank"

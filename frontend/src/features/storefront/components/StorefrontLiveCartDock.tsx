@@ -1,5 +1,4 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
