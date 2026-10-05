@@ -1782,6 +1782,13 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               <label>دقة الوزن (خانات عشرية)</label>
               <input className="purchase-prototype-field-input" type="number" min="0" max="3" {...form.register('weightedBarcodeWeightDecimals')} disabled={disabled} />
             </div>
+            <div className="field">
+              <label>محتوى باركود الميزان</label>
+              <select className="purchase-prototype-field-input" {...form.register('weightedBarcodeValueMode')} disabled={disabled}>
+                <option value="weight">وزن الصنف</option>
+                <option value="price">السعر الإجمالي بالصغرى (قرشان / هللتان)</option>
+              </select>
+            </div>
           </div>
         ) : null}
       </FormSection>

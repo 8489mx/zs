@@ -16,6 +16,7 @@ type Props = {
   selectedInvoice?: Sale | Purchase;
   invoiceItems: Array<SaleItem | PurchaseItem>;
   selectedItems: Record<string, string>;
+  selectedSerials: Record<string, string>;
   selectedItemsCount: number;
   selectedQtyTotal: number;
   expectedReturnValue: number;
@@ -29,6 +30,7 @@ type Props = {
   onResetForm: () => void;
   onToggleItem: (productId: string, checked: boolean) => void;
   onSetItemQty: (productId: string, value: string) => void;
+  onSetSerials: (itemId: string, value: string) => void;
   onOpenConfirm: () => void;
   returnedQtyByProduct?: Record<string, number>;
 };
@@ -42,6 +44,7 @@ export function ReturnsCreateModal(props: Props) {
     selectedInvoice,
     invoiceItems,
     selectedItems,
+    selectedSerials,
     selectedItemsCount,
     selectedQtyTotal,
     expectedReturnValue,
@@ -55,6 +58,7 @@ export function ReturnsCreateModal(props: Props) {
     onResetForm,
     onToggleItem,
     onSetItemQty,
+    onSetSerials,
     onOpenConfirm,
     returnedQtyByProduct = {},
   } = props;
@@ -214,8 +218,10 @@ export function ReturnsCreateModal(props: Props) {
               <ReturnsInvoiceItemsTable
                 invoiceItems={invoiceItems}
                 selectedItems={selectedItems}
+                selectedSerials={selectedSerials}
                 onToggleItem={onToggleItem}
                 onSetItemQty={onSetItemQty}
+                onSetSerials={onSetSerials}
                 returnedQtyByProduct={returnedQtyByProduct}
               />
             </div>

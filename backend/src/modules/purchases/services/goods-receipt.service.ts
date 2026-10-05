@@ -1,8 +1,8 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Kysely, sql } from '../../../database/kysely';
+import { Kysely, Selectable, sql } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
-import { Database } from '../../../database/database.types';
+import { Database, GoodsReceiptLineTable, PurchaseOrderItemTable } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
@@ -195,7 +195,7 @@ export class GoodsReceiptService {
         'g.id',
         'g.doc_no',
         'g.purchase_order_id',
-        'po.doc_no as po_doc_no',
+        'po.order_number as po_doc_no',
         'g.supplier_id',
         's.name as supplier_name',
         'g.location_id',
@@ -254,7 +254,7 @@ export class GoodsReceiptService {
         'g.id',
         'g.doc_no',
         'g.purchase_order_id',
-        'po.doc_no as po_doc_no',
+        'po.order_number as po_doc_no',
         'g.supplier_id',
         's.name as supplier_name',
         'g.location_id',
@@ -338,6 +338,16 @@ export class GoodsReceiptService {
     const scope = requireTenantScope(auth);
 
     return await this.db.transaction().execute(async (trx: any) => {
+      const receiptLink = await trx.selectFrom('goods_receipt_notes')
+        .select('purchase_order_id')
+        .where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (!receiptLink) throw new NotFoundException(`إذن الاستلام رقم ${id} غير موجود.`);
+      if (receiptLink.purchase_order_id) {
+        await trx.selectFrom('purchase_orders').select('id')
+          .where('id', '=', Number(receiptLink.purchase_order_id))
+          .where('tenant_id', '=', scope.tenantId).forUpdate().executeTakeFirstOrThrow();
+      }
       // 1. Pessimistic lock on GRN header to prevent concurrent double-posting
       const grnRow = await trx
         .selectFrom('goods_receipt_notes')
@@ -350,9 +360,26 @@ export class GoodsReceiptService {
       if (!grnRow) {
         throw new NotFoundException(`إذن الاستلام رقم ${id} غير موجود.`);
       }
+      if (Number(grnRow.purchase_order_id || 0) !== Number(receiptLink.purchase_order_id || 0)) {
+        throw new BadRequestException('تغير ارتباط محضر الاستلام بأمر الشراء أثناء الترحيل.');
+      }
 
       if (grnRow.status === 'posted') {
         throw new BadRequestException('تم ترحيل إذن الاستلام هذا مسبقاً.');
+      }
+      if (grnRow.status === 'cancelled') {
+        throw new BadRequestException('لا يمكن ترحيل محضر استلام ملغى.');
+      }
+      const alreadyReceivedBill = await trx.selectFrom('purchases').select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('status', '=', 'posted')
+        .where((eb: any) => eb.or([
+          eb('grn_id', '=', id),
+          ...(grnRow.purchase_order_id ? [eb('po_id', '=', Number(grnRow.purchase_order_id))] : []),
+        ]))
+        .limit(1).executeTakeFirst();
+      if (alreadyReceivedBill) {
+        throw new BadRequestException('فاتورة مرتبطة بهذا الاستلام رحّلت المخزون بالفعل؛ لا يجوز ترحيله مرتين.');
       }
 
       const grn = await this.getGoodsReceipt(id, auth, trx);
@@ -565,58 +592,124 @@ export class GoodsReceiptService {
   async verifyPurchaseThreeWayMatch(purchaseId: number, dto: VerifyThreeWayMatchDto, auth: AuthContext): Promise<any> {
     const scope = requireTenantScope(auth);
 
-    const purchase = await (this.db as any)
+    const matchResult = await this.db.transaction().execute(async (trx) => {
+    const purchase = await trx
       .selectFrom('purchases')
       .where('id', '=', purchaseId)
-      .where(this.tenantPredicate(auth))
+      .where('tenant_id', '=', scope.tenantId)
       .selectAll()
+      .forUpdate()
       .executeTakeFirst();
 
     if (!purchase) {
       throw new NotFoundException(`فاتورة المشتريات رقم ${purchaseId} غير موجودة.`);
     }
+    if (purchase.status === 'cancelled') {
+      throw new BadRequestException('لا يمكن اعتماد مطابقة فاتورة مشتريات ملغاة.');
+    }
+    if (dto.allowOverride && (!purchase.created_by || Number(purchase.created_by) === Number(auth.userId))) {
+      throw new BadRequestException('يجب أن يعتمد تجاوز المطابقة مستخدم غير منشئ الفاتورة ومعروف الهوية.');
+    }
+    const configuredTolerance = await trx.selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', scope.tenantId)
+      .where('key', '=', 'purchaseThreeWayTolerancePercent')
+      .executeTakeFirst();
+    let tolerance = 2;
+    if (configuredTolerance) {
+      try {
+        tolerance = Number(JSON.parse(configuredTolerance.value));
+      } catch {
+        tolerance = Number(configuredTolerance.value);
+      }
+    }
+    if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 100) {
+      throw new BadRequestException('نسبة التسامح المسجلة للمنشأة غير صالحة.');
+    }
+    if (dto.tolerancePercentage !== undefined && dto.tolerancePercentage > tolerance) {
+      throw new BadRequestException('لا يجوز رفع نسبة التسامح التعاقدية من طلب الاعتماد.');
+    }
+    const linkedPoId = purchase.po_id ? Number(purchase.po_id) : null;
+    if (!linkedPoId && !purchase.grn_id) {
+      throw new BadRequestException('المطابقة الثلاثية مخصصة للفواتير المرتبطة بأمر شراء أو محضر استلام.');
+    }
+    if (linkedPoId) {
+      const order = await trx.selectFrom('purchase_orders')
+        .select(['id', 'supplier_id'])
+        .where('id', '=', linkedPoId)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!order || Number(order.supplier_id) !== Number(purchase.supplier_id)) {
+        throw new BadRequestException('أمر الشراء لا يتبع المورد المحدد في الفاتورة.');
+      }
+    }
 
-    const purchaseItems = await (this.db as any)
+    const purchaseItems = await trx
       .selectFrom('purchase_items')
       .where('purchase_id', '=', purchaseId)
-      .where(this.tenantPredicate(auth))
+      .where('tenant_id', '=', scope.tenantId)
       .selectAll()
       .execute();
+
+    const products = await trx.selectFrom('products')
+      .select(['id', 'item_type'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', 'in', purchaseItems.map((item) => Number(item.product_id)))
+      .execute();
+    const productTypes = new Map(products.map((product) => [Number(product.id), product.item_type]));
+    if (purchaseItems.some((item) => !productTypes.has(Number(item.product_id)))) {
+      throw new BadRequestException('أحد أصناف الفاتورة غير موجود في المنشأة.');
+    }
+    const allServices = purchaseItems.length > 0 && purchaseItems.every((item) => productTypes.get(Number(item.product_id)) === 'service');
+    if (dto.isServiceItem && !allServices) {
+      throw new BadRequestException('لا يمكن تجاوز الاستلام المخزني لصنف غير خدمي.');
+    }
 
     // Fetch PO items if purchase is linked to a PO.
     // purchases.po_id is added by migration 113; before it existed this was always undefined and the
     // price-variance leg of the match could never fire.
-    let poItems: any[] = [];
-    const linkedPoId = purchase.po_id ? Number(purchase.po_id) : null;
+    let poItems: Selectable<PurchaseOrderItemTable>[] = [];
     if (linkedPoId) {
-      poItems = await (this.db as any)
+      poItems = await trx
         .selectFrom('purchase_order_items')
         .where('purchase_order_id', '=', linkedPoId)
-        .where(this.tenantPredicate(auth))
+        .where('tenant_id', '=', scope.tenantId)
         .selectAll()
         .execute();
     }
 
     // Fetch GRN lines if purchase is linked to GRN or PO
-    let grnLines: any[] = [];
+    let grnLines: Selectable<GoodsReceiptLineTable>[] = [];
     if (purchase.grn_id) {
-      grnLines = await (this.db as any)
+      const header = await trx.selectFrom('goods_receipt_notes')
+        .select(['id', 'purchase_order_id', 'supplier_id', 'status'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', Number(purchase.grn_id))
+        .forUpdate()
+        .executeTakeFirst();
+      if (!header || header.status !== 'posted' || Number(header.supplier_id) !== Number(purchase.supplier_id) ||
+          Number(header.purchase_order_id || 0) !== Number(linkedPoId || 0)) {
+        throw new BadRequestException('محضر الاستلام غير منشور أو لا يتبع المورد وأمر الشراء في الفاتورة.');
+      }
+      grnLines = await trx
         .selectFrom('goods_receipt_lines')
         .where('grn_id', '=', purchase.grn_id)
-        .where(this.tenantPredicate(auth))
+        .where('tenant_id', '=', scope.tenantId)
         .selectAll()
         .execute();
     } else if (linkedPoId) {
-      const grns = await (this.db as any)
+      const grns = await trx
         .selectFrom('goods_receipt_notes')
         .select('id')
         .where('purchase_order_id', '=', linkedPoId)
+        .where('supplier_id', '=', Number(purchase.supplier_id))
         .where('status', '=', 'posted')
         .where(this.tenantPredicate(auth))
         .execute();
-      const grnIds = grns.map((g: any) => Number(g.id));
+      const grnIds = grns.map((g) => Number(g.id));
       if (grnIds.length > 0) {
-        grnLines = await (this.db as any)
+        grnLines = await trx
           .selectFrom('goods_receipt_lines')
           .where('grn_id', 'in', grnIds)
           .where(this.tenantPredicate(auth))
@@ -630,9 +723,9 @@ export class GoodsReceiptService {
     // an unlimited number of times — the precise fraud this invariant exists to prevent.
     let historicalInvoicedLines: Array<{ poItemId?: number; productId: number; qty: number }> = [];
     if (linkedPoId || purchase.grn_id) {
-      let histQuery = (this.db as any)
+      let histQuery = trx
         .selectFrom('purchase_items as pi')
-        .innerJoin('purchases as p', (join: any) => join.onRef('p.id', '=', 'pi.purchase_id').onRef('p.tenant_id', '=', 'pi.tenant_id'))
+        .innerJoin('purchases as p', (join) => join.onRef('p.id', '=', 'pi.purchase_id').onRef('p.tenant_id', '=', 'pi.tenant_id'))
         .select(['pi.po_item_id', 'pi.product_id', 'pi.qty'])
         .where('p.tenant_id', '=', scope.tenantId)
         .where('p.id', '!=', purchaseId)
@@ -643,7 +736,7 @@ export class GoodsReceiptService {
         : histQuery.where('p.grn_id', '=', Number(purchase.grn_id));
 
       const histRows = await histQuery.execute();
-      historicalInvoicedLines = histRows.map((r: any) => ({
+      historicalInvoicedLines = histRows.map((r) => ({
         poItemId: r.po_item_id ? Number(r.po_item_id) : undefined,
         productId: Number(r.product_id),
         qty: Number(r.qty || 0),
@@ -671,14 +764,14 @@ export class GoodsReceiptService {
     const input: ThreeWayMatchInput = {
       historicalInvoicedLines,
       overrideScope: requestedScope,
-      poItems: poItems.map((poi: any) => ({
+      poItems: poItems.map((poi) => ({
         id: Number(poi.id),
         productId: Number(poi.product_id),
-        qty: Number(poi.qty || 0),
+        qty: Number(poi.quantity || 0),
         unitCost: Number(poi.unit_cost || 0),
-        isService: Boolean(poi.is_service),
+        isService: productTypes.get(Number(poi.product_id)) === 'service',
       })),
-      grnLines: grnLines.map((gl: any) => ({
+      grnLines: grnLines.map((gl) => ({
         id: Number(gl.id),
         grnId: Number(gl.grn_id),
         poItemId: gl.purchase_order_item_id ? Number(gl.purchase_order_item_id) : undefined,
@@ -688,7 +781,7 @@ export class GoodsReceiptService {
         rejectedQty: Number(gl.rejected_qty || 0),
         unitCost: Number(gl.unit_cost || 0),
       })),
-      invoiceItems: purchaseItems.map((pi: any) => ({
+      invoiceItems: purchaseItems.map((pi) => ({
         id: Number(pi.id),
         poItemId: pi.po_item_id ? Number(pi.po_item_id) : undefined,
         grnLineId: pi.grn_line_id ? Number(pi.grn_line_id) : undefined,
@@ -696,25 +789,24 @@ export class GoodsReceiptService {
         qty: Number(pi.qty || 0),
         unitCost: Number(pi.unit_cost || 0),
       })),
-      tolerancePercentage: dto.tolerancePercentage,
-      isServiceItem: dto.isServiceItem,
+      tolerancePercentage: dto.tolerancePercentage ?? tolerance,
+      isServiceItem: allServices,
       serviceCompletionRef: dto.serviceCompletionRef,
       allowOverride: dto.allowOverride,
       overrideReason: dto.overrideReason,
     };
 
-    const matchResult = computeThreeWayMatch(input);
+    const computedMatch = computeThreeWayMatch(input);
 
     // Real quantity variance instead of the hardcoded 0 that previously misrepresented every record.
     const qtyVariance = Number(
-      matchResult.lines
+      computedMatch.lines
         .reduce((sum, l) => sum + Math.max(0, l.cumulativeInvoicedQty - l.acceptedGrnQty), 0)
         .toFixed(4),
     );
 
     // Both writes in one transaction: previously a failure between them left the match table and
     // the purchase header disagreeing about whether the invoice was matched.
-    await this.db.transaction().execute(async (trx: any) => {
       await trx
         .insertInto('purchase_three_way_matches')
         .values({
@@ -722,31 +814,31 @@ export class GoodsReceiptService {
           purchase_id: purchaseId,
           purchase_order_id: linkedPoId,
           grn_id: purchase.grn_id || null,
-          match_status: matchResult.overallStatus,
-          price_variance_amount: matchResult.totalPpv,
+          match_status: computedMatch.overallStatus,
+          price_variance_amount: computedMatch.totalPpv,
           qty_variance_amount: qtyVariance,
-          tolerance_percentage: matchResult.tolerancePercentage,
-          is_service_item: Boolean(dto.isServiceItem),
+          tolerance_percentage: computedMatch.tolerancePercentage,
+          is_service_item: allServices,
           service_completion_ref: dto.serviceCompletionRef || null,
           override_approved_by: dto.allowOverride ? auth.userId : null,
           override_reason: dto.overrideReason || null,
           override_scope: dto.allowOverride ? requestedScope : null,
-          blocking_codes: matchResult.blockingCodes,
-          reconciliation_discrepancy: matchResult.reconciliationDiscrepancy,
+          blocking_codes: computedMatch.blockingCodes,
+          reconciliation_discrepancy: computedMatch.reconciliationDiscrepancy,
           created_at: new Date(),
           updated_at: new Date(),
         })
-        .onConflict((oc: any) =>
+        .onConflict((oc) =>
           oc.columns(['tenant_id', 'purchase_id']).doUpdateSet({
             purchase_order_id: linkedPoId,
-            match_status: matchResult.overallStatus,
-            price_variance_amount: matchResult.totalPpv,
+            match_status: computedMatch.overallStatus,
+            price_variance_amount: computedMatch.totalPpv,
             qty_variance_amount: qtyVariance,
             override_approved_by: dto.allowOverride ? auth.userId : null,
             override_reason: dto.overrideReason || null,
             override_scope: dto.allowOverride ? requestedScope : null,
-            blocking_codes: matchResult.blockingCodes,
-            reconciliation_discrepancy: matchResult.reconciliationDiscrepancy,
+            blocking_codes: computedMatch.blockingCodes,
+            reconciliation_discrepancy: computedMatch.reconciliationDiscrepancy,
             updated_at: new Date(),
           }),
         )
@@ -754,12 +846,19 @@ export class GoodsReceiptService {
 
       await trx
         .updateTable('purchases')
-        .set({ three_way_match_status: matchResult.overallStatus })
+        .set({ three_way_match_status: computedMatch.overallStatus })
         .where('id', '=', purchaseId)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
+      return computedMatch;
     });
-
+    if (!matchResult.isValidForPosting) {
+      throw new UnprocessableEntityException({
+        message: 'لم تجتز الفاتورة المطابقة الثلاثية.',
+        blockingCodes: matchResult.blockingCodes,
+        blockingReasons: matchResult.blockingReasons,
+      });
+    }
     return matchResult;
   }
 }

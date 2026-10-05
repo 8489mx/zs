@@ -2,7 +2,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { CreateReturnDto } from '../dto/create-return.dto';
 
-export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number }> {
+export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] }> {
   const normalized = (payload.items || [])
     .map((item) => ({
       productId: Number(item.productId || 0),
@@ -10,6 +10,7 @@ export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productI
       qty: Number(item.qty || 0),
       saleItemId: item.saleItemId ? Number(item.saleItemId) : undefined,
       purchaseItemId: item.purchaseItemId ? Number(item.purchaseItemId) : undefined,
+      serials: item.serials,
     }))
     .filter((item) => item.productId > 0 && item.qty > 0);
 

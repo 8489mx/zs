@@ -279,6 +279,7 @@ export class SupplierPaymentSchedulesService {
       if (!installment || Number(installment.supplier_id) !== Number(supplier.id)) {
         throw new AppError('Installment changed during payment', 'INSTALLMENT_CHANGED', 409);
       }
+      await this.financeService.assertNoBlockingThreeWayMatch(trx, Number(supplier.id), tenantScope.tenantId);
       if (installment.purchase_id) {
         const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);

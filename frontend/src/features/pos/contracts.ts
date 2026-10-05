@@ -78,6 +78,14 @@ export function validatePosSaleInput(input: CreatePosSaleInput) {
   if (!input.cart.length) throw new Error('أضف صنفًا واحدًا على الأقل');
   if (input.cart.some((item) => !item.productId)) throw new Error('توجد عناصر غير صالحة داخل السلة');
   if (input.cart.some((item) => Number(item.qty || 0) <= 0)) throw new Error('كمية الصنف يجب أن تكون أكبر من صفر');
+  for (const item of input.cart) {
+    if (!item.trackSerials) continue;
+    const count = Number(item.qty) * Number(item.unitMultiplier || 1);
+    const serials = (item.serials || []).map((serial) => serial.trim().toLowerCase());
+    if (!Number.isInteger(count) || serials.length !== count || new Set(serials).size !== serials.length || serials.some((serial) => !serial)) {
+      throw new Error(`امسح سيريالاً فريداً لكل قطعة من ${item.name}`);
+    }
+  }
   if (input.paymentType === 'credit' && !normalizeCustomerId(input.customerId)) throw new Error('اختر العميل أولًا في حالة البيع الآجل');
   if (input.paymentType === 'cash' && input.paymentChannel === 'credit') throw new Error('لا يمكن استخدام قناة آجل مع بيع نقدي');
   if (Number(input.discount || 0) < 0) throw new Error('الخصم لا يمكن أن يكون سالبًا');

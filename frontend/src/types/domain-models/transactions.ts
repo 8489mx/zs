@@ -14,6 +14,7 @@ export interface SaleItem {
   priceType: string;
   notes?: string;
   modifiers?: Array<{ productId?: string | number; name: string; qty: number; price?: number }>;
+  serials?: string[];
 }
 
 export interface SalePayment {

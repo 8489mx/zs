@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
@@ -52,6 +52,7 @@ export function PosSaleSuccessDialog({
   const [printError, setPrintError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
   const [manualPhone, setManualPhone] = useState('');
+  const lastKickedSaleId = useRef<string>('');
   const customerPhone = String(customer?.phone || '').trim();
   const showManualPhone = !customerPhone;
   const isDeliveryOrder = sale?.orderType === 'delivery';
@@ -112,9 +113,14 @@ export function PosSaleSuccessDialog({
     if (!open || !sale) return undefined;
 
     // Auto-kick cash drawer on cash sale in Electron desktop mode
-    const isCashPayment = sale.paymentType === 'cash' || sale.paymentChannel === 'cash' || !sale.paymentType;
-    if (isCashPayment && typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
-      (window as any).electronPrinter.kickCashDrawer(settings?.posElectronCashierPrinter).catch(() => {});
+    const isCashPayment = sale.payments?.length
+      ? sale.payments.some((payment) => payment.paymentChannel === 'cash' && Number(payment.amount) > 0)
+      : sale.paymentChannel === 'cash' && Number(sale.paidAmount) > 0;
+    const saleKey = String(sale.id || sale.docNo || '');
+    if (sale.status === 'posted' && isCashPayment && saleKey && lastKickedSaleId.current !== saleKey &&
+        typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
+      lastKickedSaleId.current = saleKey;
+      void (window as any).electronPrinter.kickCashDrawer(settings?.posElectronCashierPrinter).catch(() => {});
     }
 
     const previousOverflow = document.body.style.overflow;

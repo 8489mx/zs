@@ -50,7 +50,11 @@ export function buildPreparedSaleItem(
   options: { allowNegativeStockSales?: boolean } = {},
 ): PreparedSaleItem {
   const productName = String(product.name || '').trim();
-  const requiredQty = Number((Number(item.qty || 0) * Number(item.unitMultiplier || 1)).toFixed(3));
+  const exactRequiredQty = Number(item.qty || 0) * Number(item.unitMultiplier || 1);
+  const requiredQty = Number(exactRequiredQty.toFixed(3));
+  if (!Number.isFinite(exactRequiredQty) || exactRequiredQty <= 0 || Math.abs(exactRequiredQty - requiredQty) > 0.00000001) {
+    throw new AppError('كمية المخزون يجب أن تكون بدقة ثلاث خانات عشرية كحد أقصى', 'SALE_QUANTITY_PRECISION_INVALID', 400);
+  }
   const beforeQty = Number(product.stock_qty || 0);
 
   if (!options.allowNegativeStockSales && beforeQty < requiredQty) {
@@ -190,6 +194,24 @@ export function resolveSalePayments(
   collectibleTotal: number,
   fallbackPaymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = 'cash',
 ): Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> {
+  const collectibleCents = Math.round(collectibleTotal * 100);
+  if (!Number.isSafeInteger(collectibleCents) || collectibleCents < 0) {
+    throw new AppError('Invalid invoice collection amount', 'INVALID_PAID_AMOUNT', 400);
+  }
+  // Tendered cash/change is represented separately. A payment line is the amount actually
+  // applied to the invoice; silently clipping it loses a card/wallet charge or cash receipt.
+  let declaredCents = 0;
+  for (const payment of payments) {
+    const cents = Math.round(Number(payment.amount) * 100);
+    if (!Number.isSafeInteger(cents) || cents <= 0 ||
+        Math.abs(Number(payment.amount) * 100 - cents) > 0.001) {
+      throw new AppError('Payment amounts must be positive to the cent', 'INVALID_PAID_AMOUNT', 400);
+    }
+    declaredCents += cents;
+  }
+  if (declaredCents > collectibleCents) {
+    throw new AppError('Payment lines exceed invoice total', 'INVALID_PAID_AMOUNT', 400);
+  }
   let validPayments = payments;
   if (!validPayments.length && collectibleTotal > 0 && paymentType !== 'credit') {
     validPayments = [{
@@ -205,13 +227,13 @@ export function resolveSalePayments(
   }
 
   const result: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> = [];
-  let remainingTotal = collectibleTotal;
+  let remainingTotal = collectibleCents;
 
   // Process non-cash first
   for (const p of validPayments.filter(p => p.paymentChannel !== 'cash')) {
-    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    const amountToApply = Math.round(Number(p.amount) * 100);
     if (amountToApply > 0) {
-      result.push({ paymentChannel: p.paymentChannel, amount: roundCurrency(amountToApply) });
+      result.push({ paymentChannel: p.paymentChannel, amount: amountToApply / 100 });
       remainingTotal -= amountToApply;
     }
   }
@@ -219,9 +241,9 @@ export function resolveSalePayments(
   // Process cash
   for (const p of validPayments.filter(p => p.paymentChannel === 'cash')) {
     if (remainingTotal <= 0) break;
-    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    const amountToApply = Math.round(Number(p.amount) * 100);
     if (amountToApply > 0) {
-      result.push({ paymentChannel: p.paymentChannel, amount: roundCurrency(amountToApply) });
+      result.push({ paymentChannel: p.paymentChannel, amount: amountToApply / 100 });
       remainingTotal -= amountToApply;
     }
   }

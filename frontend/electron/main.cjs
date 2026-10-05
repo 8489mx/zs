@@ -894,7 +894,7 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('print-html-silent', async (e, { html, deviceName, pageSize }) => {
+  ipcMain.handle('print-html-silent', async (e, { html, deviceName, pageSize, receiptWidthMm }) => {
     return new Promise((resolve) => {
       let printWin = new BrowserWindow({
         show: false,
@@ -914,7 +914,9 @@ app.whenReady().then(async () => {
             printBackground: true,
             deviceName: deviceName || undefined,
             margins: { marginType: 'none' },
-            pageSize: pageSize === 'receipt' ? { width: 72000, height: 297000 } : (pageSize === 'A4' ? 'A4' : undefined)
+            pageSize: pageSize === 'receipt'
+              ? { width: receiptWidthMm === 58 ? 58000 : 80000, height: 297000 }
+              : (pageSize === 'A4' ? 'A4' : undefined)
           }, (success, failureReason) => {
             if (!printWin.isDestroyed()) {
               printWin.destroy();

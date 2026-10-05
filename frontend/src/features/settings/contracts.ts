@@ -98,6 +98,7 @@ export function buildSettingsUpdatePayload(
     taxRate,
     taxMode,
     paperSize,
+    receiptWidthMm: Number(values.receiptWidthMm ?? current?.receiptWidthMm) === 58 ? 58 : 80,
     ...(managerPin ? { managerPin } : {}),
     autoBackup,
     accentColor,
@@ -261,8 +262,11 @@ export function buildSettingsUpdatePayload(
       ? Math.min(8, Math.max(3, Math.floor(Number(values.weightedBarcodeWeightDigits || 5))))
       : Math.min(8, Math.max(3, Math.floor(Number(current?.weightedBarcodeWeightDigits || 5)))),
     weightedBarcodeWeightDecimals: values.weightedBarcodeWeightDecimals !== undefined
-      ? Math.min(3, Math.max(0, Math.floor(Number(values.weightedBarcodeWeightDecimals || 3))))
-      : Math.min(3, Math.max(0, Math.floor(Number(current?.weightedBarcodeWeightDecimals || 3)))),
+      ? Math.min(3, Math.max(0, Math.floor(Number(values.weightedBarcodeWeightDecimals ?? 3))))
+      : Math.min(3, Math.max(0, Math.floor(Number(current?.weightedBarcodeWeightDecimals ?? 3)))),
+    weightedBarcodeValueMode: values.weightedBarcodeValueMode !== undefined
+      ? (values.weightedBarcodeValueMode === 'price' ? 'price' : 'weight')
+      : (current?.weightedBarcodeValueMode === 'price' ? 'price' : 'weight'),
     printShowLogo: values.printShowLogo !== undefined ? values.printShowLogo !== false : current?.printShowLogo !== false,
     printShowDocumentType: values.printShowDocumentType !== undefined ? values.printShowDocumentType !== false : current?.printShowDocumentType !== false,
     printShowDocumentNumber: values.printShowDocumentNumber !== undefined ? values.printShowDocumentNumber !== false : current?.printShowDocumentNumber !== false,

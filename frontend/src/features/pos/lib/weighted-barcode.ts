@@ -6,6 +6,7 @@ export interface WeightedBarcodeConfig {
   productCodeLength: number;
   weightDigits: number;
   weightDecimals: number;
+  valueMode: 'weight' | 'price';
 }
 
 export interface WeightedBarcodeParseResult {
@@ -14,6 +15,7 @@ export interface WeightedBarcodeParseResult {
   productCode: string;
   weightText: string;
   quantity: number;
+  priceAmount?: number;
 }
 
 export type WeightedProductMatch =
@@ -54,6 +56,7 @@ export function getWeightedBarcodeConfig(settings?: Partial<AppSettings> | null)
     productCodeLength: clampInt(settings?.weightedBarcodeProductCodeLength, 3, 8, 5),
     weightDigits: clampInt(settings?.weightedBarcodeWeightDigits, 3, 8, 5),
     weightDecimals: clampInt(settings?.weightedBarcodeWeightDecimals, 0, 3, 3),
+    valueMode: settings?.weightedBarcodeValueMode === 'price' ? 'price' : 'weight',
   };
 }
 
@@ -68,6 +71,11 @@ export function parseWeightedBarcode(rawCode: unknown, settings?: Partial<AppSet
   const bodyLength = config.prefix.length + config.productCodeLength + config.weightDigits;
   const lengthWithCheckDigit = bodyLength + 1;
   if (rawText.length !== bodyLength && rawText.length !== lengthWithCheckDigit) return null;
+  if (rawText.length === 13) {
+    const digits = [...rawText].map(Number);
+    const sum = digits.slice(0, 12).reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 1 : 3), 0);
+    if ((10 - (sum % 10)) % 10 !== digits[12]) return null;
+  }
 
   const productCodeStart = config.prefix.length;
   const weightStart = productCodeStart + config.productCodeLength;
@@ -76,8 +84,8 @@ export function parseWeightedBarcode(rawCode: unknown, settings?: Partial<AppSet
   const weightNumber = Number(weightText);
   if (!productCode || !Number.isFinite(weightNumber) || weightNumber <= 0) return null;
 
-  const quantity = Number((weightNumber / (10 ** config.weightDecimals)).toFixed(3));
-  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+  const quantity = config.valueMode === 'price' ? 0 : weightNumber / (10 ** config.weightDecimals);
+  if (config.valueMode === 'weight' && (!Number.isFinite(quantity) || quantity <= 0)) return null;
 
   return {
     rawCode: rawText,
@@ -85,6 +93,7 @@ export function parseWeightedBarcode(rawCode: unknown, settings?: Partial<AppSet
     productCode,
     weightText,
     quantity,
+    ...(config.valueMode === 'price' ? { priceAmount: weightNumber / 100 } : {}),
   };
 }
 

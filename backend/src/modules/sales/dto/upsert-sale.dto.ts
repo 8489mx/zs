@@ -74,6 +74,10 @@ class SaleItemDto {
 }
 
 export class UpsertSaleDto {
+  @IsOptional()
+  @IsString()
+  offlineDocNo?: string;
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()

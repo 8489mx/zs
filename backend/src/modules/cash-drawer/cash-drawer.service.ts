@@ -357,7 +357,25 @@ export class CashDrawerService {
   private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftSaleReturnTotals> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return { saleReturnCashRefundTotal: 0, saleReturnCardRefundTotal: 0, saleReturnTotal: 0 };
-    const result = await sql<any>`select coalesce(sum(case when rd.refund_method = 'cash' then rd.total else 0 end), 0) as sale_return_cash_refund_total, coalesce(sum(case when rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total, coalesce(sum(rd.total), 0) as sale_return_total from return_documents rd where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at} and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null}) and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null}) and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})`.execute(queryable ?? this.db);
+    const result = await sql<{ sale_return_cash_refund_total: number | string; sale_return_card_refund_total: number | string; sale_return_total: number | string }>`
+      select coalesce((
+        select sum(abs(tt.amount))
+        from treasury_transactions tt
+        inner join return_documents rd on rd.id = tt.return_document_id and rd.tenant_id = tt.tenant_id
+        where tt.tenant_id = ${scope.tenantId}
+          and tt.reference_type = 'cashier_shift' and tt.reference_id = ${Number(shift.id)}
+          and tt.amount < 0 and rd.return_type = 'sale'
+          and rd.settlement_mode = 'refund' and rd.refund_method = 'cash'
+      ), 0) as sale_return_cash_refund_total,
+      coalesce(sum(case when rd.settlement_mode = 'refund' and rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total,
+      coalesce(sum(rd.total), 0) as sale_return_total
+      from return_documents rd
+      where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale'
+        and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     return { saleReturnCashRefundTotal: this.toMoney(row.sale_return_cash_refund_total || 0), saleReturnCardRefundTotal: this.toMoney(row.sale_return_card_refund_total || 0), saleReturnTotal: this.toMoney(row.sale_return_total || 0) };
   }

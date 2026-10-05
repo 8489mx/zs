@@ -148,21 +148,45 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return false;
     }
     if (result.status === 'not-found') {
-      const weightedBarcode = parseWeightedBarcode(code, params.settings)
-        || parseWeightedBarcode(code, { weightedBarcodeEnabled: true, weightedBarcodePrefix: '20' })
-        || parseWeightedBarcode(code, { weightedBarcodeEnabled: true, weightedBarcodePrefix: '21' });
+      const weightedBarcode = parseWeightedBarcode(code, params.settings);
       if (weightedBarcode) {
         const weightedResult = matchProductByWeightedCode(productsOverride || params.products || [], weightedBarcode.productCode);
         if (weightedResult.status === 'matched') {
+          const product = weightedResult.match.product;
+          const unitId = weightedResult.match.kind === 'unit' ? weightedResult.match.unitId : undefined;
+          let quantity = weightedBarcode.quantity;
+          if (weightedBarcode.priceAmount !== undefined) {
+            const unit = resolveSaleUnit(product, unitId);
+            const basePrice = params.priceType === 'wholesale' ? Number(product.wholesalePrice) : Number(product.retailPrice);
+            const unitPrice = basePrice * Number(unit?.multiplier || 1);
+            quantity = Number((weightedBarcode.priceAmount / unitPrice).toFixed(3));
+            let previewPrice = 0;
+            if (Number.isFinite(quantity) && quantity > 0) {
+              try {
+                previewPrice = Number(addPosItem([], product, {
+                  priceType: params.priceType, unitId, allowNegativeStockSales: true, quantity, isWeighted: true,
+                })[0]?.price || 0);
+              } catch {
+                previewPrice = 0;
+              }
+            }
+            if (!Number.isFinite(quantity) || quantity <= 0 ||
+                Math.abs(quantity * unitPrice - weightedBarcode.priceAmount) > 0.01 ||
+                Math.abs(quantity * previewPrice - weightedBarcode.priceAmount) > 0.01) {
+              params.setScannerMessage('السعر المشفر لا يطابق سعر الصنف الحالي؛ راجع إعدادات الميزان والعروض.');
+              params.requestBarcodeFocus();
+              return false;
+            }
+          }
           const added = handleAddProduct(
-            weightedResult.match.product,
-            weightedResult.match.kind === 'unit' ? weightedResult.match.unitId : undefined,
-            { quantity: weightedBarcode.quantity, isWeighted: true, sourceBarcode: weightedBarcode.rawCode },
+            product,
+            unitId,
+            { quantity, isWeighted: true, sourceBarcode: weightedBarcode.rawCode },
           );
           if (!added) return false;
           params.setSearch('');
           params.setQuickAddCode('');
-          params.setScannerMessage(`تمت إضافة ${weightedResult.match.product.name} بوزن ${formatWeightedBarcodeQuantity(weightedBarcode.quantity)}.`);
+          params.setScannerMessage(`تمت إضافة ${product.name} بكمية ${formatWeightedBarcodeQuantity(quantity)}.`);
           return true;
         }
         if (weightedResult.status === 'ambiguous') {

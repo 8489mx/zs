@@ -1004,36 +1004,6 @@ export class PurchasesWriteService {
     return this.buildPurchaseMutationResponse(purchaseId, auth);
   }
 
-  /**
-   * Blocks payment while any unpaid invoice from this supplier is failing three-way match.
-   * 'override_approved' passes: the override already went through its own authority check.
-   */
-  private async assertNoBlockingThreeWayMatch(trx: any, supplierId: number, tenantId: string): Promise<void> {
-    const blocking = await trx
-      .selectFrom('purchases')
-      .select(['doc_no', 'three_way_match_status'])
-      .where('tenant_id', '=', tenantId)
-      .where('supplier_id', '=', supplierId)
-      .where('status', '!=', 'cancelled')
-      .where('three_way_match_status', 'in', [
-        'quantity_mismatch',
-        'price_mismatch',
-        'tolerance_exceeded',
-        'unmatched_grn',
-        'service_rejected',
-      ])
-      .limit(1)
-      .executeTakeFirst();
-
-    if (blocking) {
-      throw new AppError(
-        `لا يمكن السداد: فاتورة المورد رقم (${blocking.doc_no || '—'}) لم تجتز المطابقة الثلاثية (الحالة: ${blocking.three_way_match_status}). يلزم معالجة الفرق أو اعتماد تجاوز موثق أولاً.`,
-        'THREE_WAY_MATCH_BLOCKING',
-        400,
-      );
-    }
-  }
-
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const operationType = 'supplier_payment_create';
@@ -1062,7 +1032,7 @@ export class PurchasesWriteService {
       // Gateway: three-way match must not be blocking.
       // The match previously only wrote a status label on the invoice; nothing consulted it, so an
       // invoice flagged quantity_mismatch (billed more than was received) was paid without friction.
-      await this.assertNoBlockingThreeWayMatch(trx, supplier.id, scope.tenantId);
+      await this.financeService.assertNoBlockingThreeWayMatch(trx, supplier.id, scope.tenantId);
 
       const { branchId, locationId } = normalizePurchaseScope(payload);
 
@@ -1349,6 +1319,23 @@ export class PurchasesWriteService {
       if (purchase.status === 'cancelled') {
         throw new AppError('Cannot receive goods for a cancelled purchase', 'PURCHASE_CANCELLED', 400);
       }
+      if (purchase.grn_id || purchase.po_id) {
+        if (purchase.po_id) {
+          await trx.selectFrom('purchase_orders').select('id')
+            .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(purchase.po_id))
+            .forUpdate().executeTakeFirstOrThrow();
+        }
+        const postedReceipt = purchase.grn_id
+          ? await trx.selectFrom('goods_receipt_notes').select(['id', 'status'])
+            .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(purchase.grn_id))
+            .forUpdate().executeTakeFirst()
+          : await trx.selectFrom('goods_receipt_notes').select(['id', 'status'])
+            .where('tenant_id', '=', scope.tenantId).where('purchase_order_id', '=', Number(purchase.po_id))
+            .where('status', '=', 'posted').limit(1).executeTakeFirst();
+        if (postedReceipt?.status === 'posted') {
+          throw new AppError('The linked GRN already posted stock; receiving this bill would post it twice', 'PURCHASE_STOCK_ALREADY_RECEIVED', 409);
+        }
+      }
 
       const existingItems = await trx
         .selectFrom('purchase_items')
@@ -1360,6 +1347,30 @@ export class PurchasesWriteService {
       const itemsMap = new Map<number, any>();
       for (const it of existingItems) {
         itemsMap.set(Number(it.id), it);
+      }
+
+      if (!receivedItems.length) throw new AppError('Receipt must contain at least one line', 'PURCHASE_RECEIPT_EMPTY', 400);
+      const seenItemIds = new Set<number>();
+      let receiptQty = 0;
+      for (const rec of receivedItems) {
+        const itemId = Number(rec.itemId);
+        const item = itemsMap.get(itemId);
+        if (!item) throw new AppError(`Purchase item ${itemId} not found`, 'ITEM_NOT_FOUND', 404);
+        if (seenItemIds.has(itemId)) throw new AppError('Duplicate purchase receipt line', 'PURCHASE_RECEIPT_DUPLICATE_LINE', 400);
+        seenItemIds.add(itemId);
+        const qty = Number(rec.receivedQty);
+        const alreadyReceived = Number(item.received_qty || 0);
+        const ordered = Number(item.qty || 0);
+        if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(ordered) ||
+            alreadyReceived + qty > ordered + 0.0001) {
+          throw new AppError('Received quantity must be positive and cannot exceed ordered quantity', 'PURCHASE_RECEIPT_QTY_INVALID', 400);
+        }
+        receiptQty += qty;
+      }
+      const totalRemaining = existingItems.reduce((sum, item) =>
+        sum + Math.max(0, Number(item.qty || 0) - Number(item.received_qty || 0)), 0);
+      if (purchase.status === 'draft' && receiptQty + 0.0001 < totalRemaining) {
+        throw new AppError('Partial receipts require a GRN so each stock movement has its own accrual journal', 'PURCHASE_PARTIAL_RECEIPT_REQUIRES_GRN', 422);
       }
 
       await lockStockProducts(trx, {
@@ -1374,8 +1385,6 @@ export class PurchasesWriteService {
         }
 
         const qtyToReceive = Number(rec.receivedQty || 0);
-        if (qtyToReceive <= 0) continue;
-
         const currentReceived = Number(item.received_qty || 0);
         const newReceivedQty = currentReceived + qtyToReceive;
 

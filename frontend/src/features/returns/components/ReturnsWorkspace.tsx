@@ -50,6 +50,7 @@ export function ReturnsWorkspace() {
     return defaultForm;
   });
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
+  const [selectedSerials, setSelectedSerials] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -162,6 +163,7 @@ export function ReturnsWorkspace() {
         productName: item.name, 
         qty,
         saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
+        serials: form.type === 'sale' ? (selectedSerials[String(item.id || item.productId || '')] || '').split(/[\s,;]+/).filter(Boolean) : undefined,
         purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
       })),
       settlementMode: form.settlementMode,
@@ -173,6 +175,7 @@ export function ReturnsWorkspace() {
       await invalidateReturnsDomain(queryClient);
       setForm(createEmptyReturnForm());
       setSelectedItems({});
+      setSelectedSerials({});
       setConfirmReturn(false);
       setIsCreateOpen(false);
     }
@@ -189,6 +192,7 @@ export function ReturnsWorkspace() {
   const resetReturnForm = () => {
     setForm(createEmptyReturnForm());
     setSelectedItems({});
+    setSelectedSerials({});
   };
 
   const updateForm = (updater: (current: ReturnFormState) => ReturnFormState) => {
@@ -196,6 +200,7 @@ export function ReturnsWorkspace() {
       const next = updater(current);
       if (next.type !== current.type || next.invoiceId !== current.invoiceId) {
         setSelectedItems({});
+        setSelectedSerials({});
       }
       return next;
     });
@@ -362,6 +367,7 @@ export function ReturnsWorkspace() {
           selectedInvoice={selectedInvoice}
           invoiceItems={invoiceItems}
           selectedItems={selectedItems}
+          selectedSerials={selectedSerials}
           selectedItemsCount={selectedItemsCount}
           selectedQtyTotal={selectedQtyTotal}
           expectedReturnValue={expectedReturnValue}
@@ -375,6 +381,7 @@ export function ReturnsWorkspace() {
           onResetForm={resetReturnForm}
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
+          onSetSerials={(itemId, value) => setSelectedSerials((current) => ({ ...current, [itemId]: value }))}
           onOpenConfirm={() => setConfirmReturn(true)}
           returnedQtyByProduct={returnedQtyByProduct}
         />

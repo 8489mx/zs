@@ -7,6 +7,7 @@ import {
   IsIn,
   IsInt,
   IsNumber,
+  Max,
   IsOptional,
   IsString,
   MaxLength,
@@ -122,6 +123,7 @@ export class VerifyThreeWayMatchDto {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @Min(0)
+  @Max(100)
   tolerancePercentage?: number;
 
   @IsOptional()
