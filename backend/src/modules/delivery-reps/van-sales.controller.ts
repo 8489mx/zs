@@ -36,12 +36,29 @@ export class VanSalesController {
     body: {
       tripId: number;
       countedCash: number;
+      endOdometer?: number;
       unloadRemainingToWarehouse: boolean;
       notes?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
-    return this.vanSalesService.settleTrip(driver.repId, driver.tenantId, driver.accountId, body);
+    return this.vanSalesService.submitTripSettlement(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
+  @Post('trips/submit-settlement')
+  async submitTripSettlement(
+    @Headers('authorization') authHeader: string,
+    @Body()
+    body: {
+      tripId: number;
+      countedCash: number;
+      endOdometer?: number;
+      unloadRemainingToWarehouse: boolean;
+      notes?: string;
+    },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.submitTripSettlement(driver.repId, driver.tenantId, driver.accountId, body);
   }
 
   @Post('sales')
@@ -338,19 +355,41 @@ export class VanSalesAdminController {
   }
 
   @Post('trips/:id/settle')
-  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory', 'accounting')
   async settleTripAdmin(
     @Req() req: RequestWithAuth,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { repId: number; countedCash: number; unloadRemainingToWarehouse: boolean; notes?: string },
+    @Body()
+    body: {
+      repId: number;
+      countedCash: number;
+      unloadRemainingToWarehouse: boolean;
+      countedStock?: { productId: number; countedQty: number }[];
+      nightStockApproved?: boolean;
+      nightStockNotes?: string;
+      endOdometer?: number;
+      chargeStockVarianceToRep?: boolean;
+      notes?: string;
+    },
   ) {
     const { tenantId, accountId } = requireTenantScope(req.authContext!);
-    return this.vanSalesService.settleTrip(body.repId, tenantId, accountId, {
-      tripId: id,
-      countedCash: body.countedCash,
-      unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
-      notes: body.notes,
-    });
+    return this.vanSalesService.settleTrip(
+      body.repId,
+      tenantId,
+      accountId,
+      {
+        tripId: id,
+        countedCash: body.countedCash,
+        unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
+        countedStock: body.countedStock,
+        nightStockApproved: body.nightStockApproved,
+        nightStockNotes: body.nightStockNotes,
+        endOdometer: body.endOdometer,
+        chargeStockVarianceToRep: body.chargeStockVarianceToRep,
+        notes: body.notes,
+      },
+      req.authContext,
+    );
   }
 
   @Get('vehicles')

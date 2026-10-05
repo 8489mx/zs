@@ -49,6 +49,7 @@ import {
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -4329,6 +4330,7 @@ export class HrService {
   }
 
   async createQuickCashAdvance(payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId, accountId } = requireTenantScope(auth);
     const employeeId = Number(payload.employeeId);
     const amount = Number(payload.amount);
     if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
@@ -4342,7 +4344,7 @@ export class HrService {
       const employee = await trx.selectFrom('hr_employees')
         .select(['id', 'display_name', 'status'])
         .where('id', '=', employeeId)
-        .where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!employee) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('لا يمكن صرف سلفة لموظف غير نشط', 'HR_EMPLOYEE_INACTIVE', 400);
@@ -4351,7 +4353,7 @@ export class HrService {
       const activeRes = await sql<{ total_debt: string }>`
         SELECT COALESCE(SUM(remaining_amount), 0) AS total_debt
         FROM hr_employee_loans
-        WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
           AND status IN ('approved', 'paid', 'partially_repaid', 'disbursed')
       `.execute(trx);
       const activeDebt = Number(activeRes.rows[0]?.total_debt || 0);
@@ -4360,7 +4362,7 @@ export class HrService {
       const contract = await trx.selectFrom('hr_employment_contracts')
         .select('base_salary')
         .where('employee_id', '=', employeeId)
-        .where('tenant_id', '=', auth.tenantId)
+        .where('tenant_id', '=', tenantId)
         .where('status', '=', 'active')
         .executeTakeFirst();
       const baseSalary = Number(contract?.base_salary || 0);
@@ -4382,7 +4384,7 @@ export class HrService {
           issue_date, status, notes, created_by, updated_by
         )
         VALUES (
-          ${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
+          ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
           1, ${amount}, 'deduct_next_salary',
           CURRENT_DATE, 'paid', ${notes}, ${auth.userId}, ${auth.userId}
         )
@@ -4392,7 +4394,7 @@ export class HrService {
       createdLoanId = loanId;
 
       const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
-      await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+      await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${tenantId}`.execute(trx);
       
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -4404,7 +4406,7 @@ export class HrService {
           amount, status
         )
         VALUES (
-          ${auth.tenantId}, ${auth.accountId}, ${loanId}, 1, ${dueStr}, 
+          ${tenantId}, ${accountId}, ${loanId}, 1, ${dueStr}, 
           ${amount}, 'pending'
         )
       `.execute(trx);
@@ -4417,7 +4419,7 @@ export class HrService {
         )
         VALUES (
           ${employeeId}, 'loan_disbursement', ${amount}, ${activeDebt + amount},
-          ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${auth.tenantId}, ${auth.accountId}
+          ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${tenantId}, ${accountId}
         )
       `.execute(trx);
 
@@ -4427,13 +4429,13 @@ export class HrService {
         await sql`
           UPDATE cashier_shifts 
           SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
-          WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId}
+          WHERE id = ${shiftId} AND tenant_id = ${tenantId}
         `.execute(trx);
       } else if (payload.treasuryId) {
         const treasuryId = Number(payload.treasuryId);
         await sql`
           INSERT INTO treasury_transactions (tenant_id, account_id, txn_type, amount, note, reference_type, reference_id, created_by)
-          VALUES (${auth.tenantId}, ${auth.accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
+          VALUES (${tenantId}, ${accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
         `.execute(trx);
       }
 

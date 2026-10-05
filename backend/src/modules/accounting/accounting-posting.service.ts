@@ -3338,7 +3338,14 @@ export class AccountingPostingService {
   async postVanTripSettlement(
     queryable: DbOrTx,
     tripId: number,
-    params: { expectedCash: number; countedCash: number; branchId: number | null; locationId: number | null },
+    params: {
+      expectedCash: number;
+      countedCash: number;
+      branchId: number | null;
+      locationId: number | null;
+      stockShortageAmount?: number;
+      chargeStockVarianceToRep?: boolean;
+    },
     auth: AuthContext,
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
@@ -3354,7 +3361,9 @@ export class AccountingPostingService {
 
     const expected = this.toMoney(params.expectedCash);
     const counted = this.toMoney(params.countedCash);
-    if (expected <= 0 && counted <= 0) return { posted: false, journalEntryId: null };
+    const stockShortage = params.stockShortageAmount ? this.toMoney(params.stockShortageAmount) : 0;
+
+    if (expected <= 0 && counted <= 0 && stockShortage <= 0) return { posted: false, journalEntryId: null };
     const variance = this.toMoney(counted - expected);
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -3385,6 +3394,24 @@ export class AccountingPostingService {
       this.addLine(lines, { accountId: cashAccountId, description: `نقدية مسلَّمة من مندوب - رحلة #${tripId}`, debit: counted, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
+    if (stockShortage > 0) {
+      let inventoryAccountId = Number(settings.inventory_account_id || 0);
+      if (!(inventoryAccountId > 0)) inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+
+      let debitAccountId: number;
+      let debitDesc: string;
+      if (params.chargeStockVarianceToRep) {
+        debitAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160');
+        debitDesc = `عجز مخزني محمل على عهدة وسلف المندوب - رحلة #${tripId}`;
+      } else {
+        debitAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
+        debitDesc = `خسائر عجز مخزني سيارة التوزيع - رحلة #${tripId}`;
+      }
+
+      this.addLine(lines, { accountId: debitAccountId, description: debitDesc, debit: stockShortage, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: inventoryAccountId, description: `تسوية عجز مخزني سيارة التوزيع - رحلة #${tripId}`, debit: 0, credit: stockShortage, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
     if (lines.length === 0) return { posted: false, journalEntryId: null };
 
     try {
@@ -3405,6 +3432,74 @@ export class AccountingPostingService {
     } catch (e: any) {
       if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
         const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'van_trip_settlement').where('source_id', '=', tripId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing2?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Posts inventory movement journal entry between warehouse and mobile van location.
+   */
+  async postVanStockTransfer(
+    queryable: DbOrTx,
+    tripId: number,
+    params: {
+      sourceLocationId: number;
+      targetLocationId: number;
+      totalCost: number;
+      branchId?: number | null;
+      type: 'load' | 'unload';
+    },
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cost = this.toMoney(params.totalCost);
+    if (!(cost > 0)) return { posted: false, journalEntryId: null };
+
+    const sourceType = params.type === 'load' ? 'van_load_transfer' : 'van_unload_transfer';
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', sourceType)
+      .where('source_id', '=', tripId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let inventoryAccountId = Number(settings?.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+
+    const descAr = params.type === 'load'
+      ? `تحميل بضاعة لسيارة التوزيع - رحلة #${tripId}`
+      : `تفريغ وإعادة بضاعة سيارة التوزيع للمستودع - رحلة #${tripId}`;
+
+    const lines: JournalLineDraft[] = [
+      { accountId: inventoryAccountId, description: `${descAr} (دخول)`, debit: cost, credit: 0, partnerType: 'none', partnerId: null, branchId: params.branchId ?? null, locationId: params.targetLocationId },
+      { accountId: inventoryAccountId, description: `${descAr} (خروج)`, debit: 0, credit: cost, partnerType: 'none', partnerId: null, branchId: params.branchId ?? null, locationId: params.sourceLocationId },
+    ];
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType,
+        sourceId: tripId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد ${descAr}`,
+        branchId: params.branchId ?? null,
+        locationId: params.targetLocationId,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
+        const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', sourceType).where('source_id', '=', tripId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
         return { posted: false, journalEntryId: Number(existing2?.id || 0) };
       }
       throw e;

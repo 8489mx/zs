@@ -772,6 +772,16 @@ export interface VanSalesTripTable {
   returns_amount?: number;
   cash_refunds?: number;
   variance?: number;
+  settlement_status?: 'open' | 'submitted_by_rep' | 'settled' | string;
+  submitted_at?: Date | null;
+  supervisor_id?: number | null;
+  settled_by?: number | null;
+  stock_variance_amount?: number;
+  stock_variance_details?: any | null;
+  night_stock_approved?: boolean;
+  night_stock_approved_by?: number | null;
+  night_stock_notes?: string | null;
+  distance_km?: number | null;
   notes?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

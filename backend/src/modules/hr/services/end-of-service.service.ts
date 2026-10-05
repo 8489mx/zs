@@ -205,9 +205,9 @@ export class EndOfServiceService {
       gratuity: {
         lawType,
         reason,
-        baseGratuity: Number(baseGratuity.toFixed(2)),
-        gratuityPercentage,
-        gratuityAmount,
+        baseGratuity: Number(gratuity.baseGratuity.toFixed(2)),
+        gratuityPercentage: gratuity.gratuityPercentage,
+        gratuityAmount: gratuity.gratuityAmount,
       },
       leaveEncashment: {
         remainingLeaveDays,

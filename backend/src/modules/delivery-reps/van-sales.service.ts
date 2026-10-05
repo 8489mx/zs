@@ -11,6 +11,14 @@ import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../common/
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { calculateRepTargetMetrics, type RepTargetCalculationResult } from './rep-target.engine';
+import {
+  reconcileTripFinancials,
+  reconcileVanStockAudit,
+  evaluateCreditLimitCheck,
+  evaluateOdometerReadings,
+  evaluateMakerCheckerSettlement,
+  evaluateNightStockRetention,
+} from './van-trip-reconciliation.engine';
 
 export interface VanStockItem {
   productId: number;
@@ -41,9 +49,11 @@ export interface VanTripSummary {
   vanLocationName: string;
   sourceWarehouseId: number;
   sourceWarehouseName: string;
-  status: 'open' | 'settled';
+  status: 'open' | 'settled' | string;
+  settlementStatus?: 'open' | 'submitted_by_rep' | 'settled' | string;
   openedAt: string;
   closedAt?: string;
+  submittedAt?: string;
   loadedAmount: number;
   salesAmount: number;
   cashCollected: number;
@@ -51,6 +61,9 @@ export interface VanTripSummary {
   returnsAmount: number;
   cashRefunds?: number;
   variance: number;
+  distanceKm?: number;
+  stockVarianceAmount?: number;
+  nightStockApproved?: boolean;
   notes?: string;
 }
 
@@ -326,8 +339,10 @@ export class VanSalesService {
         'vt.source_warehouse_id as sourceWarehouseId',
         sql<string>`coalesce(src.name, '')`.as('sourceWarehouseName'),
         'vt.status',
+        'vt.settlement_status as settlementStatus',
         'vt.opened_at as openedAt',
         'vt.closed_at as closedAt',
+        'vt.submitted_at as submittedAt',
         sql<number>`cast(coalesce(vt.loaded_amount, 0) as numeric)`.as('loadedAmount'),
         sql<number>`cast(coalesce(vt.sales_amount, 0) as numeric)`.as('salesAmount'),
         sql<number>`cast(coalesce(vt.cash_collected, 0) as numeric)`.as('cashCollected'),
@@ -335,6 +350,9 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.returns_amount, 0) as numeric)`.as('returnsAmount'),
         sql<number>`cast(coalesce(vt.cash_refunds, 0) as numeric)`.as('cashRefunds'),
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
+        sql<number>`cast(coalesce(vt.distance_km, 0) as numeric)`.as('distanceKm'),
+        sql<number>`cast(coalesce(vt.stock_variance_amount, 0) as numeric)`.as('stockVarianceAmount'),
+        'vt.night_stock_approved as nightStockApproved',
         'vt.notes',
       ])
       .where('vt.rep_id', '=', repId)
@@ -764,6 +782,8 @@ export class VanSalesService {
       .executeTakeFirst();
 
     let totalLoadedValue = 0;
+    let totalLoadedCost = 0;
+    let createdTripId = 0;
     const hasItemsToLoad = Boolean(payload.items && payload.items.length > 0);
 
     await this.db.transaction().execute(async (trx) => {
@@ -784,6 +804,19 @@ export class VanSalesService {
             throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
           }
 
+          // CANONICAL LOCK ORDER: Lock products first!
+          const prod = await trxAny
+            .selectFrom('products')
+            .select(['id', 'name', 'cost_price', 'retail_price'])
+            .where('id', '=', pid)
+            .where('tenant_id', '=', tenantId)
+            .forUpdate()
+            .executeTakeFirst();
+
+          if (!prod) {
+            throw new AppError(`الصنف رقم #${pid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+          }
+
           const sourceStock = await trxAny
             .selectFrom('product_location_stock')
             .select(['qty'])
@@ -795,13 +828,17 @@ export class VanSalesService {
 
           const avail = Number(sourceStock?.qty || 0);
           if (avail < qty) {
-            const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
             throw new AppError(
               `رصيد المستودع المصدر لا يكفي للصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب: ${qty}`,
               'INSUFFICIENT_SOURCE_STOCK',
               400,
             );
           }
+
+          const price = Number(prod?.retail_price || 0);
+          const cost = Number(prod?.cost_price || 0);
+          totalLoadedValue += price * qty;
+          totalLoadedCost += cost * qty;
 
           // Loading a van is a location-to-location move
           await this.moveVanStock(trx, {
@@ -816,6 +853,7 @@ export class VanSalesService {
             referenceType: 'van_sales_trip',
             referenceId: 0,
             skipGlobalUpdate: false,
+            unitCost: cost,
           });
 
           await this.moveVanStock(trx, {
@@ -830,11 +868,8 @@ export class VanSalesService {
             referenceType: 'van_sales_trip',
             referenceId: 0,
             skipGlobalUpdate: false,
+            unitCost: cost,
           });
-
-          const prod = await trxAny.selectFrom('products').select(['retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
-          const price = Number(prod?.retail_price || 0);
-          totalLoadedValue += price * qty;
         }
       } else {
         // Start trip with existing stock already in van
@@ -844,6 +879,7 @@ export class VanSalesService {
           .select([
             sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
             sql<number>`cast(coalesce(p.retail_price, 0) as numeric)`.as('retailPrice'),
+            sql<number>`cast(coalesce(p.cost_price, 0) as numeric)`.as('costPrice'),
           ])
           .where('pls.location_id', '=', vanLoc.id)
           .where('pls.tenant_id', '=', tenantId)
@@ -852,10 +888,11 @@ export class VanSalesService {
 
         for (const s of existingStock) {
           totalLoadedValue += Number(s.qty || 0) * Number(s.retailPrice || 0);
+          totalLoadedCost += Number(s.qty || 0) * Number(s.costPrice || 0);
         }
       }
 
-      await trxAny
+      const insertedTrip = await trxAny
         .insertInto('van_sales_trips')
         .values({
           tenant_id: tenantId,
@@ -866,6 +903,7 @@ export class VanSalesService {
           van_location_id: vanLoc.id,
           source_warehouse_id: sourceLocId || vanLoc.id,
           status: 'open',
+          settlement_status: 'open',
           loaded_amount: Number(totalLoadedValue.toFixed(2)),
           sales_amount: 0,
           cash_collected: 0,
@@ -875,20 +913,39 @@ export class VanSalesService {
           notes: payload.notes || (hasItemsToLoad ? 'تحميل وتجهيز بضاعة الصباح لرحلة التوزيع الميداني' : 'بدء رحلة التوزيع بالبضاعة المتوفرة بالسيارة'),
           opened_at: sql`NOW()`,
         })
-        .execute();
-    });
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
 
-    const createdTrip = await this.anyDb
-      .selectFrom('van_sales_trips as vt')
-      .select(['vt.id'])
-      .where('vt.rep_id', '=', repId)
-      .where('vt.status', '=', 'open')
-      .orderBy('vt.id', 'desc')
-      .executeTakeFirstOrThrow();
+      createdTripId = Number(insertedTrip.id);
+
+      // Post van loading stock transfer journal
+      if (hasItemsToLoad && totalLoadedCost > 0) {
+        const systemAuth = await this.resolveSystemAuthContext(tenantId, accountId);
+        const vanLocRow = await trxAny
+          .selectFrom('stock_locations')
+          .select(['branch_id'])
+          .where('id', '=', vanLoc.id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        const branchId = vanLocRow?.branch_id ? Number(vanLocRow.branch_id) : null;
+        await this.accountingPosting.postVanStockTransfer(
+          trx,
+          createdTripId,
+          {
+            sourceLocationId: sourceLocId || vanLoc.id,
+            targetLocationId: vanLoc.id,
+            totalCost: totalLoadedCost,
+            branchId,
+            type: 'load',
+          },
+          systemAuth,
+        );
+      }
+    });
 
     return {
       ok: true,
-      tripId: Number(createdTrip.id),
+      tripId: createdTripId,
       totalLoadedValue: Number(totalLoadedValue.toFixed(2)),
       itemsCount: payload.items?.length || 0,
     };
@@ -1036,6 +1093,19 @@ export class VanSalesService {
         const qty = Number(item.qty || 0);
         if (qty <= 0) continue;
 
+        // CANONICAL LOCK ORDER: Lock products first!
+        const prod = await trxAny
+          .selectFrom('products')
+          .select(['id', 'name', 'cost_price', 'retail_price'])
+          .where('id', '=', pid)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (!prod) {
+          throw new AppError(`الصنف رقم #${pid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+        }
+
         const vanStock = await trxAny
           .selectFrom('product_location_stock')
           .select(['id', 'qty'])
@@ -1047,15 +1117,12 @@ export class VanSalesService {
 
         const currentQty = Number(vanStock?.qty || 0);
         if (currentQty < qty) {
-          const prod = await trxAny.selectFrom('products').select(['name']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
           throw new AppError(
-            `رصيد سيارة التوزيع لا يكفي للصنف "${prod?.name || pid}". المتوفر بالسيارة: ${currentQty}، المطلوب: ${qty}`,
+            `رصيد سيارة التوزيع لا يكفي للصنف "${prod.name || pid}". المتوفر بالسيارة: ${currentQty}، المطلوب: ${qty}`,
             'INSUFFICIENT_VAN_STOCK',
             400,
           );
         }
-
-        const prod = await trxAny.selectFrom('products').select(['name', 'cost_price', 'retail_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
 
         // O27: name, price and cost must come from this tenant's product, never from a foreign row.
         // A van sale leaves the company for good, so unlike a load it DOES reduce global stock.
@@ -1071,11 +1138,11 @@ export class VanSalesService {
           referenceType: 'van_sales_trip',
           referenceId: Number(trip?.id || 0),
           skipGlobalUpdate: false,
-          unitCost: Number(prod?.cost_price || 0),
+          unitCost: Number(prod.cost_price || 0),
         });
 
-        const unitPrice = item.unitPrice ? Number(item.unitPrice) : Number(prod?.retail_price || 0);
-        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, Number(prod?.retail_price || 0));
+        const unitPrice = item.unitPrice ? Number(item.unitPrice) : Number(prod.retail_price || 0);
+        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, Number(prod.retail_price || 0));
         const lineTotal = unitPrice * qty;
         const lineSubtotal = originalPrice * qty;
         totalSale += lineTotal;
@@ -1083,11 +1150,11 @@ export class VanSalesService {
 
         saleItemRecords.push({
           product_id: pid,
-          product_name: prod?.name || `صنف #${pid}`,
+          product_name: prod.name || `صنف #${pid}`,
           qty,
           unit_price: unitPrice,
           line_total: lineTotal,
-          cost_price: Number(prod?.cost_price || 0),
+          cost_price: Number(prod.cost_price || 0),
         });
       }
 
@@ -1118,6 +1185,37 @@ export class VanSalesService {
         const rawPaid = Number(payload.paidAmount || 0);
         cashPaid = Math.max(0, Math.min(totalSale, Number(rawPaid.toFixed(2))));
         creditOwed = Math.max(0, Number((totalSale - cashPaid).toFixed(2)));
+      }
+
+      // Enforce customer credit limit and credit block in the field
+      if ((isCredit || isSplit) && creditOwed > 0 && resolvedCustomerId) {
+        const custRecord = await trxAny
+          .selectFrom('customers')
+          .select(['id', 'name', 'balance', 'credit_limit', 'is_credit_blocked', 'credit_block_reason'])
+          .where('id', '=', resolvedCustomerId)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (custRecord) {
+          const creditCheck = evaluateCreditLimitCheck({
+            customerId: resolvedCustomerId,
+            customerName: custRecord.name || customerName,
+            currentBalance: Number(custRecord.balance || 0),
+            creditLimit: Number(custRecord.credit_limit || 0),
+            isCreditBlocked: Boolean(custRecord.is_credit_blocked),
+            creditBlockReason: custRecord.credit_block_reason,
+            requestedCreditAmount: creditOwed,
+          });
+
+          if (!creditCheck.allowed) {
+            throw new AppError(
+              creditCheck.errorMessageAr || 'تم رفض العملية لتجاوز سقف الائتمان للعميل',
+              creditCheck.reasonCode || 'CREDIT_LIMIT_REJECTED',
+              422,
+            );
+          }
+        }
       }
 
       const tempDocNo = `TMP-VAN-${Date.now()}`;
@@ -1488,15 +1586,17 @@ export class VanSalesService {
   // alongside, since the whole point of the approval workflow is that no return posts unreviewed.
 
   /**
-   * End-of-Day Van Settlement: audits cash collected, reconciles variance, unloads remaining stock.
+   * Driver submits daily trip closing report (cash handover, odometer reading, and stock unload request).
+   * Status transitions to `submitted_by_rep`, pending supervisor review.
    */
-  async settleTrip(
+  async submitTripSettlement(
     repId: number,
     tenantId: string,
     accountId: string,
     payload: {
       tripId: number;
       countedCash: number;
+      endOdometer?: number;
       unloadRemainingToWarehouse: boolean;
       notes?: string;
     },
@@ -1506,7 +1606,94 @@ export class VanSalesService {
     expectedCash: number;
     countedCash: number;
     variance: number;
+    distanceKm: number;
+    status: 'submitted_by_rep';
+    message: string;
+  }> {
+    const trip = await this.anyDb
+      .selectFrom('van_sales_trips as vt')
+      .selectAll()
+      .where('vt.id', '=', payload.tripId)
+      .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
+      .where((eb: any) => eb.or([eb('vt.status', '=', 'open'), eb('vt.settlement_status', '=', 'open')]))
+      .executeTakeFirst();
+
+    if (!trip) {
+      throw new AppError('الرحلة غير موجودة أو تم تقديم إقرارها بالفعل', 'TRIP_NOT_FOUND', 404);
+    }
+
+    const odometerResult = evaluateOdometerReadings({
+      startOdometer: trip.start_odometer,
+      endOdometer: payload.endOdometer,
+    });
+
+    if (!odometerResult.valid) {
+      throw new AppError(odometerResult.errorMessageAr!, 'INVALID_ODOMETER', 400);
+    }
+
+    const expectedCash = Number(trip.cash_collected || 0);
+    const countedCash = Number(payload.countedCash || 0);
+    const variance = Number((countedCash - expectedCash).toFixed(2));
+
+    await this.anyDb
+      .updateTable('van_sales_trips')
+      .set({
+        settlement_status: 'submitted_by_rep',
+        submitted_at: sql`NOW()`,
+        end_odometer: payload.endOdometer !== undefined ? payload.endOdometer : null,
+        distance_km: odometerResult.distanceKm,
+        variance,
+        notes: payload.notes || `إقرار تصفية مقدم من المندوب بانتظار اعتماد المشرف. عجز/زيادة: ${variance}`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', payload.tripId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      tripId: payload.tripId,
+      expectedCash,
+      countedCash,
+      variance,
+      distanceKm: odometerResult.distanceKm,
+      status: 'submitted_by_rep',
+      message: 'تم تسليم إقرار الرحلة والنقدية بنجاح، وبانتظار اعتماد المشرف وأمين المستودع',
+    };
+  }
+
+  /**
+   * Final audit and settlement of a van trip.
+   * Can be executed by supervisor/cashier (with Maker-Checker check against the rep).
+   * Performs physical stock audit, handles overnight stock (Night Stock), unloads inventory
+   * to warehouse if requested, updates fleet vehicle odometer, and posts closing GL journals.
+   */
+  async settleTrip(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      countedCash: number;
+      unloadRemainingToWarehouse: boolean;
+      countedStock?: { productId: number; countedQty: number }[];
+      nightStockApproved?: boolean;
+      nightStockNotes?: string;
+      endOdometer?: number;
+      chargeStockVarianceToRep?: boolean;
+      notes?: string;
+    },
+    authContext?: AuthContext,
+  ): Promise<{
+    ok: boolean;
+    tripId: number;
+    expectedCash: number;
+    countedCash: number;
+    variance: number;
+    stockVarianceAmount: number;
     unloadedItemsCount: number;
+    distanceKm: number;
     status: 'settled';
   }> {
     const trip = await this.anyDb
@@ -1515,102 +1702,277 @@ export class VanSalesService {
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
       .where('vt.rep_id', '=', repId)
-      .where('vt.status', '=', 'open')
+      .where('vt.status', '!=', 'settled')
       .executeTakeFirst();
 
     if (!trip) {
-      throw new AppError('الرحلة غير موجودة أو تم تصفيتها بالفعل', 'TRIP_NOT_FOUND', 404);
+      throw new AppError('الرحلة غير موجودة أو تم تصفيتها واعتمادها بالفعل', 'TRIP_NOT_FOUND', 404);
+    }
+
+    // Lookup rep details to check Maker-Checker against linked user
+    const rep = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name', 'phone'])
+      .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    const actorUserId = authContext?.userId ? Number(authContext.userId) : 0;
+    const repUserId = (rep as any)?.user_id ? Number((rep as any).user_id) : null;
+
+    if (authContext) {
+      const isSupervisor =
+        ['admin', 'super_admin'].includes(authContext.role) ||
+        (authContext.permissions &&
+          authContext.permissions.some((p: string) =>
+            ['deliveryReps', 'sales', 'accounting', 'inventory'].includes(p),
+          ));
+
+      const makerChecker = evaluateMakerCheckerSettlement({
+        repUserId,
+        actorUserId,
+        actorRole: authContext.role,
+        isSupervisorOrAdmin: Boolean(isSupervisor),
+      });
+
+      if (!makerChecker.allowed) {
+        throw new AppError(makerChecker.errorMessageAr!, makerChecker.reasonCode!, 403);
+      }
+    }
+
+    // Odometer validation
+    const effectiveEndOdometer = payload.endOdometer !== undefined ? payload.endOdometer : (trip.end_odometer !== null ? Number(trip.end_odometer) : undefined);
+    const odometerResult = evaluateOdometerReadings({
+      startOdometer: trip.start_odometer,
+      endOdometer: effectiveEndOdometer,
+    });
+    if (!odometerResult.valid) {
+      throw new AppError(odometerResult.errorMessageAr!, 'INVALID_ODOMETER', 400);
     }
 
     const expectedCash = Number(trip.cash_collected || 0);
     const countedCash = Number(payload.countedCash || 0);
-    const variance = Number((countedCash - expectedCash).toFixed(2));
+    const cashVariance = Number((countedCash - expectedCash).toFixed(2));
     let unloadedItemsCount = 0;
+    let totalStockVarianceCost = 0;
+    let totalUnloadedCost = 0;
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
-      if (payload.unloadRemainingToWarehouse) {
-        const remainingStocks = await trxAny
-          .selectFrom('product_location_stock')
-          .select(['id', 'product_id', 'qty'])
-          .where('location_id', '=', Number(trip.van_location_id))
-          .where('tenant_id', '=', tenantId)
-          .where(sql<boolean>`cast(qty as numeric) > 0`)
-          .forUpdate()
-          .execute();
 
-        const sortedRemainingStocks: any[] = this.sortItemsByProductId(
-          remainingStocks.map((r: any) => ({ ...r, productId: Number(r.product_id) })),
-        );
-        for (const rem of sortedRemainingStocks) {
-          const qty = Number(rem.qty);
-          if (qty <= 0) continue;
+      // 1. Fetch current remaining van stock
+      const vanLocationId = Number(trip.van_location_id);
+      const remainingStocks = await trxAny
+        .selectFrom('product_location_stock as pls')
+        .innerJoin('products as p', 'p.id', 'pls.product_id')
+        .select([
+          'pls.id as stockLocationRecordId',
+          'pls.product_id as productId',
+          sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
+          sql<string>`coalesce(p.name, '')`.as('name'),
+          sql<number>`cast(coalesce(p.cost_price, 0) as numeric)`.as('costPrice'),
+          sql<number>`cast(coalesce(p.retail_price, 0) as numeric)`.as('retailPrice'),
+        ])
+        .where('pls.location_id', '=', vanLocationId)
+        .where('pls.tenant_id', '=', tenantId)
+        .where(sql<boolean>`cast(pls.qty as numeric) > 0`)
+        .execute();
 
-          // Settling a trip returns unsold goods from the van to the source warehouse: a pure
-          // location-to-location move. Both legs still write the real global count
-          // (skipGlobalUpdate: false) — see the matching note in openTripAndLoad for why skipping
-          // it corrupts the destination balance instead of merely leaving it stale.
+      // 2. Physical Stock Audit Reconciliation via pure engine
+      const auditItems = remainingStocks.map((rs: any) => {
+        const countedMatch = payload.countedStock?.find((cs) => Number(cs.productId) === Number(rs.productId));
+        return {
+          productId: Number(rs.productId),
+          productName: rs.name,
+          systemQty: Number(rs.qty),
+          countedQty: countedMatch ? Number(countedMatch.countedQty) : undefined,
+          costPrice: Number(rs.costPrice),
+          retailPrice: Number(rs.retailPrice),
+        };
+      });
+
+      const stockAuditResult = reconcileVanStockAudit(auditItems);
+      totalStockVarianceCost = stockAuditResult.totalStockShortageCost;
+
+      // Deduct missing stock items if shortage was detected
+      for (const itemVariance of stockAuditResult.itemVariances) {
+        if (itemVariance.status === 'shortage' && itemVariance.varianceQty < 0) {
+          const shortageQty = Math.abs(itemVariance.varianceQty);
           await this.moveVanStock(trx, {
-            productId: Number(rem.product_id),
-            delta: -qty,
-            locationId: Number(trip.van_location_id),
+            productId: itemVariance.productId,
+            delta: -shortageQty,
+            locationId: vanLocationId,
             tenantId,
             accountId,
-            userId: null,
+            userId: actorUserId || null,
+            movementType: 'van_stock_shortage',
+            note: `عجز جرد سيارة توزيع - رحلة #${trip.id}`,
+            referenceType: 'van_sales_trip',
+            referenceId: Number(trip.id),
+            skipGlobalUpdate: false,
+            unitCost: itemVariance.costPrice,
+          });
+        }
+      }
+
+      // 3. Night Stock Governance
+      const nightStockEval = evaluateNightStockRetention({
+        unloadRemainingToWarehouse: payload.unloadRemainingToWarehouse,
+        remainingItemsCount: remainingStocks.length,
+        nightStockApproved: Boolean(payload.nightStockApproved),
+        nightStockNotes: payload.nightStockNotes,
+      });
+
+      if (!nightStockEval.allowed) {
+        throw new AppError(nightStockEval.errorMessageAr!, 'NIGHT_STOCK_UNAPPROVED', 422);
+      }
+
+      // 4. Unload remaining stock to warehouse if requested
+      if (payload.unloadRemainingToWarehouse && remainingStocks.length > 0) {
+        // Query remaining stock after any shortage deductions, sorted by product_id
+        const postAuditStocks = await trxAny
+          .selectFrom('product_location_stock as pls')
+          .innerJoin('products as p', 'p.id', 'pls.product_id')
+          .select([
+            'pls.product_id as productId',
+            sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
+            sql<number>`cast(coalesce(p.cost_price, 0) as numeric)`.as('costPrice'),
+          ])
+          .where('pls.location_id', '=', vanLocationId)
+          .where('pls.tenant_id', '=', tenantId)
+          .where(sql<boolean>`cast(pls.qty as numeric) > 0`)
+          .orderBy('pls.product_id', 'asc')
+          .execute();
+
+        for (const rem of postAuditStocks) {
+          const pid = Number(rem.productId);
+          const qty = Number(rem.qty);
+          const cost = Number(rem.costPrice);
+          if (qty <= 0) continue;
+
+          // CANONICAL LOCK ORDER: Lock products first!
+          await trxAny
+            .selectFrom('products')
+            .select(['id'])
+            .where('id', '=', pid)
+            .where('tenant_id', '=', tenantId)
+            .forUpdate()
+            .executeTakeFirst();
+
+          // Out from van
+          await this.moveVanStock(trx, {
+            productId: pid,
+            delta: -qty,
+            locationId: vanLocationId,
+            tenantId,
+            accountId,
+            userId: actorUserId || null,
             movementType: 'van_unload_out',
             note: 'تصفية رحلة - خروج من السيارة',
             referenceType: 'van_sales_trip',
             referenceId: Number(trip.id),
             skipGlobalUpdate: false,
+            unitCost: cost,
           });
 
+          // In to warehouse
           await this.moveVanStock(trx, {
-            productId: Number(rem.product_id),
+            productId: pid,
             delta: qty,
             locationId: Number(trip.source_warehouse_id),
             tenantId,
             accountId,
-            userId: null,
+            userId: actorUserId || null,
             movementType: 'van_unload_in',
             note: 'تصفية رحلة - عودة للمستودع',
             referenceType: 'van_sales_trip',
             referenceId: Number(trip.id),
             skipGlobalUpdate: false,
+            unitCost: cost,
           });
 
+          totalUnloadedCost += qty * cost;
           unloadedItemsCount++;
         }
       }
 
+      // 5. Update vehicle current odometer if vehicle was tracked
+      if (trip.vehicle_id && effectiveEndOdometer !== undefined) {
+        await trxAny
+          .updateTable('fleet_vehicles')
+          .set({
+            current_odometer: effectiveEndOdometer,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', Number(trip.vehicle_id))
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      // 6. Update trip status to settled
       await trxAny
         .updateTable('van_sales_trips')
         .set({
           status: 'settled',
+          settlement_status: 'settled',
           closed_at: sql`NOW()`,
-          variance,
-          notes: payload.notes || `تم إغلاق وتصفية رحلة التوزيع بنجاح. عجز/زيادة الكاش: ${variance}`,
+          settled_by: actorUserId || null,
+          supervisor_id: actorUserId || null,
+          stock_variance_amount: totalStockVarianceCost,
+          stock_variance_details: stockAuditResult.itemVariances.length ? JSON.stringify(stockAuditResult.itemVariances) : null,
+          night_stock_approved: Boolean(payload.nightStockApproved),
+          night_stock_approved_by: payload.nightStockApproved ? (actorUserId || null) : null,
+          night_stock_notes: payload.nightStockNotes || null,
+          end_odometer: effectiveEndOdometer ?? null,
+          distance_km: odometerResult.distanceKm,
+          variance: cashVariance,
+          notes: payload.notes || `تم إغلاق وتصفية رحلة التوزيع بنجاح. عجز/زيادة الكاش: ${cashVariance}، عجز المخزون: ${totalStockVarianceCost}`,
           updated_at: sql`NOW()`,
         })
         .where('id', '=', payload.tripId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // Converts the pooled receivable that executeFieldSale/recordFieldCollection debited during
-      // the trip into real company cash, reconciling any shortage/overage the count turned up.
-      const vanLoc = await trxAny
+      // 7. General Ledger Double-Entry Postings
+      const vanLocRow = await trxAny
         .selectFrom('stock_locations')
         .select(['branch_id'])
-        .where('id', '=', Number(trip.van_location_id))
+        .where('id', '=', vanLocationId)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      const branchId = vanLoc?.branch_id ? Number(vanLoc.branch_id) : null;
-      const systemAuth = await this.resolveSystemAuthContext(tenantId, accountId);
+      const branchId = vanLocRow?.branch_id ? Number(vanLocRow.branch_id) : null;
+      const systemAuth = authContext || (await this.resolveSystemAuthContext(tenantId, accountId));
+
+      // Post van trip settlement (cash collected + shortage/overage + stock shortage allocation)
       await this.accountingPosting.postVanTripSettlement(
         trx,
         payload.tripId,
-        { expectedCash, countedCash, branchId, locationId: Number(trip.van_location_id) },
+        {
+          expectedCash,
+          countedCash,
+          branchId,
+          locationId: vanLocationId,
+          stockShortageAmount: totalStockVarianceCost,
+          chargeStockVarianceToRep: Boolean(payload.chargeStockVarianceToRep),
+        },
         systemAuth,
       );
+
+      // Post unload stock transfer if items were returned to warehouse
+      if (payload.unloadRemainingToWarehouse && totalUnloadedCost > 0) {
+        await this.accountingPosting.postVanStockTransfer(
+          trx,
+          payload.tripId,
+          {
+            sourceLocationId: vanLocationId,
+            targetLocationId: Number(trip.source_warehouse_id),
+            totalCost: totalUnloadedCost,
+            branchId,
+            type: 'unload',
+          },
+          systemAuth,
+        );
+      }
     });
 
     return {
@@ -1618,8 +1980,10 @@ export class VanSalesService {
       tripId: payload.tripId,
       expectedCash,
       countedCash,
-      variance,
+      variance: cashVariance,
+      stockVarianceAmount: totalStockVarianceCost,
       unloadedItemsCount,
+      distanceKm: odometerResult.distanceKm,
       status: 'settled',
     };
   }
@@ -1652,8 +2016,10 @@ export class VanSalesService {
         'vt.source_warehouse_id as sourceWarehouseId',
         sql<string>`coalesce(src.name, '')`.as('sourceWarehouseName'),
         'vt.status',
+        'vt.settlement_status as settlementStatus',
         'vt.opened_at as openedAt',
         'vt.closed_at as closedAt',
+        'vt.submitted_at as submittedAt',
         sql<number>`cast(coalesce(vt.loaded_amount, 0) as numeric)`.as('loadedAmount'),
         sql<number>`cast(coalesce(vt.sales_amount, 0) as numeric)`.as('salesAmount'),
         sql<number>`cast(coalesce(vt.cash_collected, 0) as numeric)`.as('cashCollected'),
@@ -1661,6 +2027,9 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.returns_amount, 0) as numeric)`.as('returnsAmount'),
         sql<number>`cast(coalesce(vt.cash_refunds, 0) as numeric)`.as('cashRefunds'),
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
+        sql<number>`cast(coalesce(vt.distance_km, 0) as numeric)`.as('distanceKm'),
+        sql<number>`cast(coalesce(vt.stock_variance_amount, 0) as numeric)`.as('stockVarianceAmount'),
+        'vt.night_stock_approved as nightStockApproved',
         'vt.notes',
       ])
       .where('vt.tenant_id', '=', tenantId);
@@ -2574,11 +2943,23 @@ export class VanSalesService {
       }
 
       const itemsWithCost: { productId: number; qty: number; costPrice: number }[] = [];
-      for (const item of items) {
+      const sortedReturnItems: any[] = this.sortItemsByProductId(
+        (items || []).map((i: any) => ({ ...i, productId: Number(i.productId) })),
+      );
+      for (const item of sortedReturnItems) {
         const pid = Number(item.productId);
         const qty = Number(item.qty || 0);
         const price = Number(item.unitPrice || 0);
         if (qty <= 0) continue;
+
+        // CANONICAL LOCK ORDER: Lock products first!
+        const prod = await trxAny
+          .selectFrom('products')
+          .select(['cost_price'])
+          .where('id', '=', pid)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
 
         await this.moveVanStock(trx, {
           productId: pid,
@@ -2596,7 +2977,6 @@ export class VanSalesService {
         });
 
         // COGS reversal needs the product's actual cost, not the (net selling) return price above.
-        const prod = await trxAny.selectFrom('products').select(['cost_price']).where('id', '=', pid).where('tenant_id', '=', tenantId).executeTakeFirst();
         itemsWithCost.push({ productId: pid, qty, costPrice: Number(prod?.cost_price || 0) });
       }
 
