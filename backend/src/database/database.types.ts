@@ -853,6 +853,7 @@ export interface SalesTable {
   prices_include_tax: boolean;
   total: number;
   paid_amount: number;
+  applied_amount?: number;
   tendered_amount: number;
   change_amount: number;
   store_credit_used: number;
@@ -901,6 +902,10 @@ export interface SaleItemTable {
   unit_name: string;
   unit_multiplier: number;
   cost_price: number;
+  net_unit_price?: number | null;
+  net_line_total?: number | null;
+  allocated_discount?: number | null;
+  allocated_tax?: number | null;
   price_type: 'retail' | 'wholesale';
   notes: ColumnType<string, string | undefined, string | undefined>;
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
@@ -914,6 +919,9 @@ export interface SalePaymentTable {
   sale_id: number;
   payment_channel: 'cash' | 'card' | 'wallet' | 'instapay';
   amount: number;
+  applied_amount?: number;
+  tendered_amount?: number;
+  change_amount?: number;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -985,6 +993,7 @@ export interface ReturnDocumentTable {
   invoice_id: number | null;
   settlement_mode: string;
   refund_method: string;
+  refund_allocations?: ColumnType<unknown | null, unknown | null | undefined, unknown | null | undefined>;
   exchange_sale_id: number | null;
   total: number;
   note: string;
@@ -1007,6 +1016,8 @@ export interface ReturnItemTable {
   qty: number;
   unit_total: number;
   line_total: number;
+  allocated_tax?: number | null;
+  cost_price?: number | null;
   sale_item_id: number | null;
   purchase_item_id: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -1065,6 +1076,20 @@ export interface CashierShiftTable {
   closed_at: Date | null;
   closed_by: number | null;
   created_at?: ColumnType<Date, string | undefined, never>;
+}
+
+export interface PosAuditEventTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  event_type: string;
+  user_id: number | null;
+  sale_id: number | null;
+  product_id: number | null;
+  amount: number;
+  reason: string;
+  metadata: ColumnType<unknown, unknown | undefined, unknown | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface ServicesTable {
@@ -2083,6 +2108,7 @@ export interface Database {
   treasury_transactions: TreasuryTransactionTable;
   treasury_transfers: TreasuryTransferTable;
   cashier_shifts: CashierShiftTable;
+  pos_audit_events: PosAuditEventTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
   goods_receipt_notes: GoodsReceiptNoteTable;
@@ -4724,6 +4750,3 @@ export interface DailyCommercialRollupTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
-
-
-

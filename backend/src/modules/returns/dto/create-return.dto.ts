@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
 
 class ReturnItemDto {
   @Type(() => Number)
@@ -63,4 +63,9 @@ export class CreateReturnDto {
   @IsOptional()
   @IsString()
   managerPin?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  refundOverrideReason?: string;
 }

@@ -296,7 +296,7 @@ export class CashDrawerService {
     if (!(openerId > 0) || !shift.created_at) return empty;
     const result = await sql<any>`
       with shift_sales as (
-        select s.id, s.total, s.payment_type, s.payment_channel, s.collection_status,
+        select s.id, s.total, s.paid_amount, s.payment_type, s.payment_channel, s.collection_status,
                coalesce(s.delivery_fee, 0) as delivery_fee,
                coalesce(s.delivery_fee_mode, 'freelance_courier') as delivery_fee_mode
         from sales s
@@ -307,7 +307,7 @@ export class CashDrawerService {
       ), payment_rows as (
         select sp.sale_id, sp.payment_channel, sp.amount from sale_payments sp inner join shift_sales ss on ss.id = sp.sale_id where sp.tenant_id = ${scope.tenantId} and coalesce(ss.collection_status, '') != 'cod'
         union all
-        select ss.id as sale_id, case when ss.payment_channel in ('card','wallet','instapay') then ss.payment_channel else 'cash' end as payment_channel, ss.total as amount from shift_sales ss where ss.payment_channel in ('cash','card','wallet','instapay') and not exists (select 1 from sale_payments sp where sp.tenant_id = ${scope.tenantId} and sp.sale_id = ss.id) and coalesce(ss.collection_status, '') != 'cod'
+        select ss.id as sale_id, case when ss.payment_channel in ('card','wallet','instapay') then ss.payment_channel else 'cash' end as payment_channel, ss.paid_amount as amount from shift_sales ss where ss.payment_channel in ('cash','card','wallet','instapay') and not exists (select 1 from sale_payments sp where sp.tenant_id = ${scope.tenantId} and sp.sale_id = ss.id) and coalesce(ss.collection_status, '') != 'cod'
       )
       select coalesce(sum(case when payment_channel = 'cash' then amount else 0 end), 0) as cash_sales_total,
              coalesce(sum(case when payment_channel = 'card' then amount else 0 end), 0) as card_sales_total,
@@ -365,9 +365,13 @@ export class CashDrawerService {
         where tt.tenant_id = ${scope.tenantId}
           and tt.reference_type = 'cashier_shift' and tt.reference_id = ${Number(shift.id)}
           and tt.amount < 0 and rd.return_type = 'sale'
-          and rd.settlement_mode = 'refund' and rd.refund_method = 'cash'
+          and rd.settlement_mode = 'refund'
       ), 0) as sale_return_cash_refund_total,
-      coalesce(sum(case when rd.settlement_mode = 'refund' and rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total,
+      coalesce(sum(case when rd.refund_allocations is not null then (
+        select coalesce(sum((allocation->>'amount')::numeric), 0)
+        from jsonb_array_elements(rd.refund_allocations) as alloc(value)
+        where alloc.value->>'tender' = 'card'
+      ) when rd.settlement_mode = 'refund' and rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total,
       coalesce(sum(rd.total), 0) as sale_return_total
       from return_documents rd
       where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale'
