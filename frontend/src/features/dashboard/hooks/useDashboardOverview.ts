@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { dayRangeLast30 } from '@/lib/format';
 import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
