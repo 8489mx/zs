@@ -74,3 +74,11 @@ export async function down(db: Kysely<any>): Promise<void> {
     DROP COLUMN IF EXISTS employee_social_insurance
   `.execute(db);
 }
+
+export const migration = {
+  up,
+  down,
+};
+
+export default migration;
+
