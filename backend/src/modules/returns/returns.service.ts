@@ -21,6 +21,16 @@ import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { allocateRefundTenders, type RefundTender } from './engines/refund-tender.engine';
 import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engine';
+import { settlePosExchange } from '../sales/engines/pos-exchange.engine';
+
+export interface ExchangeReturnContext {
+  returnId: number;
+  total: number;
+  customerId: number;
+  branchId: number | null;
+  locationId: number | null;
+  refundBase: Omit<Parameters<typeof allocateRefundTenders>[0], 'amount' | 'requested'>;
+}
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender; amount: number }> };
@@ -77,6 +87,46 @@ export class ReturnsService {
     const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
     const nextBalance = calculateNextLedgerBalance(customer.store_credit_balance, amount);
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
+  }
+
+  private async restoreReturnedPharmacyBatches(
+    trx: Kysely<Database>, saleId: number, saleItemId: number, productId: number,
+    previousReturnedBaseQty: number, returnBaseQty: number, auth: AuthContext,
+  ): Promise<void> {
+    const scope = this.scope(auth);
+    const allocations = await trx.selectFrom('sale_pharmacy_batch_allocations').selectAll()
+      .where('tenant_id', '=', scope.tenantId).where('sale_id', '=', saleId)
+      .where('sale_item_id', '=', saleItemId).where('product_id', '=', productId)
+      .orderBy('id', 'desc').forUpdate().execute();
+    if (!allocations.length) {
+      const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', productId)
+        .executeTakeFirst();
+      if (drug) throw new AppError('فاتورة دوائية قديمة بلا تخصيص تشغيلة تحتاج تسوية قبل المرتجع', 'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+      return;
+    }
+    let skip = Number(previousReturnedBaseQty.toFixed(3));
+    let remaining = Number(returnBaseQty.toFixed(3));
+    const today = new Date().toISOString().slice(0, 10);
+    for (const allocation of allocations) {
+      const sold = Number(allocation.quantity);
+      const previouslyRestored = Math.min(sold, skip);
+      skip = Number((skip - previouslyRestored).toFixed(3));
+      const restore = Math.min(Number((sold - previouslyRestored).toFixed(3)), remaining);
+      if (restore <= 0) continue;
+      const batch = await trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'expiry_date'])
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(allocation.pharmacy_batch_id))
+        .forUpdate().executeTakeFirstOrThrow();
+      const expiry = String(batch.expiry_date || '').slice(0, 10);
+      const expired = !expiry || (expiry.length === 7 ? expiry < today.slice(0, 7) : expiry < today);
+      await trx.updateTable('pharmacy_batches').set({
+        quantity: Number((Number(batch.quantity) + restore).toFixed(3)),
+        status: expired ? 'expired' : 'active', updated_at: sql`NOW()`,
+      }).where('tenant_id', '=', scope.tenantId).where('id', '=', Number(batch.id)).execute();
+      remaining = Number((remaining - restore).toFixed(3));
+      if (remaining <= 0) break;
+    }
+    if (remaining > 0) throw new AppError('كمية المرتجع تتجاوز التشغيلة المباعة', 'PHARMACY_BATCH_RETURN_EXCEEDED', 422);
   }
 
   private async generateReturnDocNo(trx: Kysely<Database>, returnDocId: number, returnType: 'sale' | 'purchase', auth: AuthContext): Promise<string> {
@@ -308,14 +358,56 @@ export class ReturnsService {
     return result;
   }
 
-  private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string): Promise<number[]> {
+  async prepareExchangeReturn(trx: Kysely<Database>, payload: CreateReturnDto, auth: AuthContext): Promise<ExchangeReturnContext> {
+    const approved = await this.verifyManagerAuthorization(trx, payload.managerPin || '', auth);
+    let context: ExchangeReturnContext | undefined;
+    await this.createSaleReturn(trx, { ...payload, settlementMode: 'store_credit' }, normalizeReturnItems(payload), auth, approved,
+      (result) => { context = result; });
+    if (!context) throw new AppError('تعذر تجهيز المرتجع الذري', 'EXCHANGE_RETURN_MISSING', 500);
+    return context;
+  }
+
+  async settleExchangeReturn(trx: Kysely<Database>, context: ExchangeReturnContext, saleTotal: number,
+    requested: 'cash' | 'card' | 'store_credit', auth: AuthContext): Promise<ReturnType<typeof settlePosExchange>> {
+    const settlement = settlePosExchange(context.total, saleTotal);
+    const remainder = settlement.refundAmount > 0
+      ? allocateRefundTenders({ ...context.refundBase, amount: settlement.refundAmount, requested }) : [];
+    const allocations: Array<{ tender: RefundTender; amount: number }> = [];
+    const retainedCredit = settlement.appliedCredit + remainder.filter((line) => line.tender === 'store_credit')
+      .reduce((sum, line) => sum + line.amount, 0);
+    if (retainedCredit > 0) allocations.push({ tender: 'store_credit', amount: Number(retainedCredit.toFixed(2)) });
+    for (const line of remainder) {
+      if (line.tender === 'store_credit') continue;
+      if (line.tender === 'receivable') throw new AppError('يجب تسوية مديونية الفاتورة قبل الاستبدال', 'EXCHANGE_UNPAID_SOURCE', 422);
+      allocations.push(line);
+      await this.addStoreCredit(trx, context.customerId, -line.amount, auth);
+      await this.addTreasuryTransaction(trx, 'sale_return_refund', -line.amount,
+        `صافي استرداد استبدال ${context.returnId}`, context.returnId, auth, context.branchId, context.locationId, line.tender === 'cash');
+    }
+    await trx.updateTable('return_documents').set({
+      settlement_mode: requested === 'store_credit' ? 'store_credit' : 'refund',
+      refund_method: allocations.length === 1 ? allocations[0].tender : 'mixed',
+      refund_allocations: JSON.stringify(allocations),
+    }).where('tenant_id', '=', this.scope(auth).tenantId).where('id', '=', context.returnId).execute();
+    return settlement;
+  }
+
+  private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string,
+    exchangePrepared?: (context: ExchangeReturnContext) => void): Promise<number[]> {
     const scope = this.scope(auth);
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    if (exchangePrepared && (!sale.customer_id || Number(sale.total) - Number(sale.paid_amount) - Number(sale.store_credit_used || 0) > 0.001)) {
+      throw new AppError('الاستبدال يتطلب فاتورة مسددة وعميلها مسجلاً؛ سوِّ المديونية أولاً', 'EXCHANGE_UNPAID_SOURCE', 422);
+    }
     if (payload.settlementMode === 'store_credit' && !sale.customer_id) {
       throw new AppError('رصيد المتجر يتطلب عميلاً مرتبطاً بالفاتورة', 'RETURN_STORE_CREDIT_CUSTOMER_REQUIRED', 400);
     }
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
+    if (sale.customer_id) {
+      await trx.selectFrom('customers').select('id').where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', Number(sale.customer_id)).forUpdate().executeTakeFirstOrThrow();
+    }
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
@@ -456,6 +548,12 @@ export class ReturnsService {
         tax: returnedTaxByLine.get(saleLineId) || 0,
       });
       const returnedUnitCost = Number(saleItem.cost_price || 0) / Number(saleItem.unit_multiplier || 1);
+      const previouslyReturnedBaseQty = Number((
+        (returnedQtyByLine.get(saleLineId) || 0) +
+        (pendingQtyByLine.get(saleLineId) || 0) - requestItem.qty
+      ) * Number(saleItem.unit_multiplier || 1));
+      await this.restoreReturnedPharmacyBatches(trx, Number(sale.id), saleLineId, requestItem.productId,
+        previouslyReturnedBaseQty, preparedLine.stockDelta, auth);
 
       const originalSerials = typeof saleItem.serials === 'string'
         ? JSON.parse(saleItem.serials || '[]') as unknown : saleItem.serials;
@@ -557,7 +655,7 @@ export class ReturnsService {
     });
     const returnNote = overrideRequested
       ? `${String(payload.note || '').trim()} | اعتماد تجاوز وسيلة الاسترداد: ${String(payload.refundOverrideReason).trim()}`.trim()
-      : String(payload.note || '').trim();
+      : `${String(payload.note || '').trim()}${exchangePrepared && approvedByName ? ` | اعتماد المشرف: ${approvedByName}` : ''}`.trim();
     // The posting service reverses the returned lines using their original sale-line costs.
     const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, {
       returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode,
@@ -661,10 +759,18 @@ export class ReturnsService {
       }
     }
 
+    if (exchangePrepared) {
+      exchangePrepared({ returnId: returnDocumentId, total, customerId: Number(sale.customer_id),
+        branchId: sale.branch_id, locationId: sale.location_id,
+        refundBase: { originalCashPaid, originalNonCashPaid, originalDebt: 0,
+          previousCashRefunded, previousNonCashRefunded, previousDebtReversed, hasCustomer: true } });
+      return [returnDocumentId];
+    }
     try {
       const posting = await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
       if (!posting.journalEntryId) throw new Error(`Sales return ${returnDocumentId} has no journal entry`);
     } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError(
         error instanceof Error ? error.message : 'Failed to post accounting journal for sales return',
         'SALES_RETURN_ACCOUNTING_POST_FAILED',

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ReturnsModule } from '../returns/returns.module';
 import { AccountingModule } from '../accounting/accounting.module';
 import { AuditModule } from '../../core/audit/audit.module';
 import { AuthFoundationModule } from '../../core/auth/auth.module';
@@ -29,7 +30,7 @@ import { CommercialSubscriptionController } from './controllers/commercial-subsc
 import { CommercialSubscriptionService } from './services/commercial-subscription.service';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
+  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule, ReturnsModule],
   controllers: [
     PriceListsController,
     PosTerminalController,
@@ -70,5 +71,4 @@ import { CommercialSubscriptionService } from './services/commercial-subscriptio
   ],
 })
 export class SalesModule {}
-
 

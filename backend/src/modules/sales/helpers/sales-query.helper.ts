@@ -37,6 +37,8 @@ export function mapSaleRows(
       offerDiscount: offerMeta?.offerDiscount ? Number(offerMeta.offerDiscount) : undefined,
       offerName: offerMeta?.offerName || undefined,
       total: Number(item.line_total || 0),
+      netLineTotal: item.net_line_total == null ? null : Number(item.net_line_total),
+      allocatedTax: item.allocated_tax == null ? null : Number(item.allocated_tax),
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
       ...(canViewCostPrice ? { cost: Number(item.cost_price || 0) } : {}),

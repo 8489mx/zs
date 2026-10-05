@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  ArrayMinSize,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -116,6 +117,51 @@ export class CreateGoodsReceiptDto {
   @ValidateNested({ each: true })
   @Type(() => CreateGoodsReceiptLineDto)
   lines!: CreateGoodsReceiptLineDto[];
+}
+
+export class CreateGrnBillLineDto {
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  grnLineId!: number;
+
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  @Min(0.001)
+  qty!: number;
+
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  @Min(0.000001)
+  unitCost!: number;
+}
+
+export class CreateGrnBillDto {
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  purchaseOrderId!: number;
+
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  supplierId!: number;
+
+  @IsString()
+  @MaxLength(120)
+  supplierInvoiceNo!: string;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  @Min(0)
+  taxAmount?: number;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateGrnBillLineDto)
+  lines!: CreateGrnBillLineDto[];
 }
 
 export class VerifyThreeWayMatchDto {

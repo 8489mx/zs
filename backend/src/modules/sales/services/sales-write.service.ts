@@ -30,6 +30,7 @@ import { idempotencyStorage } from '../../../core/idempotency/idempotency.contex
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
+import { ReturnsService, type ExchangeReturnContext } from '../../returns/returns.service';
 
 /**
  * Pre-approved commercial terms for a sale created by the system on behalf of a merchant user
@@ -62,6 +63,7 @@ export class SalesWriteService {
     private readonly accountingPosting: AccountingPostingService,
     private readonly idempotency: IdempotencyService,
     private readonly planFeatureService: PlanFeatureService,
+    private readonly returnsService: ReturnsService,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
@@ -597,11 +599,23 @@ export class SalesWriteService {
   private async deductPharmacyBatchesFefo(
     trx: Kysely<Database> | Transaction<Database>,
     productId: number,
-    requiredQty: number,
+    allocations: Array<{ locationId: number | null; qty: number }>,
     scope: { tenantId: string; accountId: string },
-    allowNegative: boolean,
+    saleId: number,
+    saleItemId: number,
   ): Promise<void> {
-    try {
+    const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+      .where('product_id', '=', productId).where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const linkedBatch = await trx.selectFrom('pharmacy_batches').select('id')
+      .where('product_id', '=', productId).where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (!drug && !linkedBatch) return;
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const currentMonthIso = todayIso.slice(0, 7);
+    for (const allocation of allocations) {
+      let remaining = Number(allocation.qty.toFixed(3));
       const batches = await trx
         .selectFrom('pharmacy_batches')
         .selectAll()
@@ -622,28 +636,17 @@ export class SalesWriteService {
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .where('status', '=', 'active')
         .where('quantity', '>', 0)
+        .where((eb) => allocation.locationId == null
+          ? eb('location_id', 'is', null)
+          : eb.or([eb('location_id', '=', allocation.locationId), eb('location_id', 'is', null)]))
         .orderBy('expiry_date', 'asc')
         .orderBy('id', 'asc')
         .forUpdate()
         .execute();
-
-      if (!batches.length) return;
-
-      let remaining = requiredQty;
-      const todayIso = new Date().toISOString().slice(0, 10);
-      const currentMonthIso = todayIso.slice(0, 7);
-
       for (const batch of batches) {
         if (remaining <= 0) break;
-        const exp = String(batch.expiry_date || '').trim();
-        const isExpired = exp && (exp.length === 7 ? exp < currentMonthIso : exp < todayIso);
-        if (isExpired && !allowNegative) {
-          throw new AppError(
-            `لا يمكن بيع الصنف: التشغيلة (${batch.batch_number}) منتهية الصلاحية بتاريخ (${batch.expiry_date})`,
-            'EXPIRED_BATCH_SALE_FORBIDDEN',
-            400,
-          );
-        }
+        const exp = String(batch.expiry_date || '').trim().slice(0, 10);
+        if (!exp || (exp.length === 7 ? exp < currentMonthIso : exp < todayIso)) continue;
 
         const batchQty = Number(batch.quantity || 0);
         const alloc = Math.min(batchQty, remaining);
@@ -660,13 +663,51 @@ export class SalesWriteService {
           .where('id', '=', Number(batch.id))
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .execute();
+        await trx.insertInto('sale_pharmacy_batch_allocations').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId, sale_id: saleId,
+          sale_item_id: saleItemId, product_id: productId,
+          pharmacy_batch_id: Number(batch.id), quantity: alloc,
+        }).execute();
 
         remaining = Number((remaining - alloc).toFixed(3));
       }
-    } catch (err: any) {
-      if (err instanceof AppError) throw err;
-      // If pharmacy tables are not installed or schema mismatch, do not block general retail POS
-      this.logger.warn(`Pharmacy batch deduction skipped for product #${productId}: ${err?.message}`);
+      if (remaining > 0) {
+        throw new AppError('لا توجد كمية كافية من تشغيلة دوائية سارية الصلاحية في المخزن المحدد', 'PHARMACY_FEFO_STOCK_UNAVAILABLE', 422);
+      }
+    }
+  }
+
+  private async restoreSalePharmacyBatches(
+    trx: Kysely<Database> | Transaction<Database>, saleId: number,
+    items: Array<{ id: number; product_id: number | null }>,
+    scope: { tenantId: string; accountId: string }, removeAllocations: boolean,
+  ): Promise<void> {
+    const rows = await trx.selectFrom('sale_pharmacy_batch_allocations').selectAll()
+      .where('tenant_id', '=', scope.tenantId).where('sale_id', '=', saleId)
+      .orderBy('pharmacy_batch_id', 'asc').forUpdate().execute();
+    const tracked = new Set(rows.map((row) => Number(row.sale_item_id)));
+    const itemIds = items.map((item) => Number(item.product_id)).filter((id) => id > 0);
+    const drugs = itemIds.length ? await trx.selectFrom('pharmacy_drugs').select('product_id')
+      .where('tenant_id', '=', scope.tenantId).where('product_id', 'in', itemIds).execute() : [];
+    const drugProducts = new Set(drugs.map((drug) => Number(drug.product_id)));
+    if (items.some((item) => drugProducts.has(Number(item.product_id)) && !tracked.has(Number(item.id)))) {
+      throw new AppError('فاتورة دوائية قديمة بلا ربط بالتشغيلات تحتاج تسوية قبل التعديل أو الإلغاء', 'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    for (const row of rows) {
+      const batch = await trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'expiry_date'])
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(row.pharmacy_batch_id))
+        .forUpdate().executeTakeFirstOrThrow();
+      const expiry = String(batch.expiry_date || '').slice(0, 10);
+      const expired = !expiry || (expiry.length === 7 ? expiry < today.slice(0, 7) : expiry < today);
+      await trx.updateTable('pharmacy_batches').set({
+        quantity: Number((Number(batch.quantity) + Number(row.quantity)).toFixed(3)),
+        status: expired ? 'expired' : 'active', updated_at: sql`NOW()`,
+      }).where('tenant_id', '=', scope.tenantId).where('id', '=', Number(batch.id)).execute();
+    }
+    if (removeAllocations && rows.length) {
+      await trx.deleteFrom('sale_pharmacy_batch_allocations')
+        .where('tenant_id', '=', scope.tenantId).where('sale_id', '=', saleId).execute();
     }
   }
 
@@ -696,7 +737,13 @@ export class SalesWriteService {
           throw new AppError('وردية كاشير مفتوحة مطلوبة لفتح الدرج', 'OPEN_SHIFT_REQUIRED', 400);
         }
         await this.authz.authorizeDiscountOverride(String(payload.managerPin || '').trim(), auth, trx);
-        await trx.insertInto('pos_audit_events').values(event).execute();
+        const shift = await trx.selectFrom('cashier_shifts').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('opened_by', '=', auth.userId)
+          .where('branch_id', '=', payload.branchId).where('status', '=', 'open')
+          .orderBy('id', 'desc').forUpdate().executeTakeFirstOrThrow();
+        await trx.insertInto('pos_audit_events').values({
+          ...event, metadata: { ...event.metadata, shiftId: Number(shift.id), username: auth.username },
+        }).execute();
       });
     } else {
       await this.db.insertInto('pos_audit_events').values(event).execute();
@@ -812,12 +859,42 @@ export class SalesWriteService {
       ? await this.resolveOnlineOrderTerms(Number(payload.onlineOrderId), scope.tenantId, approvedTerms)
       : approvedTerms;
 
-    const normalized = normalizeSalePayload(payload);
+    const returnedItems = (payload.items || []).filter((item) => Number(item.qty) < 0);
+    const isExchange = Boolean(payload.exchangeSaleId);
+    if (returnedItems.length && !isExchange) throw new AppError('السطور السالبة تتطلب فاتورة أصلية للاستبدال', 'EXCHANGE_SOURCE_REQUIRED', 400);
+    if (isExchange && (!returnedItems.length || payload.source !== 'pos' || payload.onlineOrderId || payload.offlineDocNo ||
+      payload.paymentType === 'credit' || payload.paymentChannel === 'credit' || payload.orderType === 'delivery' ||
+      Number(payload.deliveryFee || 0) !== 0 ||
+      Number(payload.storeCreditUsed || 0) > 0 || Number(payload.loyaltyPointsRedeemed || 0) > 0 ||
+      returnedItems.some((item) => !Number.isInteger(item.originalSaleItemId) || Number(item.originalSaleItemId) <= 0))) {
+      throw new AppError('الاستبدال يتطلب سطور مرتجع مرتبطة بالأصل دون طلب متجر أو خصم نقاط إضافي', 'EXCHANGE_REQUEST_INVALID', 400);
+    }
+    const normalized = normalizeSalePayload(isExchange ? { ...payload, items: payload.items.filter((item) => Number(item.qty) >= 0) } : payload);
     if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
     ensureUniqueFlowItems(normalized.items, 'SALE_DUPLICATE_PRODUCT', 'Sale must not contain duplicate product rows with the same unit');
 
     const txStartedAt = Date.now();
     const saleId = await this.tx.runInTransaction(this.db, async (trx) => {
+      let exchange: ExchangeReturnContext | undefined;
+      if (isExchange) {
+        const original = await trx.selectFrom('sales').select(['id', 'customer_id', 'branch_id'])
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(payload.exchangeSaleId))
+          .where('status', '=', 'posted').forUpdate().executeTakeFirst();
+        if (!original || !normalized.customerId || Number(original.customer_id) !== normalized.customerId ||
+          Number(original.branch_id) !== Number(normalized.branchId)) {
+          throw new AppError('الاستبدال يتطلب نفس العميل المسجل وفرع الفاتورة الأصلية', 'EXCHANGE_SOURCE_MISMATCH', 422);
+        }
+        await this.lockSaleStockRows(trx, scope, [...normalized.items, ...returnedItems]);
+        await trx.selectFrom('customers').select('id').where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', normalized.customerId).forUpdate().executeTakeFirstOrThrow();
+        exchange = await this.returnsService.prepareExchangeReturn(trx, {
+          type: 'sale', invoiceId: Number(original.id), managerPin: payload.managerPin,
+          note: 'استبدال فوري ذري', items: returnedItems.map((item) => ({
+            productId: item.productId, qty: Math.abs(item.qty), saleItemId: item.originalSaleItemId,
+            serials: item.serials,
+          })),
+        }, auth);
+      }
       let onlineOrderToRelease: any = null;
       if (payload.onlineOrderId) {
         onlineOrderToRelease = await trx
@@ -1149,6 +1226,16 @@ export class SalesWriteService {
         ? await this.authz.authorizeDiscountOverride(normalized.managerPin, auth, trx)
         : null;
 
+      if (exchange) {
+        const settlement = await this.returnsService.settleExchangeReturn(trx, exchange, total,
+          payload.exchangeRefundMethod || 'cash', auth);
+        normalized.storeCreditUsed = settlement.appliedCredit;
+        if (!customer) throw new AppError('عميل الاستبدال غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+        const refreshed = await trx.selectFrom('customers').select('store_credit_balance')
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', normalized.customerId!)
+          .forUpdate().executeTakeFirstOrThrow();
+        customer.store_credit_balance = refreshed.store_credit_balance;
+      }
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       
       if (normalized.source === 'pos') {
@@ -1280,6 +1367,7 @@ export class SalesWriteService {
           tendered_amount: finalTenderedAmount,
           change_amount: changeAmount,
           store_credit_used: normalized.storeCreditUsed,
+          exchange_return_id: exchange?.returnId ?? null,
           status: 'posted',
           note: saleNote,
           branch_id: normalized.branchId,
@@ -1298,6 +1386,12 @@ export class SalesWriteService {
         .executeTakeFirstOrThrow();
 
       const id = Number(saleInsert.id);
+      if (exchange) {
+        const linkedReturn = await trx.updateTable('return_documents').set({ exchange_sale_id: id })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', exchange.returnId)
+          .where('exchange_sale_id', 'is', null).returning('id').executeTakeFirst();
+        if (!linkedReturn) throw new AppError('تعذر ربط طرفَي الاستبدال', 'EXCHANGE_LINK_FAILED', 409);
+      }
       const docNo = await this.generateSaleDocNo(trx, id, scope.tenantId);
       await trx.updateTable('sales').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
@@ -1462,9 +1556,7 @@ export class SalesWriteService {
           }).execute();
         }
 
-        if (this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'pharmacy')) {
-          await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
-        }
+        await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, id, saleLineId);
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -1819,6 +1911,7 @@ export class SalesWriteService {
         .forUpdate()
         .executeTakeFirst();
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
+      if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من تعديلها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
 
       let branch: any = null;
@@ -1938,6 +2031,7 @@ export class SalesWriteService {
         .execute();
 
       await this.lockSaleStockRows(trx, scope, [...currentItems, ...(payload.items || [])]);
+      await this.restoreSalePharmacyBatches(trx, saleId, currentItems, scope, true);
       // The old and replacement customers may differ. Lock both in ascending ID order
       // after product locks, before reversing the old receivable or testing the new limit.
       for (const customerId of [...new Set([Number(sale.customer_id || 0), Number(normalized.customerId || 0)])]
@@ -2338,9 +2432,7 @@ export class SalesWriteService {
           }).execute();
         }
 
-        if (this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'pharmacy')) {
-          await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
-        }
+        await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, saleId, saleLineId);
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2471,6 +2563,7 @@ export class SalesWriteService {
       // journal is reversed twice. The lock serializes them so the second one hits the guard.
       const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
+      if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من إلغائها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
       if (sale.status !== 'posted') throw new AppError('Only posted sales can be cancelled', 'SALE_CANCEL_STATUS_FORBIDDEN', 400);
       const existingReturn = await trx.selectFrom('return_documents').select('id')
@@ -2480,6 +2573,7 @@ export class SalesWriteService {
 
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
+      await this.restoreSalePharmacyBatches(trx, saleId, items, scope, false);
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();

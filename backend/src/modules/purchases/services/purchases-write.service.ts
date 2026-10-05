@@ -483,17 +483,32 @@ export class PurchasesWriteService {
 
           const batchNo = item.batchNumber ? String(item.batchNumber).trim() : '';
           const expiryDate = item.expiryDate ? String(item.expiryDate).trim() : '';
+          const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+            .where('tenant_id', '=', scope.tenantId).where('product_id', '=', item.productId)
+            .executeTakeFirst();
+          if (drug && (!batchNo || !expiryDate)) {
+            throw new AppError('الصنف الدوائي يتطلب رقم تشغيلة وتاريخ صلاحية عند الاستلام', 'PHARMACY_BATCH_REQUIRED', 422);
+          }
           if (batchNo) {
-            try {
+              const today = new Date().toISOString().slice(0, 10);
+              if (!/^\d{4}-\d{2}(?:-\d{2})?$/.test(expiryDate) ||
+                (expiryDate.length === 7 ? expiryDate < today.slice(0, 7) : expiryDate < today)) {
+                throw new AppError('تاريخ صلاحية التشغيلة غير صالح أو منتهٍ', 'PHARMACY_BATCH_EXPIRED', 422);
+              }
               const existingBatch = await trx
                 .selectFrom('pharmacy_batches')
                 .selectAll()
                 .where('product_id', '=', item.productId)
                 .where('batch_number', '=', batchNo)
+                .where('location_id', '=', itemLocationId)
                 .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                .forUpdate()
                 .executeTakeFirst();
 
               if (existingBatch) {
+                if (String(existingBatch.expiry_date).slice(0, 10) !== expiryDate) {
+                  throw new AppError('تاريخ صلاحية التشغيلة المسجلة لا يطابق الفاتورة', 'PHARMACY_BATCH_EXPIRY_MISMATCH', 422);
+                }
                 const updatedQty = Number(existingBatch.quantity || 0) + increasedQty;
                 await trx
                   .updateTable('pharmacy_batches')
@@ -501,7 +516,7 @@ export class PurchasesWriteService {
                     quantity: updatedQty,
                     unit_cost: item.effectiveUnitCost,
                     status: 'active',
-                    expiry_date: expiryDate || existingBatch.expiry_date,
+                    expiry_date: expiryDate,
                     updated_at: sql`NOW()`,
                   } as any)
                   .where('id', '=', Number(existingBatch.id))
@@ -514,8 +529,9 @@ export class PurchasesWriteService {
                     tenant_id: scope.tenantId,
                     account_id: scope.accountId,
                     product_id: item.productId,
+                    drug_id: drug?.id || null,
                     batch_number: batchNo,
-                    expiry_date: expiryDate || new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+                    expiry_date: expiryDate,
                     quantity: increasedQty,
                     unit_cost: item.effectiveUnitCost,
                     location_id: itemLocationId || null,
@@ -525,9 +541,6 @@ export class PurchasesWriteService {
                   } as any)
                   .execute();
               }
-            } catch {
-              // Non-blocking if table not available
-            }
           }
         }
       }
@@ -619,6 +632,7 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
+      if (purchase.lifecycle_status === 'grn_bill') throw new AppError('فاتورة GRN مرحّلة؛ يلزم إشعار دائن محاسبي للتعديل', 'GRNI_BILL_IMMUTABLE', 422);
 
       const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       if (!(payload.items || []).length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
@@ -945,6 +959,7 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Purchase already cancelled', 'PURCHASE_ALREADY_CANCELLED', 400);
+      if (purchase.lifecycle_status === 'grn_bill') throw new AppError('لا يمكن إلغاء فاتورة GRN بعد تسوية الاستحقاق؛ يلزم إشعار دائن محاسبي', 'GRNI_BILL_IMMUTABLE', 422);
 
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });

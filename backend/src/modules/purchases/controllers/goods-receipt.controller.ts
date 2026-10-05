@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { GoodsReceiptService } from '../services/goods-receipt.service';
-import { CreateGoodsReceiptDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
+import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
 
 @Controller('api/goods-receipts')
 @UseGuards(SessionAuthGuard)
@@ -32,6 +32,11 @@ export class GoodsReceiptController {
   @Post()
   createReceipt(@Body() dto: CreateGoodsReceiptDto, @Req() req: RequestWithAuth) {
     return this.goodsReceiptService.createGoodsReceipt(dto, req.authContext!);
+  }
+
+  @Post('bills')
+  createBillFromReceipts(@Body() dto: CreateGrnBillDto, @Req() req: RequestWithAuth) {
+    return this.goodsReceiptService.createBillFromReceipts(dto, req.authContext!);
   }
 
   @Post(':id/post')

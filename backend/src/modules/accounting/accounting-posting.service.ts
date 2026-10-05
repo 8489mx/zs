@@ -211,6 +211,13 @@ export class AccountingPostingService {
   }
 
   private async getExistingSalesReturnJournal(queryable: DbOrTx, returnId: number, tenantId: string) {
+    const linkedSale = await queryable.selectFrom('sales').select('id')
+      .where('tenant_id', '=', tenantId).where('exchange_return_id', '=', returnId)
+      .executeTakeFirst();
+    if (linkedSale) {
+      const exchangeJournal = await this.getExistingSaleJournal(queryable, Number(linkedSale.id), tenantId);
+      if (exchangeJournal) return exchangeJournal;
+    }
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
@@ -526,7 +533,7 @@ export class AccountingPostingService {
           throw new AppError(
             `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
             'ACCOUNTING_PERIOD_LOCKED',
-            400,
+            422,
           );
         }
       }
@@ -539,7 +546,7 @@ export class AccountingPostingService {
             throw new AppError(
               `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
               'ACCOUNTING_PERIOD_LOCKED_OPERATIONAL',
-              400,
+              422,
             );
           }
         }
@@ -560,7 +567,7 @@ export class AccountingPostingService {
       throw new AppError(
         `الفترة المحاسبية الشهرية [${closedMonthlyPeriod.name}] مقفلة. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
         'ACCOUNTING_PERIOD_LOCKED',
-        400,
+        422,
       );
     }
 
@@ -625,7 +632,7 @@ export class AccountingPostingService {
       .selectFrom('sales')
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
-        'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+        'total', 'paid_amount', 'store_credit_used', 'exchange_return_id', 'branch_id', 'location_id', 'created_by', 'created_at',
         'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
       ])
       .where('id', '=', saleId)
@@ -810,6 +817,16 @@ export class AccountingPostingService {
       throw new Error(`Unbalanced sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
+    if (sale.exchange_return_id) {
+      let returnLinesCollected = false;
+      const returnPosting = await this.postSalesReturn(queryable, Number(sale.exchange_return_id), auth, (returnLines) => {
+        returnLinesCollected = returnLines.length > 0;
+        normalizedLines.push(...returnLines);
+      });
+      if (!returnLinesCollected || returnPosting.posted || returnPosting.journalEntryId != null) {
+        throw new AppError('مرتجع الاستبدال مرتبط بقيد مستقل؛ يلزم تسوية يدوية', 'EXCHANGE_LEDGER_CONFLICT', 422);
+      }
+    }
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'sale',
       sourceId: saleId,
@@ -1110,7 +1127,8 @@ export class AccountingPostingService {
     return { reversed: true, journalEntryId: entryId };
   }
 
-  async postSalesReturn(queryable: DbOrTx, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+  async postSalesReturn(queryable: DbOrTx, returnId: number, auth: AuthContext,
+    collectExchangeLines?: (lines: JournalLineDraft[]) => void): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSalesReturnJournal(queryable, returnId, scope.tenantId);
@@ -1319,6 +1337,10 @@ export class AccountingPostingService {
       throw new Error(`Unbalanced sales return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
+    if (collectExchangeLines) {
+      collectExchangeLines(normalizedLines);
+      return { posted: false, journalEntryId: null };
+    }
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'sales_return',
       sourceId: returnId,
@@ -1347,7 +1369,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'payment_type', 'subtotal', 'discount', 'tax_amount', 'total',
         'branch_id', 'location_id', 'created_by', 'created_at', 'supplier_id',
-        'grn_id', 'three_way_match_status',
+        'grn_id', 'po_id', 'lifecycle_status', 'three_way_match_status',
       ])
       .where('id', '=', purchaseId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -1368,7 +1390,7 @@ export class AccountingPostingService {
     // Reliable inventory value source: purchase_items qty * unit_cost from the purchase document.
     const purchaseItems = await queryable
       .selectFrom('purchase_items')
-      .select(['qty', 'unit_cost'])
+      .select(['qty', 'unit_cost', 'grn_line_id', 'grni_amount'])
       .where('purchase_id', '=', purchaseId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
@@ -1418,25 +1440,30 @@ export class AccountingPostingService {
       .where('is_active', '=', true)
       .executeTakeFirst();
 
-    if (linkedGrn && !grniAccount) throw new AppError(`GRNI account 2125 is missing for purchase ${purchaseId}`, 'ACCOUNT_NOT_FOUND', 400);
-    if (linkedGrn && grniAccount) {
+    const isGrnBill = purchase.lifecycle_status === 'grn_bill';
+    if ((linkedGrn || isGrnBill) && !grniAccount) throw new AppError(`GRNI account 2125 is missing for purchase ${purchaseId}`, 'ACCOUNT_NOT_FOUND', 400);
+    if ((linkedGrn || isGrnBill) && grniAccount) {
       // Goods already received via GRN! Clear GRNI (2125) and route price variance to PPV (5190)
-      const grnLines = await queryable
+      if (isGrnBill && (!purchase.po_id || purchaseItems.length === 0 ||
+        purchaseItems.some((item) => !item.grn_line_id || item.grni_amount == null))) {
+        throw new AppError('GRN bill has incomplete receipt allocations', 'GRNI_BILL_INCOMPLETE', 422);
+      }
+      const grnLines = isGrnBill ? [] : await queryable
         .selectFrom('goods_receipt_lines')
         .select(['accepted_qty', 'unit_cost'])
-        .where('grn_id', '=', linkedGrn.id)
+        .where('grn_id', '=', linkedGrn!.id)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
-      const grniBookedAmount = this.toMoney(
-        grnLines.reduce((sum, line) => sum + (Number(line.accepted_qty || 0) * Number(line.unit_cost || 0)), 0),
-      );
+      const grniBookedAmount = isGrnBill
+        ? this.toMoney(purchaseItems.reduce((sum, item) => sum + Number(item.grni_amount), 0))
+        : this.toMoney(grnLines.reduce((sum, line) => sum + Number(line.accepted_qty || 0) * Number(line.unit_cost || 0), 0));
 
       const netInvoiceAmount = this.toMoney(Math.max(0, total - taxAmount));
       const priceVariance = this.toMoney(netInvoiceAmount - grniBookedAmount);
 
       this.addLine(lines, {
         accountId: Number(grniAccount.id),
-        description: `تصفية استحقاق بضاعة مستلمة GRNI - إذن رقم ${linkedGrn.doc_no}`,
+        description: `تصفية استحقاق بضاعة مستلمة GRNI - ${isGrnBill ? `فاتورة ${purchase.doc_no}` : `إذن رقم ${linkedGrn!.doc_no}`}`,
         debit: grniBookedAmount,
         credit: 0,
         partnerType: purchase.supplier_id ? 'supplier' : 'none',

@@ -4,6 +4,7 @@ import { Kysely, Transaction, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { Database } from '../../../database/database.types';
+import { AppError } from '../../../common/errors/app-error';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 

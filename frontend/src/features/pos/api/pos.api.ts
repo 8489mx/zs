@@ -136,6 +136,12 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
 }
 
 export const posApi = {
+  getSaleForExchange: (id: number) => http<{ sale: {
+    id: string; customerId: string; branchId: string; status: string;
+    total: number; paidAmount: number; storeCreditUsed: number;
+    items: Array<{ id: string; productId: string; name: string; qty: number;
+      total: number; netLineTotal: number | null; allocatedTax: number | null; serials: string[] }>;
+  } }>(`/api/sales/${id}`),
   getCatalogVersion: () => http<{ version: string; totalCount: number; lastUpdatedAt: string }>('/api/catalog/pos-products/version'),
   lookupProducts: async (params: PosLookupParams = {}) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(buildPosLookupPath(params)), 'products'),
   customers: async (params?: { search?: string; limit?: number; recentIds?: string[] }) => {
@@ -164,7 +170,9 @@ export const posApi = {
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),
   authorizeDiscountOverride: async (secret: string) => http('/api/sales/discount-authorization', { method: 'POST', body: JSON.stringify({ secret }) }),
   logSecurityEvent: async (payload: {
-    eventType: 'cart_remove' | 'draft_cancel';
+    eventType: 'no_sale' | 'cart_remove' | 'draft_cancel';
+    branchId?: number;
+    managerPin?: string;
     productId?: number;
     productName?: string;
     qty?: number;

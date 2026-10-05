@@ -23,8 +23,13 @@ class SaleItemDto {
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0.001)
   qty!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  originalSaleItemId?: number;
 
   @Type(() => Number)
   @IsNumber()
@@ -74,6 +79,16 @@ class SaleItemDto {
 }
 
 export class UpsertSaleDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  exchangeSaleId?: number;
+
+  @IsOptional()
+  @IsIn(['cash', 'card', 'store_credit'])
+  exchangeRefundMethod?: 'cash' | 'card' | 'store_credit';
+
   @IsOptional()
   @IsString()
   offlineDocNo?: string;
