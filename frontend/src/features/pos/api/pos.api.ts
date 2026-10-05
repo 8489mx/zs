@@ -3,7 +3,7 @@ import { unwrapArray, unwrapByKey, unwrapEntity } from '@/lib/api/contracts';
 import type { AppSettings, Branch, Customer, Location, Product, Sale } from '@/types/domain';
 import type { HeldPosDraft } from '@/features/pos/hooks/usePosWorkspace';
 
-type SaleMutationEnvelope = { ok?: boolean; sale: Sale };
+type SaleMutationEnvelope = { ok?: boolean; sale?: Sale; saleId?: number };
 type PosLookupParams = {
   q?: string;
   barcode?: string;
@@ -105,7 +105,13 @@ function shouldRetrySaleWithFallback(error: unknown) {
 }
 
 async function postSale(payload: unknown, headers?: Record<string, string>) {
-  return unwrapEntity<Sale>(await http<Sale | SaleMutationEnvelope>('/api/sales', { method: 'POST', body: JSON.stringify(payload), headers }), 'sale');
+  const result = await http<Sale | SaleMutationEnvelope>('/api/sales', { method: 'POST', body: JSON.stringify(payload), headers });
+  if ('saleId' in result && result.saleId && !result.sale) {
+    // The idempotency interceptor replays the committed operation reference.
+    // Fetch the original posted invoice so retries have the same response shape.
+    return unwrapEntity<Sale>(await http<Sale | { sale: Sale }>(`/api/sales/${result.saleId}`), 'sale');
+  }
+  return unwrapEntity<Sale>(result, 'sale');
 }
 
 function buildPosLookupPath(params: PosLookupParams = {}) {
@@ -170,14 +176,15 @@ export const posApi = {
     try {
       return await postSale(payload, headers);
     } catch (error) {
+      // A keyed checkout may already be committed even when the response is lost.
+      // Changing payload or key for a fallback would bypass server idempotency.
+      if (headers?.['x-idempotency-key']) throw error;
       if (!legacyPayload || !shouldRetrySaleWithFallback(error)) throw error;
-      const fallbackHeaders = headers ? { ...headers, 'x-idempotency-key': crypto.randomUUID() } : undefined;
       try {
-        return await postSale(legacyPayload, fallbackHeaders);
+        return await postSale(legacyPayload);
       } catch (legacyError) {
         if (!minimalPayload || !shouldRetrySaleWithFallback(legacyError)) throw legacyError;
-        const minimalHeaders = headers ? { ...headers, 'x-idempotency-key': crypto.randomUUID() } : undefined;
-        return await postSale(minimalPayload, minimalHeaders);
+        return await postSale(minimalPayload);
       }
     }
   },
@@ -199,4 +206,3 @@ export const posApi = {
   cancelTerminalCharge: async (transactionId: string) =>
     http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/cancel/${encodeURIComponent(transactionId)}`, { method: 'POST' })
 };
-

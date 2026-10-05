@@ -12,6 +12,7 @@ export interface AppSettings {
   taxRate?: number;
   taxMode?: string;
   paperSize?: 'a4' | 'receipt' | string;
+  receiptWidthMm?: 58 | 80;
   invoiceNumberingScheme?: 'daily' | 'sequential' | string;
   managerPin?: string;
   hasManagerPin?: boolean;
@@ -100,6 +101,7 @@ export interface AppSettings {
   weightedBarcodeProductCodeLength?: number;
   weightedBarcodeWeightDigits?: number;
   weightedBarcodeWeightDecimals?: number;
+  weightedBarcodeValueMode?: 'weight' | 'price';
   theme?: string;
   uiLanguage?: 'ar' | 'en' | string;
   currency?: string;

@@ -64,6 +64,44 @@ export class SalesWriteService {
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
 
+  private async claimSaleSerials(
+    trx: Kysely<Database>, item: { productId: number; requiredQty: number; serials?: unknown },
+    saleId: number, saleItemId: number, tenantId: string,
+  ): Promise<string[]> {
+    const product = await trx.selectFrom('products').select('track_serials')
+      .where('id', '=', item.productId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+    const submitted = Array.isArray(item.serials) ? item.serials : [];
+    if (submitted.some((value) => typeof value !== 'string' || !value.trim())) {
+      throw new AppError('أدخل أرقاماً تسلسلية صحيحة للصنف', 'SALE_SERIAL_INVALID', 400);
+    }
+    const serials = submitted.map((value: string) => value.trim().toLowerCase());
+    if (!product.track_serials && serials.length === 0) return [];
+    if (!Number.isInteger(item.requiredQty) || serials.length !== item.requiredQty || new Set(serials).size !== serials.length) {
+      throw new AppError('عدد الأرقام التسلسلية يجب أن يطابق عدد القطع دون تكرار', 'SALE_SERIAL_COUNT_MISMATCH', 400);
+    }
+    const rows = await trx.selectFrom('product_serials').select(['id', 'product_id', 'serial_number', 'imei_2', 'status'])
+      .where('tenant_id', '=', tenantId)
+      .where((eb) => eb.or([
+        sql<boolean>`LOWER(serial_number) in (${sql.join(serials)})`,
+        sql<boolean>`LOWER(imei_2) in (${sql.join(serials)})`,
+      ]))
+      .orderBy('id', 'asc').forUpdate().execute();
+    if (rows.length !== serials.length || rows.some((row) => Number(row.product_id) !== item.productId ||
+        row.status !== 'in_stock') ||
+        serials.some((serial) => !rows.some((row) => row.serial_number.toLowerCase() === serial || row.imei_2?.toLowerCase() === serial))) {
+      throw new AppError('سيريال غير موجود بالمخزون أو سبق بيعه', 'SALE_SERIAL_UNAVAILABLE', 409);
+    }
+    await trx.updateTable('product_serials').set({ status: 'sold', sale_id: saleId, sale_item_id: saleItemId, updated_at: sql`NOW()` })
+      .where('tenant_id', '=', tenantId).where('id', 'in', rows.map((row) => row.id)).execute();
+    return rows.map((row) => row.serial_number);
+  }
+
+  private async releaseSaleSerials(trx: Kysely<Database>, saleId: number, tenantId: string): Promise<void> {
+    await trx.updateTable('product_serials')
+      .set({ status: 'in_stock', sale_id: null, sale_item_id: null, updated_at: sql`NOW()` })
+      .where('tenant_id', '=', tenantId).where('sale_id', '=', saleId).where('status', '=', 'sold').execute();
+  }
+
   // Keep only settings needed by checkout; other settings can contain large JSON payloads.
   // On a cache miss the caller's transaction connection must be reused: opening a second
   // pool connection while every cashier holds a transaction can exhaust the whole pool.
@@ -703,6 +741,9 @@ export class SalesWriteService {
 
     // Idempotency: check for a previously committed result for this key
     const idemCtx = idempotencyStorage.getStore();
+    if (payload.offlineDocNo && !idemCtx?.idempotencyKey) {
+      throw new AppError('فاتورة الأوفلاين تتطلب مفتاح منع تكرار ثابتاً', 'OFFLINE_IDEMPOTENCY_REQUIRED', 400);
+    }
     if (idemCtx?.idempotencyKey) {
       const cached = await this.idempotency.check(idemCtx.idempotencyKey, scope);
       if (cached) {
@@ -1157,7 +1198,7 @@ export class SalesWriteService {
         }
       }
 
-      const offlineDocNo = String((payload as any).offlineDocNo || (payload as any).offline_doc_no || '').trim();
+      const offlineDocNo = String(payload.offlineDocNo || '').trim();
       let saleNote = normalized.note;
       if (offlineDocNo && !saleNote.includes(offlineDocNo)) {
         const offlineTag = `[إيصال أوفلاين: ${offlineDocNo}]`;
@@ -1264,26 +1305,10 @@ export class SalesWriteService {
           .executeTakeFirstOrThrow();
         const saleLineId = Number(insertedLine.id);
 
-        if (itemSerials.length > 0) {
-          const cleanSerials = itemSerials.map((s: any) =>
-            (typeof s === 'string' ? s : s?.serialNumber || s?.serial || '').trim().toLowerCase()
-          ).filter(Boolean);
-
-          if (cleanSerials.length > 0) {
-            await trx
-              .updateTable('product_serials')
-              .set({
-                status: 'sold',
-                sale_id: id,
-                sale_item_id: saleLineId,
-                updated_at: sql`NOW()`,
-              })
-              .where('product_id', '=', item.productId)
-              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-              .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
-              .execute();
-          }
-        }
+        const claimedSerials = await this.claimSaleSerials(trx, item, id, saleLineId, scope.tenantId);
+        if (claimedSerials.length > 0) await trx.updateTable('sale_items')
+          .set({ serials: JSON.stringify(claimedSerials) })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', saleLineId).execute();
 
         if (item.isService) {
           continue;
@@ -1630,19 +1655,11 @@ export class SalesWriteService {
         }
       }
 
-      // القيد المحاسبي لا يوقف البيع — الكاشير لا يقف لأن وحدة المحاسبة مضبوطة خطأ، والقيد مشتقٌّ
-      // بالكامل من الفاتورة فتأجيله لا يضيّع شيئاً. الذي كان يضيّع كل شيء هو **الصمت**: الصيغة
-      // القديمة كانت `catch { this.logger.error(...) }` وحدها، فمرّت على الإنتاج 2,281 فاتورةٍ بلا
-      // قيد واحد ولم يلاحظ أحد. الفشل الآن يُكتب صفاً يُستعلَم عنه ويُعاد المحاولة عليه
-      // (`accounting_posting_failures`، الهجرة 147، والعامل في `accounting-recovery.service.ts`).
-      try {
-        await this.accountingPosting.postSale(trx, id, auth);
-        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
-        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
-      }
+      // A posted sale must never commit its cash/stock/customer legs without its journal.
+      // Any accounting failure aborts this transaction; historical failures remain recoverable
+      // through AccountingRecoveryService, but new invoices are fail-closed.
+      await this.accountingPosting.postSale(trx, id, auth);
+      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {
@@ -1741,7 +1758,7 @@ export class SalesWriteService {
         .forUpdate()
         .executeTakeFirst();
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
-      if (sale.status === 'cancelled') throw new AppError('لا يمكن تعديل الفاتورة بعد إلغائها أو وجود عمليات مرتبطة تمنع التعديل.', 'SALE_EDIT_CANCELLED_FORBIDDEN', 400);
+      if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
 
       let branch: any = null;
       if (normalized.source === 'pos') {
@@ -1946,13 +1963,16 @@ export class SalesWriteService {
       }
 
       const oldCollectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));
-      if (sale.payment_type === 'credit' && sale.customer_id && oldCollectibleTotal > 0) {
-        await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -oldCollectibleTotal, `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth);
-      } else {
-        for (const payment of currentPayments) {
-          if (payment.payment_channel !== 'cash') continue;
-          await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
-        }
+      const oldPaid = currentPayments.length
+        ? currentPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+        : Number(sale.paid_amount || 0);
+      const oldDebt = Number(Math.max(0, oldCollectibleTotal - oldPaid).toFixed(2));
+      if (sale.customer_id && oldDebt > 0) {
+        await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -oldDebt, `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth);
+      }
+      for (const payment of currentPayments) {
+        if (payment.payment_channel !== 'cash') continue;
+        await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
@@ -1973,6 +1993,7 @@ export class SalesWriteService {
       await this.accountingPosting.reverseSaleJournal(trx, saleId, `تعديل فاتورة: ${editReason}`, auth);
 
       await trx.deleteFrom('sale_payments').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      await this.releaseSaleSerials(trx, saleId, scope.tenantId);
       await trx.deleteFrom('sale_items').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const customer = normalized.customerId
@@ -2140,26 +2161,10 @@ export class SalesWriteService {
         } as any).returning('id').executeTakeFirstOrThrow();
         const saleLineId = Number(insertedLine.id);
 
-        if (itemSerials.length > 0) {
-          const cleanSerials = itemSerials.map((s: any) =>
-            (typeof s === 'string' ? s : s?.serialNumber || s?.serial || '').trim().toLowerCase()
-          ).filter(Boolean);
-
-          if (cleanSerials.length > 0) {
-            await trx
-              .updateTable('product_serials')
-              .set({
-                status: 'sold',
-                sale_id: saleId,
-                sale_item_id: saleLineId,
-                updated_at: sql`NOW()`,
-              })
-              .where('product_id', '=', item.productId)
-              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-              .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
-              .execute();
-          }
-        }
+        const claimedSerials = await this.claimSaleSerials(trx, item, saleId, saleLineId, scope.tenantId);
+        if (claimedSerials.length > 0) await trx.updateTable('sale_items')
+          .set({ serials: JSON.stringify(claimedSerials) })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', saleLineId).execute();
 
         if (item.isService) {
           continue;
@@ -2386,6 +2391,11 @@ export class SalesWriteService {
       const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
+      if (sale.status !== 'posted') throw new AppError('Only posted sales can be cancelled', 'SALE_CANCEL_STATUS_FORBIDDEN', 400);
+      const existingReturn = await trx.selectFrom('return_documents').select('id')
+        .where('return_type', '=', 'sale').where('invoice_id', '=', saleId)
+        .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
+      if (existingReturn) throw new AppError('لا يمكن إلغاء فاتورة لها مرتجعات؛ استخدم تسوية محاسبية.', 'SALE_CANCEL_HAS_RETURNS', 400);
 
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
@@ -2471,15 +2481,20 @@ export class SalesWriteService {
         }
       }
 
+      await this.releaseSaleSerials(trx, saleId, scope.tenantId);
       const collectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));
-      if (sale.payment_type === 'credit' && sale.customer_id && collectibleTotal > 0) {
-        await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -collectibleTotal, `عكس فاتورة بيع S-${saleId}`, saleId, auth);
-      } else {
-        const cashPayments = await trx.selectFrom('sale_payments').select(['amount', 'payment_channel']).where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-        for (const payment of cashPayments) {
-          if (payment.payment_channel !== 'cash') continue;
-          await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
-        }
+      const originalPayments = await trx.selectFrom('sale_payments').select(['amount', 'payment_channel'])
+        .where('sale_id', '=', saleId).where('tenant_id', '=', scope.tenantId).execute();
+      const originalPaid = originalPayments.length
+        ? originalPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+        : Number(sale.paid_amount || 0);
+      const remainingDebt = Number(Math.max(0, collectibleTotal - originalPaid).toFixed(2));
+      if (sale.customer_id && remainingDebt > 0) {
+        await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -remainingDebt, `عكس فاتورة بيع S-${saleId}`, saleId, auth);
+      }
+      for (const payment of originalPayments) {
+        if (payment.payment_channel !== 'cash') continue;
+        await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {

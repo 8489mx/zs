@@ -18,6 +18,7 @@ export const settingsFormSchema = z.object({
   taxRate: z.coerce.number().min(0),
   taxMode: z.enum(['exclusive', 'inclusive']),
   paperSize: z.enum(['a4', 'receipt']).default('receipt'),
+  receiptWidthMm: z.coerce.number().int().refine((value) => value === 58 || value === 80).default(80),
   managerPin: z.string().optional().nullable().transform((val) => (val ? String(val).trim() : '')).refine((val) => {
     if (!val) return true;
     return /^\d{4,10}$/.test(val);
@@ -91,6 +92,7 @@ export const settingsFormSchema = z.object({
   weightedBarcodeProductCodeLength: z.coerce.number().int().min(3).max(8).default(5),
   weightedBarcodeWeightDigits: z.coerce.number().int().min(3).max(8).default(5),
   weightedBarcodeWeightDecimals: z.coerce.number().int().min(0).max(3).default(3),
+  weightedBarcodeValueMode: z.enum(['weight', 'price']).default('weight'),
   printShowLogo: z.boolean().default(true),
   printShowDocumentType: z.boolean().default(true),
   printShowDocumentNumber: z.boolean().default(true),

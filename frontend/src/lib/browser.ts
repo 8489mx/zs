@@ -238,6 +238,7 @@ export interface PrintDocumentOptions {
   autoClose?: boolean;
   documentDirection?: 'rtl' | 'ltr';
   deviceName?: string;
+  receiptWidthMm?: 58 | 80;
   hideHeader?: boolean;
 }
 
@@ -262,6 +263,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     autoClose = false,
     documentDirection = 'rtl',
     deviceName,
+    receiptWidthMm = 80,
     hideHeader = false,
   } = options;
 
@@ -280,7 +282,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       ? '@page { size: A4 landscape; margin: 8mm; }'
       : '@page { size: A4 portrait; margin: 8mm; }'
     : pageSize === 'receipt'
-      ? '@page { size: 80mm auto; margin: 0; }'
+      ? `@page { size: ${receiptWidthMm === 58 ? 58 : 80}mm auto; margin: 0; }`
       : '@page { size: auto; margin: 8mm; }';
 
   const html = `<!doctype html>
@@ -435,13 +437,13 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           color: #000;
           background: #fff;
           width: 100%;
-          max-width: 80mm;
+          max-width: ${receiptWidthMm === 58 ? 58 : 80}mm;
           margin: 0 auto;
         }
         body.receipt-mode .print-shell {
           padding: 2px 2mm 4px;
           width: 100%;
-          max-width: 80mm;
+          max-width: ${receiptWidthMm === 58 ? 58 : 80}mm;
           margin: 0 auto;
           box-sizing: border-box;
         }
@@ -578,7 +580,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
   </html>`;
 
   if (deviceName && typeof window !== 'undefined' && (window as any).electronPrinter) {
-    (window as any).electronPrinter.printHtmlSilent({ html, deviceName, pageSize })
+    (window as any).electronPrinter.printHtmlSilent({ html, deviceName, pageSize, receiptWidthMm })
       .catch((err: any) => console.error('Silent print failed:', err));
     return;
   }

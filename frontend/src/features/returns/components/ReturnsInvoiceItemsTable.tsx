@@ -5,14 +5,18 @@ import type { PurchaseItem, SaleItem } from '@/types/domain';
 export function ReturnsInvoiceItemsTable({
   invoiceItems,
   selectedItems,
+  selectedSerials,
   onToggleItem,
   onSetItemQty,
+  onSetSerials,
   returnedQtyByProduct = {},
 }: {
   invoiceItems: Array<SaleItem | PurchaseItem>;
   selectedItems: Record<string, string>;
+  selectedSerials: Record<string, string>;
   onToggleItem: (itemId: string, checked: boolean) => void;
   onSetItemQty: (itemId: string, value: string) => void;
+  onSetSerials: (itemId: string, value: string) => void;
   returnedQtyByProduct?: Record<string, number>;
 }) {
   if (!invoiceItems.length) {
@@ -51,6 +55,15 @@ export function ReturnsInvoiceItemsTable({
                   <td>
                     <div>{item.name || '—'}</div>
                     {isFullyReturned ? <span className="status-pill danger">تم إرجاعه بالكامل</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">متبقي للإرجاع: {remainingQty}</span> : null}
+                    {'serials' in item && Array.isArray(item.serials) && item.serials.length > 0 ? (
+                      <label style={{ display: 'block', marginTop: 6 }}>
+                        سيريالات المرتجع الجزئي
+                        <input type="text" value={selectedSerials[itemId] || ''}
+                          onChange={(event) => onSetSerials(itemId, event.target.value)}
+                          placeholder={item.serials.join(', ')} disabled={!isSelected || isFullyReturned}
+                          aria-label={`سيريالات مرتجع ${item.name}`} />
+                      </label>
+                    ) : null}
                   </td>
                   <td>{baseQty}</td>
                   <td>

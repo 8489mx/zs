@@ -1405,6 +1405,7 @@ export interface PurchaseItemTable {
   id: Generated<number>;
   purchase_id: number;
   po_item_id?: number | null;
+  grn_line_id?: number | null;
   product_id: number | null;
   product_name: string;
   qty: number;
@@ -1418,6 +1419,68 @@ export interface PurchaseItemTable {
   category_id: number | null;
   location_id: number | null;
   serials?: any;
+}
+
+export interface GoodsReceiptNoteTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  doc_no: string;
+  purchase_order_id: number | null;
+  supplier_id: number;
+  location_id: number;
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>;
+  received_by: number | null;
+  inspected_by: number | null;
+  supplier_delivery_note_ref: string | null;
+  status: string;
+  grni_journal_entry_id: number | null;
+  notes: string | null;
+  created_at: ColumnType<Date, Date | string | undefined, never>;
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface GoodsReceiptLineTable {
+  id: Generated<number>;
+  tenant_id: string;
+  grn_id: number;
+  purchase_order_item_id: number | null;
+  product_id: number;
+  ordered_qty: number | string;
+  received_qty: number | string;
+  accepted_qty: number | string;
+  rejected_qty: number | string;
+  rejection_reason: string | null;
+  batch_number: string | null;
+  expiry_date: Date | string | null;
+  manufacturing_date: Date | string | null;
+  unit_cost: number | string;
+  quarantine_location_id: number | null;
+  coa_document_id: number | null;
+  notes: string | null;
+  created_at: ColumnType<Date, Date | string | undefined, never>;
+}
+
+export interface PurchaseThreeWayMatchTable {
+  id: Generated<number>;
+  tenant_id: string;
+  purchase_id: number;
+  purchase_order_id: number | null;
+  grn_id: number | null;
+  match_status: string;
+  price_variance_amount: number | string;
+  qty_variance_amount: number | string;
+  tolerance_percentage: number | string;
+  is_service_item: boolean;
+  service_completion_ref: string | null;
+  override_approved_by: number | null;
+  override_reason: string | null;
+  override_scope: string | null;
+  blocking_codes: string[] | null;
+  reconciliation_discrepancy: number | string;
+  ppv_journal_entry_id: ColumnType<number | null, number | null | undefined, number | null>;
+  created_at: ColumnType<Date, Date | string | undefined, never>;
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>;
 }
 
 export interface PurchaseLandedCostTable {
@@ -2022,6 +2085,9 @@ export interface Database {
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
+  goods_receipt_notes: GoodsReceiptNoteTable;
+  goods_receipt_lines: GoodsReceiptLineTable;
+  purchase_three_way_matches: PurchaseThreeWayMatchTable;
   purchase_landed_costs: PurchaseLandedCostTable;
   purchase_orders: PurchaseOrderTable;
   purchase_order_items: PurchaseOrderItemTable;
@@ -4658,8 +4724,6 @@ export interface DailyCommercialRollupTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
-
-
 
 
 

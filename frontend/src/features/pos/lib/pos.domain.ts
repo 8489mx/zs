@@ -316,6 +316,9 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     const nextQty = roundQuantity(Number(existing.qty || 0) + requestedQty);
     if (nextQty > stockLimit) throw new Error('الكمية المطلوبة أكبر من المخزون المتاح');
     const existingSerials = existing.serials || [];
+    if (incomingSerial && existingSerials.some((serial) => serial.trim().toLowerCase() === incomingSerial.trim().toLowerCase())) {
+      throw new Error('تمت إضافة هذا السيريال إلى السلة بالفعل');
+    }
     const nextSerials = incomingSerial && !existingSerials.includes(incomingSerial)
       ? [...existingSerials, incomingSerial]
       : existingSerials;

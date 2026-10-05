@@ -32,6 +32,7 @@ export function openReceiptDocument(
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
     extraStyles: getInvoiceStyles(compact),
     deviceName: options.settings?.posElectronCashierPrinter || undefined,
+    receiptWidthMm: options.settings?.receiptWidthMm === 58 ? 58 : 80,
     hideHeader: true,
   });
 }

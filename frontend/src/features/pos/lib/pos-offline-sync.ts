@@ -1,4 +1,5 @@
 import { CreatePosSaleInput } from '@/features/pos/contracts';
+import { useAuthStore } from '@/stores/auth-store';
 
 const OFFLINE_QUEUE_KEY = 'zsystems_pos_offline_sales_queue';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
@@ -9,13 +10,36 @@ export interface OfflinePosSale {
   savedAt: string;
   status: 'pending' | 'syncing' | 'failed';
   error?: string;
+  tenantId?: string;
+  accountId?: string;
+}
+
+function currentQueueScope() {
+  const auth = useAuthStore.getState();
+  return {
+    tenantId: String(auth.tenant?.id || auth.user?.tenantId || ''),
+    accountId: String(auth.tenant?.accountId || auth.user?.accountId || ''),
+  };
+}
+
+function isCurrentTenantSale(item: OfflinePosSale): boolean {
+  const scope = currentQueueScope();
+  // Legacy entries without tenant ownership cannot be safely replayed into a SaaS tenant.
+  if (!scope.tenantId || !scope.accountId) return false;
+  return item.tenantId === scope.tenantId && item.accountId === scope.accountId;
+}
+
+function readStoredOfflineQueue(): OfflinePosSale[] {
+  const data = localStorage.getItem(OFFLINE_QUEUE_KEY);
+  if (!data) return [];
+  const rows: unknown = JSON.parse(data);
+  if (!Array.isArray(rows)) throw new Error('Invalid offline sales queue');
+  return rows as OfflinePosSale[];
 }
 
 export function getOfflineSalesQueue(): OfflinePosSale[] {
   try {
-    const data = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    if (!data) return [];
-    return JSON.parse(data) as OfflinePosSale[];
+    return readStoredOfflineQueue().filter(isCurrentTenantSale);
   } catch {
     return [];
   }
@@ -83,16 +107,19 @@ export function generateOfflineDocNo(): string {
 export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
   let queue: OfflinePosSale[];
   try {
-    const stored = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    const parsed: unknown = stored === null ? [] : JSON.parse(stored);
-    if (!Array.isArray(parsed)) throw new Error('Invalid offline sales queue');
-    queue = parsed as OfflinePosSale[];
+    queue = readStoredOfflineQueue();
   } catch (error) {
     console.error('Failed to read offline sales queue:', error);
     throw new Error('تعذر قراءة الفواتير المحفوظة على هذا الجهاز. تحقق من الفواتير قبل إعادة المحاولة.');
   }
   const docNo = (payload as any).docNo || (payload as any).offlineDocNo || generateOfflineDocNo();
   const draftId = existingIdempotencyKey || docNo;
+  const scope = currentQueueScope();
+  if (!scope.tenantId || !scope.accountId) {
+    throw new Error('تعذر تحديد المنشأة والحساب لهذه الفاتورة الأوفلاين. سجل الدخول ثم أعد المحاولة.');
+  }
+  const existing = queue.find((item) => item.id === draftId && item.tenantId === scope.tenantId && item.accountId === scope.accountId);
+  if (existing) return existing;
 
   const offlineTag = `[إيصال أوفلاين: ${docNo}]`;
   const existingNote = String(payload.note || '').trim();
@@ -112,6 +139,7 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempote
     } as any,
     savedAt: new Date().toISOString(),
     status: 'pending',
+    ...scope,
   };
 
   queue.push(offlineSale);
@@ -131,9 +159,8 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempote
 }
 
 export function removeOfflineSale(id: string) {
-  const queue = getOfflineSalesQueue();
-  const nextQueue = queue.filter(item => item.id !== id);
   try {
+    const nextQueue = readStoredOfflineQueue().filter(item => item.id !== id || !isCurrentTenantSale(item));
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
   } catch (e) {
     console.error('Failed to save offline queue — storage may be full:', e);
@@ -142,9 +169,8 @@ export function removeOfflineSale(id: string) {
 }
 
 export function updateOfflineSaleStatus(id: string, status: OfflinePosSale['status'], error?: string) {
-  const queue = getOfflineSalesQueue();
-  const nextQueue = queue.map(item => item.id === id ? { ...item, status, error } : item);
   try {
+    const nextQueue = readStoredOfflineQueue().map(item => item.id === id && isCurrentTenantSale(item) ? { ...item, status, error } : item);
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
   } catch (e) {
     console.error('Failed to save offline queue — storage may be full:', e);
@@ -153,6 +179,11 @@ export function updateOfflineSaleStatus(id: string, status: OfflinePosSale['stat
 }
 
 export function clearOfflineQueue() {
-  localStorage.removeItem(OFFLINE_QUEUE_KEY);
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(readStoredOfflineQueue().filter((item) => !isCurrentTenantSale(item))));
+  } catch (error) {
+    console.error('Failed to clear offline queue:', error);
+    throw new Error('تعذر حذف الفواتير المحفوظة على هذا الجهاز. راجع التخزين قبل إعادة المحاولة.');
+  }
   window.dispatchEvent(new Event('pos-offline-queue-updated'));
 }

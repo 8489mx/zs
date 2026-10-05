@@ -66,6 +66,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   weightedBarcodeProductCodeLength: { tab: 'sales_inventory', label: 'طول كود الصنف بالميزان' },
   weightedBarcodeWeightDigits: { tab: 'sales_inventory', label: 'خانات الوزن في باركود الميزان' },
   weightedBarcodeWeightDecimals: { tab: 'sales_inventory', label: 'الخانات العشرية لوزن الميزان' },
+  weightedBarcodeValueMode: { tab: 'sales_inventory', label: 'محتوى باركود الميزان' },
   loyaltyEnabled: { tab: 'sales_inventory', label: 'برنامج نقاط مكافآت العملاء' },
   loyaltyPointsPer100Egp: { tab: 'sales_inventory', label: 'معدل اكتساب النقاط لكل 100 ج.م' },
   loyaltyPointRedeemValue: { tab: 'sales_inventory', label: 'قيمة استبدال النقطة (ج.م)' },
@@ -107,6 +108,7 @@ export const SETTINGS_FIELD_METADATA: Record<
 
   // Printing Tab
   paperSize: { tab: 'printing', label: 'مقاس الورق' },
+  receiptWidthMm: { tab: 'printing', label: 'عرض الإيصال الحراري' },
   invoiceNumberingScheme: { tab: 'printing', label: 'نمط ترقيم الفواتير' },
   invoiceFooter: { tab: 'printing', label: 'تذييل الفاتورة' },
   invoiceQR: { tab: 'printing', label: 'رمز الاستجابة السريعة (QR)' },
@@ -191,6 +193,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       taxRate: 0,
       taxMode: 'exclusive',
       paperSize: 'receipt',
+      receiptWidthMm: 80,
       managerPin: '',
       autoBackup: 'on',
       accentColor: '#170c5c',
@@ -251,6 +254,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       weightedBarcodeProductCodeLength: 5,
       weightedBarcodeWeightDigits: 5,
       weightedBarcodeWeightDecimals: 3,
+      weightedBarcodeValueMode: 'weight',
       printShowLogo: true,
       printShowDocumentType: true,
       printShowDocumentNumber: true,
@@ -442,6 +446,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       taxRate: Number(settings.taxRate || 0),
       taxMode: settings.taxMode === 'inclusive' ? 'inclusive' : 'exclusive',
       paperSize: settings.paperSize === 'receipt' ? 'receipt' : 'a4',
+      receiptWidthMm: settings.receiptWidthMm === 58 ? 58 : 80,
       managerPin: '',
       autoBackup: settings.autoBackup === 'off' ? 'off' : 'on',
       accentColor: settings.accentColor || '#170c5c',
@@ -501,7 +506,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       weightedBarcodePrefix: String(settings.weightedBarcodePrefix || '21').replace(/\D/g, '') || '21',
       weightedBarcodeProductCodeLength: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeProductCodeLength || 5)))),
       weightedBarcodeWeightDigits: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeWeightDigits || 5)))),
-      weightedBarcodeWeightDecimals: Math.min(3, Math.max(0, Math.floor(Number(settings.weightedBarcodeWeightDecimals || 3)))),
+      weightedBarcodeWeightDecimals: Math.min(3, Math.max(0, Math.floor(Number(settings.weightedBarcodeWeightDecimals ?? 3)))),
+      weightedBarcodeValueMode: settings.weightedBarcodeValueMode === 'price' ? 'price' : 'weight',
       printShowLogo: settings.printShowLogo !== false,
       printShowDocumentType: settings.printShowDocumentType !== false,
       printShowDocumentNumber: settings.printShowDocumentNumber !== false,
@@ -1222,4 +1228,3 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     </form>
   );
 }
-

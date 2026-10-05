@@ -60,7 +60,9 @@ export type BlockingCode =
   | 'QTY_EXCEEDS_RECEIPT'
   | 'PRICE_TOLERANCE_EXCEEDED'
   | 'SERVICE_CERT_MISSING'
-  | 'RECONCILIATION_DISCREPANCY';
+  | 'RECONCILIATION_DISCREPANCY'
+  | 'INVALID_PO_LINE'
+  | 'INVALID_GRN_LINE';
 
 export interface BlockingIssue {
   code: BlockingCode;
@@ -160,6 +162,7 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   // Aggregate accepted GRN quantities by (poItemId / productId)
   const grnAcceptedByPoItem = new Map<number, number>();
   const grnAcceptedByProduct = new Map<number, number>();
+  const grnLineById = new Map(input.grnLines.map((line) => [line.id, line]));
   for (const grnLine of input.grnLines) {
     const accepted = Number(grnLine.acceptedQty || 0);
     if (grnLine.poItemId) {
@@ -171,11 +174,14 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   // Aggregate historical invoiced quantities
   const priorInvoicedByPoItem = new Map<number, number>();
   const priorInvoicedByProduct = new Map<number, number>();
+  const priorUnlinkedByProduct = new Map<number, number>();
   if (input.historicalInvoicedLines) {
     for (const hLine of input.historicalInvoicedLines) {
       const q = Number(hLine.qty || 0);
       if (hLine.poItemId) {
         priorInvoicedByPoItem.set(hLine.poItemId, (priorInvoicedByPoItem.get(hLine.poItemId) || 0) + q);
+      } else {
+        priorUnlinkedByProduct.set(hLine.productId, (priorUnlinkedByProduct.get(hLine.productId) || 0) + q);
       }
       priorInvoicedByProduct.set(hLine.productId, (priorInvoicedByProduct.get(hLine.productId) || 0) + q);
     }
@@ -200,9 +206,25 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
     let matchedPoItem: PurchaseOrderItem | undefined;
     if (invItem.poItemId) {
       matchedPoItem = poItemById.get(invItem.poItemId);
+      if (!matchedPoItem || matchedPoItem.productId !== invItem.productId) {
+        block('INVALID_PO_LINE', invItem.productId, `بند أمر الشراء ${invItem.poItemId} لا يطابق صنف الفاتورة ${invItem.productId}.`);
+        matchedPoItem = undefined;
+      }
     }
-    if (!matchedPoItem && poItemsByProduct.has(invItem.productId)) {
-      matchedPoItem = poItemsByProduct.get(invItem.productId)![0];
+    if (!invItem.poItemId && poItemsByProduct.has(invItem.productId)) {
+      const matching = poItemsByProduct.get(invItem.productId)!;
+      if (matching.length === 1) matchedPoItem = matching[0];
+      else block('INVALID_PO_LINE', invItem.productId, `الصنف ${invItem.productId} مكرر في أمر الشراء؛ حدد بند الأمر في الفاتورة.`);
+    }
+    if (input.poItems.length && !matchedPoItem) {
+      block('INVALID_PO_LINE', invItem.productId, `لا يوجد بند مطابق للصنف ${invItem.productId} في أمر الشراء.`);
+    }
+    if (invItem.grnLineId) {
+      const referenced = grnLineById.get(invItem.grnLineId);
+      if (!referenced || referenced.productId !== invItem.productId ||
+          (matchedPoItem && referenced.poItemId !== matchedPoItem.id)) {
+        block('INVALID_GRN_LINE', invItem.productId, `بند الاستلام ${invItem.grnLineId} لا يطابق بند الفاتورة وأمر الشراء.`);
+      }
     }
 
     const poUnitCost = matchedPoItem ? Number(matchedPoItem.unitCost) : invCost;
@@ -210,7 +232,7 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
 
     // Prior invoiced (other invoices) + already consumed by earlier lines of THIS invoice.
     const priorFromHistory = matchedPoItem
-      ? (priorInvoicedByPoItem.get(matchedPoItem.id) || 0)
+      ? (priorInvoicedByPoItem.get(matchedPoItem.id) || 0) + (priorUnlinkedByProduct.get(invItem.productId) || 0)
       : (priorInvoicedByProduct.get(invItem.productId) || 0);
     const priorFromThisInvoice = matchedPoItem
       ? (consumedByPoItem.get(matchedPoItem.id) || 0)
@@ -228,7 +250,7 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
     // Only count receipts that belong to the matched PO line. Falling back to product-wide receipts
     // let an invoice match against a DIFFERENT purchase order's delivery of the same product.
     const acceptedGrnQty = matchedPoItem
-      ? (grnAcceptedByPoItem.get(matchedPoItem.id) ?? grnAcceptedByProduct.get(invItem.productId) ?? 0)
+      ? (grnAcceptedByPoItem.get(matchedPoItem.id) || 0)
       : (grnAcceptedByProduct.get(invItem.productId) || 0);
 
     let lineStatus: MatchStatus = 'matched';
@@ -336,7 +358,7 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   const hasCode = (c: BlockingCode) => codes.includes(c);
 
   let overallStatus: MatchStatus = 'matched';
-  if (hasCode('QTY_EXCEEDS_RECEIPT') || hasCode('NO_GRN')) {
+  if (hasCode('INVALID_PO_LINE') || hasCode('INVALID_GRN_LINE') || hasCode('QTY_EXCEEDS_RECEIPT') || hasCode('NO_GRN')) {
     overallStatus = 'quantity_mismatch';
   } else if (hasCode('PRICE_TOLERANCE_EXCEEDED')) {
     overallStatus = 'tolerance_exceeded';
@@ -356,7 +378,8 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   if (!isValidForPosting && input.allowOverride && String(input.overrideReason || '').trim().length >= 10) {
     const scope: OverrideScope = input.overrideScope === 'full' ? 'full' : 'price_only';
     const overridable = codes.every((c) =>
-      c === 'RECONCILIATION_DISCREPANCY' ? false : scope === 'full' ? true : PRICE_ONLY_CODES.has(c),
+      c === 'RECONCILIATION_DISCREPANCY' || c === 'INVALID_PO_LINE' || c === 'INVALID_GRN_LINE'
+        ? false : scope === 'full' ? true : PRICE_ONLY_CODES.has(c),
     );
     if (overridable) {
       overallStatus = 'override_approved';

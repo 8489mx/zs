@@ -26,6 +26,11 @@ class ReturnItemDto {
   @IsNumber()
   @Min(1)
   purchaseItemId?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serials?: string[];
 }
 
 export class CreateReturnDto {

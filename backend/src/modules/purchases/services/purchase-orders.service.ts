@@ -1,10 +1,11 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
-import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchasesWriteService } from './purchases-write.service';
 import { ApprovalWorkflowService } from '../../approvals/approval-workflow.service';
@@ -130,22 +131,13 @@ export class PurchaseOrdersService {
       throw new BadRequestException('يجب إضافة صنف واحد على الأقل في أمر الشراء');
     }
 
-    const prefix = getDailyDocumentPrefix('PO');
-    const countRow = await this.db
-      .selectFrom('purchase_orders')
-      .select(sql<number>`count(*)::int`.as('count'))
-      .where('tenant_id', '=', scope.tenantId)
-      .where('order_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-    const seq = Number(countRow?.count || 0) + 1;
-    const orderNumber = formatDailyDocumentNumber('PO', seq);
-
-    const insertedOrder = await this.db
+    return this.db.transaction().execute(async (trx) => {
+    const insertedOrder = await trx
       .insertInto('purchase_orders')
       .values({
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-        order_number: orderNumber,
+        order_number: `PO-TMP-${randomUUID()}`,
         supplier_id: payload.supplierId || null,
         supplier_name: payload.supplierName,
         supplier_phone: payload.supplierPhone || null,
@@ -156,7 +148,7 @@ export class PurchaseOrdersService {
         discount_amount: payload.discountAmount || 0,
         total_amount: payload.totalAmount || 0,
         status: 'draft',
-        expected_delivery_date: payload.expectedDeliveryDate ? (payload.expectedDeliveryDate as any) : null,
+        expected_delivery_date: payload.expectedDeliveryDate || null,
         notes: payload.notes || null,
         terms_conditions: payload.termsConditions || null,
         created_by: auth.userId ? Number(auth.userId) : null,
@@ -164,10 +156,13 @@ export class PurchaseOrdersService {
       .returning(['id', 'order_number'])
       .executeTakeFirstOrThrow();
 
-    const orderId = insertedOrder.id;
+    const orderId = Number(insertedOrder.id);
+    const orderNumber = formatDailyDocumentNumber('PO', orderId);
+    await trx.updateTable('purchase_orders').set({ order_number: orderNumber })
+      .where('id', '=', orderId).where('tenant_id', '=', scope.tenantId).execute();
 
     for (const item of payload.items) {
-      await this.db
+      await trx
         .insertInto('purchase_order_items')
         .values({
           tenant_id: scope.tenantId,
@@ -190,9 +185,10 @@ export class PurchaseOrdersService {
     return {
       success: true,
       id: orderId,
-      orderNumber: insertedOrder.order_number,
+      orderNumber,
       message: 'تم إنشاء أمر الشراء بنجاح',
     };
+    });
   }
 
   async updateOrder(id: number, payload: UpdatePurchaseOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {

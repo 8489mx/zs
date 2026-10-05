@@ -536,7 +536,8 @@ export class CustomerInstallmentsService {
         .executeTakeFirstOrThrow();
 
       const paymentId = Number(insertedPayment.id);
-      const receiptNo = dto.receiptNo || formatDailyDocumentNumber('REC', paymentId);
+      // External references must never replace the unique identity-based system receipt number.
+      const receiptNo = formatDailyDocumentNumber('REC', paymentId);
       const branchId = plan?.branch_id ? Number(plan.branch_id) : null;
       const fullDesc = `سداد قسط رقم ${installment.installment_number} (إيصال #${receiptNo})`;
 

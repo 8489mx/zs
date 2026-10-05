@@ -20,7 +20,7 @@ import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
-type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number };
+type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
 
 @Injectable()
@@ -72,7 +72,7 @@ export class ReturnsService {
   }
 
   private async addStoreCredit(trx: Kysely<Database>, customerId: number, amount: number, auth: AuthContext): Promise<void> {
-    const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
+    const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
     const nextBalance = calculateNextLedgerBalance(customer.store_credit_balance, amount);
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
   }
@@ -309,6 +309,9 @@ export class ReturnsService {
     const scope = this.scope(auth);
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    if (payload.settlementMode === 'store_credit' && !sale.customer_id) {
+      throw new AppError('رصيد المتجر يتطلب عميلاً مرتبطاً بالفاتورة', 'RETURN_STORE_CREDIT_CUSTOMER_REQUIRED', 400);
+    }
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
@@ -368,9 +371,42 @@ export class ReturnsService {
       pendingQtyByProduct.set(requestItem.productId, (pendingQtyByProduct.get(requestItem.productId) || 0) + requestItem.qty);
       pendingQtyByLine.set(saleLineId, (pendingQtyByLine.get(saleLineId) || 0) + requestItem.qty);
 
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
+
+      const originalSerials = typeof saleItem.serials === 'string'
+        ? JSON.parse(saleItem.serials || '[]') as unknown : saleItem.serials;
+      const hasSerials = product.track_serials === true || (Array.isArray(originalSerials) && originalSerials.length > 0);
+      if (hasSerials) {
+        if (!Number.isInteger(preparedLine.stockDelta)) {
+          throw new AppError('كمية المرتجع التسلسلي يجب أن تكون عدداً صحيحاً', 'RETURN_SERIAL_QUANTITY_INVALID', 400);
+        }
+        const soldSerials = await trx.selectFrom('product_serials')
+          .select(['id', 'serial_number', 'imei_2'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('product_id', '=', requestItem.productId)
+          .where('sale_id', '=', Number(sale.id)).where('sale_item_id', '=', saleLineId)
+          .where('status', '=', 'sold').orderBy('id', 'asc').forUpdate().execute();
+        const requestedSerials = (requestItem.serials || []).map((serial) => serial.trim().toLowerCase());
+        if (requestedSerials.length === 0 && soldSerials.length !== preparedLine.stockDelta) {
+          throw new AppError('حدد سيريالات القطع المراد إرجاعها جزئياً', 'RETURN_SERIALS_REQUIRED', 400);
+        }
+        const chosen = requestedSerials.length === 0
+          ? soldSerials
+          : soldSerials.filter((row) => requestedSerials.includes(row.serial_number.toLowerCase()) ||
+            (row.imei_2 && requestedSerials.includes(row.imei_2.toLowerCase())));
+        if (chosen.length !== preparedLine.stockDelta ||
+            (requestedSerials.length > 0 && (requestedSerials.length !== chosen.length || new Set(requestedSerials).size !== requestedSerials.length))) {
+          throw new AppError('السيريال غير مباع في سطر الفاتورة أو تم إرجاعه سابقاً', 'RETURN_SERIAL_NOT_SOLD', 409);
+        }
+        await trx.updateTable('product_serials')
+          .set({ status: 'in_stock', sale_id: null, sale_item_id: null, updated_at: sql`NOW()` })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', 'in', chosen.map((row) => row.id)).execute();
+      } else if (requestItem.serials?.length) {
+        throw new AppError('سطر الفاتورة لا يحتوي على سيريالات', 'RETURN_SERIAL_NOT_SOLD', 400);
+      }
 
       const allocations = await trx.selectFrom('sale_line_stock_allocations')
          .selectAll()

@@ -150,16 +150,26 @@ export function PrintingSettingsTab({
                 isNonPosVertical
                   ? [
                       { value: 'a4', label: 'ورق قياسي للمشاريع والوثائق (A4)' },
-                      { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
+                      { value: 'receipt', label: 'إيصال حراري (58/80mm)' },
                     ]
                   : [
-                      { value: 'receipt', label: 'إيصال حراري (Receipt 80mm)' },
+                      { value: 'receipt', label: 'إيصال حراري (58/80mm)' },
                       { value: 'a4', label: 'ورق كبير قياسي (A4)' },
                     ]
               }
               disabled={disabled}
             />
           </div>
+
+          {form.watch('paperSize') === 'receipt' && <div className="field">
+            <label>عرض ورق الإيصال</label>
+            <CustomSelect
+              value={String(form.watch('receiptWidthMm') || 80)}
+              onChange={(value) => form.setValue('receiptWidthMm', value === '58' ? 58 : 80, { shouldDirty: true, shouldValidate: true })}
+              options={[{ value: '80', label: '80 مم' }, { value: '58', label: '58 مم' }]}
+              disabled={disabled}
+            />
+          </div>}
 
           {showPosSettings && (
             <div className="field">
@@ -597,7 +607,7 @@ export function PrintingSettingsTab({
                       ${footerText}
                     </div>
                   `;
-                  printSmallReceiptDocument(testHtml, { title: 'إيصال تجريبي', widthMm: (form.getValues('paperSize') === 'a4' ? 80 : 58) });
+                  printSmallReceiptDocument(testHtml, { title: 'إيصال تجريبي', widthMm: form.getValues('receiptWidthMm') === 58 ? 58 : 80 });
                 }}
                 style={{
                   background: '#170e5e',

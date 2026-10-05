@@ -663,6 +663,8 @@ export class AccountingPostingService {
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const bankAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
+    const storeCreditAccountId = storeCreditUsed > 0
+      ? await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '2150') : 0;
     const salesDiscountAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_discount_account_id, '4300');
     const salesRevenueAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_revenue_account_id, '4100');
     const salesTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_tax_account_id, '2120');
@@ -710,7 +712,7 @@ export class AccountingPostingService {
 
     if (storeCreditUsed > 0) {
       this.addLine(lines, {
-        accountId: customerAccountId,
+        accountId: storeCreditAccountId,
         description: 'استخدام رصيد دائن للعميل (Store Credit)',
         debit: storeCreditUsed,
         credit: 0,
@@ -873,6 +875,8 @@ export class AccountingPostingService {
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const bankAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
+    const storeCreditAccountId = storeCreditUsed > 0
+      ? await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '2150') : 0;
     const salesDiscountAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_discount_account_id, '4300');
     const salesRevenueAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_revenue_account_id, '4100');
     const salesTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_tax_account_id, '2120');
@@ -910,6 +914,19 @@ export class AccountingPostingService {
         accountId: customerAccountId,
         description: 'مديونية عميل من تعديل فاتورة بيع',
         debit: receivableAmount,
+        credit: 0,
+        partnerType: customerPartnerId ? 'customer' : 'none',
+        partnerId: customerPartnerId,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (storeCreditUsed > 0) {
+      this.addLine(lines, {
+        accountId: storeCreditAccountId,
+        description: 'استخدام رصيد دائن للعميل في تعديل الفاتورة',
+        debit: storeCreditUsed,
         credit: 0,
         partnerType: customerPartnerId ? 'customer' : 'none',
         partnerId: customerPartnerId,
@@ -1153,6 +1170,8 @@ export class AccountingPostingService {
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const bankAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
+    const storeCreditAccountId = returnDocument.settlement_mode === 'store_credit'
+      ? await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '2150') : 0;
     const salesTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_tax_account_id, '2120');
     const cogsAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cogs_account_id, '5100');
     const inventoryAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.inventory_account_id, '1140');
@@ -1202,7 +1221,7 @@ export class AccountingPostingService {
     if (total > 0) {
       if (settlementMode === 'store_credit' || originalSalePaymentType === 'credit') {
         this.addLine(lines, {
-          accountId: customerAccountId,
+          accountId: settlementMode === 'store_credit' ? storeCreditAccountId : customerAccountId,
           description: `تسوية رصيد عميل من مرتجع فاتورة رقم ${invoiceNo}`,
           debit: 0,
           credit: total,
@@ -1316,7 +1335,7 @@ export class AccountingPostingService {
     const existing = await this.getExistingPurchaseJournal(queryable, purchaseId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
-    const purchase = await (queryable as any)
+    const purchase = await queryable
       .selectFrom('purchases')
       .select([
         'id', 'doc_no', 'payment_type', 'subtotal', 'discount', 'tax_amount', 'total',
@@ -1364,13 +1383,16 @@ export class AccountingPostingService {
     // Check if this purchase is linked to a posted GRN (3-Way Matching)
     let linkedGrn: { id: number; doc_no: string; grni_journal_entry_id: number | null } | undefined;
     if (purchase.grn_id) {
-      linkedGrn = await (queryable as any)
+      linkedGrn = await queryable
         .selectFrom('goods_receipt_notes')
         .select(['id', 'doc_no', 'grni_journal_entry_id'])
         .where('id', '=', Number(purchase.grn_id))
         .where('tenant_id', '=', scope.tenantId)
         .where('status', '=', 'posted')
         .executeTakeFirst();
+      if (!linkedGrn) {
+        throw new AppError(`Posted goods receipt ${purchase.grn_id} is missing for purchase ${purchaseId}`, 'PURCHASE_GRN_NOT_POSTED', 422);
+      }
     }
 
     const grniAccount = await queryable
@@ -1392,14 +1414,14 @@ export class AccountingPostingService {
     if (linkedGrn && !grniAccount) throw new AppError(`GRNI account 2125 is missing for purchase ${purchaseId}`, 'ACCOUNT_NOT_FOUND', 400);
     if (linkedGrn && grniAccount) {
       // Goods already received via GRN! Clear GRNI (2125) and route price variance to PPV (5190)
-      const grnLines = await (queryable as any)
+      const grnLines = await queryable
         .selectFrom('goods_receipt_lines')
         .select(['accepted_qty', 'unit_cost'])
         .where('grn_id', '=', linkedGrn.id)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
       const grniBookedAmount = this.toMoney(
-        grnLines.reduce((sum: number, l: any) => sum + (Number(l.accepted_qty || 0) * Number(l.unit_cost || 0)), 0),
+        grnLines.reduce((sum, line) => sum + (Number(line.accepted_qty || 0) * Number(line.unit_cost || 0)), 0),
       );
 
       const netInvoiceAmount = this.toMoney(Math.max(0, total - taxAmount));
