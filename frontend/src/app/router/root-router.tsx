@@ -73,17 +73,21 @@ function NoWorkspaceAccess() {
 function AppSplashLoading() {
   return (
     <div
+      id="app-preloader-root"
       style={{
-        minHeight: '100vh',
+        position: 'fixed',
+        inset: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: '#f8fafc',
         direction: 'rtl',
         userSelect: 'none',
+        zIndex: 99999,
       }}
     >
       <div
+        className="app-preloader-card"
         style={{
           width: '60px',
           height: '60px',
@@ -99,6 +103,7 @@ function AppSplashLoading() {
         <img
           src="/logo.png"
           alt="Z-ERP"
+          className="app-preloader-img"
           style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '10px' }}
           onError={(e) => {
             (e.currentTarget as HTMLElement).style.display = 'none';

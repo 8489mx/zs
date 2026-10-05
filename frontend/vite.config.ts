@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
       manifest: {
         name: 'Z-ERP - منظومة إدارة الأعمال',
         short_name: 'Z-ERP',

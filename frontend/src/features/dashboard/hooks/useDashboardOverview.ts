@@ -6,7 +6,16 @@ import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import type { DashboardOverviewPayload } from '@/features/dashboard/api/dashboard.types';
 
 const DASHBOARD_OVERVIEW_STORAGE_KEY = 'zs_dashboard_overview_cache_v1';
-const CACHE_MAX_AGE_MS = 15 * 60 * 1000;
+const CACHE_MAX_AGE_MS = 3 * 60 * 1000;
+
+export function clearDashboardCache(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(DASHBOARD_OVERVIEW_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 function getStoredOverview(): DashboardOverviewPayload | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -49,9 +58,10 @@ export function useDashboardOverview() {
       storeOverview(data);
       return data;
     },
-    initialData: () => getStoredOverview(),
-    staleTime: 60_000,
-    refetchOnMount: false,
-    placeholderData: keepPreviousData
+    // Instant zero-delay initial paint from cache, while automatically validating fresh data in background
+    placeholderData: (previousData) => previousData ?? getStoredOverview(),
+    staleTime: 30_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }

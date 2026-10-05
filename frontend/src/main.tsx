@@ -45,59 +45,75 @@ initProductIconTheme();
 
 // Progressive Web App (PWA) Service Worker Registration for Offline Operation
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
-  import('workbox-window')
-    .then(({ Workbox }) => {
-      const swUrl = `/sw.js?v=${typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : Date.now()}`;
-      const wb = new Workbox(swUrl, { scope: '/' });
-
-      let isRefreshing = false;
-      const safeReload = () => {
-        if (isRefreshing) return;
-        const lastReloadTs = parseInt(sessionStorage.getItem('zerp_pwa_last_reload') || '0', 10);
-        const now = Date.now();
-        // Anti-loop shield: Never auto-reload more than once every 12 seconds
-        if (now - lastReloadTs < 12000) {
-          return;
-        }
-        isRefreshing = true;
-        sessionStorage.setItem('zerp_pwa_last_reload', String(now));
-        window.location.reload();
-      };
-
-      // When a previous controller exists, a 'controlling' event means a new service worker took over (an update)
-      const hadPreviousController = Boolean(navigator.serviceWorker.controller);
-
-      wb.addEventListener('waiting', () => {
-        wb.messageSkipWaiting();
-      });
-
-      wb.addEventListener('controlling', () => {
-        if (hadPreviousController) {
-          safeReload();
+  if (import.meta.env.DEV) {
+    // In local development, unregister any lingering service workers to avoid stale caches and ensure live updates
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const reg of registrations) {
+        reg.unregister();
+      }
+    });
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        for (const name of names) {
+          caches.delete(name);
         }
       });
+    }
+  } else {
+    import('workbox-window')
+      .then(({ Workbox }) => {
+        const swUrl = `/sw.js?v=${typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : Date.now()}`;
+        const wb = new Workbox(swUrl, { scope: '/' });
 
-      wb.addEventListener('installed', (event) => {
-        if (!event.isUpdate) {
-          window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
-        }
-      });
+        let isRefreshing = false;
+        const safeReload = () => {
+          if (isRefreshing) return;
+          const lastReloadTs = parseInt(sessionStorage.getItem('zerp_pwa_last_reload') || '0', 10);
+          const now = Date.now();
+          // Anti-loop shield: Never auto-reload more than once every 12 seconds
+          if (now - lastReloadTs < 12000) {
+            return;
+          }
+          isRefreshing = true;
+          sessionStorage.setItem('zerp_pwa_last_reload', String(now));
+          window.location.reload();
+        };
 
-      // Check for updates when app gains focus or is resumed from background
-      window.addEventListener('focus', () => {
-        wb.update().catch(() => {});
-      });
+        // When a previous controller exists, a 'controlling' event means a new service worker took over (an update)
+        const hadPreviousController = Boolean(navigator.serviceWorker.controller);
 
-      wb.register({ immediate: true }).catch(() => {});
+        wb.addEventListener('waiting', () => {
+          wb.messageSkipWaiting();
+        });
 
-      // Proactively check for updates when returning to foreground
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && navigator.onLine) {
+        wb.addEventListener('controlling', () => {
+          if (hadPreviousController) {
+            safeReload();
+          }
+        });
+
+        wb.addEventListener('installed', (event) => {
+          if (!event.isUpdate) {
+            window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
+          }
+        });
+
+        // Check for updates when app gains focus or is resumed from background
+        window.addEventListener('focus', () => {
           wb.update().catch(() => {});
-        }
-      });
-    })
-    .catch(() => {});
+        });
+
+        wb.register({ immediate: true }).catch(() => {});
+
+        // Proactively check for updates when returning to foreground
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && navigator.onLine) {
+            wb.update().catch(() => {});
+          }
+        });
+      })
+      .catch(() => {});
+  }
 }
 
 // Globally suppress intrusive browser autofill overlays on business ERP forms

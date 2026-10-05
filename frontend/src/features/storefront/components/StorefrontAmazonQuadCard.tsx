@@ -208,11 +208,15 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
             display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
+            flexWrap: 'wrap',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
           onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
         >
-          <span>تصفح كل أصناف {categoryName} ({totalCount} صنف)</span>
+          <span>
+            تصفح كل أصناف {categoryName}{' '}
+            <span style={{ whiteSpace: 'nowrap' }}>({totalCount} صنف)</span>
+          </span>
           <span>←</span>
         </button>
       </div>

@@ -558,9 +558,14 @@ export function StorefrontCategoriesModal({
                   </span>
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
-                  {modalSearch.trim()
-                    ? `تم العثور على ${displayedCategories.length} قسماً مطابقاً للبحث`
-                    : `اختر القسم لتصفح الأصناف المعروضة (${displayedCategories.length} متاح)`}
+                  {modalSearch.trim() ? (
+                    `تم العثور على ${displayedCategories.length} قسماً مطابقاً للبحث`
+                  ) : (
+                    <>
+                      <span>اختر القسم لتصفح الأصناف المعروضة</span>{' '}
+                      <span style={{ whiteSpace: 'nowrap' }}>({displayedCategories.length} متاح)</span>
+                    </>
+                  )}
                 </span>
               </div>
 

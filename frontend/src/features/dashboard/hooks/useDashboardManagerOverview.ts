@@ -6,8 +6,8 @@ export function useDashboardManagerOverview(enabled = true) {
   return useQuery({
     queryKey: queryKeys.dashboardManagerOverview,
     queryFn: () => dashboardApi.managerOverview(),
-    staleTime: 60_000,
-    refetchOnMount: false,
+    staleTime: 30_000,
+    refetchOnMount: true,
     enabled,
   });
 }

@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui/button';
 import { UsersIcon, BuildingIcon } from '@/shared/components/icons/AppIcons';
+import { getCurrencySymbol } from '@/lib/currencies';
 import { PlanFeatureItem } from './PlanFeatureItem';
 import type { ResolvedPricing, ResolvedPricingLevel } from '../../api/tenant-subscription.api';
 
@@ -126,10 +127,10 @@ export function SubscriptionPlansCards({
 
               <div style={{ marginBottom: '12px' }}>
                 <span style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a' }}>
-                  {amount.toLocaleString('ar-EG')}
+                  {Number(amount).toLocaleString('en-US')}
                 </span>
                 <span style={{ fontSize: '12px', color: '#64748b', marginInlineStart: '4px' }}>
-                  {level.currency} / {periodLabel}
+                  {getCurrencySymbol(level.currency)} / {periodLabel}
                 </span>
               </div>
 

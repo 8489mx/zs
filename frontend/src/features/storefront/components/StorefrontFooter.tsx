@@ -337,6 +337,10 @@ export function StorefrontFooter({
             width: 10px !important;
             height: 10px !important;
           }
+          .sf-footer-pay-badges .sf-pay-badge .sf-pay-mc-logo {
+            width: 14px !important;
+            height: 9px !important;
+          }
           .sf-footer-ssl-badge {
             display: inline-flex !important;
             margin: 0 auto !important;
@@ -702,13 +706,16 @@ export function StorefrontFooter({
                 VISA
               </div>
 
-              {/* Mastercard */}
-              <div className="sf-pay-badge" style={{ gap: '4px' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#eb001b', display: 'inline-block', opacity: 0.9 }} />
-                  <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f79e1b', display: 'inline-block', marginLeft: '-4px', opacity: 0.9 }} />
+              {/* Mastercard - Official Brand Standard */}
+              <div className="sf-pay-badge" dir="ltr" style={{ gap: '4px' }}>
+                <svg className="sf-pay-mc-logo" width="16" height="10" viewBox="0 0 32 20" fill="none" style={{ display: 'inline-block', flexShrink: 0 }}>
+                  <circle cx="10" cy="10" r="10" fill="#EB001B" />
+                  <circle cx="22" cy="10" r="10" fill="#F79E1B" />
+                  <path d="M 16 2 A 10 10 0 0 1 16 18 A 10 10 0 0 1 16 2 Z" fill="#FF5F00" />
+                </svg>
+                <span style={{ fontSize: '10.5px', fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 700, color: '#1e293b', letterSpacing: '-0.2px' }}>
+                  Mastercard
                 </span>
-                <span style={{ fontSize: '10.5px', fontFamily: 'sans-serif', fontWeight: 800, color: '#1e293b' }}>mastercard</span>
               </div>
 
               {/* Mobile Wallets */}

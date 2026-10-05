@@ -98,8 +98,35 @@ export function StorefrontMultiRowHome({
           textAlign: 'center',
         }}
       >
-        <h4 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-          استكشف باقي أقسام المتجر ({categories.length} قسم متاح)
+        <h4
+          style={{
+            margin: '0 0 8px',
+            fontSize: '15.5px',
+            fontWeight: 800,
+            color: '#0f172a',
+            lineHeight: 1.45,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            columnGap: '6px',
+            rowGap: '2px',
+          }}
+        >
+          <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+            استكشف باقي أقسام المتجر
+          </span>
+          <span
+            style={{
+              display: 'inline-block',
+              whiteSpace: 'nowrap',
+              color: 'var(--storefront-primary-color, #170e5e)',
+              fontSize: '13px',
+              fontWeight: 700,
+            }}
+          >
+            ({categories.length} قسم متاح)
+          </span>
         </h4>
         <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
           {info?.bio || 'تصفح كافة الأقسام والمنتجات المتاحة واطلب ما تحتاجه بكل سهولة مع خدمة التوصيل المباشر'}

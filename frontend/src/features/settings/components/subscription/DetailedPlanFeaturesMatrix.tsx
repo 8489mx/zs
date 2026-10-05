@@ -1,4 +1,5 @@
 import { CheckIcon, XIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
+import { getCurrencySymbol } from '@/lib/currencies';
 import type { ResolvedPricing } from '../../api/tenant-subscription.api';
 
 /**
@@ -31,6 +32,12 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
   const levelHasItem = (levelIndex: number, groupName: string): boolean =>
     levels[levelIndex].featureGroups.some((g) => g.name === groupName);
 
+  // حساب نسب الأعمدة: تقريب أعمدة المقارنة من بعضها بنسب متراصة ومريحة
+  const levelCount = levels.length;
+  const totalLevelsWidth = levelCount <= 3 ? 36 : 42;
+  const levelColPercent = levelCount > 0 ? `${(totalLevelsWidth / levelCount).toFixed(1)}%` : '12%';
+  const firstColPercent = levelCount > 0 ? `${(100 - (totalLevelsWidth / levelCount) * levelCount).toFixed(1)}%` : '64%';
+
   return (
     <div
       style={{
@@ -53,7 +60,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
       </div>
 
       {/* 2. Zero-Scroll Comparison Table */}
-      <div style={{ width: '100%', overflow: 'hidden' }}>
+      <div style={{ width: '100%', overflow: 'hidden', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
         <table
           style={{
             width: '100%',
@@ -61,12 +68,13 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
             borderSpacing: 0,
             tableLayout: 'fixed',
             fontSize: '12.5px',
+            whiteSpace: 'normal',
           }}
         >
           <colgroup>
-            <col style={{ width: 'auto' }} />
+            <col style={{ width: firstColPercent }} />
             {levels.map((level) => (
-              <col key={level.id} style={{ width: levels.length <= 3 ? '135px' : '110px' }} />
+              <col key={level.id} style={{ width: levelColPercent }} />
             ))}
           </colgroup>
           <thead>
@@ -74,34 +82,94 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
               <th
                 style={{
                   textAlign: 'start',
-                  padding: '12px 16px',
+                  padding: '16px 20px',
                   color: '#475569',
                   fontWeight: 800,
                   fontSize: '13px',
                   borderBottom: '2px solid #e2e8f0',
-                  borderTopRightRadius: '10px',
+                  borderTopRightRadius: '11px',
+                  whiteSpace: 'normal',
                 }}
               >
                 المجموعة وبيان الميزات
               </th>
-              {levels.map((level, idx) => (
-                <th
-                  key={level.id}
-                  style={{
-                    textAlign: 'center',
-                    padding: '12px 10px',
-                    color: '#170e5e',
-                    fontWeight: 800,
-                    fontSize: '13px',
-                    borderBottom: '2px solid #e2e8f0',
-                    borderTopLeftRadius: idx === levels.length - 1 ? '10px' : undefined,
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {level.name}
-                </th>
-              ))}
+              {levels.map((level, idx) => {
+                const isLast = idx === levels.length - 1;
+                const isMiddle = levels.length === 3 && idx === 1;
+                return (
+                  <th
+                    key={level.id}
+                    style={{
+                      textAlign: 'center',
+                      padding: '14px 10px',
+                      borderBottom: '2px solid #e2e8f0',
+                      borderTopLeftRadius: isLast ? '11px' : undefined,
+                      whiteSpace: 'normal',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '13.5px',
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        marginBottom: '4px',
+                        whiteSpace: 'normal',
+                      }}
+                    >
+                      {level.name}
+                    </div>
+                    {isLast ? (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '10.5px',
+                          fontWeight: 600,
+                          color: '#475569',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '1px 8px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        الأشمل والأعلى
+                      </span>
+                    ) : isMiddle ? (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '10.5px',
+                          fontWeight: 600,
+                          color: '#475569',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '1px 8px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        الأكثر توازناً
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '10.5px',
+                          fontWeight: 600,
+                          color: '#64748b',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '1px 8px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        الأساس
+                      </span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -117,25 +185,48 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                 >
                   <td
                     style={{
-                      padding: '14px 16px',
+                      padding: '14px 18px',
                       borderBottom: '1px solid #f1f5f9',
                       verticalAlign: 'top',
+                      whiteSpace: 'normal',
                       wordBreak: 'break-word',
                       overflowWrap: 'break-word',
                     }}
                   >
-                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px', marginBottom: '6px' }}>
-                      {groupName}
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        fontSize: '13px',
+                        marginBottom: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'normal',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '3px',
+                          height: '13px',
+                          backgroundColor: '#170e5e',
+                          borderRadius: '2px',
+                          display: 'inline-block',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span>{groupName}</span>
                     </div>
                     <div
                       style={{
                         color: '#64748b',
                         fontSize: '11.5px',
                         lineHeight: 1.65,
-                        textAlign: 'justify',
-                        textJustify: 'inter-word',
-                        textAlignLast: 'start',
+                        textAlign: 'start',
+                        whiteSpace: 'normal',
                         wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        paddingInlineStart: '9px',
                       }}
                     >
                       {items.join(' · ')}
@@ -151,6 +242,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           borderBottom: '1px solid #f1f5f9',
                           textAlign: 'center',
                           verticalAlign: 'middle',
+                          whiteSpace: 'normal',
                         }}
                       >
                         {hasItem ? (
@@ -161,10 +253,11 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                               justifyContent: 'center',
                               width: '26px',
                               height: '26px',
-                              borderRadius: '50%',
+                              borderRadius: '7px',
                               background: '#ecfdf5',
                               color: '#059669',
                               border: '1px solid #a7f3d0',
+                              boxShadow: '0 1px 2px rgba(5, 150, 105, 0.06)',
                             }}
                             title={`مشمول في ${level.name}`}
                           >
@@ -178,14 +271,14 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                               justifyContent: 'center',
                               width: '26px',
                               height: '26px',
-                              borderRadius: '50%',
+                              borderRadius: '7px',
                               background: '#f8fafc',
-                              color: '#cbd5e1',
-                              border: '1px solid #f1f5f9',
+                              color: '#94a3b8',
+                              border: '1px solid #e2e8f0',
                             }}
                             title={`غير مشمول في ${level.name}`}
                           >
-                            <XIcon size={13} strokeWidth={2.2} />
+                            <XIcon size={12} strokeWidth={2.2} />
                           </span>
                         )}
                       </td>
@@ -214,7 +307,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '12px',
+              gap: '14px',
             }}
           >
             {pricing.floors.map((floor) => {
@@ -222,6 +315,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
               const includedLevel = isIncludedInHighest
                 ? levels.find((l) => l.id === floor.includedFromLevel)
                 : null;
+              const currencyLabel = getCurrencySymbol(levels[0]?.currency);
 
               return (
                 <div
@@ -232,47 +326,59 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                     borderRadius: '12px',
                     padding: '14px 16px',
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '12px',
+                    minHeight: '94px',
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                    transition: 'border-color 0.15s ease',
                   }}
                 >
-                  {/* Title & Badge */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Top row: Floor Name */}
+                  <div style={{ marginBottom: '12px' }}>
                     <div
                       style={{
                         fontSize: '13px',
                         fontWeight: 700,
                         color: '#1e293b',
-                        lineHeight: 1.45,
+                        lineHeight: '1.45',
                         wordBreak: 'break-word',
                       }}
                     >
                       {floor.name}
                     </div>
-                    {includedLevel ? (
-                      <div style={{ marginTop: '5px' }}>
+                  </div>
+
+                  {/* Bottom row: Status badge on right, Price badge on left */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {/* Status badge */}
+                    <div>
+                      {includedLevel ? (
                         <span
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
                             fontSize: '11px',
-                            fontWeight: 600,
+                            fontWeight: 700,
                             color: '#047857',
                             background: '#ecfdf5',
                             border: '1px solid #a7f3d0',
                             borderRadius: '6px',
-                            padding: '1px 7px',
+                            padding: '2px 8px',
                           }}
                         >
-                          <CheckIcon size={11} strokeWidth={2.5} />
+                          <CheckIcon size={12} strokeWidth={2.5} />
                           <span>مضمّن في {includedLevel.name}</span>
                         </span>
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: '5px' }}>
+                      ) : (
                         <span
                           style={{
                             display: 'inline-flex',
@@ -283,32 +389,32 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                             background: '#f1f5f9',
                             border: '1px solid #e2e8f0',
                             borderRadius: '6px',
-                            padding: '1px 7px',
+                            padding: '2px 8px',
                           }}
                         >
                           طابق إضافي اختياري
                         </span>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Price Badge */}
-                  <div style={{ flexShrink: 0 }}>
+                    {/* Price Badge */}
                     <div
                       style={{
                         background: '#f8fafc',
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px',
-                        padding: '6px 12px',
-                        textAlign: 'center',
+                        padding: '4px 10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
                       {floor.contactForPrice ? (
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
-                          اتصل بنا
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                          تواصل للتسعير
                         </span>
                       ) : floor.pricingRule ? (
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
                           {floor.pricingRule}
                         </span>
                       ) : (
@@ -318,16 +424,15 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                             alignItems: 'baseline',
                             gap: '4px',
                             whiteSpace: 'nowrap',
-                            direction: 'rtl',
                           }}
                         >
                           <span style={{ fontSize: '14px', fontWeight: 900, color: '#170e5e' }}>
-                            {(floor.monthly ?? 0).toLocaleString('ar-EG')}
+                            {Number(floor.monthly ?? 0).toLocaleString('en-US')}
                           </span>
                           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
-                            {levels[0]?.currency ?? 'EGP'}
+                            {currencyLabel}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>/ شهر</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>/ شهرياً</span>
                         </div>
                       )}
                     </div>

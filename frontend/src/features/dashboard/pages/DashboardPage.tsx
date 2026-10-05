@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Navigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -7,8 +8,9 @@ import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklis
 import { TenantQuickStartChecklist } from '@/shared/system/TenantQuickStartChecklist';
 import { SmartDemoOnboardingBanner } from '@/shared/system/SmartDemoOnboardingBanner';
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
-import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
+import { useDashboardOverview, clearDashboardCache } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
+import { RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { DashboardExecutiveHero } from '@/features/dashboard/components/DashboardExecutiveHero';
 import { ExecutiveBiGrid } from '@/features/dashboard/components/ExecutiveBiGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
@@ -150,6 +152,21 @@ export function DashboardPage() {
   const managerActions = useManagerActions(30, showSecondaryReports);
   const managerOverview = useDashboardManagerOverview(showSecondaryReports);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      clearDashboardCache();
+      await Promise.allSettled([
+        overview.refetch(),
+        managerOverview.refetch(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [overview, managerOverview]);
+
   if (overview.isLoading && !overview.data) {
     return <DashboardSkeleton />;
   }
@@ -162,7 +179,9 @@ export function DashboardPage() {
     );
   }
 
-  if (!overview.data) return null;
+  if (!overview.data || typeof overview.data !== 'object' || !('summary' in overview.data)) {
+    return <DashboardSkeleton />;
+  }
 
   const { summary, stats, topToday } = overview.data;
   const smartAlerts = buildDashboardAlerts(overview.data);
@@ -177,6 +196,17 @@ export function DashboardPage() {
           badge={<span className="nav-pill">ملخص اليوم</span>}
           actions={(
             <div className="actions compact-actions dashboard-header-actions" aria-label="إجراءات سريعة">
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing || overview.isFetching}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                title="تحديث بيانات ومؤشرات اليوم"
+              >
+                <RefreshCwIcon size={14} className={isRefreshing || overview.isFetching ? 'spin-animation' : ''} />
+                <span>تحديث</span>
+              </button>
               <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير Excel</button>
               <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
             </div>

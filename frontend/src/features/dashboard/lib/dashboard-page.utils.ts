@@ -27,8 +27,10 @@ export function formatInteger(value: number) {
   return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(value);
 }
 
-export function buildDashboardAlerts(payload: DashboardOverviewPayload): DashboardAlert[] {
-  const { lowStock, stats } = payload;
+export function buildDashboardAlerts(payload?: DashboardOverviewPayload | null): DashboardAlert[] {
+  if (!payload || typeof payload !== 'object') return [];
+  const lowStock = Array.isArray(payload.lowStock) ? payload.lowStock : [];
+  const stats = payload.stats || ({} as any);
   return [
     lowStock.length ? { cls: 'alert-warning', title: 'مخزون منخفض', text: `يوجد ${lowStock.length} صنف يحتاج متابعة` } : null,
     Number(stats.aboveCreditLimit || 0) ? { cls: 'alert-critical', title: 'تجاوز حد الائتمان', text: `${stats.aboveCreditLimit} عميل تجاوز الحد المسموح` } : null,
