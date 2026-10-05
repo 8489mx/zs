@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { enqueueOfflineSale, getOfflineSalesQueue } from './pos-offline-sync';
 import type { CreatePosSaleInput } from '@/features/pos/contracts';
+import { useAuthStore } from '@/stores/auth-store';
 
 const sale = { note: 'offline test' } as CreatePosSaleInput;
 
 describe('offline POS queue durability', () => {
   beforeEach(() => {
     localStorage.clear();
+    useAuthStore.setState({
+      tenant: { id: 'test-tenant', accountId: 'test-account' } as any,
+      user: { tenantId: 'test-tenant', accountId: 'test-account' } as any,
+    });
     vi.restoreAllMocks();
   });
 

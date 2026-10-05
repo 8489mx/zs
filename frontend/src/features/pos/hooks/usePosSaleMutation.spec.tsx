@@ -1,10 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePosSaleMutation } from '@/features/pos/hooks/usePosSaleMutation';
 import type { CreatePosSaleInput } from '@/features/pos/contracts';
 import { createTestQueryClient } from '@/test/test-query-client';
+import { useAuthStore } from '@/stores/auth-store';
 
 const { createSaleMock, invalidateSalesDomainMock } = vi.hoisted(() => ({
   createSaleMock: vi.fn(),
@@ -67,6 +68,13 @@ function createSaleInput(): CreatePosSaleInput {
 }
 
 describe('usePosSaleMutation', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      tenant: { id: 'test-tenant', accountId: 'test-account' } as any,
+      user: { tenantId: 'test-tenant', accountId: 'test-account' } as any,
+    });
+  });
+
   it('uses the shared sales invalidation flow with dashboard freshness on success', async () => {
     createSaleMock.mockResolvedValueOnce({ id: 'sale-42' });
     invalidateSalesDomainMock.mockResolvedValueOnce(undefined);
