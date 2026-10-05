@@ -34,8 +34,6 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
           migrations[key] = migrationModule.migration;
         } else if (migrationModule.default) {
           migrations[key] = migrationModule.default;
-        } else if (typeof (migrationModule as any).up === 'function') {
-          migrations[key] = migrationModule as unknown as Migration;
         }
       } catch (err) {
         // If a file is being written or missing during hot reload, throw clear error
