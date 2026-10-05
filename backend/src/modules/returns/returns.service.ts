@@ -19,9 +19,11 @@ import { IdempotencyService } from '../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
+import { allocateRefundTenders, type RefundTender } from './engines/refund-tender.engine';
+import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engine';
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] };
-type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
+type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender; amount: number }> };
 
 @Injectable()
 export class ReturnsService {
@@ -58,7 +60,7 @@ export class ReturnsService {
   }
 
   private async addCustomerLedgerEntry(trx: Kysely<Database>, customerId: number, amount: number, entryType: string, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null): Promise<void> {
-    const customer = await trx.selectFrom('customers').select(['balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
+    const customer = await trx.selectFrom('customers').select(['balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
     const balanceAfter = calculateNextLedgerBalance(customer.balance, amount);
     await trx.insertInto('customer_ledger').values({ customer_id: customerId, entry_type: entryType, amount, balance_after: balanceAfter, note, reference_type: 'return_document', reference_id: returnDocumentId, return_document_id: returnDocumentId, branch_id: branchId, location_id: locationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
     await trx.updateTable('customers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
@@ -118,6 +120,7 @@ export class ReturnsService {
       invoice_id: row.invoiceId,
       settlement_mode: row.settlementMode,
       refund_method: row.refundMethod,
+      refund_allocations: row.refundAllocations ? JSON.stringify(row.refundAllocations) : null,
       total: row.total,
       note: row.note,
       branch_id: row.branchId,
@@ -132,8 +135,8 @@ export class ReturnsService {
     return { id, docNo };
   }
 
-  private async insertReturnItem(trx: Kysely<Database>, row: { returnDocumentId: number; productId: number | null; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }, auth: AuthContext): Promise<void> {
-    await trx.insertInto('return_items').values({ return_document_id: row.returnDocumentId, product_id: row.productId, product_name: row.productName, qty: row.qty, unit_total: row.unitTotal, line_total: row.lineTotal, sale_item_id: row.saleItemId, purchase_item_id: row.purchaseItemId, ...this.tenantFields(auth) }).execute();
+  private async insertReturnItem(trx: Kysely<Database>, row: { returnDocumentId: number; productId: number | null; productName: string; qty: number; unitTotal: number; lineTotal: number; allocatedTax?: number | null; costPrice?: number | null; saleItemId?: number; purchaseItemId?: number }, auth: AuthContext): Promise<void> {
+    await trx.insertInto('return_items').values({ return_document_id: row.returnDocumentId, product_id: row.productId, product_name: row.productName, qty: row.qty, unit_total: row.unitTotal, line_total: row.lineTotal, allocated_tax: row.allocatedTax ?? null, cost_price: row.costPrice ?? null, sale_item_id: row.saleItemId, purchase_item_id: row.purchaseItemId, ...this.tenantFields(auth) }).execute();
   }
 
   private async getReturnedQty(trx: Kysely<Database>, returnType: 'sale' | 'purchase', invoiceId: number, productId: number, auth: AuthContext, lineItemId?: number): Promise<number> {
@@ -252,13 +255,13 @@ export class ReturnsService {
     const isPrivileged = auth.role === 'super_admin' || auth.role === 'admin' || (auth.permissions && auth.permissions.includes('canDirectReturn'));
     let approvedByName: string | undefined;
 
-    if (!isPrivileged) {
+    if (!isPrivileged || (payload.refundOverrideReason && !['admin', 'super_admin'].includes(auth.role))) {
       approvedByName = await this.verifyManagerAuthorization(this.db, payload.managerPin || '', auth);
     }
 
     const returnIds = await this.tx.runInTransaction(this.db, async (trx) => {
       const normalizedItems = normalizeReturnItems(payload);
-      if (payload.type === 'sale') return this.createSaleReturn(trx, payload, normalizedItems, auth);
+      if (payload.type === 'sale') return this.createSaleReturn(trx, payload, normalizedItems, auth, approvedByName);
       return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
     });
 
@@ -305,7 +308,7 @@ export class ReturnsService {
     return result;
   }
 
-  private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
+  private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string): Promise<number[]> {
     const scope = this.scope(auth);
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
@@ -316,7 +319,42 @@ export class ReturnsService {
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
-    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
+    const originalPayments = await trx.selectFrom('sale_payments').select(['payment_channel', 'amount'])
+      .where('sale_id', '=', Number(sale.id)).where('tenant_id', '=', scope.tenantId).execute();
+    const previousRefundRows = await trx.selectFrom('return_documents')
+      .select(['refund_method', 'settlement_mode', 'refund_allocations', 'total'])
+      .where('return_type', '=', 'sale').where('invoice_id', '=', Number(sale.id))
+      .where('tenant_id', '=', scope.tenantId).execute();
+    const originalPaid = originalPayments.length
+      ? originalPayments.reduce((sum, row) => sum + Number(row.amount || 0), 0) : Number(sale.paid_amount || 0);
+    const originalCashPaid = originalPayments.length
+      ? originalPayments.filter((row) => row.payment_channel === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      : sale.payment_channel === 'cash' ? originalPaid : 0;
+    const originalNonCashPaid = Math.max(0, originalPaid - originalCashPaid);
+    const priorAllocations: Array<{ tender: RefundTender; amount: number }> = [];
+    for (const previous of previousRefundRows) {
+      if (previous.refund_allocations != null) {
+        const parsed: unknown = typeof previous.refund_allocations === 'string'
+          ? JSON.parse(previous.refund_allocations) : previous.refund_allocations;
+        if (!Array.isArray(parsed) || parsed.some((entry) => !entry ||
+          !['cash', 'card', 'store_credit', 'receivable'].includes(entry.tender) ||
+          !Number.isFinite(Number(entry.amount)) || Number(entry.amount) < 0)) {
+          throw new AppError('توزيع استرداد سابق غير صالح', 'REFUND_HISTORY_INVALID', 409);
+        }
+        priorAllocations.push(...parsed as Array<{ tender: RefundTender; amount: number }>);
+      } else {
+        const tender: RefundTender = previous.settlement_mode === 'store_credit' ? 'store_credit'
+          : sale.payment_type === 'credit' ? 'receivable'
+            : previous.refund_method === 'cash' ? 'cash' : 'card';
+        priorAllocations.push({ tender, amount: Number(previous.total || 0) });
+      }
+    }
+    const priorTotal = (tender: RefundTender) => priorAllocations
+      .filter((entry) => entry.tender === tender).reduce((sum, entry) => sum + entry.amount, 0);
+    const previousCashRefunded = priorTotal('cash');
+    const previousNonCashRefunded = priorTotal('card');
+    const previousDebtReversed = priorTotal('receivable');
+    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; allocatedTax: number; costPrice?: number | null; saleItemId?: number; purchaseItemId?: number }> = [];
 
     const pendingQtyByProduct = new Map<number, number>();
     const pendingQtyByLine = new Map<number, number>();
@@ -327,7 +365,10 @@ export class ReturnsService {
       .select([
         'ri.product_id',
         'ri.sale_item_id',
-        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty'),
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.line_total'), sql<number>`0`).as('total_amount'),
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.allocated_tax'), sql<number>`0`).as('total_tax'),
+        sql<number>`sum(case when ri.allocated_tax is null then 1 else 0 end)`.as('unpriced_count'),
       ])
       .where('rd.return_type', '=', 'sale')
       .where('rd.invoice_id', '=', Number(payload.invoiceId))
@@ -337,14 +378,44 @@ export class ReturnsService {
       .execute();
 
     const returnedQtyByLine = new Map<number, number>();
+    const returnedAmountByLine = new Map<number, number>();
+    const returnedTaxByLine = new Map<number, number>();
     const returnedQtyByProduct = new Map<number, number>();
+    const legacyReturnedProducts = new Set<number>();
+    const unreconciledReturnLines = new Set<number>();
     for (const r of returnedRows) {
       const q = Number(r.total_qty || 0);
       if (r.sale_item_id) {
         returnedQtyByLine.set(Number(r.sale_item_id), q);
+        returnedAmountByLine.set(Number(r.sale_item_id), Number(r.total_amount || 0));
+        returnedTaxByLine.set(Number(r.sale_item_id), Number(r.total_tax || 0));
+        if (Number(r.unpriced_count || 0) > 0) unreconciledReturnLines.add(Number(r.sale_item_id));
       }
       const pId = Number(r.product_id || 0);
+      if (!r.sale_item_id && q > 0) legacyReturnedProducts.add(pId);
       returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
+    }
+
+    const legacyPricedLineIds = new Set(saleItems.filter((line) => line.net_line_total == null).map((line) => Number(line.id)));
+    if (legacyPricedLineIds.size > 0) {
+      const allocations = allocateInvoiceDiscount({
+        lines: saleItems.map((line) => ({ lineTotal: Number(line.line_total || 0), qty: Number(line.qty || 0) })),
+        invoiceDiscount: Number(sale.discount || 0), invoiceTax: Number(sale.tax_amount || 0),
+        pricesIncludeTax: Boolean(sale.prices_include_tax),
+      });
+      for (let index = 0; index < saleItems.length; index += 1) {
+        const line = saleItems[index];
+        if (line.net_line_total != null) continue;
+        const allocation = allocations[index];
+        await trx.updateTable('sale_items').set({
+          net_unit_price: allocation.netUnitPrice, net_line_total: allocation.netLineTotal,
+          allocated_discount: allocation.allocatedDiscount, allocated_tax: allocation.allocatedTax,
+        }).where('id', '=', Number(line.id)).where('tenant_id', '=', scope.tenantId).execute();
+        Object.assign(line, {
+          net_unit_price: allocation.netUnitPrice, net_line_total: allocation.netLineTotal,
+          allocated_discount: allocation.allocatedDiscount, allocated_tax: allocation.allocatedTax,
+        });
+      }
     }
 
     for (const requestItem of [...items].sort((a, b) => a.productId - b.productId)) {
@@ -357,6 +428,12 @@ export class ReturnsService {
         : matchingLines[0];
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const saleLineId = Number(saleItem.id);
+      if (unreconciledReturnLines.has(saleLineId) || (legacyPricedLineIds.has(saleLineId) && (returnedQtyByLine.get(saleLineId) || 0) > 0)) {
+        throw new AppError('مرتجع سابق يحتاج تسوية الضريبة والخصم قبل مرتجع جديد', 'RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
+      }
+      if (legacyReturnedProducts.has(requestItem.productId)) {
+        throw new AppError('مرتجع سابق بلا ربط بسطر الفاتورة يحتاج تسوية قبل مرتجع جديد', 'RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
+      }
       const soldForProduct = matchingLines.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
       ensureReturnQtyWithinLimit(
         requestItem.qty + (pendingQtyByProduct.get(requestItem.productId) || 0),
@@ -373,7 +450,12 @@ export class ReturnsService {
 
       const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
+      const preparedLine = buildSaleReturnLine(saleItem, product, requestItem, {
+        qty: returnedQtyByLine.get(saleLineId) || 0,
+        amount: returnedAmountByLine.get(saleLineId) || 0,
+        tax: returnedTaxByLine.get(saleLineId) || 0,
+      });
+      const returnedUnitCost = Number(saleItem.cost_price || 0) / Number(saleItem.unit_multiplier || 1);
 
       const originalSerials = typeof saleItem.serials === 'string'
         ? JSON.parse(saleItem.serials || '[]') as unknown : saleItem.serials;
@@ -443,32 +525,53 @@ export class ReturnsService {
                 const branchId = locData?.branch_id || sale.branch_id;
 
                const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
-               await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+               await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * returnToThis).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
             }
          }
          
          // Fallback if allocations are not enough (e.g. data anomaly)
          if (remainingToReturn > 0) {
             const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: remainingToReturn, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
-            await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: remainingToReturn, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return fallback S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+            await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: remainingToReturn, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * remainingToReturn).toFixed(2)), reason: 'sale_return', note: 'sale return fallback S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
          }
       } else {
          const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
-         await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+         await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * preparedLine.stockDelta).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, saleItemId: saleLineId });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(saleItem.cost_price || 0), saleItemId: saleLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
+    const overrideRequested = Boolean(String(payload.refundOverrideReason || '').trim());
+    const overrideAllowed = Boolean(approvedByName) || auth.role === 'admin' || auth.role === 'super_admin';
+    if (overrideRequested && !overrideAllowed) throw new AppError('تجاوز سقف وسيلة الاسترداد يتطلب اعتماد مشرف', 'REFUND_OVERRIDE_MANAGER_REQUIRED', 403);
+    const refundAllocations = allocateRefundTenders({
+      requested: settlementMode === 'store_credit' ? 'store_credit' : refundMethod,
+      amount: total,
+      originalCashPaid, originalNonCashPaid,
+      originalDebt: Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0) - Math.max(originalPaid, Number(sale.paid_amount || 0))),
+      previousCashRefunded, previousNonCashRefunded, previousDebtReversed,
+      hasCustomer: Boolean(sale.customer_id),
+      override: overrideRequested, overrideReason: payload.refundOverrideReason,
+    });
+    const returnNote = overrideRequested
+      ? `${String(payload.note || '').trim()} | اعتماد تجاوز وسيلة الاسترداد: ${String(payload.refundOverrideReason).trim()}`.trim()
+      : String(payload.note || '').trim();
     // The posting service reverses the returned lines using their original sale-line costs.
-    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
-    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, saleItemId: line.saleItemId }, auth);
+    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, {
+      returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode,
+      refundMethod: refundAllocations.length === 1 ? refundAllocations[0].tender : 'mixed',
+      refundAllocations, total, note: returnNote, branchId: sale.branch_id, locationId: sale.location_id,
+    }, auth);
+    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, allocatedTax: line.allocatedTax, costPrice: line.costPrice, saleItemId: line.saleItemId }, auth);
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;
-    if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
-    else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
-    else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id, true);
-    else if (refundMethod === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+    for (const allocation of refundAllocations) {
+      if (allocation.tender === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, allocation.amount, auth);
+      else if (allocation.tender === 'receivable' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -allocation.amount, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+      else if (allocation.tender === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id, true);
+      else if (allocation.tender === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+    }
 
     // Reconcile Customer Loyalty Points on Return
     if (customerId) {

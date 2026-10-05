@@ -2,8 +2,14 @@ import { Type } from 'class-transformer';
 import { IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class PosAuditEventDto {
-  @IsIn(['cart_remove', 'draft_cancel'])
-  eventType!: 'cart_remove' | 'draft_cancel';
+  @IsIn(['no_sale', 'cart_remove', 'draft_cancel'])
+  eventType!: 'no_sale' | 'cart_remove' | 'draft_cancel';
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  branchId?: number;
 
   @Type(() => Number)
   @IsOptional()
@@ -38,4 +44,8 @@ export class PosAuditEventDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  managerPin?: string;
 }

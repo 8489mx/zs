@@ -47,8 +47,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
               : 'cash'
       ) as 'cash' | 'card' | 'wallet' | 'instapay',
       amount: Number(entry.amount || 0),
-    }))
-    .filter((entry) => entry.amount > 0);
+    }));
 
   // Guard against stale POS state: if the cashier selected "فيزا" but the
   // payment input still arrived as a single cash line, trust the explicit
@@ -71,9 +70,9 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
       : requestedPaymentChannel === 'instapay'
         ? 'instapay'
         : 'cash';
-  const payments = paymentType === 'credit' && payload.paymentChannel === 'credit'
-    ? []
-    : correctedPayments;
+  // A credit invoice can still receive a partial tender. Never silently discard
+  // explicit payment rows just because the header channel says "credit".
+  const payments = correctedPayments;
   const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
     ? (payments.length ? (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || 'credit')) : 'credit')
     : (requestedPaymentChannel === 'mixed'

@@ -5957,3 +5957,11 @@
 - Store-credit returns and redemptions now post to customer advances liability account `2150`. Historical store-credit journals posted to receivables need an accountant-approved reclassification before ledger balances are certified.
 - **Open integration risk:** an instantaneous exchange combining negative return lines and new sale lines in one invoice and transaction is not implemented. The existing return/store-credit and new-sale workflows remain separate; presenting them as one atomic exchange would risk mismatched stock and ledgers. A dedicated exchange posting engine is required before enabling that workflow.
 - No tests, builds, or physical printer checks were run under the owner's current instruction.
+
+## POS financial controls follow-up (5 October 2026)
+
+- Cash checkout stores tendered, applied, and change amounts per payment. Noncash overpayment is rejected; drawer expectations use only the applied cash, including on older sales without payment rows.
+- Sale lines persist proportional invoice discount, allocated tax, net value, and net unit price. Returns use those saved amounts and original unit cost under the sale and stock locks. A legacy return with unreconciled line values needs manual reconciliation before another return.
+- Sale refunds are allocated to outstanding receivable, original cash, original electronic payment, or customer store credit. Cash cannot exceed the original cash paid without manager authorization and a recorded reason. Mixed returns reduce the cashier drawer by the actual cash payout.
+- The backend records tenant-scoped POS audit events, requires an open shift for POS sales and no-sale drawer events, and posts blind-close variances to dedicated Cash Over and Cash Short accounts. The no-sale audit endpoint is available; a dedicated POS control for physical drawer opening is still to be wired in the client.
+- No build, typecheck, tests, migration execution, or hardware check was run under the owner's instruction. This is not a production verification claim.

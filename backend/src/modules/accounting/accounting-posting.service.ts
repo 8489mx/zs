@@ -1128,6 +1128,7 @@ export class AccountingPostingService {
         'invoice_id',
         'settlement_mode',
         'refund_method',
+        'refund_allocations',
         'total',
         'branch_id',
         'location_id',
@@ -1167,10 +1168,18 @@ export class AccountingPostingService {
       this.logger.warn(`Sales returns account code 4400 not found for return ${returnId}; falling back to sales revenue account ${fallbackRevenueAccountId}`);
     }
 
+    const rawRefundAllocations: unknown = typeof returnDocument.refund_allocations === 'string'
+      ? JSON.parse(returnDocument.refund_allocations) : returnDocument.refund_allocations;
+    const refundAllocations = Array.isArray(rawRefundAllocations) ? rawRefundAllocations as Array<{ tender: string; amount: number }> : null;
+    if (returnDocument.refund_allocations != null && (!refundAllocations || refundAllocations.some((entry) =>
+      !entry || !['cash', 'card', 'store_credit', 'receivable'].includes(entry.tender) ||
+      !Number.isFinite(Number(entry.amount)) || Number(entry.amount) <= 0))) {
+      throw new Error(`Invalid refund tender allocation for return ${returnId}`);
+    }
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const bankAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
-    const storeCreditAccountId = returnDocument.settlement_mode === 'store_credit'
+    const storeCreditAccountId = returnDocument.settlement_mode === 'store_credit' || refundAllocations?.some((entry) => entry.tender === 'store_credit')
       ? await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '2150') : 0;
     const salesTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_tax_account_id, '2120');
     const cogsAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cogs_account_id, '5100');
@@ -1180,7 +1189,16 @@ export class AccountingPostingService {
     const originalSaleTotal = Number(sale?.total || 0);
     const originalSaleTax = Number(sale?.tax_amount || 0);
     const taxRatio = originalSaleTotal > 0 && originalSaleTax > 0 ? (originalSaleTax / originalSaleTotal) : 0;
-    const taxAmount = this.toMoney(total * taxRatio);
+    const returnTax = await queryable.selectFrom('return_items')
+      .select([
+        sql<number>`coalesce(sum(allocated_tax), 0)`.as('allocated_tax'),
+        sql<number>`count(*) filter (where allocated_tax is null)`.as('unallocated_lines'),
+      ])
+      .where('return_document_id', '=', returnId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const taxAmount = Number(returnTax?.unallocated_lines || 0) === 0
+      ? this.toMoney(returnTax?.allocated_tax || 0) : this.toMoney(total * taxRatio);
     const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
     const customerPartnerId = sale?.customer_id ? Number(sale.customer_id) : null;
     const lines: JournalLineDraft[] = [];
@@ -1219,37 +1237,26 @@ export class AccountingPostingService {
     const originalSalePaymentType = String(sale?.payment_type || '').trim().toLowerCase();
 
     if (total > 0) {
-      if (settlementMode === 'store_credit' || originalSalePaymentType === 'credit') {
+      const allocations = refundAllocations ?? [{
+        tender: settlementMode === 'store_credit' ? 'store_credit'
+          : originalSalePaymentType === 'credit' ? 'receivable'
+            : refundMethod === 'cash' ? 'cash' : 'card',
+        amount: total,
+      }];
+      const allocatedCents = allocations.reduce((sum, entry) => sum + Math.round(Number(entry.amount) * 100), 0);
+      if (allocatedCents !== Math.round(total * 100)) throw new Error(`Refund tenders do not balance for return ${returnId}`);
+      for (const allocation of allocations) {
+        const accountId = allocation.tender === 'store_credit' ? storeCreditAccountId
+          : allocation.tender === 'receivable' ? customerAccountId
+            : allocation.tender === 'cash' ? cashAccountId : bankAccountId;
+        const partner = allocation.tender === 'store_credit' || allocation.tender === 'receivable';
         this.addLine(lines, {
-          accountId: settlementMode === 'store_credit' ? storeCreditAccountId : customerAccountId,
-          description: `تسوية رصيد عميل من مرتجع فاتورة رقم ${invoiceNo}`,
+          accountId,
+          description: `تسوية مرتجع فاتورة رقم ${invoiceNo} - ${allocation.tender}`,
           debit: 0,
-          credit: total,
-          partnerType: customerPartnerId ? 'customer' : 'none',
-          partnerId: customerPartnerId,
-          branchId,
-          locationId,
-        });
-      } else if (refundMethod === 'cash') {
-        this.addLine(lines, {
-          accountId: cashAccountId,
-          description: `رد نقدي للعميل من مرتجع فاتورة رقم ${invoiceNo}`,
-          debit: 0,
-          credit: total,
-          partnerType: 'none',
-          partnerId: null,
-          branchId,
-          locationId,
-        });
-      } else {
-        // Fallback for non-cash refund methods (card/wallet/instapay) follows existing return settlement behavior.
-        this.addLine(lines, {
-          accountId: bankAccountId,
-          description: `رد غير نقدي للعميل من مرتجع فاتورة رقم ${invoiceNo}`,
-          debit: 0,
-          credit: total,
-          partnerType: 'none',
-          partnerId: null,
+          credit: this.toMoney(allocation.amount),
+          partnerType: partner && customerPartnerId ? 'customer' : 'none',
+          partnerId: partner ? customerPartnerId : null,
           branchId,
           locationId,
         });
@@ -1259,7 +1266,7 @@ export class AccountingPostingService {
     // Reliable cost source for return COGS reversal: original sale_items.cost_price at sale time.
     const returnItems = await queryable
       .selectFrom('return_items')
-      .select(['product_id', 'sale_item_id', 'qty'])
+      .select(['product_id', 'sale_item_id', 'qty', 'cost_price'])
       .where('return_document_id', '=', returnId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
@@ -2682,14 +2689,14 @@ export class AccountingPostingService {
          resolution = 'charged_to_cashier';
          chargedToUserId = custodianId;
        } else {
-         const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
+         const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7210');
          this.addLine(lines, { accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId} ضمن حد التسامح`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
          resolution = 'within_tolerance';
        }
        this.addLine(lines, { accountId: cashAccountId, description: `عجز وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     } else {
        // Overage. Never netted against another shift's shortage: it lands on its own income account.
-       const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+       const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7110');
        const amount = variance;
        this.addLine(lines, { accountId: cashAccountId, description: `زيادة وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
        this.addLine(lines, { accountId: overageAccountId, description: `زيادة وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });

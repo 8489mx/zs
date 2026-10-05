@@ -2,6 +2,7 @@ export interface ReturnCostLine {
   product_id: number | null;
   sale_item_id: number | null;
   qty: number | string;
+  cost_price?: number | string | null;
 }
 
 export interface OriginalSaleCostLine {
@@ -26,6 +27,12 @@ export function calculateSalesReturnCost(returns: ReturnCostLine[], saleItems: O
     const qty = Number(line.qty);
     if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(productId) || productId <= 0) {
       throw new Error('Invalid sales return cost line');
+    }
+    if (line.cost_price != null) {
+      const savedCost = Number(line.cost_price);
+      if (!Number.isFinite(savedCost) || savedCost < 0) throw new Error(`Invalid saved return cost for product ${productId}`);
+      total += qty * savedCost;
+      continue;
     }
     const original = line.sale_item_id ? byId.get(Number(line.sale_item_id)) : undefined;
     if (line.sale_item_id && !original) throw new Error(`Original sale line missing for returned product ${productId}`);

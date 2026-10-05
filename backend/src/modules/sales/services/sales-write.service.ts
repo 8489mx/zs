@@ -18,7 +18,9 @@ import { HeldSaleDto } from '../dto/held-sale.dto';
 import { PosAuditEventDto } from '../dto/pos-audit-event.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
-import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
+import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel } from '../helpers/sales-write.helper';
+import { allocateSaleTenders, type SaleTenderChannel } from '../engines/sale-tender.engine';
+import { allocateInvoiceDiscount } from '../engines/invoice-discount.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
@@ -198,10 +200,30 @@ export class SalesWriteService {
     }
   }
 
-  private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
+  private async assertUnitPriceChangeAllowed(trx: Kysely<Database> | Transaction<Database>, auth: AuthContext, providedPrice: number, allowedPrice: number, productId: number, managerPin?: string, saleId?: number): Promise<void> {
     if (Math.abs(Number(providedPrice || 0) - Number(allowedPrice || 0)) <= 0.0001) return;
-    if (this.authz.hasPermission(auth, 'canEditPrice')) return;
-    throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
+    const scope = requireTenantScope(auth);
+    const settingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
+    const thresholdEnabled = settingsMap.get('posMaxDiscountThresholdEnabled') === true || settingsMap.get('posMaxDiscountThresholdEnabled') === 'true';
+    const thresholdType = settingsMap.get('posMaxDiscountThresholdType') || 'percentage';
+    const threshold = Number(settingsMap.get('posMaxDiscountThresholdValue') || 0);
+    const reduction = Math.max(0, allowedPrice - providedPrice);
+    const exceedsThreshold = thresholdEnabled && threshold > 0 &&
+      (thresholdType === 'percentage'
+        ? allowedPrice > 0 && reduction / allowedPrice * 100 > threshold
+        : reduction > threshold);
+    let authorizedBy: string | null = null;
+    if (!this.authz.hasPermission(auth, 'canEditPrice') || exceedsThreshold) {
+      const approval = await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), auth, trx);
+      authorizedBy = approval.authorizedByName;
+    }
+    await trx.insertInto('pos_audit_events').values({
+      tenant_id: scope.tenantId, account_id: scope.accountId,
+      event_type: 'price_edit', user_id: auth.userId, sale_id: saleId || null,
+      product_id: productId, amount: Number(providedPrice),
+      reason: authorizedBy ? `Price ${allowedPrice} -> ${providedPrice}; approved by ${authorizedBy}` : `Price ${allowedPrice} -> ${providedPrice}`,
+      metadata: { allowedPrice, providedPrice, authorizedBy },
+    }).execute();
   }
 
   private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number, tenantId: string) {
@@ -655,6 +677,30 @@ export class SalesWriteService {
 
   async logPosAuditEvent(payload: PosAuditEventDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const reason = String(payload.note || '').trim();
+    const event = {
+      tenant_id: scope.tenantId,
+      account_id: scope.accountId,
+      event_type: payload.eventType,
+      user_id: auth.userId,
+      sale_id: null,
+      product_id: payload.productId || null,
+      amount: Number(payload.total || 0),
+      reason,
+      metadata: { branchId: payload.branchId, productName: payload.productName, qty: payload.qty, cartItemsCount: payload.cartItemsCount },
+    };
+    if (payload.eventType === 'no_sale') {
+      if (!payload.branchId || reason.length < 10) throw new AppError('حدد الفرع وسبب فتح الدرج في 10 أحرف على الأقل', 'NO_SALE_REASON_REQUIRED', 400);
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        if (!await this.authz.hasOpenCashierShift(trx, auth, payload.branchId)) {
+          throw new AppError('وردية كاشير مفتوحة مطلوبة لفتح الدرج', 'OPEN_SHIFT_REQUIRED', 400);
+        }
+        await this.authz.authorizeDiscountOverride(String(payload.managerPin || '').trim(), auth, trx);
+        await trx.insertInto('pos_audit_events').values(event).execute();
+      });
+    } else {
+      await this.db.insertInto('pos_audit_events').values(event).execute();
+    }
     let detailInfo = '';
 
     if (payload.eventType === 'cart_remove') {
@@ -669,6 +715,9 @@ export class SalesWriteService {
       ].filter(Boolean);
       await this.audit.log('حدث أمني - حذف عنصر من السلة', detailsParts.join(' | '), auth, { eventCode: AUDIT_EVENT_CODES.POS_CART_ITEM_REMOVED });
       detailInfo = payload.productName ? `${payload.productName} (كمية: ${payload.qty || 1})` : (payload.note || 'حذف صنف من السلة');
+    } else if (payload.eventType === 'no_sale') {
+      detailInfo = reason || 'فتح درج بدون بيع';
+      await this.audit.log('حدث أمني - فتح درج بدون بيع', detailInfo, auth, { eventCode: AUDIT_EVENT_CODES.POS_DRAFT_SALE_CANCELLED });
     } else {
       const cancelDetailsParts = [
         `تم إلغاء/حذف فاتورة قبل الإرسال بواسطة ${auth.username}`,
@@ -970,7 +1019,7 @@ export class SalesWriteService {
         const approvedUnitPrice = effectiveTerms?.approvedUnitPrices?.[item.productId];
         const isApprovedPrice = approvedUnitPrice !== undefined && Math.abs(Number(item.price || 0) - Number(approvedUnitPrice)) <= 0.0001;
         if (!isApprovedPrice) {
-          this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+          await this.assertUnitPriceChangeAllowed(trx, auth, Number(item.price || 0), allowedUnitPrice, item.productId, normalized.managerPin);
         }
 
         let availableStockQty = 0;
@@ -1079,6 +1128,11 @@ export class SalesWriteService {
       await this.assertDiscountChangeAllowed(trx, auth, unapprovedDiscount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
+      const allocatedLines = allocateInvoiceDiscount({
+        lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
+        invoiceDiscount: effectiveDiscount, invoiceTax: taxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+      });
+      const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
       // Distribute the invoice discount across lines before checking the real selling floor.
@@ -1087,10 +1141,8 @@ export class SalesWriteService {
         const product = productMap.get(item.productId);
         const minUnitPrice = Number(product?.min_selling_price || 0) * Number(item.unitMultiplier || 1);
         const floor = Math.max(Number(item.costPrice || 0), minUnitPrice) * Number(item.qty || 0);
-        const discountedLine = item.lineTotal * (subtotal > 0 ? (subtotal - effectiveDiscount) / subtotal : 0);
-        const netLine = normalized.pricesIncludeTax
-          ? discountedLine / (1 + Math.max(0, normalized.taxRate) / 100)
-          : discountedLine;
+        const allocation = allocationByItem.get(item)!;
+        const netLine = allocation.netLineTotal;
         return netLine + 0.001 < floor;
       });
       const floorApproval = belowFloorItems.length
@@ -1099,10 +1151,7 @@ export class SalesWriteService {
 
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       
-      const requireCashierShiftVal = settingsMap.get('requireCashierShiftForSales');
-      const requireCashierShiftForSales = requireCashierShiftVal == null ? true : (requireCashierShiftVal !== false && requireCashierShiftVal !== 'false');
-
-      if (normalized.source === 'pos' && requireCashierShiftForSales) {
+      if (normalized.source === 'pos') {
         const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth, normalized.branchId);
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a POS sale', 'OPEN_SHIFT_REQUIRED', 400);
       } else if (normalized.paymentType !== 'credit' && !['admin', 'super_admin'].includes(auth.role) && (normalized.payments.some((entry) => entry.paymentChannel === 'cash') || normalized.paymentChannel === 'cash')) {
@@ -1110,8 +1159,13 @@ export class SalesWriteService {
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a cash sale', 'OPEN_SHIFT_REQUIRED', 400);
       }
 
-      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
-      const paidAmount = calculatePaidAmount(payments);
+      const tenderAllocation = allocateSaleTenders({
+        paymentType: normalized.paymentType, payments: normalized.payments, collectibleTotal,
+        fallbackChannel: (['card', 'wallet', 'instapay'].includes(normalized.paymentChannel) ? normalized.paymentChannel : 'cash') as SaleTenderChannel,
+        tenderedCash: normalized.tenderedAmount,
+      });
+      const payments = tenderAllocation.payments;
+      const paidAmount = tenderAllocation.appliedAmount;
       const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
       const isDelivery = String(normalized.orderType || '').trim() === 'delivery';
 
@@ -1182,12 +1236,8 @@ export class SalesWriteService {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
       }
 
-      const appliedCash = payments.find((p) => p.paymentChannel === 'cash')?.amount || 0;
-      let finalTenderedAmount = normalized.tenderedAmount > 0 ? normalized.tenderedAmount : appliedCash;
-      if (finalTenderedAmount < appliedCash) {
-        finalTenderedAmount = appliedCash;
-      }
-      const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(2));
+      const finalTenderedAmount = tenderAllocation.tenderedAmount;
+      const changeAmount = tenderAllocation.changeAmount;
 
       if (!resolvedDeliveryFeeMode) {
         const deliveryFeeModeVal = settingsMap.get('deliveryFeeMode');
@@ -1226,6 +1276,7 @@ export class SalesWriteService {
           prices_include_tax: normalized.pricesIncludeTax,
           total,
           paid_amount: paidAmount,
+          applied_amount: paidAmount,
           tendered_amount: finalTenderedAmount,
           change_amount: changeAmount,
           store_credit_used: normalized.storeCreditUsed,
@@ -1256,6 +1307,9 @@ export class SalesWriteService {
             sale_id: id,
             payment_channel: payment.paymentChannel,
             amount: payment.amount,
+            applied_amount: payment.amount,
+            tendered_amount: payment.tenderedAmount,
+            change_amount: payment.changeAmount,
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           }))
@@ -1282,6 +1336,10 @@ export class SalesWriteService {
             qty: item.qty,
             unit_price: item.unitPrice,
             line_total: item.lineTotal,
+            net_unit_price: allocationByItem.get(item)!.netUnitPrice,
+            net_line_total: allocationByItem.get(item)!.netLineTotal,
+            allocated_discount: allocationByItem.get(item)!.allocatedDiscount,
+            allocated_tax: allocationByItem.get(item)!.allocatedTax,
             unit_name: item.unitName,
             unit_multiplier: item.unitMultiplier,
             cost_price: item.costPrice,
@@ -2028,7 +2086,7 @@ export class SalesWriteService {
           qty: item.qty,
           unitMultiplier: item.unitMultiplier,
         });
-        this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+        await this.assertUnitPriceChangeAllowed(trx, auth, Number(item.price || 0), allowedUnitPrice, item.productId, normalized.managerPin, saleId);
         
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
@@ -2087,6 +2145,11 @@ export class SalesWriteService {
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin, subtotal);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
+      const allocatedLines = allocateInvoiceDiscount({
+        lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
+        invoiceDiscount: normalized.discount, invoiceTax: taxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+      });
+      const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       if (normalized.storeCreditUsed > 0) {
@@ -2094,8 +2157,16 @@ export class SalesWriteService {
         if (normalized.storeCreditUsed > Number(customer.store_credit_balance || 0) + 0.0001) throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
       }
 
-      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
-      const paidAmount = calculatePaidAmount(payments);
+      const tenderAllocation = allocateSaleTenders({
+        paymentType: normalized.paymentType, payments: normalized.payments, collectibleTotal,
+        fallbackChannel: (['card', 'wallet', 'instapay'].includes(normalized.paymentChannel) ? normalized.paymentChannel : 'cash') as SaleTenderChannel,
+        tenderedCash: normalized.tenderedAmount,
+      });
+      const payments = tenderAllocation.payments;
+      const paidAmount = tenderAllocation.appliedAmount;
+      if (normalized.source === 'pos' && !await this.authz.hasOpenCashierShift(trx, auth, normalized.branchId)) {
+        throw new AppError('وردية كاشير مفتوحة مطلوبة لتعديل فاتورة نقطة البيع', 'OPEN_SHIFT_REQUIRED', 400);
+      }
       const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
       const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
       if (effectivePaymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
@@ -2124,6 +2195,9 @@ export class SalesWriteService {
         prices_include_tax: normalized.pricesIncludeTax,
         total,
         paid_amount: paidAmount,
+        applied_amount: paidAmount,
+        tendered_amount: tenderAllocation.tenderedAmount,
+        change_amount: tenderAllocation.changeAmount,
         store_credit_used: normalized.storeCreditUsed,
         note: normalized.note,
         branch_id: normalized.branchId,
@@ -2132,7 +2206,7 @@ export class SalesWriteService {
       }).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
+        await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, applied_amount: payment.amount, tendered_amount: payment.tenderedAmount, change_amount: payment.changeAmount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
       }
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
@@ -2150,6 +2224,10 @@ export class SalesWriteService {
           qty: item.qty,
           unit_price: item.unitPrice,
           line_total: item.lineTotal,
+          net_unit_price: allocationByItem.get(item)!.netUnitPrice,
+          net_line_total: allocationByItem.get(item)!.netLineTotal,
+          allocated_discount: allocationByItem.get(item)!.allocatedDiscount,
+          allocated_tax: allocationByItem.get(item)!.allocatedTax,
           unit_name: item.unitName,
           unit_multiplier: item.unitMultiplier,
           cost_price: item.costPrice,
@@ -2510,6 +2588,11 @@ export class SalesWriteService {
         .where('id', '=', saleId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
+      await trx.insertInto('pos_audit_events').values({
+        tenant_id: scope.tenantId, account_id: scope.accountId, event_type: 'invoice_cancel',
+        user_id: auth.userId, sale_id: saleId, product_id: null, amount: Number(sale.total || 0),
+        reason: String(reason || '').trim(), metadata: { managerApproved: true },
+      }).execute();
 
       try {
         await this.accountingPosting.reverseSaleJournal(trx, saleId, String(reason || '').trim(), auth);
@@ -2576,7 +2659,7 @@ export class SalesWriteService {
           offers: activeOffers,
           qty: item.qty,
         });
-        this.assertUnitPriceChangeAllowed(auth, item.unitPrice, allowedUnitPrice);
+        await this.assertUnitPriceChangeAllowed(trx, auth, item.unitPrice, allowedUnitPrice, item.productId, payload.managerPin);
       }
 
       type SalePaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
