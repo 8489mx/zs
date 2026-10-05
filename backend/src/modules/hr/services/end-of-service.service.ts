@@ -7,6 +7,11 @@ import { AccountingService } from '../../accounting/accounting.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import {
+  calculateGratuity,
+  calculateLeaveEncashment,
+  calculateSettlementAbsorption,
+} from '../engines/eos-calculation.engine';
 
 export interface SettlementCalculateInput {
   employeeId: number;
@@ -96,68 +101,41 @@ export class EndOfServiceService {
 
     const dailyWage = totalSalary > 0 ? totalSalary / 30 : basicSalary / 30;
 
-    // Determine law & rules
+    // Determine gratuity via pure engine
     const lawType = input.lawType || 'saudi';
     const reason = input.terminationReason || 'resignation';
-    let gratuityPercentage = 100;
-    let baseGratuity = 0;
+    const gratuity = calculateGratuity({
+      serviceYearsDecimal,
+      totalSalary,
+      dailyWage,
+      lawType,
+      reason,
+      customGratuityDaysPerYear: input.customGratuityDaysPerYear,
+    });
 
-    if (lawType === 'saudi') {
-      // Saudi Labor Law: Art. 84 (Half month for first 5 years, full month for rest)
-      const first5Years = Math.min(serviceYearsDecimal, 5);
-      const subsequentYears = Math.max(0, serviceYearsDecimal - 5);
-      baseGratuity = (first5Years * 0.5 * totalSalary) + (subsequentYears * 1.0 * totalSalary);
-
-      // Saudi Art. 85 (Resignation scale)
-      if (reason === 'resignation') {
-        if (serviceYearsDecimal < 2) {
-          gratuityPercentage = 0;
-        } else if (serviceYearsDecimal >= 2 && serviceYearsDecimal < 5) {
-          gratuityPercentage = 33.333; // ثلث المكافأة
-        } else if (serviceYearsDecimal >= 5 && serviceYearsDecimal < 10) {
-          gratuityPercentage = 66.667; // ثلثي المكافأة
-        } else {
-          gratuityPercentage = 100; // المكافأة كاملة
-        }
-      } else if (reason === 'termination_article_80') {
-        gratuityPercentage = 0; // فصل بموجب المادة 80 لا يستحق مكافأة
-      } else {
-        gratuityPercentage = 100; // إنهاء من صاحب العمل أو انتهاء العقد أو تقاعد
-      }
-    } else if (lawType === 'egyptian') {
-      // Egyptian Labor Law: Art. 125
-      const first5Years = Math.min(serviceYearsDecimal, 5);
-      const subsequentYears = Math.max(0, serviceYearsDecimal - 5);
-      baseGratuity = (first5Years * 0.5 * totalSalary) + (subsequentYears * 1.0 * totalSalary);
-      gratuityPercentage = 100;
-    } else {
-      // Custom
-      const daysPerYear = input.customGratuityDaysPerYear || 15;
-      baseGratuity = (daysPerYear * dailyWage) * serviceYearsDecimal;
-      gratuityPercentage = 100;
-    }
-
-    let gratuityAmount = 0;
-    if (lawType === 'saudi' && reason === 'resignation') {
-      if (serviceYearsDecimal >= 2 && serviceYearsDecimal < 5) {
-        gratuityAmount = Number((baseGratuity / 3).toFixed(2));
-      } else if (serviceYearsDecimal >= 5 && serviceYearsDecimal < 10) {
-        gratuityAmount = Number(((baseGratuity * 2) / 3).toFixed(2));
-      } else if (serviceYearsDecimal >= 10) {
-        gratuityAmount = Number(baseGratuity.toFixed(2));
-      } else {
-        gratuityAmount = 0;
-      }
-    } else {
-      gratuityAmount = Number(((baseGratuity * gratuityPercentage) / 100).toFixed(2));
-    }
-
-    // Leave Encashment
+    // Leave Encashment: reconcile live used annual leaves from approved requests if not yet synced
     const empAny = employee as any;
     const annualBalance = Number(empAny.annual_leave_balance || 21);
-    const usedLeaves = Number(empAny.used_annual_leaves || 0);
+    let usedLeaves = Number(empAny.used_annual_leaves || 0);
+
+    if (usedLeaves === 0) {
+      const leaveRequestsRes = await sql<{ used_days: string }>`
+        SELECT COALESCE(SUM(days_count), 0) AS used_days
+        FROM hr_leave_requests lr
+        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+        WHERE lr.employee_id = ${input.employeeId} AND lr.tenant_id = ${tenantId}
+          AND lr.status = 'approved'
+          AND (
+            LOWER(COALESCE(lt.code, '')) IN ('annual', 'vacation')
+            OR LOWER(COALESCE(lr.leave_type, '')) IN ('annual', 'vacation')
+            OR COALESCE(lt.name, '') LIKE '%سنوية%'
+          )
+      `.execute(this.db);
+      usedLeaves = Number(leaveRequestsRes.rows[0]?.used_days || 0);
+    }
+
     const remainingLeaveDays = Math.max(0, annualBalance - usedLeaves);
-    const leaveEncashmentAmount = Number((remainingLeaveDays * dailyWage).toFixed(2));
+    const leaveEncashmentAmount = calculateLeaveEncashment(remainingLeaveDays, dailyWage);
 
     // Current month salary (days until termination in month)
     const termDay = terminationDate.getDate();
@@ -174,9 +152,6 @@ export class EndOfServiceService {
     const unpaidLoansDeduction = Number(loansRes.rows[0]?.total_unpaid || 0);
 
     // Active unreturned assets / custody
-    // Scoped like the loans query above: this feeds a settlement figure, and the
-    // posting gate in postSettlement already filters on tenant_id, so an unscoped
-    // read here would let the preview and the gate disagree about the same employee.
     const assetsRes = await (this.db as any)
       .selectFrom('hr_employee_assets')
       .selectAll()
@@ -190,9 +165,21 @@ export class EndOfServiceService {
     const assetsDeduction = Number(input.assetsDeduction || 0);
     const otherDeductions = Number(input.otherDeductions || 0);
 
-    const totalEntitlements = gratuityAmount + leaveEncashmentAmount + pendingSalaryAmount + noticePeriodAmount + customEntitlements;
-    const totalDeductions = unpaidLoansDeduction + assetsDeduction + otherDeductions;
-    const netSettlementAmount = Number(Math.max(0, totalEntitlements - totalDeductions).toFixed(2));
+    // Entitlement absorption via pure engine
+    const absorption = calculateSettlementAbsorption({
+      gratuityAmount: gratuity.gratuityAmount,
+      leaveEncashmentAmount,
+      pendingSalaryAmount,
+      noticePeriodAmount,
+      otherEntitlementsAmount: customEntitlements,
+      unpaidLoansDeduction,
+      assetsDeduction,
+      otherDeductions,
+    });
+
+    const totalEntitlements = absorption.totalEntitlements;
+    const totalDeductions = absorption.totalDeductions;
+    const netSettlementAmount = absorption.netPayable;
 
     return {
       employee: {

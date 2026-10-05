@@ -5965,3 +5965,21 @@
 - Sale refunds are allocated to outstanding receivable, original cash, original electronic payment, or customer store credit. Cash cannot exceed the original cash paid without manager authorization and a recorded reason. Mixed returns reduce the cashier drawer by the actual cash payout.
 - The backend records tenant-scoped POS audit events, requires an open shift for POS sales and no-sale drawer events, and posts blind-close variances to dedicated Cash Over and Cash Short accounts. The no-sale audit endpoint is available; a dedicated POS control for physical drawer opening is still to be wired in the client.
 - No build, typecheck, tests, migration execution, or hardware check was run under the owner's instruction. This is not a production verification claim.
+
+## HR, Payroll, Loans and End-of-Service Hardening (5 October 2026)
+
+- **Pure Calculation Engines:** All business formulas extracted into standalone pure engines:
+  - `eos-calculation.engine.ts`: End of service benefits (gratuity under Saudi Art. 84/85/80 and Egyptian Art. 125, vacation leave encashment, and settlement absorption).
+  - `payroll-calculation.engine.ts`: Daily/hourly rates, 1.5x overtime multiplier, progressive attendance delay deduction policies, dual-sided social insurance (GOSI), progressive income tax brackets, 50% labor law deduction cap, and GL double-entry reconciliation.
+- **Physical Column Backfill & Leave Balance Integrity (Migration 2040000000194):** Added column `used_annual_leaves` to `hr_employees` and backfilled from approved leave requests, eliminating the silent 21-day overpayment bug where `undefined` was read from disk. Leave requests execute inside transactions with `FOR UPDATE` locks; approval verifies `annual_leave_balance - used_annual_leaves >= days` (throwing 400 `HR_LEAVE_INSUFFICIENT_BALANCE` on overdraft) and atomically increments `used_annual_leaves`. Cancellation restores `used_annual_leaves` via `GREATEST(0, used_annual_leaves - days)`.
+- **Double-Entry General Ledger Balance (7-Way Balanced Journal):**
+  - Resolved system accounts: `6200` (Gross Salaries Expense), `6210` (Employer Social Insurance Expense), `2140` (Payroll Net Payable), `2145` (Social Insurance Authority Payable), `2146` (Income Tax Payable), `1160` (Employee Advances & Loans), `7100` (Operational & Attendance Penalties).
+  - `postPayrollAccrual` asserts `Total Debit == Total Credit` down to 0.01 precision. Zero discrepancies, zero silent skips.
+- **Cash Advance & Loan Governance:**
+  - `createLoan`: Enforces cumulative exposure cap (`outstandingDebt + amount <= 3x monthly salary`), canonical numbering `LOAN-YYMMDD-XXXX`.
+  - `approveLoan`: Enforces Maker-Checker separation (`loan.created_by !== auth.userId`).
+  - `createQuickCashAdvance`: Caps at 1 month salary, records to `hr_employee_ledger`, generates canonical `LOAN-YYMMDD-XXXX`, and triggers GL journal `postEmployeeLoanDisbursement` (Dr 1160 / Cr 1110).
+- **Statutory Deduction Priority & 50% Labor Law Cap:**
+  - Statutory deductions (GOSI, Tax) take precedence over operational penalties and discretionary loan installments.
+  - Total non-statutory deductions are bounded by the 50% gross salary cap. Loan installments only take remaining pool; any shortfall is deferred (`deferredLoanDeduction`) without forgiving uncollected debt. Excess operational penalties are tracked as `carriedForwardDeduction`. Net pay is guaranteed non-negative (`>= 0`).
+- **Critical Tests:** Verified 100% green via `backend/test/critical/payroll-calculation-engine.spec.ts` (all 6 test suites passing) and `backend/test/critical/phase6-hr-eos.spec.ts` (all 14 test suites passing).

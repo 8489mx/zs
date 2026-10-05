@@ -47,6 +47,7 @@ import {
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
+import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -238,6 +239,11 @@ export class HrService {
       hrCommissionType: 'none',
       hrCommissionValue: 0,
       hrCommissionTarget: 0,
+      hrSocialInsuranceEnabled: false,
+      hrSocialInsuranceEmployeePct: 11,
+      hrSocialInsuranceEmployerPct: 18.75,
+      hrIncomeTaxEnabled: false,
+      maxDeductionPct: 0.50,
     };
     if (result.rows.length === 0) return defaults;
     try {
@@ -1234,22 +1240,51 @@ export class HrService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const employee = await trx.selectFrom('hr_employees').select('id')
+      const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
         .executeTakeFirst();
       if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      if (employee.status !== 'active') throw new AppError('Cannot grant loan to inactive employee', 'HR_EMPLOYEE_INACTIVE', 400);
+
+      // Cumulative loan exposure check (Invariant G1-C / HR-7)
+      const existingLoans = await sql<{ total_remaining: string }>`
+        SELECT COALESCE(SUM(remaining_amount), 0) AS total_remaining
+        FROM hr_employee_loans
+        WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}
+          AND status IN ('approved', 'paid', 'partially_repaid', 'disbursed')
+      `.execute(trx);
+      const currentActiveDebt = Number(existingLoans.rows[0]?.total_remaining || 0);
+
+      // Ceiling bounded by employee base salary (max 3x monthly salary or 50,000)
+      const contract = await trx.selectFrom('hr_employment_contracts')
+        .select('base_salary')
+        .where('employee_id', '=', employeeId)
+        .where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .where('status', '=', 'active')
+        .executeTakeFirst();
+      const monthlyWage = Number(contract?.base_salary || 0);
+      const maxLoanCeiling = monthlyWage > 0 ? monthlyWage * 3 : 50000;
+
+      if (currentActiveDebt + amount > maxLoanCeiling) {
+        throw new AppError(
+          `قيمة السلفة تتجاوز الحد الأقصى المسموح به للموظف (${maxLoanCeiling} - القائم حالياً: ${currentActiveDebt})`,
+          'HR_LOAN_CEILING_EXCEEDED',
+          400
+        );
+      }
+
       const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
       const requestedLoanNo = clean(payload.loanNo);
-      const loanNo = requestedLoanNo || `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const tempLoanNo = requestedLoanNo || `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const insert = await sql<{ id: number }>`
         INSERT INTO hr_employee_loans (tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${tempLoanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
         RETURNING id
       `.execute(trx);
       const loanId = Number(insert.rows[0]?.id || 0);
-      if (!requestedLoanNo) {
-        await sql`UPDATE hr_employee_loans SET loan_no = ${`LOAN-${String(loanId).padStart(4, '0')}`} WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}`.execute(trx);
-      }
+      const finalLoanNo = requestedLoanNo || formatDailyDocumentNumber('LOAN', loanId);
+      await sql`UPDATE hr_employee_loans SET loan_no = ${finalLoanNo} WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+
       for (let i = 1; i <= plan.installmentCount; i += 1) {
         const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
         const installmentValue = i === plan.installmentCount
@@ -1306,6 +1341,18 @@ export class HrService {
   }
 
   async approveLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const loanRes = await sql<{ id: number; created_by: string; status: string }>`
+      SELECT id, created_by, status FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1
+    `.execute(this.db);
+    const loan = loanRes.rows[0];
+    if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+    if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 400);
+
+    // Maker-Checker: A creator cannot approve their own loan unless they are super_admin
+    if (String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin') {
+      throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
+    }
+
     await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Approve HR employee loan', `Employee loan #${id} approved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
@@ -1426,6 +1473,11 @@ export class HrService {
       totalDeductionAmount: Number(row.total_deduction_amount || 0),
       totalLoanDeductionAmount: Number(row.total_loan_deduction_amount || 0),
       totalAssetRecoveryDeductionAmount: Number(row.total_asset_recovery_deduction_amount || 0),
+      totalEmployeeSocialInsurance: Number(row.total_employee_social_insurance || 0),
+      totalEmployerSocialInsurance: Number(row.total_employer_social_insurance || 0),
+      totalIncomeTax: Number(row.total_income_tax || 0),
+      totalPenaltyDeduction: Number(row.total_penalty_deduction || 0),
+      totalCarriedForwardDeduction: Number(row.total_carried_forward_deduction || 0),
       totalGrossPay: Number(row.total_gross_pay || 0),
       totalNetPay: Number(row.total_net_pay || 0),
     };
@@ -1447,6 +1499,11 @@ export class HrService {
       deductionAmount: Number(row.deduction_amount || 0),
       loanDeductionAmount: Number(row.loan_deduction_amount || 0),
       assetRecoveryDeductionAmount: Number(row.asset_recovery_deduction_amount || 0),
+      employeeSocialInsurance: Number(row.employee_social_insurance || 0),
+      employerSocialInsurance: Number(row.employer_social_insurance || 0),
+      incomeTax: Number(row.income_tax || 0),
+      penaltyDeduction: Number(row.penalty_deduction || 0),
+      carriedForwardDeduction: Number(row.carried_forward_deduction || 0),
       grossPay: Number(row.gross_pay || 0),
       netPay: Number(row.net_pay || 0),
       status: clean(row.status) || 'draft',
@@ -1564,32 +1621,47 @@ export class HrService {
     if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
     const adjustments = await this.adjustmentTotals(db, itemId, tenantId);
     const baseSalary = money(item.base_salary);
-    const allowanceAmount = Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2));
-    const deductionAmount = Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2));
+    const employeeSocialInsurance = Number(item.employee_social_insurance || 0);
+    const employerSocialInsurance = Number(item.employer_social_insurance || 0);
+    const incomeTax = Number(item.income_tax || 0);
+    const penaltyDeduction = Number(item.penalty_deduction || 0);
+    const assetRecoveryDeduction = Number(item.asset_recovery_deduction_amount || 0);
     const scheduledLoanDeduction = money(item.loan_deduction_amount);
-    const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
 
-    // Same deduction-priority rule as the full payroll build: the loan installment may only take
-    // what remains after other deductions, otherwise the loan is credited money never withheld.
-    const payAvailableForLoan = Number(Math.max(0, grossPay - deductionAmount).toFixed(2));
-    const loanDeductionAmount = Number(Math.min(scheduledLoanDeduction, payAvailableForLoan).toFixed(2));
-    const deferredLoanDeduction = Number((scheduledLoanDeduction - loanDeductionAmount).toFixed(2));
+    const lineOutput = calculateEmployeePayrollLine({
+      employeeId: Number(item.employee_id),
+      baseSalary,
+      allowanceAmount: Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2)),
+      overtimeAmount: 0,
+      commissionAmount: 0,
+      employeeSocialInsurance,
+      employerSocialInsurance,
+      incomeTax,
+      attendanceDeduction: penaltyDeduction,
+      leaveDeduction: 0,
+      assetRecoveryDeduction,
+      otherDeductions: Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2)),
+      scheduledLoanDeduction,
+      maxDeductionPct: 0.50,
+    });
 
-    const rawNetPay = Number((grossPay - deductionAmount - loanDeductionAmount).toFixed(2));
-    const capped = rawNetPay < 0;
-    const netPay = Math.max(0, rawNetPay);
+    const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
+    const operationalDeductions = Number((lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction).toFixed(2));
+
     const extraNotes = [
-      deferredLoanDeduction > 0
-        ? `تم تأجيل ${deferredLoanDeduction} من قسط القرض لعدم كفاية صافي الأجر`
-        : '',
-      capped && !clean(item.notes).includes('Net pay capped at zero') ? 'Net pay capped at zero' : '',
+      ...lineOutput.notes,
     ].filter(Boolean);
     const notes = extraNotes.length ? combineNotes(clean(item.notes), ...extraNotes) : clean(item.notes);
     await sql`
       UPDATE hr_payroll_run_items
-      SET allowance_amount = ${allowanceAmount}, deduction_amount = ${deductionAmount}, gross_pay = ${grossPay},
-          loan_deduction_amount = ${loanDeductionAmount},
-          net_pay = ${netPay}, notes = ${notes}, updated_at = NOW()
+      SET allowance_amount = ${totalAllowance},
+          deduction_amount = ${operationalDeductions},
+          gross_pay = ${lineOutput.grossPay},
+          loan_deduction_amount = ${lineOutput.appliedLoanDeduction},
+          carried_forward_deduction = ${lineOutput.carriedForwardDeduction},
+          net_pay = ${lineOutput.netPay},
+          notes = ${notes},
+          updated_at = NOW()
       WHERE id = ${itemId} AND tenant_id = ${tenantId}
     `.execute(db);
   }
@@ -1733,63 +1805,79 @@ export class HrService {
       }
 
       const review = autoReviews.get(employeeId);
-      if (review) {
-        empAdjDeduction += review.suggestedAttendanceDeductionAmount + review.suggestedLeaveDeductionAmount;
-        empAdjAllowance += review.suggestedOvertimeAllowanceAmount;
-      }
+      const attendanceDeduction = Number(review?.suggestedAttendanceDeductionAmount || 0);
+      const leaveDeduction = Number(review?.suggestedLeaveDeductionAmount || 0);
+      const overtimeAllowance = Number(review?.suggestedOvertimeAllowanceAmount || 0);
+      const commissionAllowance = Number(review?.suggestedCommissionAllowanceAmount || 0);
+      const employeeSocialInsurance = Number(review?.suggestedSocialInsuranceDeductionAmount || 0);
+      const employerSocialInsurance = Number(review?.suggestedEmployerInsuranceAmount || 0);
+      const incomeTax = Number(review?.suggestedIncomeTaxDeductionAmount || 0);
 
-      const allowanceAmount = Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2));
-      const assetRecoveryDeductionAmount = Number(empAdjAssetRecoveryDeduction.toFixed(2));
-      const deductionAmount = Number((compensationDeduction + adjustments.deduction + empAdjDeduction + assetRecoveryDeductionAmount).toFixed(2));
-      const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
+      const lineOutput = calculateEmployeePayrollLine({
+        employeeId,
+        baseSalary,
+        allowanceAmount: Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2)),
+        overtimeAmount: overtimeAllowance,
+        commissionAmount: commissionAllowance,
+        employeeSocialInsurance,
+        employerSocialInsurance,
+        incomeTax,
+        attendanceDeduction,
+        leaveDeduction,
+        assetRecoveryDeduction: Number(empAdjAssetRecoveryDeduction.toFixed(2)),
+        otherDeductions: Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2)),
+        scheduledLoanDeduction: Number(loanDeduction.amount || 0),
+        maxDeductionPct: 0.50,
+      });
 
-      const availablePay = Number((grossPay - (compensationDeduction + adjustments.deduction + empAdjDeduction) - loanDeduction.amount).toFixed(2));
+      const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
+      const penaltyDeduction = Number((lineOutput.attendanceDeduction + lineOutput.leaveDeduction).toFixed(2));
+      const operationalDeduction = Number((lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction).toFixed(2));
 
-      if (assetRecoveryDeductionAmount > Math.max(0, availablePay)) {
-        throw new AppError('Asset deduction exceeds available pay', 'HR_PAYROLL_ASSET_DEDUCTION_EXCEEDS_AVAILABLE_PAY', 400);
-      }
-
-      // Deduction priority: statutory and contractual deductions come first; the loan installment is
-      // the discretionary item and may only take what is actually left.
-      //
-      // Previously the scheduled installment was recorded in full and net pay was simply clamped to
-      // zero, but settlePayrollLoanDeductions then credited the loan by that FULL amount — so the
-      // company forgave money it never withheld. The shortfall is now deferred instead, which keeps
-      // the loan balance equal to what was really collected.
-      const payAvailableForLoan = Number(Math.max(0, grossPay - deductionAmount).toFixed(2));
-      const scheduledLoanDeduction = Number(loanDeduction.amount || 0);
-      const appliedLoanDeduction = Number(Math.min(scheduledLoanDeduction, payAvailableForLoan).toFixed(2));
-      const deferredLoanDeduction = Number((scheduledLoanDeduction - appliedLoanDeduction).toFixed(2));
-
-      const rawNetPay = Number((grossPay - deductionAmount - appliedLoanDeduction).toFixed(2));
-      const netPay = Math.max(0, rawNetPay);
       const generatedNotes = [
         baseSalary > 0 ? '' : 'Missing salary data',
         ...loanDeduction.notes,
-        deferredLoanDeduction > 0
-          ? `تم تأجيل ${deferredLoanDeduction} من قسط القرض لعدم كفاية صافي الأجر (المستقطع فعلياً ${appliedLoanDeduction} من أصل ${scheduledLoanDeduction})`
-          : '',
-        rawNetPay < 0 ? 'Net pay capped at zero' : '',
+        ...lineOutput.notes,
       ].filter(Boolean);
       const notes = combineNotes(clean(existingItem?.notes), ...generatedNotes);
+
       if (itemId > 0) {
         await sql`
           UPDATE hr_payroll_run_items
-          SET contract_id = ${toId(employee.contract_id)}, base_salary = ${baseSalary}, allowance_amount = ${allowanceAmount},
-              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${appliedLoanDeduction},
-              asset_recovery_deduction_amount = ${assetRecoveryDeductionAmount}, gross_pay = ${grossPay},
-              net_pay = ${netPay}, status = ${itemStatus}, notes = ${notes}, updated_at = NOW()
+          SET contract_id = ${toId(employee.contract_id)},
+              base_salary = ${lineOutput.baseSalary},
+              allowance_amount = ${totalAllowance},
+              deduction_amount = ${operationalDeduction},
+              loan_deduction_amount = ${lineOutput.appliedLoanDeduction},
+              asset_recovery_deduction_amount = ${lineOutput.assetRecoveryDeduction},
+              employee_social_insurance = ${lineOutput.employeeSocialInsurance},
+              employer_social_insurance = ${lineOutput.employerSocialInsurance},
+              income_tax = ${lineOutput.incomeTax},
+              penalty_deduction = ${penaltyDeduction},
+              carried_forward_deduction = ${lineOutput.carriedForwardDeduction},
+              gross_pay = ${lineOutput.grossPay},
+              net_pay = ${lineOutput.netPay},
+              status = ${itemStatus},
+              notes = ${notes},
+              updated_at = NOW()
           WHERE id = ${itemId}
         `.execute(db);
       } else {
         await sql`
           INSERT INTO hr_payroll_run_items (
             run_id, employee_id, contract_id, base_salary, allowance_amount, deduction_amount,
-            loan_deduction_amount, asset_recovery_deduction_amount, gross_pay, net_pay, status, notes, tenant_id, account_id
+            loan_deduction_amount, asset_recovery_deduction_amount,
+            employee_social_insurance, employer_social_insurance, income_tax,
+            penalty_deduction, carried_forward_deduction,
+            gross_pay, net_pay, status, notes, tenant_id, account_id
           )
           VALUES (
-            ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${baseSalary}, ${allowanceAmount}, ${deductionAmount},
-            ${appliedLoanDeduction}, ${assetRecoveryDeductionAmount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
+            ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${lineOutput.baseSalary},
+            ${totalAllowance}, ${operationalDeduction},
+            ${lineOutput.appliedLoanDeduction}, ${lineOutput.assetRecoveryDeduction},
+            ${lineOutput.employeeSocialInsurance}, ${lineOutput.employerSocialInsurance},
+            ${lineOutput.incomeTax}, ${penaltyDeduction}, ${lineOutput.carriedForwardDeduction},
+            ${lineOutput.grossPay}, ${lineOutput.netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
           )
         `.execute(db);
       }
@@ -1885,6 +1973,7 @@ export class HrService {
     let hrCommissionTarget = 0;
     let hrSocialInsuranceEnabled = false;
     let hrSocialInsuranceEmployeePct = 11;
+    let hrSocialInsuranceEmployerPct = 18.75;
     let hrIncomeTaxEnabled = false;
 
     let hrWeekendDays = ['friday', 'saturday'];
@@ -1901,6 +1990,7 @@ export class HrService {
       hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
       hrSocialInsuranceEnabled = globalPolicies.hrSocialInsuranceEnabled === true;
       hrSocialInsuranceEmployeePct = Number(globalPolicies.hrSocialInsuranceEmployeePct || 11);
+      hrSocialInsuranceEmployerPct = Number(globalPolicies.hrSocialInsuranceEmployerPct || 18.75);
       hrIncomeTaxEnabled = globalPolicies.hrIncomeTaxEnabled === true;
       hrWeekendDays = (globalPolicies.hrWeekendDays || 'friday,saturday').split(',').map((d: string) => d.trim().toLowerCase());
     }
@@ -2033,9 +2123,11 @@ export class HrService {
       
       // Calculate Social Insurance Deduction
       let suggestedSocialInsuranceDeductionAmount = 0;
+      let suggestedEmployerInsuranceAmount = 0;
       if (hrSocialInsuranceEnabled && emp.has_social_insurance) {
         const insSalary = Number(emp.insurance_salary) || baseSalary;
         suggestedSocialInsuranceDeductionAmount = Number((insSalary * (hrSocialInsuranceEmployeePct / 100)).toFixed(2));
+        suggestedEmployerInsuranceAmount = Number((insSalary * (hrSocialInsuranceEmployerPct / 100)).toFixed(2));
       }
 
       // Calculate Income Tax Deduction
@@ -2069,7 +2161,7 @@ export class HrService {
       if (unpaidLeaveDays > 0) notesStr += ` إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
       if (overtimeMinutes > 0) notesStr += ` إضافي معتمد ${Math.floor(overtimeMinutes/60)}س و${overtimeMinutes%60}د.`;
       if (commissionValue > 0) notesStr += ` عمولة مبيعات: ${commissionValue}.`;
-      if (suggestedSocialInsuranceDeductionAmount > 0) notesStr += ` تأمينات: ${suggestedSocialInsuranceDeductionAmount}.`;
+      if (suggestedSocialInsuranceDeductionAmount > 0) notesStr += ` تأمينات موظف: ${suggestedSocialInsuranceDeductionAmount} (منشأة: ${suggestedEmployerInsuranceAmount}).`;
       if (suggestedIncomeTaxDeductionAmount > 0) notesStr += ` ضريبة كسب عمل: ${suggestedIncomeTaxDeductionAmount}.`;
 
       reviewByEmployeeId.set(employeeId, {
@@ -2082,6 +2174,7 @@ export class HrService {
         suggestedAttendanceDeductionAmount,
         suggestedLeaveDeductionAmount,
         suggestedSocialInsuranceDeductionAmount,
+        suggestedEmployerInsuranceAmount,
         suggestedIncomeTaxDeductionAmount,
         suggestedOvertimeAllowanceAmount,
         suggestedCommissionAllowanceAmount: commissionValue,
@@ -2112,6 +2205,11 @@ export class HrService {
         COALESCE(SUM(i.allowance_amount), 0) AS total_allowance_amount,
         COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
         COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
+        COALESCE(SUM(i.employee_social_insurance), 0) AS total_employee_social_insurance,
+        COALESCE(SUM(i.employer_social_insurance), 0) AS total_employer_social_insurance,
+        COALESCE(SUM(i.income_tax), 0) AS total_income_tax,
+        COALESCE(SUM(i.penalty_deduction), 0) AS total_penalty_deduction,
+        COALESCE(SUM(i.carried_forward_deduction), 0) AS total_carried_forward_deduction,
         COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
@@ -2142,6 +2240,11 @@ export class HrService {
         COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
         COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
         COALESCE(SUM(i.asset_recovery_deduction_amount), 0) AS total_asset_recovery_deduction_amount,
+        COALESCE(SUM(i.employee_social_insurance), 0) AS total_employee_social_insurance,
+        COALESCE(SUM(i.employer_social_insurance), 0) AS total_employer_social_insurance,
+        COALESCE(SUM(i.income_tax), 0) AS total_income_tax,
+        COALESCE(SUM(i.penalty_deduction), 0) AS total_penalty_deduction,
+        COALESCE(SUM(i.carried_forward_deduction), 0) AS total_carried_forward_deduction,
         COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
@@ -3565,21 +3668,83 @@ export class HrService {
 
   async approveLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
-    const status = clean(current.rows[0]?.status);
-    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
-    if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
-    await sql`
-      UPDATE hr_leave_requests
-      SET status = 'approved',
-          decision_notes = ${clean(payload.decisionNotes) || null},
-          notes = ${clean(payload.notes) || null},
-          decided_by = ${auth.userId},
-          decided_at = NOW(),
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const current = await sql<{
+        id: number;
+        status: string;
+        employee_id: number;
+        days_count: number;
+        leave_type_id: number | null;
+        leave_type: string | null;
+        deducts_from_balance: boolean | null;
+        annual_leave_balance: number | null;
+        used_annual_leaves: number | null;
+      }>`
+        SELECT
+          r.id,
+          r.status,
+          r.employee_id,
+          r.days_count,
+          r.leave_type_id,
+          r.leave_type,
+          t.deducts_from_balance,
+          e.annual_leave_balance,
+          e.used_annual_leaves
+        FROM hr_leave_requests r
+        JOIN hr_employees e ON e.id = r.employee_id AND e.tenant_id = r.tenant_id
+        LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
+        WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r, e
+        LIMIT 1
+      `.execute(trx);
+
+      const row = current.rows[0];
+      if (!row) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+      const status = clean(row.status);
+      if (status === 'approved') return;
+      if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
+
+      const deductsFromBalance = row.deducts_from_balance === true || (
+        row.leave_type_id == null && (
+          !row.leave_type ||
+          ['annual', 'paid', 'سنوية', 'اعتيادية'].includes(clean(row.leave_type).toLowerCase())
+        )
+      );
+
+      const requestedDays = Number(row.days_count || 0);
+      if (deductsFromBalance && requestedDays > 0) {
+        const totalEntitlement = Number(row.annual_leave_balance || 0);
+        const currentUsed = Number(row.used_annual_leaves || 0);
+        const remainingBalance = Number((totalEntitlement - currentUsed).toFixed(2));
+
+        if (requestedDays > remainingBalance) {
+          throw new AppError(
+            `رصيد الإجازات المتبقي (${remainingBalance} يوم) لا يكفي لتغطية الإجازة المطلوبة (${requestedDays} يوم)`,
+            'HR_LEAVE_INSUFFICIENT_BALANCE',
+            400,
+          );
+        }
+
+        await sql`
+          UPDATE hr_employees
+          SET used_annual_leaves = COALESCE(used_annual_leaves, 0) + ${requestedDays},
+              updated_at = NOW()
+          WHERE id = ${row.employee_id} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+      }
+
+      await sql`
+        UPDATE hr_leave_requests
+        SET status = 'approved',
+            decision_notes = ${clean(payload.decisionNotes) || null},
+            notes = ${clean(payload.notes) || null},
+            decided_by = ${auth.userId},
+            decided_at = NOW(),
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('Approve HR leave request', `Leave request #${id} approved by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
   }
@@ -3607,21 +3772,66 @@ export class HrService {
 
   async cancelLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
-    const status = clean(current.rows[0]?.status);
-    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
-    if (status === 'cancelled') return this.listLeaveRequests({}, auth);
-    await sql`
-      UPDATE hr_leave_requests
-      SET status = 'cancelled',
-          decision_notes = ${clean(payload.decisionNotes) || null},
-          notes = ${clean(payload.notes) || null},
-          decided_by = ${auth.userId},
-          decided_at = NOW(),
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const current = await sql<{
+        id: number;
+        status: string;
+        employee_id: number;
+        days_count: number;
+        leave_type_id: number | null;
+        leave_type: string | null;
+        deducts_from_balance: boolean | null;
+      }>`
+        SELECT
+          r.id,
+          r.status,
+          r.employee_id,
+          r.days_count,
+          r.leave_type_id,
+          r.leave_type,
+          t.deducts_from_balance
+        FROM hr_leave_requests r
+        LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
+        WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r
+        LIMIT 1
+      `.execute(trx);
+
+      const row = current.rows[0];
+      if (!row) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+      const status = clean(row.status);
+      if (status === 'cancelled') return;
+
+      const wasApproved = status === 'approved';
+      const deductsFromBalance = row.deducts_from_balance === true || (
+        row.leave_type_id == null && (
+          !row.leave_type ||
+          ['annual', 'paid', 'سنوية', 'اعتيادية'].includes(clean(row.leave_type).toLowerCase())
+        )
+      );
+
+      const requestedDays = Number(row.days_count || 0);
+      if (wasApproved && deductsFromBalance && requestedDays > 0) {
+        await sql`
+          UPDATE hr_employees
+          SET used_annual_leaves = GREATEST(0, COALESCE(used_annual_leaves, 0) - ${requestedDays}),
+              updated_at = NOW()
+          WHERE id = ${row.employee_id} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+      }
+
+      await sql`
+        UPDATE hr_leave_requests
+        SET status = 'cancelled',
+            decision_notes = ${clean(payload.decisionNotes) || null},
+            notes = ${clean(payload.notes) || null},
+            decided_by = ${auth.userId},
+            decided_at = NOW(),
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('Cancel HR leave request', `Leave request #${id} cancelled by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
   }
@@ -4125,23 +4335,64 @@ export class HrService {
     if (!amount || amount <= 0) throw new AppError('Amount must be positive', 'HR_AMOUNT_INVALID', 400);
 
     const notes = clean(payload.notes) || 'Quick cash advance from cashier';
+    let createdLoanId = 0;
     
-    // We will create a loan entry and mark it as disbursed to track it easily and deduct from next payroll
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // 1. Validate employee is active in this tenant
+      const employee = await trx.selectFrom('hr_employees')
+        .select(['id', 'display_name', 'status'])
+        .where('id', '=', employeeId)
+        .where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .executeTakeFirst();
+      if (!employee) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      if (employee.status !== 'active') throw new AppError('لا يمكن صرف سلفة لموظف غير نشط', 'HR_EMPLOYEE_INACTIVE', 400);
+
+      // 2. Check cumulative active debt
+      const activeRes = await sql<{ total_debt: string }>`
+        SELECT COALESCE(SUM(remaining_amount), 0) AS total_debt
+        FROM hr_employee_loans
+        WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}
+          AND status IN ('approved', 'paid', 'partially_repaid', 'disbursed')
+      `.execute(trx);
+      const activeDebt = Number(activeRes.rows[0]?.total_debt || 0);
+
+      // Max quick cash advance is capped by 1 month base salary (or 5,000)
+      const contract = await trx.selectFrom('hr_employment_contracts')
+        .select('base_salary')
+        .where('employee_id', '=', employeeId)
+        .where('tenant_id', '=', auth.tenantId)
+        .where('status', '=', 'active')
+        .executeTakeFirst();
+      const baseSalary = Number(contract?.base_salary || 0);
+      const quickCap = baseSalary > 0 ? baseSalary : 5000;
+
+      if (activeDebt + amount > quickCap) {
+        throw new AppError(
+          `قيمة السلفة السريعة تتجاوز سقف الراتب الشهري المسموح (${quickCap} - القائم: ${activeDebt})`,
+          'HR_QUICK_ADVANCE_EXCEEDS_CAP',
+          400
+        );
+      }
+
+      const tempNo = `LOAN-TMP-${Date.now()}`;
       const loanRes = await sql<{ id: number }>`
         INSERT INTO hr_employee_loans (
-          tenant_id, account_id, employee_id, principal_amount, remaining_amount, 
+          tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, remaining_amount, 
           installment_count, installment_amount, repayment_mode,
           issue_date, status, notes, created_by, updated_by
         )
         VALUES (
-          ${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${amount}, ${amount}, 
+          ${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
           1, ${amount}, 'deduct_next_salary',
           CURRENT_DATE, 'paid', ${notes}, ${auth.userId}, ${auth.userId}
         )
         RETURNING id
       `.execute(trx);
       const loanId = Number(loanRes.rows[0]?.id || 0);
+      createdLoanId = loanId;
+
+      const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
+      await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}`.execute(trx);
       
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -4158,11 +4409,21 @@ export class HrService {
         )
       `.execute(trx);
 
-      // Deduct cash from Cashier Shift if shift ID is provided, else we deduct from treasury
+      // 3. Record in employee ledger
+      await sql`
+        INSERT INTO hr_employee_ledger (
+          employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
+          created_by, tenant_id, account_id
+        )
+        VALUES (
+          ${employeeId}, 'loan_disbursement', ${amount}, ${activeDebt + amount},
+          ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${auth.tenantId}, ${auth.accountId}
+        )
+      `.execute(trx);
+
+      // 4. Handle shift cash deduction if shift ID is provided
       if (payload.shiftId) {
-        // Find shift and add a note/deduction
         const shiftId = Number(payload.shiftId);
-        // We'll update the expected cash of the shift
         await sql`
           UPDATE cashier_shifts 
           SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
@@ -4170,15 +4431,17 @@ export class HrService {
         `.execute(trx);
       } else if (payload.treasuryId) {
         const treasuryId = Number(payload.treasuryId);
-        // Add a treasury transaction (withdrawal)
         await sql`
           INSERT INTO treasury_transactions (tenant_id, account_id, txn_type, amount, note, reference_type, reference_id, created_by)
           VALUES (${auth.tenantId}, ${auth.accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
         `.execute(trx);
       }
+
+      // 5. Record GL journal: Dr. 1160 (Advances) / Cr. 1110 (Cash)
+      await this.accountingPosting.postEmployeeLoanDisbursement(trx, loanId, auth);
     });
 
-    await this.audit.log('Create Quick Cash Advance', `Cash advance of ${amount} for employee #${employeeId} by ${auth.username}`, auth);
-    return { success: true };
+    await this.audit.log('Create Quick Cash Advance', `Cash advance #${createdLoanId} of ${amount} for employee #${employeeId} by ${auth.username}`, auth);
+    return { success: true, loanId: createdLoanId };
   }
 }

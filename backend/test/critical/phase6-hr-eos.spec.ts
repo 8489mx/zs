@@ -7,76 +7,7 @@ import { strict as assert } from 'node:assert';
 
 console.log('=== بدء اختبارات المرحلة (6): الموارد البشرية ومستحقات نهاية الخدمة والرواتب والسلف ===\n');
 
-// -----------------------------------------------------------------------------
-// 1. Labor Law Gratuity Calculation Invariants (Saudi & Egyptian Labor Laws)
-// -----------------------------------------------------------------------------
-function calculateGratuity(params: {
-  serviceYearsDecimal: number;
-  totalSalary: number;
-  dailyWage: number;
-  lawType: 'saudi' | 'egyptian' | 'custom';
-  reason: string;
-  customGratuityDaysPerYear?: number;
-}): { baseGratuity: number; gratuityPercentage: number; gratuityAmount: number } {
-  let gratuityPercentage = 100;
-  let baseGratuity = 0;
-
-  if (params.lawType === 'saudi') {
-    // Saudi Labor Law: Art. 84 (Half month for first 5 years, full month for rest)
-    const first5Years = Math.min(params.serviceYearsDecimal, 5);
-    const subsequentYears = Math.max(0, params.serviceYearsDecimal - 5);
-    baseGratuity = (first5Years * 0.5 * params.totalSalary) + (subsequentYears * 1.0 * params.totalSalary);
-
-    // Saudi Art. 85 (Resignation scale)
-    if (params.reason === 'resignation') {
-      if (params.serviceYearsDecimal < 2) {
-        gratuityPercentage = 0;
-      } else if (params.serviceYearsDecimal >= 2 && params.serviceYearsDecimal < 5) {
-        gratuityPercentage = 33.333; // ثلث المكافأة
-      } else if (params.serviceYearsDecimal >= 5 && params.serviceYearsDecimal < 10) {
-        gratuityPercentage = 66.667; // ثلثي المكافأة
-      } else {
-        gratuityPercentage = 100; // المكافأة كاملة
-      }
-    } else if (params.reason === 'termination_article_80') {
-      gratuityPercentage = 0; // فصل بموجب المادة 80 لا يستحق مكافأة
-    } else {
-      gratuityPercentage = 100; // إنهاء من صاحب العمل أو انتهاء العقد أو تقاعد
-    }
-  } else if (params.lawType === 'egyptian') {
-    // Egyptian Labor Law: Art. 125
-    const first5Years = Math.min(params.serviceYearsDecimal, 5);
-    const subsequentYears = Math.max(0, params.serviceYearsDecimal - 5);
-    baseGratuity = (first5Years * 0.5 * params.totalSalary) + (subsequentYears * 1.0 * params.totalSalary);
-    gratuityPercentage = 100;
-  } else {
-    // Custom
-    const daysPerYear = params.customGratuityDaysPerYear || 15;
-    baseGratuity = (daysPerYear * params.dailyWage) * params.serviceYearsDecimal;
-    gratuityPercentage = 100;
-  }
-
-  let gratuityAmount = 0;
-  if (params.lawType === 'saudi' && params.reason === 'resignation') {
-    if (params.serviceYearsDecimal >= 2 && params.serviceYearsDecimal < 5) {
-      gratuityAmount = Number((baseGratuity / 3).toFixed(2));
-    } else if (params.serviceYearsDecimal >= 5 && params.serviceYearsDecimal < 10) {
-      gratuityAmount = Number(((baseGratuity * 2) / 3).toFixed(2));
-    } else if (params.serviceYearsDecimal >= 10) {
-      gratuityAmount = Number(baseGratuity.toFixed(2));
-    } else {
-      gratuityAmount = 0;
-    }
-  } else {
-    gratuityAmount = Number(((baseGratuity * gratuityPercentage) / 100).toFixed(2));
-  }
-
-  return {
-    baseGratuity: Number(baseGratuity.toFixed(2)),
-    gratuityPercentage,
-    gratuityAmount,
-  };
-}
+import { calculateGratuity, calculateSettlementAbsorption } from '../../src/modules/hr/engines/eos-calculation.engine';
 
 function testGratuityCalculations() {
   console.log('--- 1. اختبارات احتساب مكافأة نهاية الخدمة وفقاً لقانون العمل السعودي والمصري ---');

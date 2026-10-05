@@ -2242,7 +2242,10 @@ export class AccountingPostingService {
         '7100': { name_ar: 'إيرادات أخرى', name_en: 'Other Income', type: 'revenue', group: 'income', balance: 'credit' },
         '7200': { name_ar: 'خسائر أو فروق تسوية', name_en: 'Adjustment Losses', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '6200': { name_ar: 'الرواتب والأجور ومكافأة نهاية الخدمة', name_en: 'Salaries, Wages & EOS', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '6210': { name_ar: 'تأمينات اجتماعية - حصة صاحب العمل', name_en: 'Employer Social Insurance Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '2140': { name_ar: 'رواتب ومستحقات مستحقة الدفع', name_en: 'Payroll & Settlements Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2145': { name_ar: 'تأمينات اجتماعية مستحقة السداد', name_en: 'Social Insurance Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2146': { name_ar: 'ضريبة كسب عمل مستحقة', name_en: 'Income Tax Withholding Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
         '1160': { name_ar: 'سلف وقروض العاملين', name_en: 'Employee Advances & Loans', type: 'asset', group: 'current_assets', balance: 'debit' },
       };
       const known = knownAccounts[code];
@@ -2757,40 +2760,143 @@ export class AccountingPostingService {
     const totals = await queryable
       .selectFrom('hr_payroll_run_items')
       .select([
+        sql<number>`COALESCE(SUM(gross_pay), 0)`.as('gross_pay'),
         sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay'),
         sql<number>`COALESCE(SUM(loan_deduction_amount), 0)`.as('loan_deductions'),
-        sql<number>`COALESCE(SUM(asset_recovery_deduction_amount), 0)`.as('asset_recovery_deductions')
+        sql<number>`COALESCE(SUM(asset_recovery_deduction_amount), 0)`.as('asset_recovery_deductions'),
+        sql<number>`COALESCE(SUM(employee_social_insurance), 0)`.as('employee_social_insurance'),
+        sql<number>`COALESCE(SUM(employer_social_insurance), 0)`.as('employer_social_insurance'),
+        sql<number>`COALESCE(SUM(income_tax), 0)`.as('income_tax'),
       ])
       .where('run_id', '=', runId)
       .where('tenant_id', '=', scope.tenantId)
       .where('status', '!=', 'excluded')
       .executeTakeFirst();
 
+    const grossPay = this.toMoney(totals?.gross_pay || 0);
     const netPay = this.toMoney(totals?.net_pay || 0);
     const loanDeductions = this.toMoney(totals?.loan_deductions || 0);
     const assetRecoveryDeductions = this.toMoney(totals?.asset_recovery_deductions || 0);
-    const expenseAmount = this.toMoney(netPay + loanDeductions + assetRecoveryDeductions);
+    const employeeInsurance = this.toMoney(totals?.employee_social_insurance || 0);
+    const employerInsurance = this.toMoney(totals?.employer_social_insurance || 0);
+    const incomeTax = this.toMoney(totals?.income_tax || 0);
 
-    if (expenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
+    const salaryExpenseAmount = grossPay > 0
+      ? grossPay
+      : this.toMoney(netPay + loanDeductions + assetRecoveryDeductions + employeeInsurance + incomeTax);
+
+    if (salaryExpenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
        throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
     }
 
     const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6200'); // Salaries and Wages
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
     const advancesAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160'); // Employee Advances
-    const otherIncomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100'); // Other Income
+    const otherIncomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100'); // Other Income / Penalties
+
+    const totalGosiPayable = this.toMoney(employeeInsurance + employerInsurance);
+    const totalSpecificCredits = this.toMoney(netPay + loanDeductions + employeeInsurance + incomeTax);
+    const operationalAndPenaltyDeductions = Math.max(0, this.toMoney(salaryExpenseAmount - totalSpecificCredits));
 
     const lines: JournalLineDraft[] = [];
 
-    this.addLine(lines, { accountId: expenseAccountId, description: `استحقاق رواتب مسير #${runId}`, debit: expenseAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    // 1. Debit: Gross Salaries & Wages Expense
+    this.addLine(lines, {
+      accountId: expenseAccountId,
+      description: `استحقاق رواتب مسير #${runId}`,
+      debit: salaryExpenseAmount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: null,
+      locationId: null,
+    });
+
+    // 2. Debit: Employer Social Insurance Contribution (if any)
+    if (employerInsurance > 0) {
+      const employerGosiAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6210');
+      this.addLine(lines, {
+        accountId: employerGosiAccountId,
+        description: `حصة المنشأة في التأمينات الاجتماعية لمسير #${runId}`,
+        debit: employerInsurance,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 3. Credit: Net Payroll Payable
     if (netPay > 0) {
-      this.addLine(lines, { accountId: payableAccountId, description: `رواتب مستحقة الدفع لمسير #${runId}`, debit: 0, credit: netPay, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+      this.addLine(lines, {
+        accountId: payableAccountId,
+        description: `رواتب مستحقة الدفع لمسير #${runId}`,
+        debit: 0,
+        credit: netPay,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
     }
+
+    // 4. Credit: Social Insurance Authority Payable (Employee + Employer shares)
+    if (totalGosiPayable > 0) {
+      const gosiPayableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2145');
+      this.addLine(lines, {
+        accountId: gosiPayableAccountId,
+        description: `تأمينات اجتماعية مستحقة السداد (حصة الموظف + المنشأة) لمسير #${runId}`,
+        debit: 0,
+        credit: totalGosiPayable,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 5. Credit: Income Tax Withholding Payable
+    if (incomeTax > 0) {
+      const taxPayableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2146');
+      this.addLine(lines, {
+        accountId: taxPayableAccountId,
+        description: `ضريبة كسب عمل مستحقة لمسير #${runId}`,
+        debit: 0,
+        credit: incomeTax,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    // 6. Credit: Employee Advances (Loan installments)
     if (loanDeductions > 0) {
-      this.addLine(lines, { accountId: advancesAccountId, description: `استقطاع سلف موظفين لمسير #${runId}`, debit: 0, credit: loanDeductions, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+      this.addLine(lines, {
+        accountId: advancesAccountId,
+        description: `استقطاع سلف موظفين لمسير #${runId}`,
+        debit: 0,
+        credit: loanDeductions,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
     }
-    if (assetRecoveryDeductions > 0) {
-      this.addLine(lines, { accountId: otherIncomeAccountId, description: `استرداد عهدة لمسير #${runId}`, debit: 0, credit: assetRecoveryDeductions, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+
+    // 7. Credit: Other Income (Penalties, Absences, Asset recoveries)
+    if (operationalAndPenaltyDeductions > 0) {
+      this.addLine(lines, {
+        accountId: otherIncomeAccountId,
+        description: `استقطاعات غياب وجزاءات واسترداد عهد لمسير #${runId}`,
+        debit: 0,
+        credit: operationalAndPenaltyDeductions,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
     }
 
     try {
