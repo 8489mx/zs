@@ -70,9 +70,12 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
       : requestedPaymentChannel === 'instapay'
         ? 'instapay'
         : 'cash';
-  // A credit invoice can still receive a partial tender. Never silently discard
-  // explicit payment rows just because the header channel says "credit".
-  const payments = correctedPayments;
+  // If both type and channel are explicitly 'credit', the entire invoice is on credit;
+  // any residual cash lines from form defaults are stripped.
+  // When a partial tender is provided on a credit sale, POS provides a non-credit channel (mixed/cash).
+  const payments = (paymentType === 'credit' && payload.paymentChannel === 'credit')
+    ? []
+    : correctedPayments.filter((entry) => entry.amount > 0);
   const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
     ? (payments.length ? (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || 'credit')) : 'credit')
     : (requestedPaymentChannel === 'mixed'
