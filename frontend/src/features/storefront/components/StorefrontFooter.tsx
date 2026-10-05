@@ -96,6 +96,26 @@ export function StorefrontFooter({
           user-select: none;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
         }
+        .sf-footer-back-to-top {
+          display: none;
+          width: 100%;
+          background: #f8fafc;
+          border: none;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 8px 16px;
+          color: #475569;
+          font-size: 11.5px;
+          font-weight: 700;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: background 0.15s ease;
+        }
+        .sf-footer-back-to-top:hover {
+          background: #f1f5f9;
+          color: var(--storefront-primary-color, #170e5e);
+        }
         @media (max-width: 960px) {
           .sf-footer-trust-strip {
             grid-template-columns: repeat(2, 1fr);
@@ -106,105 +126,258 @@ export function StorefrontFooter({
           }
         }
         @media (max-width: 640px) {
+          .sf-footer-back-to-top {
+            display: flex !important;
+            padding: 8px 12px !important;
+            font-size: 11px !important;
+          }
+          .sf-footer-trust-wrapper {
+            padding: 8px 10px !important;
+            background: #ffffff !important;
+          }
           .sf-footer-trust-strip {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 8px !important;
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 2px !important;
           }
           .sf-footer-trust-item {
-            padding: 10px 8px !important;
-            gap: 8px !important;
-            border-radius: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 4px 2px !important;
+            gap: 3px !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
           }
           .sf-footer-trust-icon {
-            width: 32px !important;
-            height: 32px !important;
-            min-width: 32px !important;
-            border-radius: 8px !important;
+            width: 22px !important;
+            height: 22px !important;
+            min-width: 22px !important;
+            border-radius: 6px !important;
+            background: transparent !important;
+            color: #475569 !important;
+            margin: 0 auto !important;
           }
           .sf-footer-trust-icon svg {
-            width: 17px !important;
-            height: 17px !important;
+            width: 14px !important;
+            height: 14px !important;
           }
           .sf-footer-trust-title {
-            font-size: 12px !important;
-            margin-bottom: 2px !important;
+            font-size: 9.5px !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
           }
           .sf-footer-trust-desc {
-            font-size: 10.5px !important;
-            line-height: 1.35 !important;
+            display: none !important;
           }
           .sf-footer-directory-wrapper {
-            padding: 18px 14px 16px !important;
+            padding: 12px 14px 10px !important;
           }
           .sf-footer-directory {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-          }
-          .sf-footer-brand-header {
-            margin-bottom: 6px !important;
-            gap: 8px !important;
-          }
-          .sf-footer-brand-desc {
-            margin: 0 0 6px !important;
-            font-size: 11.5px !important;
-            line-height: 1.45 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 5px !important;
           }
           .sf-footer-section-title {
-            margin: 0 0 7px !important;
-            font-size: 13px !important;
+            display: none !important;
+          }
+          .sf-footer-brand-col {
+            order: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 2px !important;
+          }
+          .sf-footer-brand-header {
+            margin-bottom: 0 !important;
+            gap: 6px !important;
+            justify-content: center !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+          .sf-footer-brand-logo,
+          .sf-footer-brand-avatar {
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+            border-radius: 6px !important;
+            font-size: 11px !important;
+          }
+          .sf-footer-brand-title-wrap {
+            width: auto !important;
+            height: auto !important;
+            min-width: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+          .sf-footer-brand-header h3 {
+            font-size: 13.5px !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+          }
+          .sf-footer-brand-desc {
+            display: none !important;
+          }
+          .sf-footer-brand-address {
+            margin: 0 !important;
+            font-size: 10.5px !important;
+            color: #64748b !important;
+            justify-content: center !important;
+            gap: 4px !important;
+          }
+          .sf-footer-brand-address svg {
+            width: 11px !important;
+            height: 11px !important;
+          }
+          .sf-footer-care-col {
+            order: 2 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 0 !important;
+            margin: 0 !important;
           }
           .sf-footer-care-desc {
-            margin: 0 0 6px !important;
-            font-size: 11.5px !important;
-            line-height: 1.4 !important;
+            display: none !important;
+          }
+          .sf-footer-care-hours {
+            display: none !important;
           }
           .sf-footer-whatsapp-link {
-            margin-bottom: 5px !important;
-            padding: 6px 12px !important;
-          }
-          .sf-footer-pay-badges {
-            margin-bottom: 6px !important;
+            margin: 0 !important;
+            padding: 4px 12px !important;
+            height: 28px !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            border-radius: 20px !important;
             gap: 5px !important;
+            box-sizing: border-box !important;
+          }
+          .sf-footer-whatsapp-link svg {
+            width: 13px !important;
+            height: 13px !important;
+          }
+          .sf-footer-links-col {
+            order: 3 !important;
+            width: 100% !important;
+            margin: 0 !important;
           }
           .sf-footer-quick-links {
             display: flex !important;
-            flex-wrap: wrap !important;
-            gap: 6px 7px !important;
+            flex-wrap: nowrap !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 4px 6px !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
           }
           .sf-footer-quick-links .sf-footer-link-btn {
-            background: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
-            padding: 5px 10px !important;
-            border-radius: 7px !important;
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 1px 3px !important;
             font-size: 11px !important;
-            font-weight: 700 !important;
-            color: #334155 !important;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+            line-height: 1.2 !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
             display: inline-flex !important;
             align-items: center !important;
-            justify-content: center !important;
-            transition: all 0.15s ease !important;
+            white-space: nowrap !important;
           }
-          .sf-footer-quick-links .sf-footer-link-btn:active {
-            background: #eef2ff !important;
-            border-color: #c7d2fe !important;
-            color: var(--storefront-primary-color, #170e5e) !important;
+          .sf-footer-quick-links .sf-footer-link-btn:not(:last-child):not(.sf-footer-cart-link)::after {
+            content: "•";
+            margin-inline-start: 6px;
+            color: #cbd5e1;
+            font-size: 10px;
+            pointer-events: none;
           }
           .sf-footer-quick-links .sf-footer-link-btn svg {
             display: none !important;
           }
-          .sf-footer-trust-wrapper {
-            padding: 12px 10px !important;
+          .sf-footer-quick-links .sf-footer-cart-link,
+          .sf-hide-mobile {
+            display: none !important;
+          }
+          .sf-footer-pay-col {
+            order: 4 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 4px !important;
+            margin-top: 0 !important;
+          }
+          .sf-footer-pay-badges {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 4px !important;
+            margin: 0 !important;
+          }
+          .sf-footer-pay-badges .sf-pay-badge {
+            height: 20px !important;
+            padding: 0 5px !important;
+            font-size: 9px !important;
+            border-radius: 4px !important;
+          }
+          .sf-footer-pay-badges .sf-pay-badge svg {
+            width: 10px !important;
+            height: 10px !important;
+          }
+          .sf-footer-ssl-badge {
+            display: inline-flex !important;
+            margin: 0 auto !important;
+            padding: 2px 7px !important;
+            font-size: 9.5px !important;
+            border-radius: 4px !important;
+          }
+          .sf-footer-ssl-badge svg {
+            width: 10px !important;
+            height: 10px !important;
+          }
+          .sf-footer-bottom-wrapper {
+            padding: 8px 12px !important;
           }
           .sf-footer-bottom-bar {
-            flex-direction: column !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
-            gap: 8px !important;
+            gap: 4px 10px !important;
+            font-size: 10px !important;
+          }
+          .sf-footer-bottom-bar strong {
+            font-size: 10.5px !important;
           }
         }
       `}</style>
+
+      {/* Back to top button (Mobile & Responsive) */}
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="sf-footer-back-to-top"
+        title="الرجوع إلى أعلى الصفحة"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="18 15 12 9 6 15" />
+        </svg>
+        <span>الرجوع إلى أعلى الصفحة</span>
+      </button>
 
       {/* Top Enterprise Trust Strip - Unified Subtle Slate Palette */}
       <div className="sf-footer-trust-wrapper" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '18px 20px' }}>
@@ -342,10 +515,11 @@ export function StorefrontFooter({
       <div className="sf-footer-directory-wrapper" style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto', padding: '34px 20px 28px' }}>
         <div className="sf-footer-directory">
           {/* Col 1: Store Brand Info */}
-          <div>
+          <div className="sf-footer-brand-col">
             <div className="sf-footer-brand-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               {info.logo_url || info.logoUrl ? (
                 <img
+                  className="sf-footer-brand-logo"
                   src={info.logo_url || info.logoUrl}
                   alt={brand.title}
                   style={{
@@ -360,6 +534,7 @@ export function StorefrontFooter({
                 />
               ) : (
                 <div
+                  className="sf-footer-brand-avatar"
                   style={{
                     width: '40px',
                     height: '40px',
@@ -376,7 +551,7 @@ export function StorefrontFooter({
                   {monogramLetter}
                 </div>
               )}
-              <div>
+              <div className="sf-footer-brand-title-wrap">
                 <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>{brand.title}</span>
                   <span title="متجر موثق" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -391,7 +566,7 @@ export function StorefrontFooter({
             </p>
 
             {brand.address && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', fontSize: '12px', color: '#475569', marginBottom: '8px' }}>
+              <div className="sf-footer-brand-address" style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', fontSize: '12px', color: '#475569', marginBottom: '8px' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
@@ -402,7 +577,7 @@ export function StorefrontFooter({
           </div>
 
           {/* Col 2: Quick Links */}
-          <div>
+          <div className="sf-footer-links-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>روابط سريعة</span>
@@ -421,7 +596,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>تصفح الأقسام</span>
+                  <span><span className="sf-hide-mobile">تصفح </span>الأقسام</span>
                 </button>
               )}
               {onToggleDeals && (
@@ -429,7 +604,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>العروض الحصرية</span>
+                  <span>العروض<span className="sf-hide-mobile"> الحصرية</span></span>
                 </button>
               )}
               {onOpenOrders && (
@@ -437,11 +612,11 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>تتبع طلباتي</span>
+                  <span><span className="sf-hide-mobile">تتبع </span>طلباتي</span>
                 </button>
               )}
               {onOpenCart && (
-                <button type="button" onClick={onOpenCart} className="sf-footer-link-btn">
+                <button type="button" onClick={onOpenCart} className="sf-footer-link-btn sf-footer-cart-link">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
@@ -452,7 +627,7 @@ export function StorefrontFooter({
           </div>
 
           {/* Col 3: Customer Care & WhatsApp */}
-          <div>
+          <div className="sf-footer-care-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>خدمة العملاء</span>
@@ -499,13 +674,13 @@ export function StorefrontFooter({
                 <span>محادثة واتساب فورية</span>
               </a>
             ) : null}
-            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+            <div className="sf-footer-care-hours" style={{ fontSize: '11px', color: '#94a3b8' }}>
               الطلبات متاحة أونلاين على مدار الساعة
             </div>
           </div>
 
           {/* Col 4: Payment Badges & SSL */}
-          <div>
+          <div className="sf-footer-pay-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
               <span>طرق الدفع والضمان</span>
@@ -536,11 +711,6 @@ export function StorefrontFooter({
                 <span style={{ fontSize: '10.5px', fontFamily: 'sans-serif', fontWeight: 800, color: '#1e293b' }}>mastercard</span>
               </div>
 
-              {/* Meeza */}
-              <div className="sf-pay-badge" style={{ color: '#334155' }}>
-                <span>ميزة Meeza</span>
-              </div>
-
               {/* Mobile Wallets */}
               <div className="sf-pay-badge" style={{ color: '#334155' }}>
                 <span>محافظ إلكترونية</span>
@@ -549,6 +719,7 @@ export function StorefrontFooter({
 
             {/* SSL Badge - Clean Unified Slate Trust Pill */}
             <div
+              className="sf-footer-ssl-badge"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -574,6 +745,7 @@ export function StorefrontFooter({
 
       {/* Bottom Bar: Copyright & Powered by Z-Systems ERP */}
       <div
+        className="sf-footer-bottom-wrapper"
         style={{
           borderTop: '1px solid #e2e8f0',
           background: '#f8fafc',
