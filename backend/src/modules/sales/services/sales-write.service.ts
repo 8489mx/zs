@@ -731,15 +731,16 @@ export class SalesWriteService {
       metadata: { branchId: payload.branchId, productName: payload.productName, qty: payload.qty, cartItemsCount: payload.cartItemsCount },
     };
     if (payload.eventType === 'no_sale') {
-      if (!payload.branchId || reason.length < 10) throw new AppError('حدد الفرع وسبب فتح الدرج في 10 أحرف على الأقل', 'NO_SALE_REASON_REQUIRED', 400);
+      const branchId = Number(payload.branchId);
+      if (!branchId || reason.length < 10) throw new AppError('حدد الفرع وسبب فتح الدرج في 10 أحرف على الأقل', 'NO_SALE_REASON_REQUIRED', 400);
       await this.tx.runInTransaction(this.db, async (trx) => {
-        if (!await this.authz.hasOpenCashierShift(trx, auth, payload.branchId)) {
+        if (!await this.authz.hasOpenCashierShift(trx, auth, branchId)) {
           throw new AppError('وردية كاشير مفتوحة مطلوبة لفتح الدرج', 'OPEN_SHIFT_REQUIRED', 400);
         }
         await this.authz.authorizeDiscountOverride(String(payload.managerPin || '').trim(), auth, trx);
         const shift = await trx.selectFrom('cashier_shifts').select('id')
           .where('tenant_id', '=', scope.tenantId).where('opened_by', '=', auth.userId)
-          .where('branch_id', '=', payload.branchId).where('status', '=', 'open')
+          .where('branch_id', '=', branchId).where('status', '=', 'open')
           .orderBy('id', 'desc').forUpdate().executeTakeFirstOrThrow();
         await trx.insertInto('pos_audit_events').values({
           ...event, metadata: { ...event.metadata, shiftId: Number(shift.id), username: auth.username },

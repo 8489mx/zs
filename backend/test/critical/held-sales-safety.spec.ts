@@ -248,6 +248,7 @@ function createServices(db = new FakeDb()) {
     { syncSalePosting: async () => undefined } as any,
     { check: async () => null, commitOperation: async () => {} } as any,
     { hasFeature: async () => true, listFeatures: async () => [] } as any,
+    {} as any,
   );
   return { db, query, write };
 }
