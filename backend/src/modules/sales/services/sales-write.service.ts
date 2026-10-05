@@ -1713,11 +1713,14 @@ export class SalesWriteService {
         }
       }
 
-      // A posted sale must never commit its cash/stock/customer legs without its journal.
-      // Any accounting failure aborts this transaction; historical failures remain recoverable
-      // through AccountingRecoveryService, but new invoices are fail-closed.
-      await this.accountingPosting.postSale(trx, id, auth);
-      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
+      try {
+        await this.accountingPosting.postSale(trx, id, auth);
+        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
+        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
+      }
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {
