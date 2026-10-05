@@ -6,14 +6,19 @@ import { Database, GoodsReceiptLineTable, PurchaseOrderItemTable } from '../../.
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
-import { CreateGoodsReceiptDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
+import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
+import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { PurchasesFinanceService } from './purchases-finance.service';
 
 @Injectable()
 export class GoodsReceiptService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPosting: AccountingPostingService,
+    private readonly purchasesFinance: PurchasesFinanceService,
   ) {}
 
   private tenantPredicate(auth: AuthContext, alias?: string) {
@@ -31,11 +36,14 @@ export class GoodsReceiptService {
   private async resolveAccountByCode(trx: any, tenantId: string, accountId: string, code: string): Promise<number | null> {
     const existing = await trx
       .selectFrom('accounting_accounts')
-      .select('id')
+      .select(['id', 'is_active'])
       .where('tenant_id', '=', tenantId)
       .where('code', '=', code)
       .executeTakeFirst();
-    if (existing) return Number(existing.id);
+    if (existing) {
+      if (!existing.is_active) throw new UnprocessableEntityException(`الحساب المحاسبي ${code} معطل؛ يلزم تفعيله قبل الترحيل`);
+      return Number(existing.id);
+    }
 
     const known: Record<string, { ar: string; en: string; type: string; group: string; balance: string }> = {
       '2125': { ar: 'بضاعة مستلمة غير مفوترة', en: 'Goods Received Not Invoiced', type: 'liability', group: 'current_liabilities', balance: 'credit' },
@@ -96,6 +104,9 @@ export class GoodsReceiptService {
     if (products.length !== productIds.length) throw new NotFoundException('أحد أصناف إذن الاستلام لا يتبع المنشأة.');
     if (!dto.purchaseOrderId && dto.lines.some((line) => line.purchaseOrderItemId)) {
       throw new BadRequestException('يلزم تحديد أمر الشراء عند ربط أحد بنوده بإذن الاستلام.');
+    }
+    if (dto.purchaseOrderId && dto.lines.some((line) => Number(line.acceptedQty) > 0 && !line.purchaseOrderItemId)) {
+      throw new BadRequestException('اربط كل كمية مقبولة ببند أمر الشراء حتى يمكن فوترتها وتسوية GRNI.');
     }
     const quarantineIds = [...new Set(dto.lines.map((line) => Number(line.quarantineLocationId || 0)).filter((id) => id > 0))];
     if (quarantineIds.length) {
@@ -373,6 +384,7 @@ export class GoodsReceiptService {
       const alreadyReceivedBill = await trx.selectFrom('purchases').select('id')
         .where('tenant_id', '=', scope.tenantId)
         .where('status', '=', 'posted')
+        .where((eb: any) => eb.or([eb('lifecycle_status', 'is', null), eb('lifecycle_status', '!=', 'grn_bill')]))
         .where((eb: any) => eb.or([
           eb('grn_id', '=', id),
           ...(grnRow.purchase_order_id ? [eb('po_id', '=', Number(grnRow.purchase_order_id))] : []),
@@ -470,6 +482,45 @@ export class GoodsReceiptService {
               created_by: auth.userId,
             })
             .execute();
+
+          const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+            .where('tenant_id', '=', scope.tenantId).where('product_id', '=', Number(line.productId))
+            .executeTakeFirst();
+          const batchNumber = String(line.batchNumber || '').trim();
+          const rawExpiry = line.expiryDate;
+          const expiryDate = rawExpiry ? (rawExpiry instanceof Date
+            ? rawExpiry.toISOString().slice(0, 10) : String(rawExpiry).slice(0, 10)) : '';
+          if (drug && (!batchNumber || !expiryDate)) {
+            throw new UnprocessableEntityException('محضر استلام الدواء يتطلب رقم التشغيلة وتاريخ الصلاحية');
+          }
+          if (batchNumber) {
+            const today = new Date().toISOString().slice(0, 10);
+            if (!/^\d{4}-\d{2}(?:-\d{2})?$/.test(expiryDate) ||
+              (expiryDate.length === 7 ? expiryDate < today.slice(0, 7) : expiryDate < today)) {
+              throw new UnprocessableEntityException('لا يمكن ترحيل تشغيلة منتهية أو بتاريخ صلاحية غير صالح');
+            }
+            const existingBatch = await trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'expiry_date'])
+              .where('tenant_id', '=', scope.tenantId).where('product_id', '=', Number(line.productId))
+              .where('location_id', '=', grn.locationId).where('batch_number', '=', batchNumber)
+              .forUpdate().executeTakeFirst();
+            if (existingBatch) {
+              if (String(existingBatch.expiry_date).slice(0, 10) !== expiryDate) {
+                throw new UnprocessableEntityException('تاريخ صلاحية التشغيلة المسجلة لا يطابق محضر الاستلام');
+              }
+              await trx.updateTable('pharmacy_batches').set({
+                quantity: Number((Number(existingBatch.quantity) + accepted).toFixed(3)),
+                expiry_date: expiryDate, unit_cost: lineUnitCost, status: 'active', updated_at: sql`NOW()`,
+              }).where('tenant_id', '=', scope.tenantId).where('id', '=', Number(existingBatch.id)).execute();
+            } else {
+              await trx.insertInto('pharmacy_batches').values({
+                tenant_id: scope.tenantId, account_id: scope.accountId,
+                product_id: Number(line.productId), drug_id: drug?.id || null,
+                batch_number: batchNumber, expiry_date: expiryDate, quantity: accepted,
+                unit_cost: lineUnitCost, location_id: grn.locationId,
+                supplier_name: grn.supplierName || null, status: 'active', notes: `وارد ${grn.docNo}`,
+              }).execute();
+            }
+          }
         }
       }
 
@@ -494,7 +545,18 @@ export class GoodsReceiptService {
         const entryDateStr = entryDate.toISOString().slice(0, 10);
         const lockAllStr = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
         if (lockAllStr && entryDateStr <= lockAllStr) {
-          throw new BadRequestException(`لا يمكن ترحيل إذن الاستلام في فترة محاسبية مقفلة (تاريخ القفل: ${lockAllStr})`);
+          throw new UnprocessableEntityException(`لا يمكن ترحيل إذن الاستلام في فترة محاسبية مقفلة (تاريخ القفل: ${lockAllStr})`);
+        }
+        const lockOperationalStr = settings?.lock_date_non_adviser ? String(settings.lock_date_non_adviser).slice(0, 10) : '';
+        if (lockOperationalStr && entryDateStr <= lockOperationalStr) {
+          throw new UnprocessableEntityException(`لا يمكن ترحيل إذن الاستلام في فترة تشغيلية مقفلة حتى ${lockOperationalStr}`);
+        }
+        const closedPeriod = await trx.selectFrom('accounting_fiscal_periods')
+          .select('id').where('tenant_id', '=', scope.tenantId).where('status', '=', 'closed')
+          .where('start_date', '<=', entryDateStr).where('end_date', '>=', entryDateStr)
+          .executeTakeFirst();
+        if (closedPeriod) {
+          throw new UnprocessableEntityException('لا يمكن ترحيل إذن الاستلام داخل فترة مالية شهرية مقفلة');
         }
 
         const grniAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '2125');
@@ -586,6 +648,151 @@ export class GoodsReceiptService {
         grniJournalEntryId: grniEntryId,
         totalGrniAmount: Number(totalGrniAmount.toFixed(2)),
       };
+    });
+  }
+
+  /** Invoice previously posted receipts without adding physical stock a second time. */
+  async createBillFromReceipts(dto: CreateGrnBillDto, auth: AuthContext): Promise<{ purchaseId: number; docNo: string }> {
+    const scope = requireTenantScope(auth);
+    const invoiceNo = String(dto.supplierInvoiceNo || '').trim().replace(/\s+/g, ' ');
+    if (!invoiceNo || !Array.isArray(dto.lines) || dto.lines.length === 0) {
+      throw new BadRequestException('حدد رقم فاتورة المورد وبنود محاضر الاستلام');
+    }
+    const requestedIds = dto.lines.map((line) => Number(line.grnLineId));
+    if (new Set(requestedIds).size !== requestedIds.length || requestedIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+      throw new BadRequestException('لا يجوز تكرار سطر محضر الاستلام في الفاتورة');
+    }
+    return this.db.transaction().execute(async (trx) => {
+      const po = await trx.selectFrom('purchase_orders').select(['id', 'supplier_id'])
+        .where('id', '=', dto.purchaseOrderId).where('tenant_id', '=', scope.tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!po || Number(po.supplier_id) !== Number(dto.supplierId)) {
+        throw new BadRequestException('أمر الشراء لا يتبع المورد والمنشأة المحددين');
+      }
+      const supplier = await trx.selectFrom('suppliers').select('id')
+        .where('id', '=', dto.supplierId).where('tenant_id', '=', scope.tenantId)
+        .where('is_active', '=', true).executeTakeFirst();
+      if (!supplier) throw new NotFoundException('المورد غير موجود أو غير نشط');
+      const directBill = await trx.selectFrom('purchases').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('po_id', '=', dto.purchaseOrderId)
+        .where('status', '!=', 'cancelled')
+        .where((eb) => eb.or([eb('lifecycle_status', 'is', null), eb('lifecycle_status', '!=', 'grn_bill')]))
+        .limit(1).executeTakeFirst();
+      if (directBill) throw new UnprocessableEntityException('أمر الشراء مرتبط بفاتورة مباشرة سابقة؛ ألغِ المسودة أو سوِّ الفاتورة المنشورة قبل فواتير GRN');
+
+      const references = await trx.selectFrom('goods_receipt_lines').select(['id', 'grn_id'])
+        .where('tenant_id', '=', scope.tenantId).where('id', 'in', requestedIds).execute();
+      if (references.length !== requestedIds.length) throw new NotFoundException('أحد سطور الاستلام غير موجود');
+      const grnIds = [...new Set(references.map((line) => Number(line.grn_id)))].sort((a, b) => a - b);
+      const headers = await trx.selectFrom('goods_receipt_notes').selectAll()
+        .where('tenant_id', '=', scope.tenantId).where('id', 'in', grnIds)
+        .orderBy('id', 'asc').forUpdate().execute();
+      if (headers.length !== grnIds.length || headers.some((header) => header.status !== 'posted' ||
+        Number(header.supplier_id) !== Number(dto.supplierId) || Number(header.purchase_order_id) !== Number(dto.purchaseOrderId) ||
+        !header.grni_journal_entry_id)) {
+        throw new UnprocessableEntityException('كل محاضر الاستلام يجب أن تكون منشورة وعلى نفس أمر الشراء والمورد ولها قيد GRNI');
+      }
+      const receiptLines = await trx.selectFrom('goods_receipt_lines').selectAll()
+        .where('tenant_id', '=', scope.tenantId).where('grn_id', 'in', grnIds)
+        .orderBy('id', 'asc').forUpdate().execute();
+      const receiptLineById = new Map(receiptLines.map((line) => [Number(line.id), line]));
+      const accrualByLine = new Map<number, number>();
+      for (const grnId of grnIds) {
+        const portions = allocateGrnAccrual(receiptLines.filter((line) => Number(line.grn_id) === grnId)
+          .map((line) => ({ id: Number(line.id), acceptedQty: Number(line.accepted_qty), unitCost: Number(line.unit_cost) })));
+        for (const [lineId, cents] of portions) accrualByLine.set(lineId, cents);
+      }
+      const poItems = await trx.selectFrom('purchase_order_items').select(['id', 'product_id', 'product_name', 'unit_name', 'unit_cost'])
+        .where('tenant_id', '=', scope.tenantId).where('purchase_order_id', '=', dto.purchaseOrderId).execute();
+      const poItemById = new Map(poItems.map((item) => [Number(item.id), item]));
+      const toleranceSetting = await trx.selectFrom('settings').select('value')
+        .where('tenant_id', '=', scope.tenantId).where('key', '=', 'purchaseThreeWayTolerancePercent').executeTakeFirst();
+      let tolerancePercent = 2;
+      if (toleranceSetting) {
+        try { tolerancePercent = Number(JSON.parse(toleranceSetting.value)); }
+        catch { tolerancePercent = Number(toleranceSetting.value); }
+      }
+      if (!Number.isFinite(tolerancePercent) || tolerancePercent < 0 || tolerancePercent > 100) {
+        throw new UnprocessableEntityException('نسبة تسامح المطابقة في إعدادات المنشأة غير صالحة');
+      }
+      const history = await trx.selectFrom('purchase_items as pi')
+        .innerJoin('purchases as p', (join) => join.onRef('p.id', '=', 'pi.purchase_id').onRef('p.tenant_id', '=', 'pi.tenant_id'))
+        .select(['pi.grn_line_id', 'pi.qty', 'pi.grni_amount'])
+        .where('pi.tenant_id', '=', scope.tenantId).where('pi.grn_line_id', 'in', requestedIds)
+        .where('p.status', '!=', 'cancelled').execute();
+      const previous = new Map<number, { qty: number; cents: number }>();
+      for (const line of history) {
+        if (line.grni_amount == null) throw new UnprocessableEntityException('فاتورة قديمة مرتبطة بالاستلام تحتاج تسوية GRNI قبل إصدار فاتورة أخرى');
+        const id = Number(line.grn_line_id);
+        const value = previous.get(id) || { qty: 0, cents: 0 };
+        value.qty += Number(line.qty);
+        value.cents += Math.round(Number(line.grni_amount) * 100);
+        previous.set(id, value);
+      }
+      const prepared = dto.lines.map((request) => {
+        const receipt = receiptLineById.get(Number(request.grnLineId));
+        const poItem = receipt?.purchase_order_item_id ? poItemById.get(Number(receipt.purchase_order_item_id)) : undefined;
+        const qty = Number(request.qty);
+        const unitCost = Number(request.unitCost);
+        if (!receipt || !poItem || Number(poItem.product_id) !== Number(receipt.product_id) ||
+          !Number.isFinite(qty) || qty <= 0 || Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.000001 ||
+          !Number.isFinite(unitCost) || unitCost <= 0) {
+          throw new UnprocessableEntityException('سطر الفاتورة لا يطابق صنف ومحضر وأمر الشراء أو كمية/تكلفة صحيحة');
+        }
+        const orderedCost = Number(poItem.unit_cost);
+        if (!Number.isFinite(orderedCost) || orderedCost <= 0 ||
+          unitCost > orderedCost * (1 + tolerancePercent / 100) + 0.000001) {
+          throw new UnprocessableEntityException('سعر فاتورة المورد يتجاوز السعر المتفق عليه ونسبة التسامح؛ يتطلب اعتماد فرق السعر قبل الترحيل');
+        }
+        const prior = previous.get(Number(receipt.id)) || { qty: 0, cents: 0 };
+        const accruedCents = allocateGrniBillPortion({
+          lineAccrualCents: accrualByLine.get(Number(receipt.id)) || 0,
+          acceptedQty: Number(receipt.accepted_qty), previouslyBilledQty: prior.qty,
+          previouslyClearedCents: prior.cents, newQty: qty,
+        });
+        return { receipt, poItem, qty, unitCost, grniAmount: accruedCents / 100,
+          lineTotal: Math.round((qty * unitCost + Number.EPSILON) * 100) / 100 };
+      });
+      const subtotal = Math.round(prepared.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100;
+      const taxAmount = Number(dto.taxAmount || 0);
+      if (subtotal <= 0 || !Number.isFinite(taxAmount) || taxAmount < 0 ||
+        Math.abs(taxAmount * 100 - Math.round(taxAmount * 100)) > 0.001) {
+        throw new UnprocessableEntityException('قيمة الفاتورة أو الضريبة غير صالحة');
+      }
+      const total = Math.round((subtotal + taxAmount) * 100) / 100;
+      const firstHeader = headers[0];
+      const inserted = await trx.insertInto('purchases').values({
+        doc_no: 'TMP', supplier_id: dto.supplierId, payment_type: 'credit', subtotal,
+        discount: 0, tax_rate: 0, tax_amount: taxAmount, prices_include_tax: false, total,
+        note: `فاتورة محاضر استلام ${grnIds.join(', ')}`, status: 'posted',
+        lifecycle_status: 'grn_bill', matched_status: 'matched', three_way_match_status: 'matched',
+        po_id: dto.purchaseOrderId, grn_id: grnIds.length === 1 ? grnIds[0] : null,
+        supplier_invoice_no: invoiceNo, branch_id: null, location_id: grnIds.length === 1 ? Number(firstHeader.location_id) : null,
+        created_by: auth.userId, cancelled_at: null, cancelled_by: null, required_date: null,
+        contact_id: null, shipping_address_id: null, cost_center_id: null, project_id: null,
+        tenant_id: scope.tenantId, account_id: scope.accountId,
+      }).returning('id').executeTakeFirstOrThrow();
+      const purchaseId = Number(inserted.id);
+      const docNo = formatDailyDocumentNumber('ZP', purchaseId, new Date(), 6);
+      await trx.updateTable('purchases').set({ doc_no: docNo })
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', purchaseId).execute();
+      for (const line of prepared) {
+        await trx.insertInto('purchase_items').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId, purchase_id: purchaseId,
+          po_item_id: Number(line.poItem.id), grn_line_id: Number(line.receipt.id), grni_amount: line.grniAmount,
+          product_id: Number(line.receipt.product_id), product_name: line.poItem.product_name,
+          qty: line.qty, unit_cost: line.unitCost, line_total: line.lineTotal,
+          unit_name: line.poItem.unit_name || 'قطعة', unit_multiplier: 1,
+          category_id: null, location_id: Number(headers.find((header) => Number(header.id) === Number(line.receipt.grn_id))!.location_id),
+          received_qty: line.qty,
+        }).execute();
+      }
+      await this.purchasesFinance.addSupplierLedgerEntry(trx, dto.supplierId, total, 'purchase_credit',
+        `فاتورة شراء من محاضر استلام ${docNo}`, 'purchase', purchaseId, auth, null,
+        grnIds.length === 1 ? Number(firstHeader.location_id) : null);
+      await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '5190');
+      await this.accountingPosting.postPurchase(trx, purchaseId, auth);
+      return { purchaseId, docNo };
     });
   }
 

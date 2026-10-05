@@ -4,11 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { posApi } from '@/features/pos/api/pos.api';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
 import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
 import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
 import { PosOfflineQueueModal } from './PosOfflineQueueModal';
+import { PosInstantExchangeDialog } from './PosInstantExchangeDialog';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
@@ -58,12 +61,52 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
 
   const { offlineQueue, isSyncing, hasFailedSales, syncOfflineSales } = usePosOfflineSync();
   const [isOfflineQueueModalOpen, setIsOfflineQueueModalOpen] = useState(false);
+  const [isNoSaleOpen, setIsNoSaleOpen] = useState(false);
+  const [isExchangeOpen, setIsExchangeOpen] = useState(false);
+  const [noSaleReason, setNoSaleReason] = useState('');
+  const [noSaleManagerPin, setNoSaleManagerPin] = useState('');
+  const [isNoSalePending, setIsNoSalePending] = useState(false);
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
   const [isScreensMenuOpen, setIsScreensMenuOpen] = useState(false);
   const [screensMenuStyle, setScreensMenuStyle] = useState<React.CSSProperties>({});
   const screensMenuContainerRef = useRef<HTMLDivElement>(null);
   const screensMenuDropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleNoSaleDrawerKick = useCallback(async () => {
+    if (isNoSalePending) return;
+    const branchId = Number(pos.branchId);
+    if (!pos.ownOpenShift || !Number.isInteger(branchId) || branchId <= 0) {
+      toast.error('افتح وردية على الفرع الحالي أولاً');
+      return;
+    }
+    if (noSaleReason.trim().length < 10 || !noSaleManagerPin.trim()) {
+      toast.error('أدخل سبباً من 10 أحرف على الأقل ورمز اعتماد المشرف');
+      return;
+    }
+    setIsNoSalePending(true);
+    try {
+      await posApi.logSecurityEvent({ eventType: 'no_sale', branchId, note: noSaleReason.trim(), managerPin: noSaleManagerPin.trim() });
+      setIsNoSaleOpen(false);
+      setNoSaleReason('');
+      setNoSaleManagerPin('');
+      const printer = (window as Window & { electronPrinter?: { kickCashDrawer: (device?: string) => Promise<unknown> } }).electronPrinter;
+      if (printer?.kickCashDrawer) {
+        try {
+          await printer.kickCashDrawer(settings?.posElectronCashierPrinter);
+          toast.success('تم تسجيل فتح الدرج وإرسال أمر الفتح');
+        } catch {
+          toast.warning('تم تسجيل الحدث، لكن تعذر الاتصال بدرج النقدية');
+        }
+      } else {
+        toast.warning('تم تسجيل الحدث، لكن فتح الدرج المباشر متاح من تطبيق سطح المكتب فقط');
+      }
+    } catch {
+      toast.error('تعذر اعتماد فتح الدرج؛ لم يُرسل أمر الفتح');
+    } finally {
+      setIsNoSalePending(false);
+    }
+  }, [isNoSalePending, noSaleManagerPin, noSaleReason, pos.branchId, pos.ownOpenShift, settings?.posElectronCashierPrinter]);
 
   const updateScreensMenuPosition = useCallback(() => {
     if (!screensMenuContainerRef.current) return;
@@ -204,6 +247,12 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           )}
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale} title="إعادة طباعة الفواتير (F9)">
             F9 إعادة طباعة
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setIsNoSaleOpen(true)} disabled={!pos.ownOpenShift} title="فتح الدرج بدون بيع بعد اعتماد المشرف">
+            فتح الدرج
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setIsExchangeOpen(true)} disabled={!pos.ownOpenShift || !pos.cart.length} title="استبدال بضاعة بالفاتورة الأصلية">
+            استبدال فوري
           </Button>
 
           {/* Phone & Delivery Order Desk (F7) */}
@@ -536,6 +585,20 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       isSyncing={isSyncing}
       onRetrySync={syncOfflineSales}
     />
+    <DialogShell open={isNoSaleOpen} onClose={() => { if (!isNoSalePending) setIsNoSaleOpen(false); }} width="min(480px, 100%)">
+      <div dir="rtl" style={{ padding: 24, background: '#fff' }}>
+        <h2 style={{ marginTop: 0 }}>فتح الدرج بدون بيع</h2>
+        <p>سيُحفظ اسم المستخدم والوردية والسبب في سجل التدقيق قبل إرسال أمر فتح الدرج.</p>
+        <label htmlFor="pos-no-sale-reason">سبب فتح الدرج</label>
+        <textarea id="pos-no-sale-reason" value={noSaleReason} onChange={(event) => setNoSaleReason(event.target.value)} maxLength={500} rows={3} style={{ width: '100%', marginBottom: 12 }} disabled={isNoSalePending} />
+        <label htmlFor="pos-no-sale-pin">رمز اعتماد المشرف</label>
+        <input id="pos-no-sale-pin" type="password" autoComplete="off" value={noSaleManagerPin} onChange={(event) => setNoSaleManagerPin(event.target.value)} style={{ width: '100%', marginBottom: 18 }} disabled={isNoSalePending} />
+        <Button type="button" variant="primary" onClick={() => { void handleNoSaleDrawerKick(); }} disabled={isNoSalePending || noSaleReason.trim().length < 10 || !noSaleManagerPin.trim()}>
+          {isNoSalePending ? 'جاري الاعتماد...' : 'اعتماد وفتح الدرج'}
+        </Button>
+      </div>
+    </DialogShell>
+    <PosInstantExchangeDialog open={isExchangeOpen} onClose={() => setIsExchangeOpen(false)} pos={pos} />
     </>
   );
 }
@@ -545,6 +608,7 @@ function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) 
     && prev.pos.paymentType === next.pos.paymentType
     && prev.pos.paymentChannel === next.pos.paymentChannel
     && prev.pos.ownOpenShift === next.pos.ownOpenShift
+    && prev.pos.branchId === next.pos.branchId
     && prev.pos.hasOperationalSetup === next.pos.hasOperationalSetup
     && prev.pos.hasCatalogReady === next.pos.hasCatalogReady
     && prev.pos.requiresCashierShift === next.pos.requiresCashierShift

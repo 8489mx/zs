@@ -832,6 +832,7 @@ export interface VanLoadRequisitionTable {
 }
 
 export interface SalesTable {
+  exchange_return_id?: number | null;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
@@ -1431,6 +1432,7 @@ export interface PurchaseItemTable {
   purchase_id: number;
   po_item_id?: number | null;
   grn_line_id?: number | null;
+  grni_amount?: number | null;
   product_id: number | null;
   product_name: string;
   qty: number;
@@ -2097,6 +2099,7 @@ export interface Database {
   sales: SalesTable;
   sale_items: SaleItemTable;
   sale_line_stock_allocations: SaleLineStockAllocationTable;
+  sale_pharmacy_batch_allocations: SalePharmacyBatchAllocationTable;
   sale_payments: SalePaymentTable;
   held_sales: HeldSaleTable;
   held_sale_items: HeldSaleItemTable;
@@ -2572,6 +2575,18 @@ export interface PharmacyBatchTable {
   notes: string | null;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface SalePharmacyBatchAllocationTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  sale_id: number;
+  sale_item_id: number;
+  product_id: number;
+  pharmacy_batch_id: number;
+  quantity: number;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface PharmacyPrescriptionTable {

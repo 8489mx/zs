@@ -49,6 +49,14 @@ class PurchaseItemDto {
   @IsOptional()
   @IsArray()
   serials?: string[];
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  expiryDate?: string;
 }
 
 export class UpsertPurchaseDto {

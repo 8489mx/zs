@@ -5955,7 +5955,7 @@
 - Offline invoice retries retain the same idempotency key; the queue is scoped to the authenticated tenant and account. Committed retries retrieve the original invoice by its stored sale ID. Legacy unscoped offline queue entries require manual reconciliation and are excluded from automatic SaaS replay.
 - Receipt output supports 58 mm and 80 mm; Electron silently prints to the configured device. The success dialog sends one cash drawer kick per displayed posted invoice with an actual cash payment; reopening after a page reload can send another kick. Device errors do not roll back the committed sale.
 - Store-credit returns and redemptions now post to customer advances liability account `2150`. Historical store-credit journals posted to receivables need an accountant-approved reclassification before ledger balances are certified.
-- **Open integration risk:** an instantaneous exchange combining negative return lines and new sale lines in one invoice and transaction is not implemented. The existing return/store-credit and new-sale workflows remain separate; presenting them as one atomic exchange would risk mismatched stock and ledgers. A dedicated exchange posting engine is required before enabling that workflow.
+- POS instant exchange accepts positive sale lines and negative return lines linked to one original sale. It locks the original sale and product rows, settles the net amount, and posts one combined journal inside the same transaction. The original sale must be fully paid for the same registered customer and branch; generic edit/cancel is blocked on the linked exchange invoice.
 - No tests, builds, or physical printer checks were run under the owner's current instruction.
 
 ## POS financial controls follow-up (5 October 2026)
@@ -5963,5 +5963,13 @@
 - Cash checkout stores tendered, applied, and change amounts per payment. Noncash overpayment is rejected; drawer expectations use only the applied cash, including on older sales without payment rows.
 - Sale lines persist proportional invoice discount, allocated tax, net value, and net unit price. Returns use those saved amounts and original unit cost under the sale and stock locks. A legacy return with unreconciled line values needs manual reconciliation before another return.
 - Sale refunds are allocated to outstanding receivable, original cash, original electronic payment, or customer store credit. Cash cannot exceed the original cash paid without manager authorization and a recorded reason. Mixed returns reduce the cashier drawer by the actual cash payout.
-- The backend records tenant-scoped POS audit events, requires an open shift for POS sales and no-sale drawer events, and posts blind-close variances to dedicated Cash Over and Cash Short accounts. The no-sale audit endpoint is available; a dedicated POS control for physical drawer opening is still to be wired in the client.
+- The backend records tenant-scoped POS audit events, requires an open shift for POS sales and no-sale drawer events, and posts blind-close variances to dedicated Cash Over and Cash Short accounts. The POS drawer control now records the user, shift and reason before sending a desktop kick; a hardware failure leaves the audit record intact.
 - No build, typecheck, tests, migration execution, or hardware check was run under the owner's instruction. This is not a production verification claim.
+
+## Commercial accounting and POS closure update (5 October 2026)
+
+- Cashiers can combine original invoice returns and new products in an instant exchange. The backend links the documents, settles the net in cash, card or store credit, and records a single balanced journal. The original invoice must be fully paid for the same registered customer and branch.
+- `POST /api/goods-receipts/bills` settles accepted quantities from multiple posted GRNs under one PO and supplier. It caps cumulative invoicing per receipt line, clears GRNI and routes tolerated purchase price variance to PPV.
+- Pharmacy sales allocate valid batches by earliest expiry and record the exact batch for later returns. Expired or insufficient batches reject the checkout. Pharmacy receipts require a batch number and expiry date.
+- The POS no-sale drawer control records the operator, shift and reason before sending the desktop drawer command. Hardware errors do not reverse the audit entry.
+- These changes await the local pair's migration, TypeScript, financial and field checks; this static review does not certify production readiness.
