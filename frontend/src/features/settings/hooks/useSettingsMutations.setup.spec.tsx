@@ -42,7 +42,7 @@ const baseSettingsMutationValues = {
   taxRate: 0,
   taxMode: 'exclusive' as const,
   paperSize: 'a4' as const,
-  receiptWidthMm: 80,
+  receiptWidthMm: 80 as const,
   managerPin: '',
   autoBackup: 'on' as const,
   accentColor: '#170c5c',
