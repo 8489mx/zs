@@ -18,7 +18,6 @@ export function CarrierTrackingHubTab() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [trackingEvents, setTrackingEvents] = useState<any[]>([]);
-  const [lastSyncResult, setLastSyncResult] = useState<any | null>(null);
 
   const handleSyncTracking = async () => {
     if (!trackingNumber.trim()) {
@@ -29,7 +28,6 @@ export function CarrierTrackingHubTab() {
     try {
       setIsSyncing(true);
       const res = await maritimeApi.syncCarrierTracking(carrierCode, trackingNumber.trim().toUpperCase());
-      setLastSyncResult(res);
 
       const events = await maritimeApi.listCarrierApiEvents(trackingNumber.trim().toUpperCase());
       setTrackingEvents(events);

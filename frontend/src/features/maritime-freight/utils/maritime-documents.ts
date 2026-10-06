@@ -1211,7 +1211,6 @@ export function printFreightInvoice(
   const companyName = options?.companyName || 'منظومة Z-Systems للشحن والخدمات اللوجستية';
   const invNumber = options?.invoiceNumber || `INV-${escapeHtml(job.job_number)}`;
   const totalAmount = Number(options?.amount ?? (Number(job.client_invoiced_total) || 0));
-  const containers = job.containers || [];
   const charges = options?.charges || [];
 
   const chargesRowsHtml = charges.length > 0
@@ -1394,6 +1393,13 @@ export function printFreightInvoice(
 }
 
 /**
+ * Convenience wrapper for printing client invoice from job charges breakdown.
+ */
+export function printJobChargesInvoice(job: MaritimeJob, charges: any[] = [], companyName?: string) {
+  return printFreightInvoice(job, { charges, companyName });
+}
+
+/**
  * Generates and prints a Confidential Internal Job Profitability & Cost Center Audit Statement (PDF).
  */
 export function printJobProfitabilitySheet(
@@ -1524,7 +1530,7 @@ export function printJobProfitabilitySheet(
  */
 export function printTruckingWaybill(
   job: MaritimeJob,
-  container?: MaritimeContainer,
+  container?: any,
   companyName = 'منظومة Z-Systems للخدمات اللوجستية والنقل البري',
 ) {
   const printWindow = window.open('', '_blank', 'width=950,height=1000');

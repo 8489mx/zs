@@ -14,9 +14,6 @@ import {
   printSolasVgmCertificate,
   printShippingInstructions,
   printJobProfitabilitySheet,
-  printTruckingWaybill,
-  printCargoInsuranceCertificate,
-  printWarehouseReceipt,
 } from '../../utils/maritime-documents';
 
 interface Props {
@@ -148,7 +145,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
     if (!confirmed) return;
 
     try {
-      await maritimeApi.deleteJobDocument(doc.id);
+      await maritimeApi.deleteJobDocument(job.id, doc.id);
       toast.success('تم حذف المستند بنجاح');
       fetchDocuments();
       onUpdated();
@@ -526,7 +523,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => printFreightInvoice(job, job.containers || [])}
+              onClick={() => printFreightInvoice(job)}
               style={{
                 width: '100%',
                 padding: '7px',
@@ -557,7 +554,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => printSolasVgmCertificate(job, job.containers || [])}
+                onClick={() => printSolasVgmCertificate(job, job.containers?.[0])}
                 style={{
                   width: '100%',
                   padding: '7px',
@@ -656,12 +653,12 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               onConfirm={handleUploadSubmit}
               confirmText="حفظ المستند"
               cancelText="إلغاء"
-              confirmLoading={isSubmitting}
+              isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            <Field label="نوع المستند" required>
+            <Field label="نوع المستند *">
               <CustomSelect
                 value={form.documentType}
                 onChange={(val) => setForm({ ...form, documentType: val })}
@@ -669,7 +666,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="اسم / وصف المستند" required>
+            <Field label="اسم / وصف المستند *">
               <input
                 type="text"
                 value={form.title}
@@ -733,7 +730,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="اختيار الملف الرقمي" required>
+            <Field label="اختيار الملف الرقمي *">
               <input
                 type="file"
                 onChange={handleFileChange}

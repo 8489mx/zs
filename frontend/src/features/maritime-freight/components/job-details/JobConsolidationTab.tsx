@@ -335,7 +335,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم العملية (Job #)</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>العميل / المستورد</th>
-                    <th style={{ padding: '10px 14px', fontWeight 700 }}>رقم بوليصة الهاوس (HBL)</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم بوليصة الهاوس (HBL)</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>وصف البضاعة والطرود</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>الوزن / الحجم</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>قيمة الفاتورة</th>
@@ -423,12 +423,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               onConfirm={handleCreateSubJob}
               confirmText="إنشاء شحنة الهاوس"
               cancelText="إلغاء"
-              confirmLoading={isSubmitting}
+              isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            <Field label="اسم العميل / المستورد" required>
+            <Field label="اسم العميل / المستورد *">
               <input
                 type="text"
                 value={form.customerName}

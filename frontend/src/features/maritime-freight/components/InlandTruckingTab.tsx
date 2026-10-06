@@ -4,7 +4,6 @@ import { maritimeApi, MaritimeJob } from '../api/maritime-freight.api';
 import { toast } from '@/shared/components/system-alert';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
-import { printTruckingWaybill } from '../utils/maritime-documents';
 
 export function InlandTruckingTab() {
   const [trips, setTrips] = useState<any[]>([]);

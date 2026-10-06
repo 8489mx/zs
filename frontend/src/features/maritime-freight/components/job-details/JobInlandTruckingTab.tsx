@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
-import { toast, systemConfirm } from '@/shared/components/system-alert';
+import { toast } from '@/shared/components/system-alert';
 import { maritimeApi, MaritimeJob, MaritimeInlandTruckingTrip } from '../../api/maritime-freight.api';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -33,7 +33,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
     costAmount: '',
     sellAmount: '',
     currency: 'EGP',
-    cargoDescription: job.cargo_description || 'بضائع عامة',
+    cargoDescription: job.commodity_description || 'بضائع عامة',
     notes: '',
   });
 
@@ -334,13 +334,13 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
               onConfirm={handleCreateTrip}
               confirmText="حفظ وتوجيه الشاحنة"
               cancelText="إلغاء"
-              confirmLoading={isSubmitting}
+              isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="شركة النقل / مقاول النقل" required>
+              <Field label="شركة النقل / مقاول النقل *">
                 <input
                   type="text"
                   value={form.truckingCompany}
@@ -350,7 +350,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                 />
               </Field>
 
-              <Field label="رقم لوحة الشاحنة / المقطورة" required>
+              <Field label="رقم لوحة الشاحنة / المقطورة *">
                 <input
                   type="text"
                   value={form.truckPlateNumber}
@@ -384,7 +384,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="موقع التحميل (Pickup Location)" required>
+              <Field label="موقع التحميل (Pickup Location) *">
                 <input
                   type="text"
                   value={form.pickupLocation}
@@ -393,7 +393,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                 />
               </Field>
 
-              <Field label="موقع التفريغ (Delivery Location)" required>
+              <Field label="موقع التفريغ (Delivery Location) *">
                 <input
                   type="text"
                   value={form.deliveryLocation}

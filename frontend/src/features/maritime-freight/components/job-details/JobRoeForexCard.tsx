@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { maritimeApi, MaritimeJob } from '../../api/maritime-freight.api';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';

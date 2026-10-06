@@ -8,7 +8,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi, MaritimeJob, MaritimeContainer, MaritimeCarrierInvoice, FreightAuditPreview, CargoInsurance, WarehouseReceipt } from '../api/maritime-freight.api';
 import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from '../maritime-freight.types';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
-import { printOceanBillOfLading, printDeliveryOrder, printArrivalNotice, printCarrierDisputeNote, printAirWaybill, printCargoInsuranceCertificate, printWarehouseReceipt, printFreightInvoice, printJobProfitabilitySheet, printTruckingWaybill, printSolasVgmCertificate, printShippingInstructions } from '../utils/maritime-documents';
+import { printCarrierDisputeNote, printCargoInsuranceCertificate, printWarehouseReceipt, printFreightInvoice, printJobProfitabilitySheet, printTruckingWaybill } from '../utils/maritime-documents';
 import { CustomsDeclarationModal } from './CustomsDeclarationModal';
 import { JobEgyptianAciCard } from './job-details/JobEgyptianAciCard';
 import { JobExportCutoffsCard } from './job-details/JobExportCutoffsCard';

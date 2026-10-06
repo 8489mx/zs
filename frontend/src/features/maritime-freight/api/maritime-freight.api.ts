@@ -309,6 +309,27 @@ export interface MaritimeJob {
   customerBalance?: number;
   customerAvailableCredit?: number;
   status: 'active' | 'completed' | 'cancelled';
+  acid_number?: string | null;
+  acid_issue_date?: string | null;
+  acid_expiry_date?: string | null;
+  foreign_exporter_id?: string | null;
+  importer_tax_id?: string | null;
+  quote_roe?: number | null;
+  actual_roe?: number | null;
+  forex_gain_loss?: number;
+  roe_clause_agreed?: boolean;
+  si_cutoff_date?: string | null;
+  vgm_cutoff_date?: string | null;
+  port_cutoff_date?: string | null;
+  parent_job_id?: string | null;
+  master_job_id?: string | null;
+  is_consolidation_master?: boolean;
+  is_consolidation?: boolean;
+  sub_job_count?: number;
+  cbm?: number;
+  cargo_description?: string | null;
+  commodity_description?: string | null;
+  delivery_address?: string | null;
   notes: string | null;
   created_at: string;
   containersCount?: number;
@@ -354,6 +375,52 @@ export interface WarehouseReceipt {
   released_by: number | null;
   notes: string | null;
   created_at: string;
+}
+
+export interface MaritimeInlandTruckingTrip {
+  id: string | number;
+  job_id?: string | number;
+  trip_number?: string;
+  trucking_company: string;
+  driver_name?: string;
+  driver_phone?: string;
+  truck_plate_number?: string;
+  truck_plate?: string;
+  container_number?: string;
+  pickup_location?: string;
+  delivery_location?: string;
+  origin_port_terminal?: string;
+  delivery_destination?: string;
+  status: string;
+  scheduled_pickup_time?: string;
+  scheduled_delivery_time?: string;
+  actual_pickup_time?: string;
+  actual_delivery_time?: string;
+  cost_amount?: number;
+  sell_amount?: number;
+  currency?: string;
+  cargo_description?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MaritimeJobDocument {
+  id: string | number;
+  job_id: string | number;
+  document_type: string;
+  title: string;
+  document_number?: string | null;
+  issue_date?: string | null;
+  expiry_date?: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_size_bytes?: number | null;
+  mime_type?: string | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 function toQueryString(params?: Record<string, any>): string {
@@ -818,18 +885,32 @@ export const maritimeApi = {
 
   // Consolidation Sub-Jobs
   listConsolidationSubJobs: (jobId: string | number) =>
-    http<any[]>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`),
+    http<MaritimeJob[]>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`),
+  getJobSubJobs: (jobId: string | number) =>
+    http<MaritimeJob[]>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`),
   createConsolidationSubJob: (jobId: string | number, data: any) =>
-    http<any>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`, {
+    http<MaritimeJob>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  createJobSubJob: (jobId: string | number, data: any) =>
+    http<MaritimeJob>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   // Digital Shipment e-Folder / Document Binder
   listJobDocuments: (jobId: string | number) =>
-    http<any[]>(`/api/maritime-freight/jobs/${jobId}/documents`),
+    http<MaritimeJobDocument[]>(`/api/maritime-freight/jobs/${jobId}/documents`),
+  getJobDocuments: (jobId: string | number) =>
+    http<MaritimeJobDocument[]>(`/api/maritime-freight/jobs/${jobId}/documents`),
   createJobDocument: (jobId: string | number, data: any) =>
-    http<any>(`/api/maritime-freight/jobs/${jobId}/documents`, {
+    http<MaritimeJobDocument>(`/api/maritime-freight/jobs/${jobId}/documents`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  uploadJobDocument: (jobId: string | number, data: any) =>
+    http<MaritimeJobDocument>(`/api/maritime-freight/jobs/${jobId}/documents`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -856,16 +937,32 @@ export const maritimeApi = {
 
   // Inland Trucking Trips & Container Dispatch
   listInlandTruckingTrips: (jobId?: string | number) =>
-    http<any[]>(`/api/maritime-freight/inland-trucking-trips${toQueryString({ jobId })}`),
+    http<MaritimeInlandTruckingTrip[]>(`/api/maritime-freight/inland-trucking-trips${toQueryString({ jobId })}`),
+  getJobTruckingTrips: (jobId?: string | number) =>
+    http<MaritimeInlandTruckingTrip[]>(`/api/maritime-freight/inland-trucking-trips${toQueryString({ jobId })}`),
   createInlandTruckingTrip: (data: any) =>
     http<any>(`/api/maritime-freight/inland-trucking-trips`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  createJobTruckingTrip: (jobId: string | number, data: any) =>
+    http<MaritimeInlandTruckingTrip>(`/api/maritime-freight/inland-trucking-trips`, {
+      method: 'POST',
+      body: JSON.stringify({ ...data, jobId }),
+    }),
   updateInlandTruckingTripStatus: (id: string | number, tripStatus: string, deliveryDate?: string, notes?: string) =>
     http<any>(`/api/maritime-freight/inland-trucking-trips/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ tripStatus, deliveryDate, notes }),
+    }),
+  updateTruckingTrip: (id: string | number, data: any) =>
+    http<MaritimeInlandTruckingTrip>(`/api/maritime-freight/inland-trucking-trips/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        tripStatus: data.status || data.tripStatus,
+        deliveryDate: data.actualDeliveryTime || data.deliveryDate,
+        notes: data.notes,
+      }),
     }),
 
   // Carrier Live Tracking

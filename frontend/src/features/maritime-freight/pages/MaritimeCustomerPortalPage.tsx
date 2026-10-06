@@ -12,7 +12,21 @@ import {
   printArrivalNotice,
   printJobChargesInvoice,
 } from '../utils/maritime-documents';
-import { AppIcons } from '@/shared/components/icons/AppIcons';
+import {
+  ShipIcon,
+  AlertCircleIcon,
+  ArrowRightIcon,
+  FileCheckIcon,
+  FileTextIcon,
+  DollarSignIcon,
+  PlusCircleIcon,
+  SearchIcon,
+  PlaneIcon,
+  ClockIcon,
+  DownloadIcon,
+  CheckCircleIcon,
+  RefreshCwIcon,
+} from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 type ActiveTab = 'shipments' | 'request_quote' | 'quotes' | 'documents' | 'statement';
@@ -282,7 +296,7 @@ export function MaritimeCustomerPortalPage() {
       <div dir="rtl" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
         <div style={{ padding: '24px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center', minWidth: '280px' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#170e5e', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-            <AppIcons.ShipIcon size={24} color="#fff" />
+            <ShipIcon size={24} color="#fff" />
           </div>
           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>بوابة عملاء الشحن واللوجستيات</div>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>جاري التحقق من الجلسة...</div>
@@ -299,7 +313,7 @@ export function MaritimeCustomerPortalPage() {
           {/* Logo & Header */}
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <div style={{ width: '54px', height: '54px', borderRadius: '14px', background: '#170e5e', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
-              <AppIcons.ShipIcon size={30} color="#ffffff" />
+              <ShipIcon size={30} color="#ffffff" />
             </div>
             <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>بوابة الخدمة الذاتية لعملاء الشحن</h1>
             <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
@@ -309,7 +323,7 @@ export function MaritimeCustomerPortalPage() {
 
           {loginError && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontSize: '12.5px' }}>
-              <AppIcons.AlertCircleIcon size={16} color="#991b1b" />
+              <AlertCircleIcon size={16} color="#991b1b" />
               <span>{loginError}</span>
             </div>
           )}
@@ -379,7 +393,7 @@ export function MaritimeCustomerPortalPage() {
               }}
             >
               {loginLoading ? 'جاري التحقق...' : 'دخول البوابة'}
-              {!loginLoading && <AppIcons.ArrowRightIcon size={16} color="#fff" />}
+              {!loginLoading && <ArrowRightIcon size={16} color="#fff" />}
             </button>
           </form>
 
@@ -402,7 +416,7 @@ export function MaritimeCustomerPortalPage() {
           {/* Brand & Portal Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#170e5e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
-              <AppIcons.ShipIcon size={22} color="#ffffff" />
+              <ShipIcon size={22} color="#ffffff" />
             </div>
             <div>
               <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
@@ -436,7 +450,7 @@ export function MaritimeCustomerPortalPage() {
                 cursor: 'pointer',
               }}
             >
-              <AppIcons.FileCheckIcon size={14} color="#170e5e" />
+              <FileCheckIcon size={14} color="#170e5e" />
               <span>نسخ رابط الحساب</span>
             </button>
 
@@ -468,7 +482,7 @@ export function MaritimeCustomerPortalPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>الشحنات الجارية والتتبع</span>
               <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AppIcons.ShipIcon size={18} color="#2563eb" />
+                <ShipIcon size={18} color="#2563eb" />
               </div>
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
@@ -484,7 +498,7 @@ export function MaritimeCustomerPortalPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>عروض أسعار قيد المراجعة</span>
               <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AppIcons.FileTextIcon size={18} color="#d97706" />
+                <FileTextIcon size={18} color="#d97706" />
               </div>
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
@@ -500,7 +514,7 @@ export function MaritimeCustomerPortalPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>الرصيد المستحق (المديونية)</span>
               <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AppIcons.DollarSignIcon size={18} color="#0f172a" />
+                <DollarSignIcon size={18} color="#0f172a" />
               </div>
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: (customer.balance || 0) > 0 ? '#b91c1c' : '#0f172a' }}>
@@ -528,7 +542,7 @@ export function MaritimeCustomerPortalPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>طلب تسعير شحنة جديدة</span>
-              <AppIcons.PlusCircleIcon size={20} color="#ffffff" />
+              <PlusCircleIcon size={20} color="#ffffff" />
             </div>
             <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: 1.4 }}>
               احصل على أفضل أسعار النولون البحري والجوي والبري مع تفريغ الحاويات في دقائق
@@ -542,11 +556,11 @@ export function MaritimeCustomerPortalPage() {
         {/* Tab Navigation Bar */}
         <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '6px', display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto' }}>
           {[
-            { id: 'shipments', label: 'الشحنات الجارية والتتبع اللحظي', icon: AppIcons.ShipIcon },
-            { id: 'request_quote', label: 'طلب تسعير جديد (RFQ)', icon: AppIcons.PlusCircleIcon },
-            { id: 'quotes', label: 'عروض الأسعار والتعميد', icon: AppIcons.FileTextIcon },
-            { id: 'documents', label: 'مركز المستندات والبوالص', icon: AppIcons.FileCheckIcon },
-            { id: 'statement', label: 'كشف الحساب والمديونيات', icon: AppIcons.DollarSignIcon },
+            { id: 'shipments', label: 'الشحنات الجارية والتتبع اللحظي', icon: ShipIcon },
+            { id: 'request_quote', label: 'طلب تسعير جديد (RFQ)', icon: PlusCircleIcon },
+            { id: 'quotes', label: 'عروض الأسعار والتعميد', icon: FileTextIcon },
+            { id: 'documents', label: 'مركز المستندات والبوالص', icon: FileCheckIcon },
+            { id: 'statement', label: 'كشف الحساب والمديونيات', icon: DollarSignIcon },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -620,7 +634,7 @@ export function MaritimeCustomerPortalPage() {
                   onClick={loadShipments}
                   style={{ padding: '8px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer' }}
                 >
-                  <AppIcons.SearchIcon size={16} color="#1e293b" />
+                  <SearchIcon size={16} color="#1e293b" />
                 </button>
               </div>
             </div>
@@ -632,7 +646,7 @@ export function MaritimeCustomerPortalPage() {
               </div>
             ) : shipments.length === 0 ? (
               <div style={{ background: '#ffffff', borderRadius: '14px', padding: '40px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                <AppIcons.ShipIcon size={36} color="#94a3b8" />
+                <ShipIcon size={36} color="#94a3b8" />
                 <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginTop: '10px' }}>لا توجد شحنات مسجلة حالياً</div>
                 <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>يمكنكم تقديم طلب تسعير جديد الآن لبدء شحنتكم القادمة</div>
               </div>
@@ -654,7 +668,7 @@ export function MaritimeCustomerPortalPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {job.transport_mode === 'air' ? <AppIcons.PlaneIcon size={18} color="#170e5e" /> : <AppIcons.ShipIcon size={18} color="#170e5e" />}
+                          {job.transport_mode === 'air' ? <PlaneIcon size={18} color="#170e5e" /> : <ShipIcon size={18} color="#170e5e" />}
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -693,7 +707,7 @@ export function MaritimeCustomerPortalPage() {
                             borderColor: job.demurrageStatus === 'demurrage' ? '#fecaca' : job.demurrageStatus === 'critical' ? '#fed7aa' : '#bbf7d0',
                           }}
                         >
-                          <AppIcons.ClockIcon size={14} />
+                          <ClockIcon size={14} />
                           <span>
                             {job.demurrageStatus === 'demurrage'
                               ? `غرامات أرضيات/تأخير (-${Math.abs(job.freeDaysRemaining)} يوم)`
@@ -825,7 +839,7 @@ export function MaritimeCustomerPortalPage() {
                             gap: '6px',
                           }}
                         >
-                          <AppIcons.DownloadIcon size={14} color="#fff" />
+                          <DownloadIcon size={14} color="#fff" />
                           <span>بوليصة HBL</span>
                         </button>
                       </div>
@@ -852,7 +866,7 @@ export function MaritimeCustomerPortalPage() {
             {submittedQuoteResult ? (
               <div style={{ padding: '30px 20px', textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#22c55e', color: '#fff', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AppIcons.CheckCircleIcon size={28} color="#fff" />
+                  <CheckCircleIcon size={28} color="#fff" />
                 </div>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#166534', margin: '0 0 6px' }}>تم استلام طلب التسعير بنجاح!</h3>
                 <div style={{ fontSize: '13px', color: '#166534', marginBottom: '12px' }}>
@@ -1124,7 +1138,7 @@ export function MaritimeCustomerPortalPage() {
                   }}
                 >
                   {submittingQuote ? 'جاري إرسال الطلب...' : 'إرسال طلب التسعير الرسمي'}
-                  {!submittingQuote && <AppIcons.ArrowRightIcon size={16} color="#fff" />}
+                  {!submittingQuote && <ArrowRightIcon size={16} color="#fff" />}
                 </button>
               </form>
             )}
@@ -1148,7 +1162,7 @@ export function MaritimeCustomerPortalPage() {
                 onClick={loadQuotations}
                 style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <AppIcons.RefreshCwIcon size={14} color="#0f172a" />
+                <RefreshCwIcon size={14} color="#0f172a" />
                 <span>تحديث العروض</span>
               </button>
             </div>
@@ -1159,7 +1173,7 @@ export function MaritimeCustomerPortalPage() {
               </div>
             ) : quotations.length === 0 ? (
               <div style={{ background: '#ffffff', borderRadius: '14px', padding: '40px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                <AppIcons.FileTextIcon size={36} color="#94a3b8" />
+                <FileTextIcon size={36} color="#94a3b8" />
                 <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginTop: '10px' }}>لا توجد عروض أسعار متاحة حالياً</div>
                 <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>بإمكانكم تقديم طلب تسعير من تبويب "طلب تسعير جديد" وسيوافيكم الفريق بعرض فوري</div>
               </div>
@@ -1181,7 +1195,7 @@ export function MaritimeCustomerPortalPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <AppIcons.FileTextIcon size={18} color="#170e5e" />
+                          <FileTextIcon size={18} color="#170e5e" />
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1249,14 +1263,14 @@ export function MaritimeCustomerPortalPage() {
                             gap: '6px',
                           }}
                         >
-                          <AppIcons.CheckCircleIcon size={16} color="#fff" />
+                          <CheckCircleIcon size={16} color="#fff" />
                           <span>اعتماد وتعميد العرض (Approve & Book)</span>
                         </button>
                       )}
 
                       {isApproved && (
                         <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <AppIcons.CheckCircleIcon size={16} color="#166534" />
+                          <CheckCircleIcon size={16} color="#166534" />
                           <span>تم اعتماد وتعميد العرض وتحويله لشحنة تشغيلية</span>
                         </div>
                       )}
@@ -1402,7 +1416,7 @@ export function MaritimeCustomerPortalPage() {
                   <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                        <AppIcons.FileTextIcon size={20} color="#3730a3" />
+                        <FileTextIcon size={20} color="#3730a3" />
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                         بوليصة الشحن (House Bill of Lading - HBL)
@@ -1415,7 +1429,7 @@ export function MaritimeCustomerPortalPage() {
                       onClick={() => handlePrintDocument('hbl', currentJob)}
                       style={{ marginTop: '16px', padding: '8px 12px', background: '#170e5e', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      <AppIcons.DownloadIcon size={14} color="#fff" />
+                      <DownloadIcon size={14} color="#fff" />
                       <span>عرض وطباعة البوليصة</span>
                     </button>
                   </div>
@@ -1424,7 +1438,7 @@ export function MaritimeCustomerPortalPage() {
                   <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                        <AppIcons.FileCheckIcon size={20} color="#15803d" />
+                        <FileCheckIcon size={20} color="#15803d" />
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                         إذن التسليم الملاحي (Delivery Order - D/O)
@@ -1437,7 +1451,7 @@ export function MaritimeCustomerPortalPage() {
                       onClick={() => handlePrintDocument('delivery_order', currentJob)}
                       style={{ marginTop: '16px', padding: '8px 12px', background: '#170e5e', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      <AppIcons.DownloadIcon size={14} color="#fff" />
+                      <DownloadIcon size={14} color="#fff" />
                       <span>عرض وطباعة إذن التسليم</span>
                     </button>
                   </div>
@@ -1446,7 +1460,7 @@ export function MaritimeCustomerPortalPage() {
                   <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                        <AppIcons.ClockIcon size={20} color="#b45309" />
+                        <ClockIcon size={20} color="#b45309" />
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                         إخطار وصول الشحنة (Arrival Notice - A/N)
@@ -1459,7 +1473,7 @@ export function MaritimeCustomerPortalPage() {
                       onClick={() => handlePrintDocument('arrival_notice', currentJob)}
                       style={{ marginTop: '16px', padding: '8px 12px', background: '#170e5e', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      <AppIcons.DownloadIcon size={14} color="#fff" />
+                      <DownloadIcon size={14} color="#fff" />
                       <span>عرض وطباعة إخطار الوصول</span>
                     </button>
                   </div>
@@ -1468,7 +1482,7 @@ export function MaritimeCustomerPortalPage() {
                   <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                        <AppIcons.DollarSignIcon size={20} color="#0f172a" />
+                        <DollarSignIcon size={20} color="#0f172a" />
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                         مطالبة ورسوم الشحن (Freight Billing / Invoice)
@@ -1481,7 +1495,7 @@ export function MaritimeCustomerPortalPage() {
                       onClick={() => handlePrintDocument('invoice', currentJob)}
                       style={{ marginTop: '16px', padding: '8px 12px', background: '#170e5e', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      <AppIcons.DownloadIcon size={14} color="#fff" />
+                      <DownloadIcon size={14} color="#fff" />
                       <span>عرض وطباعة المطالبة</span>
                     </button>
                   </div>
@@ -1509,7 +1523,7 @@ export function MaritimeCustomerPortalPage() {
                   onClick={() => window.print()}
                   style={{ padding: '6px 14px', background: '#170e5e', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <AppIcons.DownloadIcon size={14} color="#fff" />
+                  <DownloadIcon size={14} color="#fff" />
                   <span>طباعة كشف الحساب</span>
                 </button>
               </div>
