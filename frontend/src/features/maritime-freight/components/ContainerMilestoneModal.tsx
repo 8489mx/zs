@@ -65,7 +65,7 @@ export function ContainerMilestoneModal({
       title="تحديث محطات دورة حياة الحاوية"
       subtitle={`الحاوية: ${container.container_number} — ${container.container_type} (${container.shipping_line_name || 'الخط الملاحي'})`}
       width="min(640px, 95vw)"
-      minHeight="auto"
+      minHeight="min(440px, 80vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

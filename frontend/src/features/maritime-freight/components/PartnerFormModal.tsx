@@ -196,7 +196,7 @@ export function PartnerFormModal({
       }
       subtitle="إدارة جهات الاتصال ومكاتب تسعير الشحنات لربطها بالإرسال الآلي لطلبات التسعير"
       width="min(980px, 96vw)"
-      minHeight="auto"
+      minHeight="min(540px, 85vh)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}

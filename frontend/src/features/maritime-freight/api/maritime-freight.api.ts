@@ -720,6 +720,33 @@ export const maritimeApi = {
   listJobCarrierInvoices: (jobId: string) =>
     http<MaritimeCarrierInvoice[]>(`/api/maritime-freight/jobs/${jobId}/carrier-invoices`),
 
+  listAllCarrierInvoices: (params?: {
+    auditStatus?: string;
+    shippingLineId?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.auditStatus) qs.set('auditStatus', params.auditStatus);
+    if (params?.shippingLineId) qs.set('shippingLineId', params.shippingLineId);
+    if (params?.search) qs.set('search', params.search);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return http<{
+      invoices: MaritimeCarrierInvoice[];
+      summary: {
+        totalInvoices: number;
+        totalInvoicedAmount: number;
+        matchedCount: number;
+        overchargeCount: number;
+        disputedCount: number;
+        totalOverchargeAmount: number;
+      };
+    }>(`/api/maritime-freight/carrier-invoices${query}`);
+  },
+
   overrideCarrierInvoice: (id: string, reason: string) =>
     http<{ success: boolean; invoice: MaritimeCarrierInvoice; message: string }>(`/api/maritime-freight/carrier-invoices/${id}/override`, {
       method: 'POST',
@@ -837,6 +864,10 @@ export interface MaritimeRateCard {
 export interface MaritimeCarrierInvoice {
   id: string;
   jobId: string;
+  jobNumber?: string;
+  customerName?: string;
+  polName?: string;
+  podName?: string;
   shippingLineId: string | null;
   carrierName: string;
   invoiceNumber: string;

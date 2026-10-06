@@ -216,7 +216,7 @@ export class MaritimeAutomationSchedulerService implements OnApplicationBootstra
 
                 if (customer?.phone) {
                   const alertText =
-                    `⚠️ تنبيه هام بخصوص شحنتكم [${job.job_number}]:\n` +
+                    `[إشعار تشغيلي] تنبيه هام بخصوص شحنتكم [${job.job_number}]:\n` +
                     `الحاوية رقم (${c.container_number}) بميناء ${job.pod_name || ''} متبقي عليها [${daysRemaining}] أيام فقط قبل انتهاء مهلة السماح (تاريخ الإعادة: ${c.return_deadline}).\n` +
                     `يرجى سرعة التفريغ وإعادة الحاوية الفارغة لتجنب احتساب غرامات الأرضيات والتأخير.\n\n` +
                     `إدارة العمليات واللوجستيات — Z-Systems`;

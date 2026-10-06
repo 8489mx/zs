@@ -22,14 +22,20 @@ import { MaritimeJobsPage } from './MaritimeJobsPage';
 import { MaritimeContainersPage } from './MaritimeContainersPage';
 import { MaritimeLinesPage } from './MaritimeLinesPage';
 import { MaritimeSettingsPage } from './MaritimeSettingsPage';
+import { MaritimeFreightDashboardTab } from '../components/MaritimeFreightDashboardTab';
+import { MaritimeRadarTab } from '../components/MaritimeRadarTab';
+import { MaritimeAuditTab } from '../components/MaritimeAuditTab';
 
 const NAV_TABS = [
+  { path: 'dashboard', label: 'لوحة المؤشرات والتحليلات', mobileLabel: 'اللوحة التحليلية', countKey: 'jobs' as const },
   { path: 'inquiries', label: 'استفسارات شحن العملاء', mobileLabel: 'استفسارات الشحن', countKey: 'inquiries' as const },
   { path: 'rfqs', label: 'عروض تسعير الخطوط (RFQ)', mobileLabel: 'تسعير الخطوط', countKey: 'rfqs' as const },
   { path: 'matrix', label: 'مقارنة عروض الخطوط', mobileLabel: 'مقارنة العروض', countKey: 'matrixBids' as const },
   { path: 'quotations', label: 'عروض أسعار العملاء', mobileLabel: 'عروض الأسعار', countKey: 'quotations' as const },
   { path: 'jobs', label: 'أوامر تشغيل الشحنات', mobileLabel: 'أوامر التشغيل', countKey: 'jobs' as const },
-  { path: 'containers', label: 'تتبع الحاويات وفترات السماح', mobileLabel: 'تتبع الحاويات', countKey: 'containers' as const },
+  { path: 'radar', label: 'رادار الغرامات وفترات السماح', mobileLabel: 'رادار الغرامات', countKey: 'containers' as const },
+  { path: 'audit', label: 'تدقيق فواتير النواقل', mobileLabel: 'تدقيق الفواتير', countKey: 'jobs' as const },
+  { path: 'containers', label: 'تتبع الحاويات والطرود', mobileLabel: 'تتبع الحاويات', countKey: 'containers' as const },
   { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', mobileLabel: 'دليل النواقل', countKey: 'master' as const },
   { path: 'settings', label: 'إعدادات وسياسات الشحن', mobileLabel: 'إعدادات الشحن', countKey: 'settings' as const },
 ];
@@ -74,11 +80,11 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
 
   // Robust active tab subpath detection
   const subSegments = location.pathname.split('/').filter(Boolean);
-  let currentSubPath = (subSegments[0] === 'maritime' && subSegments[1]) ? subSegments[1] : 'inquiries';
+  let currentSubPath = (subSegments[0] === 'maritime' && subSegments[1]) ? subSegments[1] : 'dashboard';
   if (currentSubPath === 'master') currentSubPath = 'lines';
 
   const isTabActive = (tabPath: string) => {
-    if (tabPath === 'inquiries') return currentSubPath === 'inquiries' || currentSubPath === '';
+    if (tabPath === 'dashboard') return currentSubPath === 'dashboard' || currentSubPath === '';
     return currentSubPath === tabPath;
   };
 
@@ -244,7 +250,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         <style>{`
           .maritime-nav-tabs-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 8px;
           }
           @media (max-width: 1024px) {
@@ -320,10 +326,9 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                   border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
                   background: isActive ? '#170e5e' : '#f8fafc',
                   color: isActive ? '#ffffff' : '#334155',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '0.8125rem',
                   cursor: 'pointer',
-                  transition: 'all 0.12s ease',
                   whiteSpace: 'nowrap',
                   width: '100%',
                   direction: 'rtl',
@@ -331,7 +336,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
               >
                 <span className="desktop-only-inline">{tab.label}</span>
                 <span className="mobile-only-inline">{tab.mobileLabel}</span>
-                {tab.path !== 'settings' && (
+                {tab.path !== 'settings' && tab.path !== 'dashboard' && (
                   <span
                     style={{
                       display: 'inline-flex',
@@ -361,6 +366,9 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
           children
         ) : (
           <div style={{ width: '100%', minWidth: 0, minHeight: '480px' }}>
+            <div style={{ display: isTabActive('dashboard') ? 'block' : 'none' }}>
+              <MaritimeFreightDashboardTab />
+            </div>
             <div style={{ display: isTabActive('inquiries') ? 'block' : 'none' }}>
               <MaritimeInquiriesPage />
             </div>
@@ -375,6 +383,12 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
             </div>
             <div style={{ display: isTabActive('jobs') ? 'block' : 'none' }}>
               <MaritimeJobsPage />
+            </div>
+            <div style={{ display: isTabActive('radar') ? 'block' : 'none' }}>
+              <MaritimeRadarTab />
+            </div>
+            <div style={{ display: isTabActive('audit') ? 'block' : 'none' }}>
+              <MaritimeAuditTab />
             </div>
             <div style={{ display: isTabActive('containers') ? 'block' : 'none' }}>
               <MaritimeContainersPage />

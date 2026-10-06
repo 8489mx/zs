@@ -78,7 +78,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
       title={`إرسال طلب تسعير ملاحي: ${rfq.rfq_number}`}
       subtitle="مراجعة بيانات الشحنة وتحديد قائمة الخطوط والوكلاء المستهدفين لإرسال رسائل الاستفسار"
       width="min(880px, 95vw)"
-      minHeight="auto"
+      minHeight="min(480px, 80vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

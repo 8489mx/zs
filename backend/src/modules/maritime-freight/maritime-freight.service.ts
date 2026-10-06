@@ -1129,41 +1129,46 @@ export class MaritimeFreightService {
 
   async awardBid(auth: AuthContext, bidId: string) {
     const { tenantId } = requireTenantScope(auth);
-    const bid = await this.db
-      .selectFrom('maritime_rfq_bids')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', bidId as any)
-      .executeTakeFirst();
+    return await this.db.transaction().execute(async (trx: any) => {
+      const bid = await trx
+        .selectFrom('maritime_rfq_bids')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', bidId as any)
+        .executeTakeFirst();
 
-    if (!bid) throw new NotFoundException('Bid not found');
+      if (!bid) throw new NotFoundException('Bid not found');
 
-    // Un-award any previous bids on the same RFQ
-    await this.db
-      .updateTable('maritime_rfq_bids')
-      .set({ is_awarded: false, awarded_at: null })
-      .where('tenant_id', '=', tenantId)
-      .where('rfq_id', '=', bid.rfq_id)
-      .execute();
+      // Lock RFQ row to prevent concurrent race conditions
+      await sql`SELECT id FROM maritime_rfqs WHERE tenant_id = ${tenantId} AND id = ${bid.rfq_id} FOR UPDATE`.execute(trx);
 
-    // Award this bid
-    const [awardedBid] = await this.db
-      .updateTable('maritime_rfq_bids')
-      .set({ is_awarded: true, awarded_at: sql`NOW()` })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', bidId as any)
-      .returningAll()
-      .execute();
+      // Un-award any previous bids on the same RFQ
+      await trx
+        .updateTable('maritime_rfq_bids')
+        .set({ is_awarded: false, awarded_at: null })
+        .where('tenant_id', '=', tenantId)
+        .where('rfq_id', '=', bid.rfq_id)
+        .execute();
 
-    // Update RFQ status to awarded
-    await this.db
-      .updateTable('maritime_rfqs')
-      .set({ status: 'awarded', updated_at: sql`NOW()` })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', bid.rfq_id as any)
-      .execute();
+      // Award this bid
+      const [awardedBid] = await trx
+        .updateTable('maritime_rfq_bids')
+        .set({ is_awarded: true, awarded_at: sql`NOW()` })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', bidId as any)
+        .returningAll()
+        .execute();
 
-    return awardedBid;
+      // Update RFQ status to awarded
+      await trx
+        .updateTable('maritime_rfqs')
+        .set({ status: 'awarded', updated_at: sql`NOW()` })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', bid.rfq_id as any)
+        .execute();
+
+      return awardedBid;
+    });
   }
 
   // AI & Regex text parser for carrier email bids
@@ -1544,8 +1549,17 @@ export class MaritimeFreightService {
 
       // 2. Automatically create an Accounting Cost Center under dimension = 'project'
       let costCenterId: string | null = null;
-      try {
-        const modeLabel = dto.transportMode === 'air' ? 'شحنة جوية' : dto.transportMode === 'road' ? 'شحنة برية' : 'شحنة بحرية';
+      const modeLabel = dto.transportMode === 'air' ? 'شحنة جوية' : dto.transportMode === 'road' ? 'شحنة برية' : 'شحنة بحرية';
+      const existingCc = await trx
+        .selectFrom('cost_centers')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', finalJobNumber)
+        .executeTakeFirst();
+
+      if (existingCc) {
+        costCenterId = String(existingCc.id);
+      } else {
         const [costCenter] = await trx
           .insertInto('cost_centers')
           .values({
@@ -1561,8 +1575,6 @@ export class MaritimeFreightService {
         if (costCenter) {
           costCenterId = String(costCenter.id);
         }
-      } catch (err: any) {
-        this.logger.warn(`Could not auto-create cost center for ${finalJobNumber}: ${err?.message}`);
       }
 
       // 3. Update job with final job number and cost center
@@ -2237,16 +2249,35 @@ export class MaritimeFreightService {
       deadline.setDate(deadline.getDate() + freeDays);
       updatePayload.return_deadline = deadline.toISOString().split('T')[0];
 
-      const now = new Date();
-      if (now > deadline && !dto.emptyReturnedAt && !container.empty_returned_at) {
-        updatePayload.is_overdue = true;
-        const diffDays = Math.ceil((now.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
-        updatePayload.overdue_days = diffDays;
-        const rate = Number(dto.demurrageRatePerDay || container.demurrage_rate_per_day || 50);
-        updatePayload.demurrage_amount = diffDays * rate;
+      const rate = Number(dto.demurrageRatePerDay || container.demurrage_rate_per_day || 50);
+      const returnedDateVal = dto.emptyReturnedAt !== undefined ? dto.emptyReturnedAt : container.empty_returned_at;
+
+      if (returnedDateVal) {
+        // Container returned: compute final demurrage if returned past deadline, freeze amount
+        const returnDate = new Date(returnedDateVal);
+        if (returnDate > deadline) {
+          const diffDays = Math.ceil((returnDate.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
+          updatePayload.is_overdue = false; // Returned, no longer accruing
+          updatePayload.overdue_days = diffDays;
+          updatePayload.demurrage_amount = diffDays * rate;
+        } else {
+          updatePayload.is_overdue = false;
+          updatePayload.overdue_days = 0;
+          updatePayload.demurrage_amount = 0;
+        }
       } else {
-        updatePayload.is_overdue = false;
-        updatePayload.overdue_days = 0;
+        // Container still with client
+        const now = new Date();
+        if (now > deadline) {
+          updatePayload.is_overdue = true;
+          const diffDays = Math.ceil((now.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
+          updatePayload.overdue_days = diffDays;
+          updatePayload.demurrage_amount = diffDays * rate;
+        } else {
+          updatePayload.is_overdue = false;
+          updatePayload.overdue_days = 0;
+          updatePayload.demurrage_amount = 0;
+        }
       }
     }
 
@@ -2497,6 +2528,10 @@ export class MaritimeFreightService {
 
     this.assertValidPublicQuoteToken(rfq, dto?.token);
 
+    if (['awarded', 'closed', 'cancelled'].includes(rfq.status)) {
+      throw new BadRequestException('طلب عروض الأسعار مغلق أو تم ترسيته بالفعل ولا يمكن تقديم عروض إضافية');
+    }
+
     const oceanFreight = Number(dto.oceanFreight || 0);
     const thcOrigin = Number(dto.thcOrigin || 0);
     const thcDestination = Number(dto.thcDestination || 0);
@@ -2528,13 +2563,15 @@ export class MaritimeFreightService {
       .returningAll()
       .execute();
 
-    // Update RFQ status to bids_received
-    await this.db
-      .updateTable('maritime_rfqs')
-      .set({ status: 'bids_received', updated_at: sql`NOW()` })
-      .where('id', '=', rfqId as any)
-      .where('tenant_id', '=', rfq.tenant_id)
-      .execute();
+    // Update RFQ status to bids_received only if open or sent
+    if (['draft', 'open', 'sent_to_carriers'].includes(rfq.status)) {
+      await this.db
+        .updateTable('maritime_rfqs')
+        .set({ status: 'bids_received', updated_at: sql`NOW()` })
+        .where('id', '=', rfqId as any)
+        .where('tenant_id', '=', rfq.tenant_id)
+        .execute();
+    }
 
     return bid;
   }
@@ -2584,7 +2621,11 @@ export class MaritimeFreightService {
     }
   }
 
-  async issueJobSalesInvoice(auth: AuthContext, jobId: string, dto?: { amount?: number; notes?: string }) {
+  async issueJobSalesInvoice(
+    auth: AuthContext,
+    jobId: string,
+    dto?: { amount?: number; notes?: string; exchangeRate?: number; currency?: string },
+  ) {
     const { tenantId } = requireTenantScope(auth);
     const job = await this.getJobById(auth, jobId);
 
@@ -2623,6 +2664,9 @@ export class MaritimeFreightService {
       throw new BadRequestException('يجب تحديد مبلغ صالح للفاتورة أكبر من صفر');
     }
 
+    const exchangeRate = dto?.exchangeRate && Number(dto.exchangeRate) > 0 ? Number(dto.exchangeRate) : 1;
+    const baseInvoiceAmount = Math.round(invoiceAmount * exchangeRate * 100) / 100;
+
     // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100).
     // Previously "if (customerAccId && revenueAccId)" silently skipped the journal when either
     // account was missing, while client_invoiced_total was still updated unconditionally below --
@@ -2638,7 +2682,8 @@ export class MaritimeFreightService {
     }
 
     const entryDate = new Date();
-    const desc = dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`;
+    const fxSuffix = exchangeRate !== 1 ? ` (${invoiceAmount} ${dto?.currency || 'USD'} @ ${exchangeRate})` : '';
+    const desc = (dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`) + fxSuffix;
 
     const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
       await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
@@ -2670,8 +2715,8 @@ export class MaritimeFreightService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // Line 1: Debit Customer Receivable (1130)
-      // Line 2: Credit Service Revenue (4200)
+      // Line 1: Debit Customer Receivable (1130) in base currency
+      // Line 2: Credit Service Revenue (4200) in base currency
       await trx
         .insertInto('journal_entry_lines')
         .values([
@@ -2680,8 +2725,8 @@ export class MaritimeFreightService {
             tenant_id: tenantId,
             account_id: customerAccId,
             cost_center_id: costCenterId,
-            description: `مستحق فاتورة شحن بحري - ${job.job_number}`,
-            debit: invoiceAmount,
+            description: `مستحق فاتورة شحن بحري - ${job.job_number}${fxSuffix}`,
+            debit: baseInvoiceAmount,
             credit: 0,
             partner_type: 'customer',
             partner_id: job.customer_id ? Number(job.customer_id) : null,
@@ -2691,9 +2736,9 @@ export class MaritimeFreightService {
             tenant_id: tenantId,
             account_id: revenueAccId,
             cost_center_id: costCenterId,
-            description: `إيراد خدمات ونولون ملاحي - ${job.job_number}`,
+            description: `إيراد خدمات ونولون ملاحي - ${job.job_number}${fxSuffix}`,
             debit: 0,
-            credit: invoiceAmount,
+            credit: baseInvoiceAmount,
             partner_type: 'none',
             partner_id: null,
           },
@@ -2739,6 +2784,8 @@ export class MaritimeFreightService {
       supplierId?: number;
       supplierName?: string;
       description?: string;
+      currency?: string;
+      exchangeRate?: number;
     },
   ) {
     const { tenantId } = requireTenantScope(auth);
@@ -2748,6 +2795,9 @@ export class MaritimeFreightService {
     if (amount <= 0) {
       throw new BadRequestException('يجب تحديد مبلغ صالح للمصروف أكبر من صفر');
     }
+
+    const exchangeRate = Number(dto?.exchangeRate) > 0 ? Number(dto.exchangeRate) : 1;
+    const baseExpenseAmount = Math.round(amount * exchangeRate * 100) / 100;
 
     // 1. Ensure cost center exists
     let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
@@ -2803,7 +2853,8 @@ export class MaritimeFreightService {
     }
 
     const entryDate = new Date();
-    const desc = dto.description || `سند مصروفات ملاحية (${dto.expenseType === 'carrier' ? 'نولون الخط الملاحي' : 'مصروفات موانئ وتخليص'}) - العملية #${job.job_number}`;
+    const fxSuffix = exchangeRate !== 1 ? ` (${amount} ${dto?.currency || 'USD'} @ ${exchangeRate})` : '';
+    const desc = (dto.description || `سند مصروفات ملاحية (${dto.expenseType === 'carrier' ? 'نولون الخط الملاحي' : 'مصروفات موانئ وتخليص'}) - العملية #${job.job_number}`) + fxSuffix;
 
     const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
       await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
@@ -2844,7 +2895,7 @@ export class MaritimeFreightService {
             account_id: expenseAccId,
             cost_center_id: costCenterId,
             description: desc,
-            debit: amount,
+            debit: baseExpenseAmount,
             credit: 0,
             partner_type: 'none',
             partner_id: null,
@@ -2856,7 +2907,7 @@ export class MaritimeFreightService {
             cost_center_id: costCenterId,
             description: desc,
             debit: 0,
-            credit: amount,
+            credit: baseExpenseAmount,
             partner_type: partnerType,
             partner_id: dto.supplierId ? Number(dto.supplierId) : null,
           },
@@ -2956,7 +3007,7 @@ export class MaritimeFreightService {
     };
   }
 
-  async settleJobFromCustomerBalance(auth: AuthContext, jobId: string, dto?: { amount?: number }) {
+  async settleJobFromCustomerBalance(auth: AuthContext, jobId: string, dto?: { amount?: number; exchangeRate?: number }) {
     const { tenantId } = requireTenantScope(auth);
     const jobHeader = await this.getJobById(auth, jobId);
 
@@ -2997,7 +3048,7 @@ export class MaritimeFreightService {
     }
 
     const currentBalance = Number(customer.balance || 0);
-    // When balance is negative, customer has advance credit
+    // When balance is negative, customer has advance credit in local base currency
     const availableCredit = Math.max(0, -currentBalance);
 
     if (availableCredit <= 0) {
@@ -3019,21 +3070,32 @@ export class MaritimeFreightService {
       }
     }
 
-    const amountToDeduct = dto?.amount && dto.amount > 0
-      ? Math.min(dto.amount, targetSettlement, availableCredit)
-      : Math.min(targetSettlement, availableCredit);
+    const exchangeRate = dto?.exchangeRate && Number(dto.exchangeRate) > 0 ? Number(dto.exchangeRate) : 1;
+    // Calculate target in customer credit base currency
+    const targetInBaseCurrency = Math.round(targetSettlement * exchangeRate * 100) / 100;
 
-    if (amountToDeduct <= 0) {
+    // Base currency amount to deduct from customer credit
+    const baseAmountToDeduct = dto?.amount && dto.amount > 0 && exchangeRate !== 1
+      ? Math.min(dto.amount, availableCredit)
+      : Math.min(targetInBaseCurrency, availableCredit);
+    const amountToDeduct = baseAmountToDeduct;
+
+    if (baseAmountToDeduct <= 0) {
       throw new BadRequestException('الشحنة مسددة بالكامل بالفعل أو المبلغ المطلوب تسويته غير صالح');
     }
 
-    const newPaidTotal = paidTotal + amountToDeduct;
+    // Convert deducted base currency back to job invoice currency
+    const jobPaidIncrement = exchangeRate !== 1
+      ? Math.round((baseAmountToDeduct / exchangeRate) * 100) / 100
+      : baseAmountToDeduct;
+
+    const newPaidTotal = paidTotal + jobPaidIncrement;
     const finalInvoiced = Math.max(invoicedTotal, newPaidTotal);
-    const isFull = newPaidTotal >= finalInvoiced;
+    const isFull = newPaidTotal >= (finalInvoiced - 0.01);
     const newStatus = isFull ? 'paid' : 'partially_paid';
 
-    // 1. Update customer balance (+amountToDeduct consumes the credit)
-    const newCustomerBalance = currentBalance + amountToDeduct;
+    // 1. Update customer balance (+baseAmountToDeduct consumes the credit)
+    const newCustomerBalance = currentBalance + baseAmountToDeduct;
     await trx
       .updateTable('customers')
       .set({ balance: newCustomerBalance, updated_at: sql`NOW()` })
@@ -3042,7 +3104,7 @@ export class MaritimeFreightService {
       .execute();
 
     // 2. Add customer ledger entry
-    const ledgerDesc = `سداد وتسوية مستحقات الشحنة #${job.job_number} من الرصيد الدائن المتاح`;
+    const ledgerDesc = `سداد وتسوية مستحقات الشحنة #${job.job_number} من الرصيد الدائن المتاح${exchangeRate !== 1 ? ` (${jobPaidIncrement} بعملة الشحن @ سعر صرف ${exchangeRate})` : ''}`;
     await trx
       .insertInto('customer_ledger')
       .values({
@@ -3050,7 +3112,7 @@ export class MaritimeFreightService {
         account_id: tenantId,
         customer_id: customer.id,
         entry_type: 'job_settlement',
-        amount: amountToDeduct,
+        amount: baseAmountToDeduct,
         balance_after: newCustomerBalance,
         note: ledgerDesc,
         reference_type: 'maritime_job',
@@ -3820,6 +3882,8 @@ export class MaritimeFreightService {
       carrierName?: string | null;
       shippingLineId?: string | number | null;
       totalAmount: number;
+      currency?: string;
+      exchangeRate?: number;
       entryDate: Date;
       descriptionSuffix?: string;
       userId?: number | string | null;
@@ -3837,8 +3901,12 @@ export class MaritimeFreightService {
       );
     }
 
+    const exchangeRate = Number(params.exchangeRate) > 0 ? Number(params.exchangeRate) : 1;
+    const baseTotalAmount = Math.round(totalAmount * exchangeRate * 100) / 100;
+    const fxSuffix = exchangeRate !== 1 ? ` (${totalAmount} ${params.currency || 'USD'} @ ${exchangeRate})` : '';
+
     const costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
-    const desc = `فاتورة الخط الملاحي #${params.invoiceNumber} (${params.carrierName || job.shipping_line_name || 'Carrier'})${params.descriptionSuffix ? ' ' + params.descriptionSuffix : ''} - الشحنة #${job.job_number}`;
+    const desc = `فاتورة الخط الملاحي #${params.invoiceNumber} (${params.carrierName || job.shipping_line_name || 'Carrier'})${params.descriptionSuffix ? ' ' + params.descriptionSuffix : ''}${fxSuffix} - الشحنة #${job.job_number}`;
     const tempNo = `JRN-TMP-CARRIER-${job.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     const [inserted] = await trx
@@ -3876,7 +3944,7 @@ export class MaritimeFreightService {
           account_id: expenseAccId,
           cost_center_id: costCenterId,
           description: desc,
-          debit: totalAmount,
+          debit: baseTotalAmount,
           credit: 0,
           partner_type: 'none',
           partner_id: null,
@@ -3888,7 +3956,7 @@ export class MaritimeFreightService {
           cost_center_id: costCenterId,
           description: desc,
           debit: 0,
-          credit: totalAmount,
+          credit: baseTotalAmount,
           partner_type: 'supplier',
           partner_id: params.shippingLineId ? Number(params.shippingLineId) : null,
         },
@@ -4500,6 +4568,167 @@ export class MaritimeFreightService {
           }
         : null,
     }));
+  }
+
+  async listAllCarrierInvoices(
+    auth: AuthContext,
+    filters?: {
+      auditStatus?: string;
+      shippingLineId?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(auth);
+    const page = Math.max(1, filters?.page || 1);
+    const pageSize = Math.min(100, Math.max(1, filters?.pageSize || 50));
+
+    let query = this.db
+      .selectFrom('maritime_carrier_invoices as mci')
+      .leftJoin('maritime_carrier_disputes as mcd', 'mcd.invoice_id', 'mci.id')
+      .leftJoin('maritime_rate_cards as mrc', 'mrc.id', 'mci.rate_card_id')
+      .leftJoin('maritime_jobs as j', 'j.id', 'mci.job_id')
+      .select([
+        'mci.id',
+        'mci.tenant_id',
+        'mci.job_id',
+        'mci.shipping_line_id',
+        'mci.carrier_name',
+        'mci.invoice_number',
+        'mci.invoice_date',
+        'mci.currency',
+        'mci.total_invoiced_amount',
+        'mci.ocean_freight',
+        'mci.thc_charges',
+        'mci.baf_charges',
+        'mci.detention_demurrage',
+        'mci.other_charges',
+        'mci.rate_card_id',
+        'mci.contracted_amount',
+        'mci.variance_amount',
+        'mci.variance_pct',
+        'mci.audit_status',
+        'mci.override_approved_by',
+        'mci.override_approved_at',
+        'mci.override_reason',
+        'mci.journal_entry_id',
+        'mci.payment_status',
+        'mci.notes',
+        'mci.created_by',
+        'mci.created_at',
+        'mcd.id as dispute_id',
+        'mcd.dispute_number',
+        'mcd.dispute_status',
+        'mcd.disputed_amount',
+        'mcd.credit_note_number',
+        'mcd.credit_note_amount',
+        'mrc.carrier_name as rate_card_carrier',
+        'mrc.total_freight_cost as rate_card_unit_cost',
+        'j.job_number',
+        'j.customer_name',
+        'j.pol_name',
+        'j.pod_name',
+      ])
+      .where('mci.tenant_id', '=', tenantId);
+
+    if (filters?.auditStatus && filters.auditStatus !== 'all') {
+      query = query.where('mci.audit_status', '=', filters.auditStatus as any);
+    }
+
+    if (filters?.shippingLineId) {
+      query = query.where('mci.shipping_line_id', '=', Number(filters.shippingLineId) as any);
+    }
+
+    if (filters?.search?.trim()) {
+      const term = `%${filters.search.trim()}%`;
+      query = query.where((eb) =>
+        eb.or([
+          eb('mci.invoice_number', 'ilike', term),
+          eb('mci.carrier_name', 'ilike', term),
+          eb('j.job_number', 'ilike', term),
+          eb('j.customer_name', 'ilike', term),
+        ]),
+      );
+    }
+
+    const rows = await query
+      .orderBy('mci.id', 'desc')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
+      .execute();
+
+    // Summary aggregates for company-wide audit KPIs
+    const allForTenant = await this.db
+      .selectFrom('maritime_carrier_invoices')
+      .select([
+        sql<number>`count(*)::int`.as('total_count'),
+        sql<number>`coalesce(sum(total_invoiced_amount), 0)::float`.as('total_invoiced'),
+        sql<number>`count(case when audit_status = 'matched' then 1 end)::int`.as('matched_count'),
+        sql<number>`count(case when audit_status = 'overcharge' then 1 end)::int`.as('overcharge_count'),
+        sql<number>`count(case when audit_status = 'disputed' then 1 end)::int`.as('disputed_count'),
+        sql<number>`coalesce(sum(case when audit_status = 'overcharge' then variance_amount else 0 end), 0)::float`.as('overcharge_amount'),
+      ])
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    return {
+      invoices: rows.map((r: any) => ({
+        id: String(r.id),
+        jobId: String(r.job_id),
+        jobNumber: r.job_number || `JOB-${r.job_id}`,
+        customerName: r.customer_name || '—',
+        polName: r.pol_name || '—',
+        podName: r.pod_name || '—',
+        shippingLineId: r.shipping_line_id ? String(r.shipping_line_id) : null,
+        carrierName: r.carrier_name,
+        invoiceNumber: r.invoice_number,
+        invoiceDate: r.invoice_date,
+        currency: r.currency,
+        totalInvoicedAmount: Number(r.total_invoiced_amount),
+        oceanFreight: Number(r.ocean_freight),
+        thcCharges: Number(r.thc_charges),
+        bafCharges: Number(r.baf_charges),
+        detentionDemurrage: Number(r.detention_demurrage),
+        otherCharges: Number(r.other_charges),
+        rateCardId: r.rate_card_id ? String(r.rate_card_id) : null,
+        contractedAmount: Number(r.contracted_amount || 0),
+        varianceAmount: Number(r.variance_amount || 0),
+        variancePct: Number(r.variance_pct || 0),
+        auditStatus: r.audit_status,
+        overrideApprovedBy: r.override_approved_by,
+        overrideApprovedAt: r.override_approved_at,
+        overrideReason: r.override_reason,
+        journalEntryId: r.journal_entry_id,
+        paymentStatus: r.payment_status,
+        notes: r.notes,
+        createdAt: r.created_at,
+        dispute: r.dispute_id
+          ? {
+              id: String(r.dispute_id),
+              disputeNumber: r.dispute_number,
+              status: r.dispute_status,
+              disputedAmount: Number(r.disputed_amount),
+              creditNoteNumber: r.credit_note_number,
+              creditNoteAmount: Number(r.credit_note_amount || 0),
+            }
+          : null,
+        rateCard: r.rate_card_id
+          ? {
+              carrierName: r.rate_card_carrier,
+              unitCost: Number(r.rate_card_unit_cost),
+            }
+          : null,
+      })),
+      summary: {
+        totalInvoices: Number(allForTenant?.total_count || 0),
+        totalInvoicedAmount: Number(allForTenant?.total_invoiced || 0),
+        matchedCount: Number(allForTenant?.matched_count || 0),
+        overchargeCount: Number(allForTenant?.overcharge_count || 0),
+        disputedCount: Number(allForTenant?.disputed_count || 0),
+        totalOverchargeAmount: Number(allForTenant?.overcharge_amount || 0),
+      },
+    };
   }
 
   // ==========================================

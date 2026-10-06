@@ -9,6 +9,7 @@
 
 export interface FreightAuditInput {
   invoicedTotal: number;
+  invoicedCurrency?: string;
   oceanFreight?: number;
   thcCharges?: number;
   bafCharges?: number;
@@ -25,6 +26,7 @@ export interface FreightAuditInput {
     currency?: string;
   } | null;
   containerCount?: number;
+  exchangeRate?: number; // Rate to convert rateCard.currency into invoicedCurrency
 }
 
 export type FreightAuditStatus =
@@ -32,6 +34,7 @@ export type FreightAuditStatus =
   | 'overcharge'
   | 'undercharge'
   | 'no_contract'
+  | 'currency_mismatch'
   | 'approved_override'
   | 'disputed';
 
@@ -48,6 +51,7 @@ export interface FreightAuditResult {
   isOvercharged: boolean;
   isUndercharged: boolean;
   isMatched: boolean;
+  currencyMismatch?: boolean;
   varianceBreakdown: {
     oceanFreightDiff: number;
     thcDiff: number;
@@ -55,6 +59,7 @@ export interface FreightAuditResult {
     otherDiff: number;
   };
   recommendation: 'auto_approvable' | 'requires_override_or_dispute' | 'manual_review_no_contract';
+  notes?: string;
 }
 
 export function calculateFreightAudit(input: FreightAuditInput): FreightAuditResult {
@@ -83,10 +88,43 @@ export function calculateFreightAudit(input: FreightAuditInput): FreightAuditRes
         otherDiff: Number(input.otherCharges || 0),
       },
       recommendation: 'manual_review_no_contract',
+      notes: 'لا توجد بطاقة أسعار متعاقد عليها لهذه الوجهة والخط الملاحي',
     };
   }
 
-  const ratePerUnit = Number(rateCard.totalFreightCost || 0);
+  // Currency mismatch check
+  const cardCurrency = (rateCard.currency || 'USD').toUpperCase();
+  const invCurrency = (input.invoicedCurrency || 'USD').toUpperCase();
+  const fxRate = Number(input.exchangeRate || 0);
+
+  if (cardCurrency !== invCurrency && fxRate <= 0) {
+    return {
+      hasRateCard: true,
+      rateCardId: rateCard.id,
+      contractedRatePerUnit: Number(rateCard.totalFreightCost || 0),
+      containerCount,
+      contractedTotal: Number(rateCard.totalFreightCost || 0) * containerCount,
+      invoicedTotal,
+      varianceAmount: invoicedTotal,
+      variancePct: 0,
+      auditStatus: 'currency_mismatch',
+      isOvercharged: false,
+      isUndercharged: false,
+      isMatched: false,
+      currencyMismatch: true,
+      varianceBreakdown: {
+        oceanFreightDiff: 0,
+        thcDiff: 0,
+        bafDiff: 0,
+        otherDiff: 0,
+      },
+      recommendation: 'manual_review_no_contract',
+      notes: `اختلاف العملة بين بطاقة الأسعار (${cardCurrency}) وفاتورة الناقل (${invCurrency}) دون تحديد سعر الصرف للتحويل`,
+    };
+  }
+
+  const fxMultiplier = (cardCurrency !== invCurrency && fxRate > 0) ? fxRate : 1;
+  const ratePerUnit = Math.round(Number(rateCard.totalFreightCost || 0) * fxMultiplier * 1000) / 1000;
   const contractedTotal = Math.round(ratePerUnit * containerCount * 1000) / 1000;
   const varianceAmount = Math.round((invoicedTotal - contractedTotal) * 1000) / 1000;
   const variancePct =
@@ -94,11 +132,11 @@ export function calculateFreightAudit(input: FreightAuditInput): FreightAuditRes
       ? Math.round(((varianceAmount / contractedTotal) * 100) * 100) / 100
       : 0;
 
-  // Breakdown diffs
-  const contractedOcean = (Number(rateCard.oceanFreight || 0)) * containerCount;
-  const contractedThc = (Number(rateCard.thcOrigin || 0) + Number(rateCard.thcDestination || 0)) * containerCount;
-  const contractedBaf = (Number(rateCard.bafCharges || 0)) * containerCount;
-  const contractedOther = (Number(rateCard.otherCharges || 0)) * containerCount;
+  // Breakdown diffs with FX applied
+  const contractedOcean = (Number(rateCard.oceanFreight || 0) * fxMultiplier) * containerCount;
+  const contractedThc = ((Number(rateCard.thcOrigin || 0) + Number(rateCard.thcDestination || 0)) * fxMultiplier) * containerCount;
+  const contractedBaf = (Number(rateCard.bafCharges || 0) * fxMultiplier) * containerCount;
+  const contractedOther = (Number(rateCard.otherCharges || 0) * fxMultiplier) * containerCount;
 
   const oceanFreightDiff = Math.round(((Number(input.oceanFreight || 0)) - contractedOcean) * 1000) / 1000;
   const thcDiff = Math.round(((Number(input.thcCharges || 0)) - contractedThc) * 1000) / 1000;

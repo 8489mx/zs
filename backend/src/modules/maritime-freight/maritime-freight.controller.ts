@@ -138,13 +138,15 @@ export class MaritimeFreightController {
   }
 
   @Post('parse-email-text')
-  parseEmailText(@Body('text') text: string) {
-    return this.freightService.parseCarrierEmailText(text);
+  parseEmailText(@Body() body: any) {
+    const raw = typeof body === 'string' ? body : (body?.text || body?.rawText || '');
+    return this.freightService.parseCarrierEmailText(raw);
   }
 
   @Post('jobs/parse-booking-text')
-  parseBookingText(@Body('text') text: string) {
-    return this.freightService.parseCarrierBookingText(text);
+  parseBookingText(@Body() body: any) {
+    const raw = typeof body === 'string' ? body : (body?.text || body?.rawText || '');
+    return this.freightService.parseCarrierBookingText(raw);
   }
 
   // 5. Client Quotations
@@ -239,7 +241,7 @@ export class MaritimeFreightController {
   @Post('jobs/:id/issue-invoice')
   async issueJobSalesInvoice(
     @Param('id') id: string,
-    @Body() body: { amount?: number; notes?: string },
+    @Body() body: { amount?: number; notes?: string; exchangeRate?: number; currency?: string },
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.issueJobSalesInvoice(req.authContext!, id, body);
@@ -248,7 +250,7 @@ export class MaritimeFreightController {
   @Post('jobs/:id/record-expense')
   async recordJobExpenseVoucher(
     @Param('id') id: string,
-    @Body() body: { amount: number; expenseType?: 'carrier' | 'port' | 'other'; paymentMethod?: 'payable' | 'cash' | 'bank'; supplierId?: number; supplierName?: string; description?: string },
+    @Body() body: { amount: number; expenseType?: 'carrier' | 'port' | 'other'; paymentMethod?: 'payable' | 'cash' | 'bank'; supplierId?: number; supplierName?: string; description?: string; currency?: string; exchangeRate?: number },
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.recordJobExpenseVoucher(req.authContext!, id, body);
@@ -267,7 +269,7 @@ export class MaritimeFreightController {
   @Post('jobs/:id/settle-from-balance')
   async settleJobFromBalance(
     @Param('id') id: string,
-    @Body() body: { amount?: number },
+    @Body() body: { amount?: number; exchangeRate?: number },
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.settleJobFromCustomerBalance(req.authContext!, id, body);
@@ -496,6 +498,24 @@ export class MaritimeFreightController {
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.previewCarrierInvoiceAudit(req.authContext!, jobId, dto);
+  }
+
+  @Get('carrier-invoices')
+  async listAllCarrierInvoices(
+    @Query('auditStatus') auditStatus: string,
+    @Query('shippingLineId') shippingLineId: string,
+    @Query('search') search: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listAllCarrierInvoices(req.authContext!, {
+      auditStatus,
+      shippingLineId,
+      search,
+      page: page ? Number(page) : 1,
+      pageSize: pageSize ? Number(pageSize) : 50,
+    });
   }
 
   @Get('jobs/:jobId/carrier-invoices')

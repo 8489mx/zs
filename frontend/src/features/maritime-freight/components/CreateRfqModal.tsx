@@ -221,7 +221,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
         </span>
       )}
       width="min(980px, 96vw)"
-      minHeight="auto"
+      minHeight="min(560px, 85vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

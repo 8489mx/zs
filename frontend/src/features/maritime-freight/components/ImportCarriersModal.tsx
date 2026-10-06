@@ -331,7 +331,7 @@ export function ImportCarriersModal({
       title="استيراد البيانات المرجعية من ملف Excel أو CSV"
       subtitle="سحب واستيراد خطوط الملاحة والوكلاء المعتمدين عالمياً (WCA / Directories) بضغطة زر واحدة"
       width="min(880px, 95vw)"
-      minHeight="auto"
+      minHeight="min(520px, 85vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

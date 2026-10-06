@@ -4,6 +4,7 @@ import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { MaritimeQuotation } from '../api/maritime-freight.api';
 import { toast } from '@/shared/components/system-alert';
+import { printFreightQuotation } from '../utils/maritime-documents';
 
 interface MaritimeQuotationsTabProps {
   quotations: MaritimeQuotation[];
@@ -104,7 +105,7 @@ export function MaritimeQuotationsTab({
             <col style={{ width: '110px' }} />
             <col style={{ width: '140px' }} />
             <col style={{ width: '130px' }} />
-            <col style={{ width: '275px' }} />
+            <col style={{ width: '315px' }} />
           </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
@@ -166,8 +167,8 @@ export function MaritimeQuotationsTab({
                     <div
                       style={{
                         display: 'inline-grid',
-                        gridTemplateColumns: '115px 64px 64px',
-                        gap: '6px',
+                        gridTemplateColumns: '105px 52px 52px 52px',
+                        gap: '5px',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
@@ -179,14 +180,14 @@ export function MaritimeQuotationsTab({
                           onClick={() => navigate('/maritime/jobs')}
                           title="الانتقال لملف أمر التشغيل في الشحن"
                           style={{
-                            width: '115px',
+                            width: '105px',
                             height: '28px',
-                            padding: '0 6px',
+                            padding: '0 4px',
                             background: '#f3e8ff',
                             color: '#7e22ce',
                             border: '1px solid #d8b4fe',
                             borderRadius: '6px',
-                            fontSize: '0.74rem',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'inline-flex',
@@ -203,14 +204,14 @@ export function MaritimeQuotationsTab({
                           onClick={() => onConvertToJob(q)}
                           title="تعميد عرض السعر وفتح ملف الشحنة"
                           style={{
-                            width: '115px',
+                            width: '105px',
                             height: '28px',
-                            padding: '0 6px',
+                            padding: '0 4px',
                             background: '#170e5e',
                             color: '#ffffff',
                             border: 'none',
                             borderRadius: '6px',
-                            fontSize: '0.74rem',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'inline-flex',
@@ -224,21 +225,46 @@ export function MaritimeQuotationsTab({
                         </button>
                       )}
 
-                      {/* العمود 2: زر واتساب */}
+                      {/* العمود 2: زر طباعة عرض السعر الرسمي PDF */}
+                      <button
+                        type="button"
+                        onClick={() => printFreightQuotation(q)}
+                        title="طباعة عرض سعر شحن رسمي A4 معتمد"
+                        style={{
+                          width: '52px',
+                          height: '28px',
+                          padding: '0 4px',
+                          background: '#ffffff',
+                          color: '#170e5e',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          fontSize: '0.73rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        طباعة
+                      </button>
+
+                      {/* العمود 3: زر واتساب */}
                       {q.customer_phone ? (
                         <button
                           type="button"
                           onClick={() => handleShareWhatsApp(q)}
                           title="مشاركة عرض السعر عبر واتساب"
                           style={{
-                            width: '64px',
+                            width: '52px',
                             height: '28px',
-                            padding: '0 6px',
+                            padding: '0 4px',
                             background: '#16a34a',
                             color: '#ffffff',
                             border: 'none',
                             borderRadius: '6px',
-                            fontSize: '0.74rem',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'inline-flex',
@@ -251,24 +277,24 @@ export function MaritimeQuotationsTab({
                           واتساب
                         </button>
                       ) : (
-                        <div style={{ width: '64px', height: '28px' }} />
+                        <div style={{ width: '52px', height: '28px' }} />
                       )}
 
-                      {/* العمود 3: زر الاعتماد */}
+                      {/* العمود 4: زر الاعتماد */}
                       {q.status === 'draft' ? (
                         <button
                           type="button"
                           onClick={() => onUpdateStatus(q.id, 'approved')}
                           title="اعتماد من العميل"
                           style={{
-                            width: '64px',
+                            width: '52px',
                             height: '28px',
-                            padding: '0 6px',
+                            padding: '0 4px',
                             background: '#ecfdf5',
                             color: '#059669',
                             border: '1px solid #a7f3d0',
                             borderRadius: '6px',
-                            fontSize: '0.74rem',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'inline-flex',
@@ -280,7 +306,7 @@ export function MaritimeQuotationsTab({
                           اعتماد
                         </button>
                       ) : (
-                        <div style={{ width: '64px', height: '28px' }} />
+                        <div style={{ width: '52px', height: '28px' }} />
                       )}
                     </div>
                   </td>

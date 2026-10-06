@@ -92,7 +92,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
       title="تسجيل عرض سعر خط ملاحي (Record Carrier Bid)"
       subtitle={`تسجيل وإدراج عرض سعر للطلب: ${rfq.rfq_number} (${rfq.pol_code} إلى ${rfq.pod_code})`}
       width="min(880px, 95vw)"
-      minHeight="auto"
+      minHeight="min(500px, 85vh)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}

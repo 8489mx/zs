@@ -19,24 +19,30 @@ export interface AirWeightCalculationInput {
   grossWeightKg: number;
   cbm?: number;
   dimensions?: CargoDimension[];
+  divisor?: 6000 | 5000 | number; // 6000 for standard IATA air freight, 5000 for express courier (DHL/FedEx/UPS)
+  roundToHalfKg?: boolean; // IATA Resolution 502: round up to next 0.5 kg (defaults to true)
 }
 
 export interface AirWeightCalculationResult {
   grossWeightKg: number;
   volumetricWeightKg: number;
   chargeableWeightKg: number;
+  rawChargeableWeightKg: number;
   totalCbm: number;
   dominantFactor: 'weight' | 'volume';
   volumeRatio: number; // volumetric / gross
+  divisorUsed: number;
 }
 
 /**
  * Calculates Volumetric Weight and Chargeable Weight according to IATA Air Cargo Standard:
- * 1 CBM = 166.67 kg (Ratio 1:6000 cm3/kg).
- * Chargeable Weight = Max(Gross Weight, Volumetric Weight).
+ * 1 CBM = 166.67 kg (Ratio 1:6000 cm3/kg) or 200 kg (Ratio 1:5000 cm3/kg for courier).
+ * Chargeable Weight = Max(Gross Weight, Volumetric Weight) rounded up to nearest 0.5 kg.
  */
 export function calculateAirChargeableWeight(input: AirWeightCalculationInput): AirWeightCalculationResult {
   const grossWeightKg = Math.max(0, Number(input.grossWeightKg || 0));
+  const divisor = Math.max(1, Number(input.divisor || 6000));
+  const roundToHalfKg = input.roundToHalfKg !== false; // defaults to true per IATA
   let totalCbm = 0;
   let volumetricWeightKg = 0;
 
@@ -49,16 +55,22 @@ export function calculateAirChargeableWeight(input: AirWeightCalculationInput): 
       const q = Math.max(1, Number(d.quantity || 1));
       totalCubicCm += l * w * h * q;
     }
-    // IATA Standard divisor: 6000 cm3 = 1 kg
-    volumetricWeightKg = Math.round((totalCubicCm / 6000) * 1000) / 1000;
+    // Divisor: 6000 cm3 = 1 kg (IATA standard) or 5000 cm3 = 1 kg (Express courier)
+    volumetricWeightKg = Math.round((totalCubicCm / divisor) * 1000) / 1000;
     totalCbm = Math.round((totalCubicCm / 1000000) * 1000) / 1000;
   } else if (input.cbm && Number(input.cbm) > 0) {
     totalCbm = Math.round(Number(input.cbm) * 1000) / 1000;
-    // 1 CBM = 166.67 kg in air freight
-    volumetricWeightKg = Math.round((totalCbm * 166.667) * 1000) / 1000;
+    // 1 CBM in kg = 1,000,000 / divisor (166.667 for 6000, 200 for 5000)
+    const factor = 1000000 / divisor;
+    volumetricWeightKg = Math.round((totalCbm * factor) * 1000) / 1000;
   }
 
-  const chargeableWeightKg = Math.round(Math.max(grossWeightKg, volumetricWeightKg) * 1000) / 1000;
+  const rawChargeableWeightKg = Math.round(Math.max(grossWeightKg, volumetricWeightKg) * 1000) / 1000;
+  // IATA standard: Round up to the next 0.5 kg
+  const chargeableWeightKg = roundToHalfKg
+    ? Math.ceil(rawChargeableWeightKg * 2) / 2
+    : rawChargeableWeightKg;
+
   const dominantFactor = volumetricWeightKg > grossWeightKg ? 'volume' : 'weight';
   const volumeRatio = grossWeightKg > 0 ? Math.round((volumetricWeightKg / grossWeightKg) * 100) / 100 : 0;
 
@@ -66,9 +78,11 @@ export function calculateAirChargeableWeight(input: AirWeightCalculationInput): 
     grossWeightKg,
     volumetricWeightKg,
     chargeableWeightKg,
+    rawChargeableWeightKg,
     totalCbm,
     dominantFactor,
     volumeRatio,
+    divisorUsed: divisor,
   };
 }
 
