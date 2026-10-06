@@ -96,6 +96,36 @@ export class CreateMaritimeQuotationDto {
   @IsOptional()
   exchangeRate?: number;
 
+  @IsNumber()
+  @IsOptional()
+  quoteRoe?: number;
+
+  @IsString()
+  @IsOptional()
+  roeClauseText?: string;
+
+  @IsOptional()
+  isSplitCurrency?: boolean;
+
+  @IsString()
+  @IsOptional()
+  foreignCurrency?: string;
+
+  @IsNumber()
+  @IsOptional()
+  foreignCurrencyAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  localCurrencyAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  acidNumber?: string;
+
+  @IsOptional()
+  charges?: any[];
+
   @IsString()
   @IsOptional()
   validUntil?: string;

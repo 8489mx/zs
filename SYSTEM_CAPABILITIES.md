@@ -1871,8 +1871,8 @@
 * **الباقات المدعومة:** `plan_ultimate`, `plan_omnichannel` (وكافة الأسماء البديلة)
 * **مسارات الكود — Backend:** `backend/src/modules/maritime-freight/`
 * **مسارات الكود — Frontend:** `frontend/src/features/maritime-freight/`
-* **الجداول في قاعدة البيانات (Migrations 080, 122, 124, 125, 126):** `shipping_ports`, `shipping_lines`, `maritime_rfqs`, `maritime_rfq_bids`, `maritime_quotations`, `maritime_jobs`, `maritime_containers`, `maritime_job_milestones`, `maritime_rate_cards`, `maritime_customs_declarations`, `maritime_customs_declaration_items`, `maritime_carrier_invoices`, `maritime_carrier_disputes`, `maritime_cargo_insurances`, `maritime_warehouse_receipts`
-* **المعايير المرجعية الدولية:** DCSA (Digital Container Shipping Association) — 9 مراحل تتبع بحري موحدة، IATA (International Air Transport Association) — نسبة الوزن الحجمي 1:6000 وخوارزمية Modulo-7 لبوالص الشحن الجوي AWB ومحطات تتبع Cargo iQ، معايير التأمين البحري الدولي لمعهد المكتتبين بلندن (Institute Cargo Clauses ICC A/B/C & All Risks).
+* **الجداول في قاعدة البيانات (Migrations 080, 122, 124, 125, 126, 200):** `shipping_ports`, `shipping_lines`, `maritime_rfqs`, `maritime_rfq_bids`, `maritime_quotations`, `maritime_jobs`, `maritime_containers`, `maritime_job_milestones`, `maritime_rate_cards`, `maritime_customs_declarations`, `maritime_customs_declaration_items`, `maritime_carrier_invoices`, `maritime_carrier_disputes`, `maritime_cargo_insurances`, `maritime_warehouse_receipts`, `maritime_quotation_charges`, `maritime_job_charges`, `maritime_job_documents`, `maritime_agent_settlements`, `maritime_inland_trucking_trips`, `maritime_carrier_api_events`
+* **المعايير المرجعية الدولية والمحلية:** DCSA (Digital Container Shipping Association) — مسار التتبع البحري وأحداث التتبع الحي عبر واجهات الخطوط الملاحية (Live Carrier API Sync)، IATA (International Air Transport Association) — نسبة الوزن الحجمي 1:6000 وخوارزمية Modulo-7 لبوالص الشحن الجوي AWB ومحطات تتبع Cargo iQ، معايير التأمين البحري الدولي لمعهد المكتتبين بلندن (Institute Cargo Clauses ICC A/B/C & All Risks)، FIATA & BIMCO لنماذج بوالص الشحن البحري، منظومة نافذة المصرية للتسجيل المسبق للشحنات (Egyptian Nafeza ACI / ACID - 19 digits)، وبوالص النقل البري الداخلي (Inland CMR Waybill).
 * **بيانات أولية مدرجة:** 15 ميناء مصري ودولي (Alexandria, Port Said, Damietta, Singapore, Rotterdam, Jeddah, ...) + 10 خطوط شحن عالمية (MSC, Maersk, CMA CGM, ...)
 
 ### الملفات المنشأة
@@ -1881,6 +1881,7 @@
 | :--- | :--- | :--- |
 | **Migration** | `2040000000125_maritime_carrier_invoice_audit.ts` | ترحيل قاعدة البيانات لتدقيق فواتير الخطوط الملاحية والنزاعات الناتجة عنها |
 | **Migration** | `2040000000126_multimodal_freight_insurance_and_warehousing.ts` | ترحيل قاعدة البيانات للشحن متعدد الوسائط، تأمين البضائع الشامل، وأذون استلام مستودعات الترانزيت والإيداع الجمركي (MWR) |
+| **Migration** | `2040000000200_maritime_complete_enterprise_expansion.ts` | التوسعة المؤسسية الشاملة للشحن الدولي: بنود الرسوم المفصلة (Charges)، تفكيك العملات وشرط سعر الصرف التعاقدي (ROE Clause)، منظومة نافذة ACI، التجميع المشترك LCL، الحافظة الرقمية الإلكترونية e-Folder، مواعيد إغلاق التصدير Cut-Offs، النقل البري الداخلي، تسويات الوكلاء الخارجيين ونسبة الأرباح 50/50، ورادار الربط الحي لخطوط الملاحة DCSA API |
 | **Engine** | `engines/freight-audit.engine.ts` | محرك تدقيق فواتير الناقل النقي، مطابقة التعرفة المتعاقد عليها (Contracted Rate Card vs Billed)، حوكمة الاستثناءات (Maker-Checker Separation) |
 | **Engine** | `engines/air-freight.engine.ts` | محرك الشحن الجوي النقي وفق معايير IATA: حساب الوزن الحجمي 1:6000 والوزن الخاضع للتحصيل، خوارزمية التحقق Modulo-7 لبوالص الشحن الجوي، ومحطات تتبع Cargo iQ التسع |
 | **Unit Tests** | `engines/freight-audit.engine.spec.ts` | اختبارات وحدة حسابية صارمة لمحرك تدقيق الفواتير وتأكيد الفصل الإداري وحساب الفروقات |
@@ -1888,23 +1889,38 @@
 | **Types** | `maritime-freight.types.ts` | تعريفات TypeScript، معايير DCSA، معايير IATA للشحن الجوي ومحطات Cargo iQ، وتأمين البضائع والمستودعات |
 | **DTOs** | `dto/create-rfq.dto.ts` | بيانات إنشاء طلب التسعير للشحن متعدد الوسائط (بحري/جوي/بري) |
 | **DTOs** | `dto/submit-bid.dto.ts` | بيانات تقديم عرض شركة الشحن |
-| **DTOs** | `dto/create-quotation.dto.ts` | بيانات إنشاء عرض سعر العميل متعدد الوسائط |
-| **DTOs** | `dto/create-job.dto.ts` | بيانات تحويل العرض لأمر تشغيل للشحن الجوي والبحري |
+| **DTOs** | `dto/create-quotation.dto.ts` | بيانات إنشاء عرض سعر العميل متعدد الوسائط مع شرط سعر الصرف والـ ACID وبنود الرسوم |
+| **DTOs** | `dto/create-job.dto.ts` | بيانات تحويل العرض لأمر تشغيل للشحن الجوي والبحري مع الـ Cut-Offs والتجميع المشترك |
+| **DTOs** | `dto/itemized-charges.dto.ts` | بنود الرسوم والتسعير التفصيلي (O/F, BAF, THC, BL Fee, Inland, Customs, Insurance) بالعملة الأصلية والمحلية والضريبة |
+| **DTOs** | `dto/job-document.dto.ts` | الحافظة الرقمية الإلكترونية للشحنة (e-Folder Binder) للأرشفة الرقمية والتحميل والمعاينة |
+| **DTOs** | `dto/agent-settlement.dto.ts` | حسابات وتسويات الوكلاء الخارجيين في موانئ الشحن والوصول (SOA, Profit Share 50/50, DN/CN) |
+| **DTOs** | `dto/inland-trucking.dto.ts` | رحلات النقل البري الداخلي والترحيل وتوجيه الشاحنات والسائقين وبوالص CMR |
+| **DTOs** | `dto/carrier-tracking.dto.ts` | تتبع الخطوط الملاحية الحي عبر واجهات DCSA API وسجل أحداث الحاويات |
 | **DTOs** | `dto/cargo-insurance.dto.ts` | بيانات إصدار وثائق تأمين البضائع وتسجيل المطالبات التأمينية |
 | **DTOs** | `dto/warehouse-receipt.dto.ts` | بيانات إصدار أذون استلام وإيداع المستودع وأوامر الإفراج والتسليم |
 | **DTOs** | `dto/update-container.dto.ts` | بيانات تحديث حالة الحاوية |
-| **Service** | `maritime-freight.service.ts` | كامل منطق RFQs، توليد الأكواد `[RFQ-YYYY-XXXX]`، إرسال بريد بروابط سحرية، مقارنة الأسعار، تطبيق الهامش، إنشاء مركز تكلفة، إدارة الحاويات، حساب الديمراج، تدقيق فواتير الناقل، إصدار وثائق التأمين، وإدارة أذون المستودعات MWR.<br/>**⚠️ تحصين مالي سبتمبر 2026 (المرحلة 16):** تسوية مستحقات الشحنة من الرصيد الدائن للعميل كانت تقرأ الرصيد وتكتبه **مطلقاً بلا معاملة ولا قفل**، فتسويتان متزامنتان تستهلكان نفس الرصيد الدائن مرتين وتسوّيان ضعف قيمته من الديون؛ صارت معاملة واحدة بقفل على صف العميل وصف الشحنة. وترقيم إشعارات النزاع كان `COUNT(*)+1` بلا قيد تفرد فيتكرر بصمت؛ صار رقماً مؤقتاً ثم إعادة تسمية بالمعرّف، وإنشاء النزاع وحجز الفاتورة في معاملة واحدة |
+| **Service** | `maritime-freight.service.ts` | كامل منطق RFQs، مقارنة الأسعار، عروض الأسعار، إدارة العمليات والحاويات، حساب الديمراج، تدقيق فواتير الناقل، إصدار وثائق التأمين، أذون المستودعات MWR، بنود الرسوم المفصلة وتفكيك العملات، إدارة الشحنات المجمعة والهاوس، الحافظة الرقمية e-Folder، كشوف حسابات الوكلاء والتسويات، رحلات النقل البري، ومزامنة أحداث التتبع الحي |
 | **Engine** | `engines/cargo-insurance.engine.ts` | بوابتا مطالبة التأمين النقيتان: منع تجاوز القيمة المؤمَّن عليها (`insured_value` كانت تُخزَّن ولا تُقرأ في أي منطق فتمر أي مطالبة مهما بلغت)، ومنع تسجيل مطالبة ثانية تستبدل الأولى بصمت. يستوردها جناح `test/critical/maritime-cargo-insurance.spec.ts` من الإنتاج |
-| **Controller** | `maritime-freight.controller.ts` | Endpoints محمية بـ `SessionAuthGuard` لكافة العمليات |
+| **Controller** | `maritime-freight.controller.ts` | Endpoints محمية بـ `SessionAuthGuard` لكافة العمليات بما فيها الحسابات والوثائق والنقل والوكلاء والتتبع |
 | **Controller** | `maritime-public-tracking.controller.ts` | Endpoint عام لتتبع الشحنات بدون مصادقة |
 | **Module** | `maritime-freight.module.ts` | مسجل في `app.module.ts` |
-| **API** | `api/maritime-freight.api.ts` | خدمة API Frontend متكاملة تدعم كافة مسارات الشحن الجوي والبحري والتأمين والمستودعات |
+| **API** | `api/maritime-freight.api.ts` | خدمة API Frontend متكاملة تشمل كافة وظائف الشحن الجوي والبحري والتأمين والمستودعات والوكلاء والنقل والحافظة |
 | **Component** | `CreateRfqModal.tsx` | نافذة إنشاء طلب تسعير جديد مع محول النمط الثلاثي (بحري/جوي/بري) |
-| **Component** | `ApplyMarginModal.tsx` | نافذة تطبيق الهامش على أسعار الشحن |
+| **Component** | `ApplyMarginModal.tsx` | نافذة تطبيق الهامش مع إدخال شرط سعر الصرف (ROE Clause) ورقم القيد الجمركي المسبق (ACID) |
 | **Component** | `CarrierBidEntryModal.tsx` | نافذة إدخال عرض شركة الشحن يدوياً |
-| **Component** | `JobDetailsModal.tsx` | نافذة تفاصيل أمر التشغيل والمراحل، والتدقيق الفوري لفواتير الناقل، وإصدار وثائق التأمين والمطالبات، وأذون المستودعات MWR ورادار الطيران والسفن |
+| **Component** | `JobDetailsModal.tsx` | نافذة تفاصيل أمر التشغيل الشاملة المتضمنة بطاقات الامتثال الثلاث (ACI, Cut-offs, ROE) والتبويبات المتخصصة للرسوم والتجميع والنقل والحافظة الرقمية |
+| **Job Component** | `job-details/JobEgyptianAciCard.tsx` | بطاقة منظومة نافذة المصرية للتسجيل المسبق (ACI / ACID) مع فحص 19 رقماً ومؤقت انتهاء الصلاحية |
+| **Job Component** | `job-details/JobExportCutoffsCard.tsx` | بطاقة مواعيد إغلاق التصدير (VGM, SI, Customs, Port Cut-offs) مع عداد تنازلي فوري |
+| **Job Component** | `job-details/JobRoeForexCard.tsx` | بطاقة شرط ومحدد سعر الصرف (ROE Clause) وتفكيك العملات الأجنبية والمحلية |
+| **Job Component** | `job-details/JobChargesTab.tsx` | تبويب بنود الرسوم والتسعير التفصيلي مع احتساب الضرائب وهوامش الربح لكل بند |
+| **Job Component** | `job-details/JobDocumentsTab.tsx` | الحافظة الرقمية الإلكترونية للشحنة (e-Folder Binder) للأرشفة ومركز طباعة النماذج القياسية |
+| **Job Component** | `job-details/JobConsolidationTab.tsx` | إدارة تجميع الشحنات والحاويات المشتركة (Master vs House B/Ls) وإصدار الشحنات الفرعية |
+| **Job Component** | `job-details/JobInlandTruckingTab.tsx` | إدارة وتوجيه رحلات النقل البري الداخلي وتوجيه السائقين وطباعة بوالص CMR لأمر التشغيل |
+| **Tab** | `MaritimeAgentsTab.tsx` | تبويب حسابات وتسويات الوكلاء الخارجيين ومشاركة الأرباح وإشعارات المدين والدائن (SOA & Profit Share 50/50) |
+| **Tab** | `CarrierTrackingHubTab.tsx` | مركز التتبع الحي الموحد وواجهات ربط الخطوط الملاحية المتوافقة مع معايير DCSA API |
+| **Tab** | `InlandTruckingTab.tsx` | المركز الرئيسي لرحلات النقل والترحيل الداخلي وإدارة أسطول الشاحنات وسائقي المقطورات |
 | **Component** | `ContainerReturnModal.tsx` | نافذة تسجيل إعادة الحاوية الفارغة |
-| **Documents** | `maritime-documents.ts` | طباعة وتوليد بوالص الشحن البحري والجوي الرسمية (Neutral IATA AWB)، وشهادات تأمين البضائع، وأذون إيداع المستودع (MWR)، وإشعار النزاع المالي للناقلين |
+| **Documents** | `maritime-documents.ts` | طباعة وتوليد بوالص الشحن البحري والجوي الرسمية مع بنود ACI، الفاتورة الملاحية المعتمدة بتفكيك العملات وبنود الرسوم، شهادات التأمين، أذون المستودع MWR، بوالص النقل البري، شهادات VGM، وإرشادات الشحن SI |
 | **Tab** | `MaritimeRfqTab.tsx` | تبويب طلبات التسعير (Carrier RFQs) |
 | **Tab** | `MaritimeMatrixTab.tsx` | تبويب مصفوفة مقارنة الأسعار |
 | **Tab** | `MaritimeQuotationsTab.tsx` | تبويب عروض أسعار العملاء |
@@ -6007,5 +6023,42 @@
   - Added `listAllCarrierInvoices` in `maritime-freight.service.ts` and `GET /api/maritime-freight/carrier-invoices` in `maritime-freight.controller.ts` with tenant isolation, status filtering (`overcharge`, `matched`, `disputed`, `approved_override`, `undercharge`), and company-wide summary KPIs.
   - Linked new views into `MaritimeLayout.tsx`, `MaritimeWorkspacePage.tsx`, `routes.tsx`, and `index.ts`.
 - **Status:** 100% Production Ready and fully wired across both backend and frontend.
+
+## B2B Customer Self-Service Freight Portal - بوابة الخدمة الذاتية لعملاء الشحن (7 October 2026)
+
+- **حالة الوحدة العامة:** 🟢 مكتمل 100% ومفعل بالكامل (End-to-End B2B Customer Self-Service Freight Portal).
+- **مسارات الكود الأساسية:**
+  - الباك إند: `backend/src/modules/maritime-freight/maritime-customer-portal.controller.ts`, `backend/src/modules/maritime-freight/maritime-customer-portal.service.ts`
+  - قاعدة البيانات: `backend/src/database/migrations/2040000000201_maritime_customer_portal.ts`, `backend/src/database/database.types.ts`
+  - الفرونت إند: `frontend/src/features/maritime-freight/pages/MaritimeCustomerPortalPage.tsx`, `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`, `frontend/src/app/router/root-router.tsx`, `frontend/src/features/maritime-freight/routes.tsx`
+- **القدرات التشغيلية والميزات المنفذة:**
+  1. **المصادقة والأمان متعدد المستأجرين (Multi-Tenant Secure Customer Auth):**
+     - تسجيل دخول العميل برقم الهاتف المسجل والرمز السري (PIN) أو عبر رابط وصول سحري مباشر (`/freight-portal?token=...`).
+     - توقيع وإصدار رموز الجلسة عبر `signPortalToken` و `verifyPortalToken` المعززة بخوارزمية HMAC و `timingSafeEqual` و `LoginAttemptLimiter` للحماية من هجمات التخمين.
+     - عزل صارم للبيانات بحسب `tenant_id` و `customer_id` دون أي تسريب بيانات بين العملاء.
+  2. **لوحة المؤشرات ونظرة عامة على الحساب (Executive Customer KPIs Dashboard):**
+     - بطاقات مؤشرات حية: الشحنات الجارية، عروض الأسعار قيد المراجعة، الشحنات المكتملة بالأرشيف، الرصيد المستحق (المديونية)، والحد الائتماني المتاح.
+  3. **التتبع اللحظي للشحنات والرادار (Live Radar & Shipment Tracking):**
+     - عرض كافة شحنات العميل (بحري، جوي، بري) مع جهة الشحن (POL) وجهة الوصول (POD)، اسم الخط الملاحي، السفينة، والرحلة.
+     - رادار فترات السماح (Free Time & Demurrage Indicator): احتساب وتنبيه بأيام السماح المتبقية ومؤشرات الغرامات تلقائياً.
+     - مراحل التتبع الموحدة DCSA Milestones (تأكيد الحجز، دخول الميناء، التحميل، الإبحار، وصول الميناء، التسليم).
+     - تفاصيل الحاويات، الأوزان الإجمالية، الحجم CBM، ورقم التسجيل المسبق للشحنات المصرية (ACID).
+  4. **طلب تسعير شحنة جديدة إلكترونياً (Online Freight Booking / RFQ):**
+     - نموذج طلب تسعير متكامل: وسيلة النقل (بحري FCL/LCL، جوي، بري)، نوع الحاوية والكميات بعدادات RTL القياسية ([+] يميناً و [-] يساراً)، الشروط التجارية (Incoterms)، ومواصفات البضاعة.
+     - توليد تسلسلي موحد لرقم الطلب بصيغة `INQ-YYMMDD-XXXX` متوافق مع دستور الترقيم الموحد.
+  5. **استعراض واعتماد عروض الأسعار إلكترونياً (Quotations & Instant Approval):**
+     - استعراض عروض الأسعار مع تفصيل كامل للرسوم والنولون والخدمات المحلية.
+     - زر **"اعتماد وتعميد العرض (Approve & Book)"** الفوري مع تسجيل أمر الشراء (PO)، ملاحظات الاعتماد، البصمة الزمنية، وعنوان IP.
+     - التحويل الآلي الفوري لعرض السعر المعتمد إلى أمر تشغيل شحن رسمي (`maritime_jobs`) وربطه بالشحنات الجارية.
+  6. **مركز المستندات والبوالص والطباعة الرسمية (Digital Document Center):**
+     - تحميل وطباعة فورية للمستندات الرسمية بصيغة PDF مع باركود التتبع QR:
+       - بوليصة الشحن البحري (House Bill of Lading - HBL) وفق معايير FIATA.
+       - بوليصة الشحن الجوي (Air Waybill - AWB).
+       - إذن التسليم الملاحي الجمركي (Delivery Order - D/O).
+       - إخطار وصول الشحنة وبدء فترات السماح (Arrival Notice - A/N).
+       - فاتورة ومطالبة رسوم الشحن (Freight Billing Invoice).
+  7. **كشف الحساب والمديونيات (Statement of Account & Ledgers):**
+     - كشف حساب مالي تفصيلي بالرصيد الحالي، الحد الائتماني، وفواتير ومطالبات الشحن المسجلة مع إمكانية الطباعة المباشرة.
+
 
 

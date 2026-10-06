@@ -1696,3 +1696,23 @@ The authenticated master endpoints use private conditional caching and weak ETag
 - The central posting gate and GRN posting return HTTP 422 for closed periods. The no-sale POS control records operator, open shift and reason before the physical drawer command. Migrations `2040000000196` through `2040000000198` were numbered after scanning the migration folder.
 - This implementation has only been reviewed statically under the owner's no-test instruction. Migration, TypeScript, financial, pharmacy, exchange and hardware checks are required before production use.
 
+## 2.15 Maritime & Freight Forwarding Enterprise Expansion (7 October 2026)
+
+- **Database Schema Migration 2040000000200 (`2040000000200_maritime_complete_enterprise_expansion.ts`):**
+  - Added 6 new tables: `maritime_quotation_charges`, `maritime_job_charges`, `maritime_job_documents`, `maritime_agent_settlements`, `maritime_inland_trucking_trips`, `maritime_carrier_api_events`.
+  - Added multi-currency, regulatory, cutoff and consolidation columns to `maritime_jobs` and `maritime_quotations`: `roe_clause`, `exchange_rate_source`, `acid_number`, `acid_issue_date`, `acid_expiry_date`, `foreign_exporter_id`, `importer_tax_id`, `vgm_cut_off`, `si_cut_off`, `customs_cut_off`, `port_cut_off`, `is_consolidation`, `master_job_id`, `sub_job_count`.
+- **Invariants & Safety Controls:**
+  - **MARITIME-INV-1 (Split-Currency & ROE Clause Invariant):** All international freight documents and invoices involving dual currencies (foreign freight + local handling charges) must preserve the contractual Rate of Exchange clause (`roe_clause`) and exchange rate source to prevent financial discrepancies during currency float.
+  - **MARITIME-INV-2 (Egyptian ACI / ACID Regulatory Gate):** Shipments importing into Egyptian ports must maintain the 19-digit ACID registration, foreign exporter identifier, and Egyptian importer tax ID, embedding them visibly in Bills of Lading and tax invoices.
+  - **MARITIME-INV-3 (Export Cut-Off Temporal Integrity):** Export jobs must track four discrete cut-off milestones (SOLAS VGM, Shipping Instructions SI, Customs release, and Terminal gate-in) with real-time countdown alerts to eliminate carrier rollover penalties.
+  - **MARITIME-INV-4 (Master-House Consolidation Scoping):** LCL consolidation groups House B/Ls under a single Master B/L. Child jobs reference their parent Master Job via `master_job_id`, automatically syncing total package counts, gross weight, and CBM volumes.
+  - **MARITIME-INV-5 (Agent Settlement & Profit-Share 50/50):** Overseas agent statements of account (SOA) itemize collect/prepaid freight receivables and payables with automatic 50/50 net profit-share calculation and dual Debit/Credit Note generation.
+- **Database Schema Migration 2040000000201 (`2040000000201_maritime_customer_portal.ts`):**
+  - Added customer portal authentication credentials to `customers` table (`portal_access_pin`, `portal_token`).
+  - Added customer e-acceptance audit trail to `maritime_quotations` (`customer_approved_at`, `customer_approval_notes`, `customer_approval_reference`, `customer_approval_ip`).
+  - Added customer portal submission flag and notes to `maritime_inquiries` (`portal_submitted`, `portal_customer_notes`).
+- **Invariants & Safety Controls:**
+  - **MARITIME-INV-6 (Customer Portal Tenant & Identity Scoping):** Customer portal authentication strictly scopes access by verified `customer_id` and `tenant_id` via signed HMAC portal tokens (`signPortalToken` / `verifyPortalToken`). No cross-tenant or cross-customer data leakage is permitted.
+  - **MARITIME-INV-7 (Instant Quotation Approval Immutability & Auto-Conversion):** When a customer approves a quotation online (`status: 'approved'`), the acceptance timestamp, client PO/reference, and IP are permanently recorded. The quotation cannot be re-approved or tampered with, and triggers automatic conversion into an active operational freight job (`maritime_jobs`).
+
+

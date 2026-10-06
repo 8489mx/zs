@@ -247,6 +247,18 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
     element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicCarrierQuotePage').then((module) => ({ default: module.PublicCarrierQuotePage }))),
   },
   {
+    path: '/freight-portal',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/MaritimeCustomerPortalPage').then((module) => ({ default: module.MaritimeCustomerPortalPage }))),
+  },
+  {
+    path: '/maritime-portal',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/MaritimeCustomerPortalPage').then((module) => ({ default: module.MaritimeCustomerPortalPage }))),
+  },
+  {
+    path: '/portal/freight',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/MaritimeCustomerPortalPage').then((module) => ({ default: module.MaritimeCustomerPortalPage }))),
+  },
+  {
     path: '/st/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },

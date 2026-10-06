@@ -33,6 +33,11 @@ import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.se
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateFreightAudit, validateMakerCheckerOverride } from './engines/freight-audit.engine';
 import { checkInsuranceClaim } from './engines/cargo-insurance.engine';
+import { QuotationChargeDto, JobChargeDto, UpdateJobChargesDto } from './dto/itemized-charges.dto';
+import { CreateJobDocumentDto } from './dto/job-document.dto';
+import { CreateAgentSettlementDto, UpdateAgentSettlementStatusDto } from './dto/agent-settlement.dto';
+import { CreateInlandTruckingTripDto, UpdateInlandTruckingTripStatusDto } from './dto/inland-trucking.dto';
+import { CarrierTrackingEventDto } from './dto/carrier-tracking.dto';
 
 @Injectable()
 export class MaritimeFreightService {
@@ -1413,6 +1418,13 @@ export class MaritimeFreightService {
           exchange_rate: exchangeRate,
           final_total_local: finalTotalLocal,
           valid_until: dto.validUntil || null,
+          quote_roe: dto.quoteRoe ? Number(dto.quoteRoe) : exchangeRate,
+          roe_clause_text: dto.roeClauseText || null,
+          is_split_currency: Boolean(dto.isSplitCurrency),
+          foreign_currency: dto.foreignCurrency || dto.currency || 'USD',
+          foreign_currency_amount: dto.foreignCurrencyAmount ? Number(dto.foreignCurrencyAmount) : 0,
+          local_currency_amount: dto.localCurrencyAmount ? Number(dto.localCurrencyAmount) : 0,
+          acid_number: dto.acidNumber || null,
           status: 'draft',
           notes: dto.notes || null,
           created_by: auth.userId ? Number(auth.userId) : null,
@@ -1428,6 +1440,33 @@ export class MaritimeFreightService {
         .where('tenant_id', '=', tenantId)
         .returningAll()
         .execute();
+
+      if (dto.charges && Array.isArray(dto.charges) && dto.charges.length > 0) {
+        for (const chg of dto.charges) {
+          const qty = Number(chg.quantity || 1);
+          const rate = Number(chg.unitRate || 0);
+          const tot = Number(chg.totalAmount || (qty * rate));
+          const taxPct = Number(chg.taxRatePercent || 0);
+          const taxAmt = Number(chg.taxAmount || (tot * taxPct / 100));
+          await trx
+            .insertInto('maritime_quotation_charges')
+            .values({
+              tenant_id: tenantId,
+              quotation_id: String(quote.id),
+              charge_code: chg.chargeCode || 'CHG',
+              charge_name_ar: chg.chargeNameAr || 'رسوم نولون / خدمات',
+              charge_name_en: chg.chargeNameEn || 'Freight / Logistics Charge',
+              currency: chg.currency || dto.currency || 'USD',
+              unit_rate: rate,
+              quantity: qty,
+              total_amount: tot,
+              is_local_charge: Boolean(chg.isLocalCharge),
+              tax_rate_percent: taxPct,
+              tax_amount: taxAmt,
+            })
+            .execute();
+        }
+      }
 
       if (dto.inquiryId) {
         await trx
@@ -1537,6 +1576,20 @@ export class MaritimeFreightService {
           milestone_status: dto.transportMode === 'air' ? 'BKD' : 'BOOK',
           cost_center_id: null,
           tracking_token: trackingToken,
+          parent_job_id: dto.parentJobId ? String(dto.parentJobId) : null,
+          is_consolidation_master: Boolean(dto.isConsolidationMaster),
+          acid_number: dto.acidNumber || null,
+          acid_issue_date: dto.acidIssueDate ? dto.acidIssueDate : null,
+          acid_expiry_date: dto.acidExpiryDate ? dto.acidExpiryDate : null,
+          foreign_exporter_id: dto.foreignExporterId || null,
+          importer_tax_id: dto.importerTaxId || null,
+          quote_roe: dto.quoteRoe != null && dto.quoteRoe !== '' ? Number(dto.quoteRoe) : null,
+          actual_roe: dto.actualRoe != null && dto.actualRoe !== '' ? Number(dto.actualRoe) : null,
+          forex_gain_loss: dto.forexGainLoss ? Number(dto.forexGainLoss) : 0,
+          roe_clause_agreed: dto.roeClauseAgreed !== undefined ? Boolean(dto.roeClauseAgreed) : true,
+          si_cutoff_date: dto.siCutoffDate ? new Date(dto.siCutoffDate) : null,
+          vgm_cutoff_date: dto.vgmCutoffDate ? new Date(dto.vgmCutoffDate) : null,
+          port_cutoff_date: dto.portCutoffDate ? new Date(dto.portCutoffDate) : (dto.portCutOff ? new Date(dto.portCutOff) : null),
           delivery_address: dto.deliveryAddress || null,
           status: 'active',
           notes: dto.notes || null,
@@ -1546,6 +1599,46 @@ export class MaritimeFreightService {
         .execute();
 
       const finalJobNumber = formatDailyDocumentNumber('JOB', Number(job.id));
+
+      if (dto.parentJobId) {
+        await trx
+          .updateTable('maritime_jobs')
+          .set({
+            sub_job_count: sql`sub_job_count + 1`,
+            is_consolidation_master: true,
+          })
+          .where('id', '=', dto.parentJobId as any)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      if (dto.charges && Array.isArray(dto.charges) && dto.charges.length > 0) {
+        for (const chg of dto.charges) {
+          const cost = Number(chg.costAmount || 0);
+          const sell = Number(chg.sellAmount || 0);
+          const profit = Number(chg.profitAmount || (sell - cost));
+          const taxPct = Number(chg.taxRatePercent || 0);
+          const taxAmt = Number(chg.taxAmount || (sell * taxPct / 100));
+          await trx
+            .insertInto('maritime_job_charges')
+            .values({
+              tenant_id: tenantId,
+              job_id: String(job.id),
+              charge_code: chg.chargeCode || 'CHG',
+              charge_name_ar: chg.chargeNameAr || 'رسوم نولون / خدمات',
+              charge_name_en: chg.chargeNameEn || 'Freight / Logistics Charge',
+              currency: chg.currency || 'USD',
+              cost_amount: cost,
+              sell_amount: sell,
+              profit_amount: profit,
+              is_local_charge: Boolean(chg.isLocalCharge),
+              tax_rate_percent: taxPct,
+              tax_amount: taxAmt,
+              is_invoiced: Boolean(chg.isInvoiced),
+            })
+            .execute();
+        }
+      }
 
       // 2. Automatically create an Accounting Cost Center under dimension = 'project'
       let costCenterId: string | null = null;
@@ -4979,5 +5072,482 @@ export class MaritimeFreightService {
     }
 
     return await query.orderBy('id', 'desc').execute();
+  }
+
+  // ==========================================
+  // 1. Itemized Charges Grid & Multi-Currency ROE
+  // ==========================================
+
+  async getQuotationCharges(auth: AuthContext, quotationId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_quotation_charges')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('quotation_id', '=', String(quotationId))
+      .orderBy('id', 'asc')
+      .execute();
+  }
+
+  async getJobCharges(auth: AuthContext, jobId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_job_charges')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', String(jobId))
+      .orderBy('id', 'asc')
+      .execute();
+  }
+
+  async updateJobCharges(auth: AuthContext, jobId: string | number, dto: UpdateJobChargesDto) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('maritime_job_charges')
+        .where('tenant_id', '=', tenantId)
+        .where('job_id', '=', String(jobId))
+        .execute();
+
+      let totalCost = 0;
+      let totalSell = 0;
+
+      for (const chg of dto.charges) {
+        const cost = Number(chg.costAmount || 0);
+        const sell = Number(chg.sellAmount || 0);
+        const profit = Number(chg.profitAmount || (sell - cost));
+        const taxPct = Number(chg.taxRatePercent || 0);
+        const taxAmt = Number(chg.taxAmount || (sell * taxPct / 100));
+
+        totalCost += cost;
+        totalSell += sell;
+
+        await trx
+          .insertInto('maritime_job_charges')
+          .values({
+            tenant_id: tenantId,
+            job_id: String(jobId),
+            charge_code: chg.chargeCode || 'CHG',
+            charge_name_ar: chg.chargeNameAr || 'رسوم نولون / خدمات',
+            charge_name_en: chg.chargeNameEn || 'Freight / Logistics Charge',
+            currency: chg.currency || 'USD',
+            cost_amount: cost,
+            sell_amount: sell,
+            profit_amount: profit,
+            is_local_charge: Boolean(chg.isLocalCharge),
+            tax_rate_percent: taxPct,
+            tax_amount: taxAmt,
+            is_invoiced: Boolean(chg.isInvoiced),
+          })
+          .execute();
+      }
+
+      await trx
+        .updateTable('maritime_jobs')
+        .set({
+          carrier_cost_total: totalCost,
+          client_invoiced_total: totalSell,
+          net_profit: totalSell - totalCost,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', String(jobId) as any)
+        .execute();
+
+      return await trx
+        .selectFrom('maritime_job_charges')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('job_id', '=', String(jobId))
+        .orderBy('id', 'asc')
+        .execute();
+    });
+  }
+
+  async calculateJobForexGainLoss(auth: AuthContext, jobId: string | number, actualRoe: number) {
+    const { tenantId } = requireTenantScope(auth);
+    const job = await this.db
+      .selectFrom('maritime_jobs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', String(jobId) as any)
+      .executeTakeFirst();
+
+    if (!job) throw new NotFoundException('Job not found');
+
+    const quoteRoe = Number(job.quote_roe || 0);
+    const foreignTotal = Number(job.carrier_cost_total || 0);
+
+    let forexGainLoss = 0;
+    if (quoteRoe > 0 && actualRoe > 0) {
+      forexGainLoss = (actualRoe - quoteRoe) * foreignTotal;
+    }
+
+    const [updated] = await this.db
+      .updateTable('maritime_jobs')
+      .set({
+        actual_roe: actualRoe,
+        forex_gain_loss: forexGainLoss,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', String(jobId) as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  // ==========================================
+  // 2. Consolidation & Sub-Jobs (LCL Multi-HBL)
+  // ==========================================
+
+  async listConsolidationSubJobs(auth: AuthContext, parentJobId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_jobs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('parent_job_id', '=', String(parentJobId))
+      .orderBy('id', 'desc')
+      .execute();
+  }
+
+  async createConsolidationSubJob(auth: AuthContext, parentJobId: string | number, dto: Partial<CreateMaritimeJobDto>) {
+    const { tenantId } = requireTenantScope(auth);
+    const parentJob = await this.db
+      .selectFrom('maritime_jobs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', String(parentJobId) as any)
+      .executeTakeFirst();
+
+    if (!parentJob) throw new NotFoundException('Parent Master Job not found');
+
+    const subJobDto: CreateMaritimeJobDto = {
+      ...dto,
+      parentJobId: String(parentJobId),
+      isConsolidationMaster: false,
+      customerName: dto.customerName || 'عميل تجزئة مشترك',
+      shippingLineName: parentJob.shipping_line_name,
+      shippingLineId: parentJob.shipping_line_id,
+      polCode: parentJob.pol_code,
+      polName: parentJob.pol_name,
+      podCode: parentJob.pod_code,
+      podName: parentJob.pod_name,
+      vesselName: parentJob.vessel_name || undefined,
+      voyageNumber: parentJob.voyage_number || undefined,
+      bookingNumber: parentJob.booking_number || undefined,
+      mblNumber: parentJob.mbl_number || undefined,
+      direction: parentJob.direction,
+      transportMode: parentJob.transport_mode,
+      etd: parentJob.etd || undefined,
+      eta: parentJob.eta || undefined,
+    } as CreateMaritimeJobDto;
+
+    return await this.createJob(auth, subJobDto);
+  }
+
+  // ==========================================
+  // 3. Digital Shipment e-Folder / Document Binder
+  // ==========================================
+
+  async listJobDocuments(auth: AuthContext, jobId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_job_documents')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', String(jobId) as any)
+      .orderBy('id', 'desc')
+      .execute();
+  }
+
+  async createJobDocument(auth: AuthContext, jobId: string | number, dto: CreateJobDocumentDto, uploadedBy?: string) {
+    const { tenantId } = requireTenantScope(auth);
+    const [doc] = await this.db
+      .insertInto('maritime_job_documents')
+      .values({
+        tenant_id: tenantId,
+        job_id: String(jobId),
+        doc_type: dto.docType,
+        title: dto.title,
+        file_name: dto.fileName,
+        file_url: dto.fileUrl,
+        file_size_bytes: dto.fileSizeBytes || 0,
+        mime_type: dto.mimeType || 'application/pdf',
+        notes: dto.notes || null,
+        uploaded_by: uploadedBy || (auth.userId ? `User #${auth.userId}` : 'Admin'),
+      })
+      .returningAll()
+      .execute();
+
+    return doc;
+  }
+
+  async deleteJobDocument(auth: AuthContext, jobId: string | number, docId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    await this.db
+      .deleteFrom('maritime_job_documents')
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', String(jobId) as any)
+      .where('id', '=', String(docId) as any)
+      .execute();
+
+    return { success: true };
+  }
+
+  // ==========================================
+  // 4. Overseas Agent Settlements & Profit Sharing (SOA)
+  // ==========================================
+
+  async listAgentSettlements(auth: AuthContext, filters?: { agentId?: string; status?: string; search?: string }) {
+    const { tenantId } = requireTenantScope(auth);
+    let query = this.db
+      .selectFrom('maritime_agent_settlements')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (filters?.agentId) {
+      query = query.where('agent_id', '=', String(filters.agentId));
+    }
+    if (filters?.status && filters.status !== 'all') {
+      query = query.where('status', '=', filters.status as any);
+    }
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.where((eb) => eb.or([
+        eb('agent_name', 'ilike', term),
+        eb('job_number', 'ilike', term),
+        eb('reference_number', 'ilike', term),
+      ]));
+    }
+
+    return await query.orderBy('id', 'desc').execute();
+  }
+
+  async createAgentSettlement(auth: AuthContext, dto: CreateAgentSettlementDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const amount = Number(dto.amount || 0);
+    const rate = Number(dto.exchangeRate || 1);
+    const localEq = amount * rate;
+
+    const refNum = dto.referenceNumber || formatDailyDocumentNumber(
+      dto.settlementType === 'debit_note' ? 'ADN' : dto.settlementType === 'credit_note' ? 'ACN' : 'APS',
+      Math.floor(Math.random() * 9000) + 1000
+    );
+
+    const [settlement] = await this.db
+      .insertInto('maritime_agent_settlements')
+      .values({
+        tenant_id: tenantId,
+        agent_id: dto.agentId ? String(dto.agentId) : null,
+        agent_name: dto.agentName,
+        job_id: dto.jobId ? String(dto.jobId) : null,
+        job_number: dto.jobNumber || null,
+        settlement_type: dto.settlementType,
+        currency: dto.currency || 'USD',
+        amount: amount,
+        profit_share_percent: dto.profitSharePercent !== undefined ? Number(dto.profitSharePercent) : 50,
+        local_equivalent_amount: localEq,
+        exchange_rate: rate,
+        reference_number: refNum,
+        status: 'pending',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    return settlement;
+  }
+
+  async updateAgentSettlementStatus(auth: AuthContext, id: string | number, dto: UpdateAgentSettlementStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await this.db
+      .updateTable('maritime_agent_settlements')
+      .set({
+        status: dto.status,
+        notes: dto.notes !== undefined ? dto.notes : undefined,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', String(id) as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  async getAgentStatementOfAccount(auth: AuthContext, agentId: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    const settlements = await this.db
+      .selectFrom('maritime_agent_settlements')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('agent_id', '=', String(agentId))
+      .orderBy('id', 'asc')
+      .execute();
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    for (const item of settlements) {
+      const amt = Number(item.amount || 0);
+      if (item.settlement_type === 'debit_note' || item.settlement_type === 'profit_share') {
+        totalDebit += amt;
+      } else if (item.settlement_type === 'credit_note') {
+        totalCredit += amt;
+      }
+    }
+
+    const netBalance = totalDebit - totalCredit;
+
+    return {
+      agentId: String(agentId),
+      settlements,
+      summary: {
+        totalDebitUsd: totalDebit,
+        totalCreditUsd: totalCredit,
+        netBalanceUsd: netBalance,
+        position: netBalance >= 0 ? 'receivable' : 'payable',
+      },
+    };
+  }
+
+  // ==========================================
+  // 5. Inland Trucking Trips & Container Dispatch
+  // ==========================================
+
+  async listInlandTruckingTrips(auth: AuthContext, jobId?: string | number) {
+    const { tenantId } = requireTenantScope(auth);
+    let query = this.db
+      .selectFrom('maritime_inland_trucking_trips')
+      .selectAll()
+      .where('tenant_id', '=', tenantId);
+
+    if (jobId) {
+      query = query.where('job_id', '=', String(jobId));
+    }
+
+    return await query.orderBy('id', 'desc').execute();
+  }
+
+  async createInlandTruckingTrip(auth: AuthContext, dto: CreateInlandTruckingTripDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const tripNumber = formatDailyDocumentNumber('TRIP', Math.floor(Math.random() * 9000) + 1000);
+
+    const [trip] = await this.db
+      .insertInto('maritime_inland_trucking_trips')
+      .values({
+        tenant_id: tenantId,
+        job_id: String(dto.jobId),
+        trip_number: tripNumber,
+        container_number: dto.containerNumber || null,
+        trucking_company: dto.truckingCompany,
+        driver_name: dto.driverName,
+        driver_phone: dto.driverPhone || null,
+        truck_plate: dto.truckPlate,
+        trailer_plate: dto.trailerPlate || null,
+        origin_port_terminal: dto.originPortTerminal,
+        delivery_destination: dto.deliveryDestination,
+        dispatch_date: dto.dispatchDate ? new Date(dto.dispatchDate) : sql`NOW()`,
+        delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
+        trip_status: 'assigned',
+        cost_amount: Number(dto.costAmount || 0),
+        sell_amount: Number(dto.sellAmount || 0),
+        currency: dto.currency || 'EGP',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    return trip;
+  }
+
+  async updateInlandTruckingTripStatus(auth: AuthContext, id: string | number, dto: UpdateInlandTruckingTripStatusDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [updated] = await this.db
+      .updateTable('maritime_inland_trucking_trips')
+      .set({
+        trip_status: dto.tripStatus,
+        delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : undefined,
+        notes: dto.notes !== undefined ? dto.notes : undefined,
+        updated_at: sql`NOW()`,
+      })
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', String(id) as any)
+      .returningAll()
+      .execute();
+
+    return updated;
+  }
+
+  // ==========================================
+  // 6. Carrier Live Tracking Hub & API Events
+  // ==========================================
+
+  async syncCarrierTracking(auth: AuthContext, carrierCode: string, trackingNumber: string) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const simulatedEvents = [
+      { eventType: 'BOOK', eventLocation: 'Port Origin', hoursAgo: 72, label: 'Booking Confirmed with Carrier' },
+      { eventType: 'GTI', eventLocation: 'Terminal Gate-in', hoursAgo: 48, label: 'Container Gate-in at POL' },
+      { eventType: 'LOAD', eventLocation: 'Vessel Berth', hoursAgo: 24, label: 'Loaded on Vessel' },
+      { eventType: 'DEPT', eventLocation: 'En Route Sea', hoursAgo: 12, label: 'Vessel Departed Origin Port' },
+    ];
+
+    for (const evt of simulatedEvents) {
+      const eventTime = new Date(Date.now() - evt.hoursAgo * 3600 * 1000);
+      await this.db
+        .insertInto('maritime_carrier_api_events')
+        .values({
+          tenant_id: tenantId,
+          carrier_code: carrierCode.toUpperCase(),
+          tracking_number: trackingNumber,
+          event_type: evt.eventType,
+          event_location: evt.eventLocation,
+          event_time: eventTime,
+          raw_payload: JSON.stringify({ source: 'CARRIER_API_HUB', note: evt.label }),
+        })
+        .execute();
+    }
+
+    return {
+      carrierCode: carrierCode.toUpperCase(),
+      trackingNumber,
+      status: 'synced',
+      eventsCount: simulatedEvents.length,
+      lastEvent: simulatedEvents[simulatedEvents.length - 1],
+    };
+  }
+
+  async recordCarrierApiEvent(auth: AuthContext, dto: CarrierTrackingEventDto) {
+    const { tenantId } = requireTenantScope(auth);
+    const [event] = await this.db
+      .insertInto('maritime_carrier_api_events')
+      .values({
+        tenant_id: tenantId,
+        carrier_code: dto.carrierCode.toUpperCase(),
+        tracking_number: dto.trackingNumber,
+        event_type: dto.eventType,
+        event_location: dto.eventLocation || null,
+        event_time: dto.eventTime ? new Date(dto.eventTime) : sql`NOW()`,
+        raw_payload: dto.rawPayload ? JSON.stringify(dto.rawPayload) : null,
+      })
+      .returningAll()
+      .execute();
+
+    return event;
+  }
+
+  async listCarrierApiEvents(auth: AuthContext, trackingNumber: string) {
+    const { tenantId } = requireTenantScope(auth);
+    return await this.db
+      .selectFrom('maritime_carrier_api_events')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('tracking_number', '=', trackingNumber)
+      .orderBy('event_time', 'desc')
+      .execute();
   }
 }

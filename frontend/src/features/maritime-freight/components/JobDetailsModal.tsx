@@ -10,6 +10,13 @@ import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey } from '../maritime-freight.
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { printOceanBillOfLading, printDeliveryOrder, printArrivalNotice, printCarrierDisputeNote, printAirWaybill, printCargoInsuranceCertificate, printWarehouseReceipt, printFreightInvoice, printJobProfitabilitySheet, printTruckingWaybill, printSolasVgmCertificate, printShippingInstructions } from '../utils/maritime-documents';
 import { CustomsDeclarationModal } from './CustomsDeclarationModal';
+import { JobEgyptianAciCard } from './job-details/JobEgyptianAciCard';
+import { JobExportCutoffsCard } from './job-details/JobExportCutoffsCard';
+import { JobRoeForexCard } from './job-details/JobRoeForexCard';
+import { JobChargesTab } from './job-details/JobChargesTab';
+import { JobDocumentsTab } from './job-details/JobDocumentsTab';
+import { JobConsolidationTab } from './job-details/JobConsolidationTab';
+import { JobInlandTruckingTab } from './job-details/JobInlandTruckingTab';
 
 interface JobDetailsModalProps {
   open: boolean;
@@ -21,8 +28,9 @@ interface JobDetailsModalProps {
 export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsModalProps) {
   const { user } = useAuthStore();
   const { currencySymbol } = useSystemCurrency();
+  const [currentJobId, setCurrentJobId] = useState<string | null>(jobId);
   const [job, setJob] = useState<MaritimeJob | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'containers' | 'milestones' | 'documents' | 'finance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'charges' | 'containers' | 'milestones' | 'consolidation' | 'trucking' | 'documents' | 'finance'>('overview');
   const [nextMilestone, setNextMilestone] = useState<DcsaMilestoneKey>('GTI');
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
@@ -151,15 +159,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     notes: '',
   });
 
-  const fetchJob = async () => {
-    if (!jobId) return;
+  const fetchJob = async (specificId?: string) => {
+    const targetId = specificId || currentJobId || jobId;
+    if (!targetId) return;
     try {
       // Insurance and warehouse-receipt lists arrive as part of the job payload, so their loading
       // flags belong to this fetch (they were declared but never toggled, leaving the insurance
       // section's spinner permanently stuck at its initial `false` state).
       setLoadingInsurances(true);
       setLoadingWarehouseReceipts(true);
-      const data = await maritimeApi.getJobById(jobId);
+      const data = await maritimeApi.getJobById(targetId);
       setJob(data);
       setInsurancesList(data.insurances || []);
       setWarehouseReceiptsList(data.warehouseReceipts || []);
@@ -197,8 +206,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
 
   useEffect(() => {
     if (open && jobId) {
-      fetchJob();
+      setCurrentJobId(jobId);
+      fetchJob(jobId);
     } else if (!open) {
+      setCurrentJobId(null);
       setJob(null);
       setLedgerEntries([]);
       setCarrierInvoicesList([]);
@@ -979,35 +990,54 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' }} dir="rtl">
           {/* هيدر التبويبات القياسي */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', flexShrink: 0, overflowX: 'auto' }}>
             <button
               type="button"
               onClick={() => setActiveTab('overview')}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 background: activeTab === 'overview' ? '#170e5e' : '#f1f5f9',
                 color: activeTab === 'overview' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               بيانات الرحلة والحجز
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('charges')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'charges' ? '#170e5e' : '#f1f5f9',
+                color: activeTab === 'charges' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              بنود الرسوم والتسعير (Charges)
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('containers')}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 background: activeTab === 'containers' ? '#170e5e' : '#f1f5f9',
                 color: activeTab === 'containers' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               {job.transport_mode === 'air' ? 'بيانات الشحنة والمستودع' : `الحاويات والمستودع (${job.containers?.length || 0})`}
@@ -1016,46 +1046,83 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               type="button"
               onClick={() => setActiveTab('milestones')}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 background: activeTab === 'milestones' ? '#170e5e' : '#f1f5f9',
                 color: activeTab === 'milestones' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              {job.transport_mode === 'air' ? `تتبع الشحن Cargo iQ (${job.milestones?.length || 0})` : `مسار التتبع DCSA (${job.milestones?.length || 0})`}
+              {job.transport_mode === 'air' ? `تتبع Cargo iQ (${job.milestones?.length || 0})` : `مسار التتبع DCSA (${job.milestones?.length || 0})`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('consolidation')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'consolidation' ? '#170e5e' : '#f1f5f9',
+                color: activeTab === 'consolidation' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              التجميع المشترك (LCL)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('trucking')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'trucking' ? '#170e5e' : '#f1f5f9',
+                color: activeTab === 'trucking' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              النقل البري والترحيل
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('documents')}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 background: activeTab === 'documents' ? '#170e5e' : '#f1f5f9',
                 color: activeTab === 'documents' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              مستندات الشحن وبوالص B/L & AWB
+              الحافظة وبوالص الشحن (Docs)
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('finance')}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 background: activeTab === 'finance' ? '#170e5e' : '#f1f5f9',
                 color: activeTab === 'finance' ? '#ffffff' : '#475569',
                 fontWeight: 700,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               ربحية العملية والتأمين (Job P&L)
@@ -1491,6 +1558,33 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     </div>
                   </div>
                 )}
+
+                {/* 6. بطاقات الامتثال والمواعيد والعملات المتعددة */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <JobEgyptianAciCard
+                    job={job}
+                    onUpdated={() => {
+                      fetchJob();
+                      onUpdated();
+                    }}
+                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+                    <JobExportCutoffsCard
+                      job={job}
+                      onUpdated={() => {
+                        fetchJob();
+                        onUpdated();
+                      }}
+                    />
+                    <JobRoeForexCard
+                      job={job}
+                      onUpdated={() => {
+                        fetchJob();
+                        onUpdated();
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -2002,562 +2096,52 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               </div>
             )}
 
-            {/* Tab 4: مستندات الشحن وبوالص B/L & AWB */}
+            {/* Tab: بنود الرسوم والتسعير (Charges) */}
+            {activeTab === 'charges' && (
+              <JobChargesTab
+                job={job}
+                onUpdated={() => {
+                  fetchJob();
+                  onUpdated();
+                }}
+              />
+            )}
+
+            {/* Tab: التجميع المشترك والحاويات المجمعة (LCL Consolidation) */}
+            {activeTab === 'consolidation' && (
+              <JobConsolidationTab
+                job={job}
+                onUpdated={() => {
+                  fetchJob();
+                  onUpdated();
+                }}
+                onSelectSubJob={(subJobId) => {
+                  setCurrentJobId(subJobId);
+                  fetchJob(subJobId);
+                }}
+              />
+            )}
+
+            {/* Tab: رحلات النقل البري والترحيل الداخلي (Trucking) */}
+            {activeTab === 'trucking' && (
+              <JobInlandTruckingTab
+                job={job}
+                onUpdated={() => {
+                  fetchJob();
+                  onUpdated();
+                }}
+              />
+            )}
+
+            {/* Tab: الحافظة الرقمية الإلكترونية وبوالص الشحن (Documents & e-Folder) */}
             {activeTab === 'documents' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#170e5e' }}>
-                      مركز إصدار وطباعة المستندات الملاحية واللوجستية المعتمدة (Freight Documents Hub)
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                      طباعة وثائق وبوالص الشحن القياسية المتوافقة مع معايير FIATA و BIMCO و IATA ووثائق التأمين والمستودعات
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
-                  {/* 1. بوليصة الشحن البحري B/L */}
-                  {job.transport_mode !== 'air' && (
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-                            بوليصة الشحن البحري (Bill of Lading - HBL)
-                          </div>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8' }}>
-                            {job.bl_type?.toUpperCase() || 'SEA WAYBILL'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                          وثيقة شحن بحرية متعددة الوسائط قياسية معتمدة تتضمن بيانات الشاحن والمستلم ومواصفات الحاويات والأختام والأوزان، وتصلح للتداول والتوثيق البنكي.
-                        </div>
-                        <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                          <div>رقم البوليصة: <strong style={{ color: '#0f172a' }}>{job.hbl_number || job.mbl_number || job.job_number}</strong></div>
-                          <div>الحاويات المسجلة: <strong style={{ color: '#0f172a' }}>{job.containers?.length || 0} حاوية</strong></div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => printOceanBillOfLading(job, job.containers || [])}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          background: '#170e5e',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        <AppIcons.FileText size={16} />
-                        <span>طباعة بوليصة الشحن الرسمية (Print HBL)</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* 2. بوليصة الشحن الجوي AWB */}
-                  {(job.transport_mode === 'air' || job.mawb_number) && (
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0369a1' }}>
-                            بوليصة الشحن الجوي (Air Waybill - AWB)
-                          </div>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1' }}>
-                            IATA NEUTRAL AWB
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                          بوليصة شحن جوي دولية معتمدة وفق اشتراطات الاتحاد الدولي للنقل الجوي (IATA) تتضمن رقم بوليصة الماستر والهاوس وتفكيك الأوزان الخاضعة للتحصيل ومطار الإقلاع والوصول.
-                        </div>
-                        <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                          <div>رقم البوليصة: <strong style={{ color: '#0f172a' }}>{job.mawb_number || job.hawb_number || 'AWB-' + job.job_number}</strong></div>
-                          <div>الوزن الخاضع للتحصيل: <strong style={{ color: '#15803d' }}>{Number(job.chargeable_weight_kg || Math.max(job.gross_weight_kg || 0, job.volumetric_weight_kg || 0)).toLocaleString()} كجم</strong></div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => printAirWaybill(job)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          background: '#0284c7',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        <AppIcons.Plane size={16} />
-                        <span>طباعة بوليصة الشحن الجوي (Print AWB)</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* 3. إذن التسليم D/O */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-                          إذن التسليم الملاحي (Delivery Order - D/O)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: job.delivery_order_released ? '#f0fdf4' : '#fffbeb', color: job.delivery_order_released ? '#15803d' : '#b45309' }}>
-                          {job.delivery_order_released ? 'معتمد ومسلّم' : 'محتجز مؤقتاً'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        مستند رسمي موجه لسلطات الميناء/المطار والجمارك للإفراج عن البضائع واستلام الشحنة، موضحاً به مهل السماح ومربعات أختام الإفراج.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>كود إذن التسليم: <strong style={{ color: '#0f172a' }}>DO-{job.job_number}</strong></div>
-                        <div>ميناء/مطار الوصول: <strong style={{ color: '#0f172a' }}>{job.pod_name}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printDeliveryOrder(job, job.containers || [])}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#0284c7',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.FileText size={16} />
-                      <span>طباعة إذن التسليم (Print D/O)</span>
-                    </button>
-                  </div>
-
-                  {/* 4. إشعار الوصول Arrival Notice */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-                          إشعار وصول الشحنة (Arrival Notice)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#faf5ff', color: '#7e22ce' }}>
-                          إخطار عميل
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        إشعار رسمي مرسل للمستلم وجهة الإخطار بتوقيت وصول الشحنة بمحطة الوصول وتفاصيل المستندات المطلوبة لاستلام إذن التسليم.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>تاريخ الوصول المقدر (ETA): <strong style={{ color: '#0f172a' }}>{job.eta || 'قيد الجدولة'}</strong></div>
-                        <div>جهة الإخطار: <strong style={{ color: '#0f172a' }}>{job.notify_party || job.customer_name}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printArrivalNotice(job, job.containers || [])}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#475569',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.FileText size={16} />
-                      <span>طباعة إشعار الوصول (Arrival Notice)</span>
-                    </button>
-                  </div>
-
-                  {/* 5. شهادة تأمين البضائع Cargo Insurance Certificate */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534' }}>
-                          شهادة تأمين البضائع (Cargo Insurance)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
-                          {insurancesList.length > 0 ? `${insurancesList.length} وثيقة مؤمنة` : 'تأمين بحري/جوي'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        شهادة تأمين دولية معتمدة للبضائع ضد كافة أخطار النقل (All Risks / Institute Cargo Clauses A/B/C) متضمنة قيمة البضاعة وشروط التعويض.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>شركة التأمين: <strong style={{ color: '#0f172a' }}>{insurancesList[0]?.insurance_company || 'شركة التأمين المعتمدة'}</strong></div>
-                        <div>رقم الوثيقة: <strong style={{ color: '#0f172a' }}>{insurancesList[0]?.policy_number || 'قيد الإصدار'}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (insurancesList.length > 0) {
-                          printCargoInsuranceCertificate(job, insurancesList[0]);
-                        } else {
-                          setShowAddInsuranceDialog(true);
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#166534',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.CheckShield size={16} />
-                      <span>طباعة شهادة التأمين (Insurance Certificate)</span>
-                    </button>
-                  </div>
-
-                  {/* 6. إذن استلام وإيداع مستودع Warehouse Receipt */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#047857' }}>
-                          إذن استلام وإيداع المستودع (Warehouse Receipt - MWR)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#ecfdf5', color: '#047857' }}>
-                          {warehouseReceiptsList.length > 0 ? `${warehouseReceiptsList.length} إذن إيداع` : 'مستودع لوجستي'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        إذن رسمي باستلام وإيداع الطرود في مستودع الترانزيت أو الإيداع الجمركي متضمناً تخصيص الأرفف والساحات (Bay/Rack/Bin) وملاحظات الفحص الظاهري.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>رقم الإذن: <strong style={{ color: '#0f172a' }}>{warehouseReceiptsList[0]?.receipt_number || 'قيد الاستلام'}</strong></div>
-                        <div>الطرود المودعة: <strong style={{ color: '#0f172a' }}>{warehouseReceiptsList[0]?.package_count || job.package_count || 1} طرد</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (warehouseReceiptsList.length > 0) {
-                          printWarehouseReceipt(job, warehouseReceiptsList[0]);
-                        } else {
-                          setShowAddWarehouseReceiptDialog(true);
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#047857',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.Archive size={16} />
-                      <span>طباعة إذن استلام المستودع (Print MWR)</span>
-                    </button>
-                  </div>
-
-                  {/* 7. البيان الجمركي Customs Declaration */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-                          البيان الجمركي (Customs Declaration)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
-                          تخليص جمركي
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        تسجيل بنود الأكواد الجمركية (HS Codes) والقيمة المصرح بها ونسبة ومبلغ الرسوم الجمركية لكل صنف، ومتابعة حالة التخليص.
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomsModal(true)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#170e5e',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.FileText size={16} />
-                      <span>إدارة البيان الجمركي وأكواد HS</span>
-                    </button>
-                  </div>
-
-                  {/* 8. فاتورة الشحن الرسمية والمطالبة المالية Freight Invoice / Debit Note */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-                          فاتورة الشحن والمطالبة المالية (Freight Commercial Invoice)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8' }}>
-                          فاتورة رسمية معتمدة
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        فاتورة مبيعات نولون وخدمات ملاحية تجارية متخصصة تتضمن بيانات الحاويات والرحلة وتفاصيل السداد البنكي الدولي (IBAN / SWIFT) ورمز التتبع الحي.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>المطلوب سداده: <strong style={{ color: '#170e5e' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong></div>
-                        <div>العميل: <strong style={{ color: '#0f172a' }}>{job.customer_name}</strong> ({job.payment_term || 'PREPAID'})</div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printFreightInvoice(job)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#170e5e',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.FileText size={16} />
-                      <span>طباعة فاتورة الشحن (Freight Invoice)</span>
-                    </button>
-                  </div>
-
-                  {/* 9. كشف ربحية أمر التشغيل والتحليل المالي المعتمد Job Profitability Sheet */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#047857' }}>
-                          كشف ربحية أمر التشغيل (Job Profitability / P&L)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#ecfdf5', color: '#047857' }}>
-                          تقرير إغلاق مالي سري
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        تحليل مالي ومحاسبي تفصيلي لمركز تكلفة الشحنة يتضمن إجمالي الإيرادات المفوترة، تكلفة الخط المباشرة، صافي الربح، وهامش الربحية وقيود اليومية المعتمدة.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>صافي الربح: <strong style={{ color: '#16a34a' }}>{currencySymbol} {Number(job.net_profit || (Number(job.client_invoiced_total || 0) - (Number(job.carrier_cost_total || 0) + Number(job.other_costs_total || 0)))).toLocaleString()}</strong></div>
-                        <div>مركز التكلفة: <strong style={{ color: '#0f172a' }}>{job.cost_center_id || job.job_number}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printJobProfitabilitySheet(job, ledgerEntries)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#047857',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.CheckShield size={16} />
-                      <span>طباعة كشف ربحية الشحنة (P&L Sheet)</span>
-                    </button>
-                  </div>
-
-                  {/* 10. بوليصة النقل وإذن التحميل البري Trucking Waybill (CMR) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e293b' }}>
-                          بوليصة النقل وإذن التحميل البري (Trucking Waybill / CMR)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
-                          نقل بري داخلي
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        إذن تحميل وبوليصة شحن برية رسمية لنقل الحاويات من رصيف الميناء أو المستودع إلى مقر العميل، متضمنة بيانات الشاحنة والسائق والتوقيع الثلاثي المعتمد.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>مسار النقل: <strong style={{ color: '#0f172a' }}>{job.pod_name} ➔ مستودع العميل</strong></div>
-                        <div>الحاويات المسجلة: <strong style={{ color: '#0f172a' }}>{job.containers?.length || 1} حاوية</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printTruckingWaybill(job, job.containers?.[0])}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#334155',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.Truck size={16} />
-                      <span>طباعة بوليصة النقل البري (CMR Waybill)</span>
-                    </button>
-                  </div>
-
-                  {/* 11. شهادة التحقق من الوزن الإجمالي SOLAS VGM Certificate */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534' }}>
-                          شهادة التحقق من الوزن الإجمالي (SOLAS VGM Certificate)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#f0fdf4', color: '#166534' }}>
-                          سلامة الأرواح في البحار
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        شهادة رسمية معتمدة لوزن الحاوية الإجمالي المطابق لاتفاقية المنظمة البحرية الدولية (IMO SOLAS VI/2) بالأسلوب الأول أو الثاني متضمنة بيانات محطة الميزان المعتمدة.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>الحاوية: <strong style={{ color: '#0f172a' }}>{job.containers?.[0]?.container_number || 'حاوية الشحنة'}</strong></div>
-                        <div>الوزن الإجمالي المعتمد: <strong style={{ color: '#0f172a' }}>{job.containers?.[0]?.gross_weight_kg ? Number(job.containers[0].gross_weight_kg).toLocaleString() + ' كجم' : '—'}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printSolasVgmCertificate(job, job.containers?.[0])}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#166534',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.CheckShield size={16} />
-                      <span>طباعة شهادة الوزن الإجمالي (SOLAS VGM)</span>
-                    </button>
-                  </div>
-
-                  {/* 12. تعليمات وإرشادات الشحن Shipping Instructions (S/I) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e40af' }}>
-                          تعليمات وإرشادات الشحن (Shipping Instructions - S/I)
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1e40af' }}>
-                          إصدار مسودة البوليصة
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                        التعليمات المعتمدة المرسلة للخط الملاحي أو شركة الطيران لإصدار مسودة بوليصة الشحن (Draft B/L / AWB) متضمنة بيانات الأطراف والموانئ وأوصاف البضاعة وأرقام السيول.
-                      </div>
-                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b' }}>
-                        <div>الخط الناقل: <strong style={{ color: '#0f172a' }}>{job.shipping_line_name}</strong></div>
-                        <div>ميناء الشحن / الوصول: <strong style={{ color: '#0f172a' }}>{job.pol_name} ➔ {job.pod_name}</strong></div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => printShippingInstructions(job, job.containers)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: '#1e40af',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <AppIcons.FileText size={16} />
-                      <span>طباعة تعليمات الشحن (Shipping Instructions)</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <JobDocumentsTab
+                job={job}
+                onUpdated={() => {
+                  fetchJob();
+                  onUpdated();
+                }}
+              />
             )}
 
             {/* Tab 5: ربحية العملية والحسابات */}

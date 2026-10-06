@@ -115,6 +115,7 @@ export function printOceanBillOfLading(job: MaritimeJob, containers: MaritimeCon
               <div class="cell-content">
                 <strong>${escapeHtml(job.booking_number || 'BKG-' + job.job_number)}</strong>
                 ${job.mbl_number ? `<div style="font-size: 9.5px; color: #475569;">MBL: ${escapeHtml(job.mbl_number)}</div>` : ''}
+                ${job.acid_number ? `<div style="margin-top: 3px; font-size: 8.5px; color: #166534; background: #f0fdf4; border: 1px solid #86efac; border-radius: 2px; padding: 1px 4px; font-family: monospace;">EGYPT ACID: <strong>${escapeHtml(job.acid_number)}</strong></div>` : ''}
               </div>
             </div>
           </div>
@@ -1202,7 +1203,7 @@ export function printFreightQuotation(quote: MaritimeQuotation, companyName = '�
  */
 export function printFreightInvoice(
   job: MaritimeJob,
-  options?: { invoiceNumber?: string; notes?: string; amount?: number; companyName?: string },
+  options?: { invoiceNumber?: string; notes?: string; amount?: number; companyName?: string; charges?: any[] },
 ) {
   const printWindow = window.open('', '_blank', 'width=950,height=1000');
   if (!printWindow) return;
@@ -1211,6 +1212,35 @@ export function printFreightInvoice(
   const invNumber = options?.invoiceNumber || `INV-${escapeHtml(job.job_number)}`;
   const totalAmount = Number(options?.amount ?? (Number(job.client_invoiced_total) || 0));
   const containers = job.containers || [];
+  const charges = options?.charges || [];
+
+  const chargesRowsHtml = charges.length > 0
+    ? charges.map((chg, idx) => `
+        <tr>
+          <td style="text-align: center; font-weight: 700;">${idx + 1}</td>
+          <td>
+            <strong>${escapeHtml(chg.charge_name_ar || chg.chargeNameAr)}</strong>
+            <div style="font-size: 9.5px; color: #64748b;">${escapeHtml(chg.charge_name_en || chg.chargeNameEn || chg.charge_code || chg.chargeCode)}</div>
+          </td>
+          <td style="text-align: center;">${Number(chg.quantity || 1).toLocaleString()}</td>
+          <td style="text-align: right; font-family: monospace;">${Number(chg.unit_rate || chg.sell_amount || 0).toLocaleString()} ${escapeHtml(chg.currency || 'USD')}</td>
+          <td style="text-align: center; font-size: 10px; color: #166534;">${Number(chg.tax_rate_percent || 0) > 0 ? `${chg.tax_rate_percent}%` : 'معفى'}</td>
+          <td style="text-align: left; font-weight: 800; font-family: monospace; font-size: 12px;">${Number(chg.total_amount || chg.sell_amount || 0).toLocaleString()} ${escapeHtml(chg.currency || 'USD')}</td>
+        </tr>
+      `).join('')
+    : `
+        <tr>
+          <td style="text-align: center;">1</td>
+          <td>
+            <strong>نولون الشحن الدولي والرسوم المينائية ومصاريف إذن التسليم</strong><br/>
+            <span style="font-size: 10px; color: #64748b;">${options?.notes || `خدمات الشحن واللوجستيات لملف العملية #${escapeHtml(job.job_number)}`}</span>
+          </td>
+          <td style="text-align: center;">1</td>
+          <td style="text-align: right; font-family: monospace;">${totalAmount.toLocaleString()}</td>
+          <td style="text-align: center; font-size: 10px; color: #166534;">معفى</td>
+          <td style="text-align: left; font-weight: 800; font-family: monospace; font-size: 13px;">${totalAmount.toLocaleString()}</td>
+        </tr>
+      `;
 
   const html = `
     <!DOCTYPE html>
@@ -1286,36 +1316,49 @@ export function printFreightInvoice(
           </div>
         </div>
 
+        ${job.acid_number ? `
+        <div style="background: #f0fdf4; border: 1.5px solid #16a34a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 11.5px; font-weight: 800; color: #166534;">منظومة التسجيل المسبق للشحنات (Egyptian Customs ACI Compliance)</span>
+            <div style="font-size: 11px; color: #15803d; margin-top: 2px;">رقم القيد الجمركي المسبق (ACID): <strong style="font-family: monospace; font-size: 13px; letter-spacing: 0.5px;">${escapeHtml(job.acid_number)}</strong></div>
+            ${job.foreign_exporter_id ? `<div style="font-size: 10px; color: #475569;">المصدر الأجنبي: <strong>${escapeHtml(job.foreign_exporter_id)}</strong> | الرقم الضريبي للمستورد: <strong>${escapeHtml(job.importer_tax_id || '—')}</strong></div>` : ''}
+          </div>
+          <div style="font-size: 10px; color: #166534; text-align: left;">
+            تاريخ الإصدار: <strong>${job.acid_issue_date || '—'}</strong><br/>
+            صالح حتى: <strong>${job.acid_expiry_date || '—'}</strong>
+          </div>
+        </div>
+        ` : ''}
+
         <table>
           <thead>
             <tr>
               <th style="width: 35px; text-align: center;">#</th>
-              <th>بيان الخدمة والمصروفات الملاحية</th>
-              <th>مواصفات الحاويات والمعدات</th>
-              <th style="text-align: left;">المبلغ المستحق</th>
+              <th>بيان الخدمة والمصروفات النولونية</th>
+              <th style="width: 60px; text-align: center;">الكمية</th>
+              <th style="width: 130px; text-align: right;">سعر الوحدة</th>
+              <th style="width: 70px; text-align: center;">الضريبة</th>
+              <th style="width: 140px; text-align: left;">المبلغ المستحق</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td style="text-align: center;">1</td>
-              <td>
-                <strong>نولون الشحن الدولي والرسوم المينائية ومصاريف إذن التسليم</strong><br/>
-                <span style="font-size: 10px; color: #64748b;">${options?.notes || `خدمات الشحن واللوجستيات لملف العملية #${escapeHtml(job.job_number)}`}</span>
-              </td>
-              <td>${containers.length > 0 ? `${containers.length} حاوية (${containers.map(c => c.container_number).slice(0, 3).join(', ')}${containers.length > 3 ? '...' : ''})` : 'شحنة عامة'}</td>
-              <td style="text-align: left; font-weight: 800; font-family: monospace; font-size: 13px;">${totalAmount.toLocaleString()}</td>
-            </tr>
+            ${chargesRowsHtml}
           </tbody>
         </table>
 
         <div class="total-box">
           <div>
             <div style="font-size: 13px; font-weight: 800; color: #170e5e;">صافي المبلغ الإجمالي المطلوب سداده (TOTAL PAYABLE)</div>
-            <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">معفى من ضريبة القيمة المضافة طبقاً لقانون النقل الدولي والملاحة الخارجية</div>
+            <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">شامل كافة المصاريف الملاحية والمحلية المعتمدة</div>
           </div>
           <div class="total-val">
             ${totalAmount.toLocaleString()}
           </div>
+        </div>
+
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 10.5px; color: #92400e; line-height: 1.45;">
+          <strong>شرط تثبيت سعر الصرف (Rate of Exchange - ROE Clause):</strong>
+          المبالغ المحررة بالنقد الأجنبي تسدد بالمعادل بالجنيه المصري طبقاً لسعر الصرف المعلن من البنك المركزي المصري بتاريخ سداد الفاتورة أو استلام إذن التسليم (D/O). أي فروق في سعر الصرف يتحملها المستورد.
         </div>
 
         <div class="bank-box">

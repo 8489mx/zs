@@ -799,6 +799,88 @@ export const maritimeApi = {
     http<WarehouseReceipt[]>(`/api/maritime-freight/jobs/${jobId}/warehouse-receipts`),
   getWarehouseReceipts: (params?: { status?: string; search?: string }) =>
     http<WarehouseReceipt[]>(`/api/maritime-freight/warehouse-receipts${toQueryString(params)}`),
+
+  // Itemized Charges & ROE
+  getQuotationCharges: (quotationId: string | number) =>
+    http<any[]>(`/api/maritime-freight/quotations/${quotationId}/charges`),
+  getJobCharges: (jobId: string | number) =>
+    http<any[]>(`/api/maritime-freight/jobs/${jobId}/charges`),
+  updateJobCharges: (jobId: string | number, charges: any[]) =>
+    http<any[]>(`/api/maritime-freight/jobs/${jobId}/charges`, {
+      method: 'PUT',
+      body: JSON.stringify({ charges }),
+    }),
+  calculateJobForex: (jobId: string | number, actualRoe: number) =>
+    http<any>(`/api/maritime-freight/jobs/${jobId}/calculate-forex`, {
+      method: 'POST',
+      body: JSON.stringify({ actualRoe }),
+    }),
+
+  // Consolidation Sub-Jobs
+  listConsolidationSubJobs: (jobId: string | number) =>
+    http<any[]>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`),
+  createConsolidationSubJob: (jobId: string | number, data: any) =>
+    http<any>(`/api/maritime-freight/jobs/${jobId}/sub-jobs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Digital Shipment e-Folder / Document Binder
+  listJobDocuments: (jobId: string | number) =>
+    http<any[]>(`/api/maritime-freight/jobs/${jobId}/documents`),
+  createJobDocument: (jobId: string | number, data: any) =>
+    http<any>(`/api/maritime-freight/jobs/${jobId}/documents`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deleteJobDocument: (jobId: string | number, docId: string | number) =>
+    http<{ success: boolean }>(`/api/maritime-freight/jobs/${jobId}/documents/${docId}`, {
+      method: 'DELETE',
+    }),
+
+  // Overseas Agent Settlements & Profit Sharing (SOA)
+  listAgentSettlements: (params?: { agentId?: string; status?: string; search?: string }) =>
+    http<any[]>(`/api/maritime-freight/agent-settlements${toQueryString(params)}`),
+  createAgentSettlement: (data: any) =>
+    http<any>(`/api/maritime-freight/agent-settlements`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAgentSettlementStatus: (id: string | number, status: string, notes?: string) =>
+    http<any>(`/api/maritime-freight/agent-settlements/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
+    }),
+  getAgentStatementOfAccount: (agentId: string | number) =>
+    http<{ agentId: string; settlements: any[]; summary: any }>(`/api/maritime-freight/agent-settlements/agents/${agentId}/soa`),
+
+  // Inland Trucking Trips & Container Dispatch
+  listInlandTruckingTrips: (jobId?: string | number) =>
+    http<any[]>(`/api/maritime-freight/inland-trucking-trips${toQueryString({ jobId })}`),
+  createInlandTruckingTrip: (data: any) =>
+    http<any>(`/api/maritime-freight/inland-trucking-trips`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateInlandTruckingTripStatus: (id: string | number, tripStatus: string, deliveryDate?: string, notes?: string) =>
+    http<any>(`/api/maritime-freight/inland-trucking-trips/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ tripStatus, deliveryDate, notes }),
+    }),
+
+  // Carrier Live Tracking
+  syncCarrierTracking: (carrierCode: string, trackingNumber: string) =>
+    http<any>(`/api/maritime-freight/carrier-tracking/sync`, {
+      method: 'POST',
+      body: JSON.stringify({ carrierCode, trackingNumber }),
+    }),
+  recordCarrierApiEvent: (data: any) =>
+    http<any>(`/api/maritime-freight/carrier-tracking/events`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listCarrierApiEvents: (trackingNumber: string) =>
+    http<any[]>(`/api/maritime-freight/carrier-tracking/${trackingNumber}/events`),
 };
 
 export interface MaritimeCustomsDeclaration {
@@ -937,4 +1019,196 @@ export interface FreightAuditPreview {
     recommendation: 'auto_approvable' | 'requires_override_or_dispute' | 'manual_review_no_contract';
   };
 }
+
+export interface FreightPortalCustomer {
+  id: number;
+  name: string;
+  companyName?: string;
+  phone: string;
+  address?: string;
+  balance: number;
+  creditLimit: number;
+  tenantId: string;
+  tenantName: string;
+  portalToken?: string;
+}
+
+export interface FreightPortalSession {
+  token: string;
+  customer: FreightPortalCustomer;
+}
+
+export interface FreightPortalDashboard {
+  kpis: {
+    activeShipmentsCount: number;
+    deliveredShipmentsCount: number;
+    pendingQuotesCount: number;
+    approvedQuotesCount: number;
+    outstandingBalance: number;
+    creditLimit: number;
+    availableCredit: number;
+  };
+  customer: {
+    id: number;
+    name: string;
+    companyName?: string;
+  };
+  recentShipments: any[];
+  recentQuotes: any[];
+}
+
+export const freightCustomerPortalApi = {
+  login: async (payload: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }): Promise<FreightPortalSession> => {
+    const res = await http<FreightPortalSession>('/api/freight-portal/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      skipUnauthorizedInterceptor: true,
+    });
+    if (res.token) {
+      freightCustomerPortalApi.setStoredSession(res);
+    }
+    return res;
+  },
+
+  tokenLogin: async (token: string): Promise<FreightPortalSession> => {
+    const res = await http<FreightPortalSession>('/api/freight-portal/auth/token-login', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+      skipUnauthorizedInterceptor: true,
+    });
+    if (res.token) {
+      freightCustomerPortalApi.setStoredSession(res);
+    }
+    return res;
+  },
+
+  getStoredSession: (): FreightPortalSession | null => {
+    try {
+      const token = localStorage.getItem('zs_freight_portal_token');
+      const customer = localStorage.getItem('zs_freight_portal_customer');
+      if (token && customer) return { token, customer: JSON.parse(customer) };
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  setStoredSession: (session: FreightPortalSession) => {
+    try {
+      localStorage.setItem('zs_freight_portal_token', session.token);
+      localStorage.setItem('zs_freight_portal_customer', JSON.stringify(session.customer));
+    } catch {
+      // ignore
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('zs_freight_portal_token');
+    localStorage.removeItem('zs_freight_portal_customer');
+  },
+
+  getAuthHeader: () => {
+    const session = freightCustomerPortalApi.getStoredSession();
+    return { Authorization: `Bearer ${session?.token || ''}` };
+  },
+
+  getDashboard: async (): Promise<FreightPortalDashboard> => {
+    return http<FreightPortalDashboard>('/api/freight-portal/dashboard', {
+      headers: freightCustomerPortalApi.getAuthHeader(),
+      skipUnauthorizedInterceptor: true,
+    });
+  },
+
+  getShipments: async (params?: { status?: string; search?: string; page?: number; pageSize?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.search) qs.set('search', params.search);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return http<{ items: any[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      `/api/freight-portal/shipments${query}`,
+      {
+        headers: freightCustomerPortalApi.getAuthHeader(),
+        skipUnauthorizedInterceptor: true,
+      },
+    );
+  },
+
+  getShipmentDetails: async (jobId: string) => {
+    return http<{
+      job: any;
+      containers: any[];
+      milestones: any[];
+      charges: any[];
+      inlandTrips: any[];
+      documents: any[];
+    }>(`/api/freight-portal/shipments/${jobId}`, {
+      headers: freightCustomerPortalApi.getAuthHeader(),
+      skipUnauthorizedInterceptor: true,
+    });
+  },
+
+  requestQuote: async (dto: any) => {
+    return http<{ success: boolean; inquiryId: string; inquiryNumber: string; message: string }>(
+      '/api/freight-portal/quotes/request',
+      {
+        method: 'POST',
+        headers: freightCustomerPortalApi.getAuthHeader(),
+        body: JSON.stringify(dto),
+        skipUnauthorizedInterceptor: true,
+      },
+    );
+  },
+
+  getQuotations: async (status?: string) => {
+    const query = status ? `?status=${status}` : '';
+    return http<any[]>(`/api/freight-portal/quotes${query}`, {
+      headers: freightCustomerPortalApi.getAuthHeader(),
+      skipUnauthorizedInterceptor: true,
+    });
+  },
+
+  getQuotationDetails: async (quoteId: string) => {
+    return http<any>(`/api/freight-portal/quotes/${quoteId}`, {
+      headers: freightCustomerPortalApi.getAuthHeader(),
+      skipUnauthorizedInterceptor: true,
+    });
+  },
+
+  approveQuotation: async (quoteId: string, payload: { approvalNotes?: string; clientReference?: string; confirmedBy?: string }) => {
+    return http<{ success: boolean; quotationId: string; status: string; jobId?: string; jobNumber?: string; message: string }>(
+      `/api/freight-portal/quotes/${quoteId}/approve`,
+      {
+        method: 'POST',
+        headers: freightCustomerPortalApi.getAuthHeader(),
+        body: JSON.stringify(payload),
+        skipUnauthorizedInterceptor: true,
+      },
+    );
+  },
+
+  rejectQuotation: async (quoteId: string, payload: { reason?: string }) => {
+    return http<{ success: boolean; quotationId: string; status: string; message: string }>(
+      `/api/freight-portal/quotes/${quoteId}/reject`,
+      {
+        method: 'POST',
+        headers: freightCustomerPortalApi.getAuthHeader(),
+        body: JSON.stringify(payload),
+        skipUnauthorizedInterceptor: true,
+      },
+    );
+  },
+
+  getStatement: async () => {
+    return http<{ customer: any; jobsSummary: any[]; statementGeneratedAt: string }>(
+      '/api/freight-portal/statement',
+      {
+        headers: freightCustomerPortalApi.getAuthHeader(),
+        skipUnauthorizedInterceptor: true,
+      },
+    );
+  },
+};
+
 

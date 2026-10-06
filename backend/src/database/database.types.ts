@@ -370,6 +370,8 @@ export interface CustomerTable {
   credit_block_reason?: string | null;
   credit_blocked_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
   credit_blocked_by?: number | null;
+  portal_access_pin?: string | null;
+  portal_token?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -3607,6 +3609,8 @@ export interface MaritimeInquiryTable {
   quotation_id: string | null;
   job_id: string | null;
   notes: string | null;
+  portal_submitted?: boolean;
+  portal_customer_notes?: string | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -3751,8 +3755,19 @@ export interface MaritimeQuotationTable {
   exchange_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
   final_total_local: ColumnType<number, number | string | undefined, number | string | undefined>;
   valid_until: string | null;
+  quote_roe?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  roe_clause_text?: string | null;
+  is_split_currency?: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  foreign_currency?: string | null;
+  foreign_currency_amount?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  local_currency_amount?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  acid_number?: string | null;
   status: 'draft' | 'sent' | 'approved' | 'rejected' | 'converted_to_job';
   converted_job_id: string | null;
+  customer_approved_at?: Date | null;
+  customer_approval_notes?: string | null;
+  customer_approval_reference?: string | null;
+  customer_approval_ip?: string | null;
   notes: string | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
@@ -3813,6 +3828,21 @@ export interface MaritimeJobTable {
   other_costs_total: ColumnType<number, number | string | undefined, number | string | undefined>;
   net_profit: ColumnType<number, number | string | undefined, number | string | undefined>;
   tracking_token: string | null;
+  parent_job_id?: string | null;
+  is_consolidation_master?: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  sub_job_count?: ColumnType<number, number | undefined, number | undefined>;
+  acid_number?: string | null;
+  acid_issue_date?: string | null;
+  acid_expiry_date?: string | null;
+  foreign_exporter_id?: string | null;
+  importer_tax_id?: string | null;
+  quote_roe?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  actual_roe?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  forex_gain_loss?: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  roe_clause_agreed?: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  si_cutoff_date?: Date | null;
+  vgm_cutoff_date?: Date | null;
+  port_cutoff_date?: Date | null;
   status: ColumnType<'active' | 'completed' | 'cancelled', 'active' | 'completed' | 'cancelled' | undefined, 'active' | 'completed' | 'cancelled' | undefined>;
   notes: string | null;
   created_by: number | null;
@@ -3948,6 +3978,112 @@ export interface MaritimeCarrierDisputeTable {
   resolved_at: Date | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeQuotationChargeTable {
+  id: Generated<string>;
+  tenant_id: string;
+  quotation_id: string;
+  charge_code: string;
+  charge_name_ar: string;
+  charge_name_en: string;
+  currency: string;
+  unit_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
+  quantity: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  is_local_charge: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  tax_rate_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface MaritimeJobChargeTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  charge_code: string;
+  charge_name_ar: string;
+  charge_name_en: string;
+  currency: string;
+  cost_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  sell_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  profit_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  is_local_charge: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  tax_rate_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  is_invoiced: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface MaritimeJobDocumentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  doc_type: string;
+  title: string;
+  file_name: string;
+  file_url: string;
+  file_size_bytes: ColumnType<number, number | undefined, number | undefined>;
+  mime_type: string;
+  notes: string | null;
+  uploaded_by: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface MaritimeAgentSettlementTable {
+  id: Generated<string>;
+  tenant_id: string;
+  agent_id: string | null;
+  agent_name: string;
+  job_id: string | null;
+  job_number: string | null;
+  settlement_type: 'debit_note' | 'credit_note' | 'profit_share' | 'offset_clearing';
+  currency: string;
+  amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  profit_share_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  local_equivalent_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  exchange_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
+  reference_number: string | null;
+  status: 'pending' | 'approved' | 'cleared' | 'disputed';
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeInlandTruckingTripTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  trip_number: string;
+  container_number: string | null;
+  trucking_company: string;
+  driver_name: string;
+  driver_phone: string | null;
+  truck_plate: string;
+  trailer_plate: string | null;
+  origin_port_terminal: string;
+  delivery_destination: string;
+  dispatch_date: Date | null;
+  delivery_date: Date | null;
+  trip_status: 'assigned' | 'loading' | 'in_transit' | 'delivered' | 'empty_returned';
+  cost_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  sell_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeCarrierApiEventTable {
+  id: Generated<string>;
+  tenant_id: string;
+  carrier_code: string;
+  tracking_number: string;
+  event_type: string;
+  event_location: string | null;
+  event_time: Date;
+  raw_payload: any;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
 export interface ContractingProjectTable {
@@ -4445,6 +4581,12 @@ export interface Database {
   maritime_carrier_disputes: MaritimeCarrierDisputeTable;
   maritime_cargo_insurances: MaritimeCargoInsuranceTable;
   maritime_warehouse_receipts: MaritimeWarehouseReceiptTable;
+  maritime_quotation_charges: MaritimeQuotationChargeTable;
+  maritime_job_charges: MaritimeJobChargeTable;
+  maritime_job_documents: MaritimeJobDocumentTable;
+  maritime_agent_settlements: MaritimeAgentSettlementTable;
+  maritime_inland_trucking_trips: MaritimeInlandTruckingTripTable;
+  maritime_carrier_api_events: MaritimeCarrierApiEventTable;
   contracting_projects: ContractingProjectTable;
   contracting_documents: ContractingDocumentTable;
   contracting_document_revisions: ContractingDocumentRevisionTable;

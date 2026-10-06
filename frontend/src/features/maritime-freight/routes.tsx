@@ -47,6 +47,18 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
       element: MaritimeWorkspaceLazy,
     },
     {
+      path: 'maritime/agents',
+      element: MaritimeWorkspaceLazy,
+    },
+    {
+      path: 'maritime/trucking',
+      element: MaritimeWorkspaceLazy,
+    },
+    {
+      path: 'maritime/tracking',
+      element: MaritimeWorkspaceLazy,
+    },
+    {
       path: 'maritime/containers',
       element: MaritimeWorkspaceLazy,
     },
@@ -86,6 +98,7 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
     { key: 'maritime-audit', label: 'تدقيق فواتير النواقل', to: '/maritime/audit' },
     { key: 'maritime-containers', label: 'تتبع الحاويات والطرود', to: '/maritime/containers' },
     { key: 'maritime-lines', label: 'دليل النواقل والموانئ والمطارات', to: '/maritime/lines' },
+    { key: 'maritime-portal', label: 'بوابة عملاء الشحن (B2B Portal)', to: '/freight-portal' },
     { key: 'maritime-settings', label: 'إعدادات وسياسات الشحن', to: '/maritime/settings' },
   ],
 };

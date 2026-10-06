@@ -25,6 +25,9 @@ import { MaritimeSettingsPage } from './MaritimeSettingsPage';
 import { MaritimeFreightDashboardTab } from '../components/MaritimeFreightDashboardTab';
 import { MaritimeRadarTab } from '../components/MaritimeRadarTab';
 import { MaritimeAuditTab } from '../components/MaritimeAuditTab';
+import { MaritimeAgentsTab } from '../components/MaritimeAgentsTab';
+import { InlandTruckingTab } from '../components/InlandTruckingTab';
+import { CarrierTrackingHubTab } from '../components/CarrierTrackingHubTab';
 
 const NAV_TABS = [
   { path: 'dashboard', label: 'لوحة المؤشرات والتحليلات', mobileLabel: 'اللوحة التحليلية', countKey: 'jobs' as const },
@@ -35,6 +38,9 @@ const NAV_TABS = [
   { path: 'jobs', label: 'أوامر تشغيل الشحنات', mobileLabel: 'أوامر التشغيل', countKey: 'jobs' as const },
   { path: 'radar', label: 'رادار الغرامات وفترات السماح', mobileLabel: 'رادار الغرامات', countKey: 'containers' as const },
   { path: 'audit', label: 'تدقيق فواتير النواقل', mobileLabel: 'تدقيق الفواتير', countKey: 'jobs' as const },
+  { path: 'agents', label: 'حسابات ومقاصة الوكلاء (SOA)', mobileLabel: 'حسابات الوكلاء', countKey: 'master' as const },
+  { path: 'trucking', label: 'النقل البري وترحيل الحاويات', mobileLabel: 'النقل البري', countKey: 'jobs' as const },
+  { path: 'tracking', label: 'بوابة التتبع المباشر للنواقل', mobileLabel: 'تتبع النواقل', countKey: 'containers' as const },
   { path: 'containers', label: 'تتبع الحاويات والطرود', mobileLabel: 'تتبع الحاويات', countKey: 'containers' as const },
   { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', mobileLabel: 'دليل النواقل', countKey: 'master' as const },
   { path: 'settings', label: 'إعدادات وسياسات الشحن', mobileLabel: 'إعدادات الشحن', countKey: 'settings' as const },
@@ -147,6 +153,30 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
                 <PlusIcon size={16} />
                 <span className="desktop-only-inline">طلب تسعير خطوط (RFQ)</span>
                 <span className="mobile-only-inline">تسعير RFQ</span>
+              </button>
+              <button
+                type="button"
+                className="maritime-action-secondary-btn"
+                onClick={() => window.open('/freight-portal', '_blank')}
+                title="فتح بوابة الخدمة الذاتية لعملاء الشحن"
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#f8fafc',
+                  color: '#170e5e',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                }}
+              >
+                <ShipIcon size={16} />
+                <span className="desktop-only-inline">بوابة العملاء (B2B Portal)</span>
+                <span className="mobile-only-inline">بوابة العملاء</span>
               </button>
               <button
                 type="button"
@@ -389,6 +419,15 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
             </div>
             <div style={{ display: isTabActive('audit') ? 'block' : 'none' }}>
               <MaritimeAuditTab />
+            </div>
+            <div style={{ display: isTabActive('agents') ? 'block' : 'none' }}>
+              <MaritimeAgentsTab />
+            </div>
+            <div style={{ display: isTabActive('trucking') ? 'block' : 'none' }}>
+              <InlandTruckingTab />
+            </div>
+            <div style={{ display: isTabActive('tracking') ? 'block' : 'none' }}>
+              <CarrierTrackingHubTab />
             </div>
             <div style={{ display: isTabActive('containers') ? 'block' : 'none' }}>
               <MaritimeContainersPage />

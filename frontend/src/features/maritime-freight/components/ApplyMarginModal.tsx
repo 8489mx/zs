@@ -30,6 +30,8 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
   const [marginType, setMarginType] = useState<'fixed' | 'percentage'>('fixed');
   const [marginValue, setMarginValue] = useState<number>(250);
   const [exchangeRate, setExchangeRate] = useState<number>(48.5);
+  const [roeClause, setRoeClause] = useState('تُحاسب الرسوم المحلية بسعر صرف البنك المركزي المصري المعلن يوم السداد الرسمي');
+  const [acidNumber, setAcidNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -84,6 +86,8 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
         marginType,
         marginValue,
         exchangeRate,
+        roeClause: roeClause.trim() || undefined,
+        acidNumber: acidNumber.trim() || undefined,
         notes: `عرض سعر مبني على تسعيرة ${bid.shipping_line_name} برقم طلب ${rfq.rfq_number}`,
       });
 
@@ -454,6 +458,48 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
                   fontSize: '0.82rem',
                   backgroundColor: '#ffffff',
                   outline: 'none',
+                }}
+              />
+            </Field>
+          </div>
+
+          <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+            <Field label="شرط ومحدد سعر الصرف (ROE Clause)">
+              <input
+                type="text"
+                value={roeClause}
+                onChange={(e) => setRoeClause(e.target.value)}
+                placeholder="تُحاسب الرسوم بسعر صرف البنك المركزي..."
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '0.82rem',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                }}
+              />
+            </Field>
+
+            <Field label="رقم القيد الجمركي المسبق نافذة (ACID)">
+              <input
+                type="text"
+                value={acidNumber}
+                onChange={(e) => setAcidNumber(e.target.value)}
+                placeholder="19 رقماً (لشحنات الوارد لمصر)"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '0.82rem',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                  direction: 'ltr',
+                  textAlign: 'right',
                 }}
               />
             </Field>

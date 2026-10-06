@@ -16,6 +16,11 @@ import { CreateRateCardDto, UpdateRateCardStatusDto } from './dto/rate-card.dto'
 import { CreateCustomsDeclarationDto, CreateCustomsDeclarationItemDto, UpdateCustomsDeclarationStatusDto } from './dto/customs-declaration.dto';
 import { CreateCargoInsuranceDto, UpdateCargoInsuranceDto, ClaimCargoInsuranceDto } from './dto/cargo-insurance.dto';
 import { CreateWarehouseReceiptDto, ReleaseWarehouseReceiptDto } from './dto/warehouse-receipt.dto';
+import { UpdateJobChargesDto } from './dto/itemized-charges.dto';
+import { CreateJobDocumentDto } from './dto/job-document.dto';
+import { CreateAgentSettlementDto, UpdateAgentSettlementStatusDto } from './dto/agent-settlement.dto';
+import { CreateInlandTruckingTripDto, UpdateInlandTruckingTripStatusDto } from './dto/inland-trucking.dto';
+import { CarrierTrackingEventDto, CarrierTrackingSyncDto } from './dto/carrier-tracking.dto';
 import { DcsaMilestoneKey } from './maritime-freight.types';
 
 @Controller(['maritime-freight', 'api/maritime-freight'])
@@ -638,5 +643,173 @@ export class MaritimeFreightController {
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.getWarehouseReceipts(req.authContext!, { status, search });
+  }
+
+  // --------------------------------------------------------------------------
+  // Itemized Charges & Multi-Currency ROE
+  // --------------------------------------------------------------------------
+  @Get('quotations/:id/charges')
+  async getQuotationCharges(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.getQuotationCharges(req.authContext!, id);
+  }
+
+  @Get('jobs/:id/charges')
+  async getJobCharges(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.getJobCharges(req.authContext!, id);
+  }
+
+  @Put('jobs/:id/charges')
+  async updateJobCharges(
+    @Param('id') id: string,
+    @Body() dto: UpdateJobChargesDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateJobCharges(req.authContext!, id, dto);
+  }
+
+  @Post('jobs/:id/calculate-forex')
+  async calculateJobForex(
+    @Param('id') id: string,
+    @Body('actualRoe') actualRoe: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.calculateJobForexGainLoss(req.authContext!, id, Number(actualRoe));
+  }
+
+  // --------------------------------------------------------------------------
+  // Consolidation & LCL Sub-Jobs
+  // --------------------------------------------------------------------------
+  @Get('jobs/:id/sub-jobs')
+  async listConsolidationSubJobs(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.listConsolidationSubJobs(req.authContext!, id);
+  }
+
+  @Post('jobs/:id/sub-jobs')
+  async createConsolidationSubJob(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createConsolidationSubJob(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // Digital Shipment e-Folder / Document Binder
+  // --------------------------------------------------------------------------
+  @Get('jobs/:id/documents')
+  async listJobDocuments(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.freightService.listJobDocuments(req.authContext!, id);
+  }
+
+  @Post('jobs/:id/documents')
+  async createJobDocument(
+    @Param('id') id: string,
+    @Body() dto: CreateJobDocumentDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    const uploadedBy = req.authContext?.username || `User #${req.authContext?.userId}`;
+    return this.freightService.createJobDocument(req.authContext!, id, dto, uploadedBy);
+  }
+
+  @Delete('jobs/:id/documents/:docId')
+  async deleteJobDocument(
+    @Param('id') id: string,
+    @Param('docId') docId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.deleteJobDocument(req.authContext!, id, docId);
+  }
+
+  // --------------------------------------------------------------------------
+  // Overseas Agent Settlements & Profit Sharing (SOA)
+  // --------------------------------------------------------------------------
+  @Get('agent-settlements')
+  async listAgentSettlements(
+    @Query('agentId') agentId: string,
+    @Query('status') status: string,
+    @Query('search') search: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listAgentSettlements(req.authContext!, { agentId, status, search });
+  }
+
+  @Post('agent-settlements')
+  async createAgentSettlement(
+    @Body() dto: CreateAgentSettlementDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createAgentSettlement(req.authContext!, dto);
+  }
+
+  @Patch('agent-settlements/:id/status')
+  async updateAgentSettlementStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateAgentSettlementStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateAgentSettlementStatus(req.authContext!, id, dto);
+  }
+
+  @Get('agent-settlements/agents/:agentId/soa')
+  async getAgentStatementOfAccount(
+    @Param('agentId') agentId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.getAgentStatementOfAccount(req.authContext!, agentId);
+  }
+
+  // --------------------------------------------------------------------------
+  // Inland Trucking Trips & Container Dispatch
+  // --------------------------------------------------------------------------
+  @Get('inland-trucking-trips')
+  async listInlandTruckingTrips(
+    @Query('jobId') jobId: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listInlandTruckingTrips(req.authContext!, jobId);
+  }
+
+  @Post('inland-trucking-trips')
+  async createInlandTruckingTrip(
+    @Body() dto: CreateInlandTruckingTripDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.createInlandTruckingTrip(req.authContext!, dto);
+  }
+
+  @Patch('inland-trucking-trips/:id/status')
+  async updateInlandTruckingTripStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateInlandTruckingTripStatusDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.updateInlandTruckingTripStatus(req.authContext!, id, dto);
+  }
+
+  // --------------------------------------------------------------------------
+  // Carrier Live Tracking Hub & API Events
+  // --------------------------------------------------------------------------
+  @Post('carrier-tracking/sync')
+  async syncCarrierTracking(
+    @Body() dto: CarrierTrackingSyncDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.syncCarrierTracking(req.authContext!, dto.carrierCode, dto.trackingNumber);
+  }
+
+  @Post('carrier-tracking/events')
+  async recordCarrierApiEvent(
+    @Body() dto: CarrierTrackingEventDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.recordCarrierApiEvent(req.authContext!, dto);
+  }
+
+  @Get('carrier-tracking/:trackingNumber/events')
+  async listCarrierApiEvents(
+    @Param('trackingNumber') trackingNumber: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.freightService.listCarrierApiEvents(req.authContext!, trackingNumber);
   }
 }

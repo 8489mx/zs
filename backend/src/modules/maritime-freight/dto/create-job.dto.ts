@@ -162,5 +162,63 @@ export class CreateMaritimeJobDto {
 
   @IsString()
   @IsOptional()
+  parentJobId?: string;
+
+  @IsOptional()
+  isConsolidationMaster?: boolean;
+
+  @IsString()
+  @IsOptional()
+  acidNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  acidIssueDate?: string;
+
+  @IsString()
+  @IsOptional()
+  acidExpiryDate?: string;
+
+  @IsString()
+  @IsOptional()
+  foreignExporterId?: string;
+
+  @IsString()
+  @IsOptional()
+  importerTaxId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  quoteRoe?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualRoe?: number;
+
+  @IsNumber()
+  @IsOptional()
+  forexGainLoss?: number;
+
+  @IsOptional()
+  roeClauseAgreed?: boolean;
+
+  @IsString()
+  @IsOptional()
+  siCutoffDate?: string;
+
+  @IsString()
+  @IsOptional()
+  vgmCutoffDate?: string;
+
+  @IsString()
+  @IsOptional()
+  portCutoffDate?: string;
+
+  @IsArray()
+  @IsOptional()
+  charges?: any[];
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 }
