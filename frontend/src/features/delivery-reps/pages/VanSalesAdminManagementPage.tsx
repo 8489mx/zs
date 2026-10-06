@@ -22,14 +22,15 @@ import { VanLoadRequisitionsAdminTab } from '../components/VanLoadRequisitionsAd
 import { VanFieldReturnsAdminTab } from '../components/VanFieldReturnsAdminTab';
 import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
 import { VanRoutesKpiAdminTab } from '../components/VanRoutesKpiAdminTab';
+import { VanPreSalesAdminTab } from '../components/VanPreSalesAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
+  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
 
-  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
+  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
     () => tabParam || 'trips',
   );
 
@@ -205,6 +206,11 @@ export default function VanSalesAdminManagementPage() {
             icon: <TruckIcon size={15} />,
           },
           {
+            key: 'presales' as const,
+            label: 'طلبيات وحجوزات المناديب',
+            icon: <FileTextIcon size={15} />,
+          },
+          {
             key: 'routes_kpis' as const,
             label: 'خطوط السير والرقابة',
             icon: <MapPinIcon size={15} />,
@@ -300,6 +306,9 @@ export default function VanSalesAdminManagementPage() {
 
       {/* Tab 2: Requisitions */}
       {activeTab === 'requisitions' && <VanLoadRequisitionsAdminTab />}
+
+      {/* Tab: Pre-Sales Orders & Bookings */}
+      {activeTab === 'presales' && <VanPreSalesAdminTab reps={vanDrivers.map((d) => ({ id: d.id, name: d.name }))} />}
 
       {/* Tab: Routes & Field Supervision KPIs */}
       {activeTab === 'routes_kpis' && <VanRoutesKpiAdminTab />}

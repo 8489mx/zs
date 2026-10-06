@@ -289,12 +289,25 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                       fontSize: '11px',
                     }}
                   >
-                    <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                      {it.name}{' '}
-                      <span style={{ color: '#64748b', fontSize: '10px' }}>
-                        × {it.qty} {it.unitName || ''}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                        {it.name}{' '}
+                        <span style={{ color: '#64748b', fontSize: '10px' }}>
+                          × {it.qty} {it.unitName || ''}
+                        </span>
                       </span>
-                    </span>
+                      {it.consumerPrice != null && Number(it.consumerPrice) > 0 ? (
+                        <span style={{ fontSize: '9.5px', color: '#1d4ed8', fontWeight: 600 }}>
+                          سعر المستهلك: {Number(it.consumerPrice).toFixed(2)} <CurrencySymbol />
+                          {Number(it.consumerPrice) > Number(it.unitPrice) ? ` (هامش المحل: ${(Number(it.consumerPrice) - Number(it.unitPrice)).toFixed(2)})` : ''}
+                        </span>
+                      ) : null}
+                      {it.unitOfferSavings != null && Number(it.unitOfferSavings) > 0 ? (
+                        <span style={{ fontSize: '9.5px', color: '#15803d', fontWeight: 600 }}>
+                          وفر العرض: {Number(it.unitOfferSavings).toFixed(2)} <CurrencySymbol />
+                        </span>
+                      ) : null}
+                    </div>
                     <span style={{ fontWeight: 700, color: '#170e5e' }}>
                       {(it.lineTotal != null ? it.lineTotal : it.qty * it.unitPrice).toFixed(2)}{' '}
                       <CurrencySymbol />

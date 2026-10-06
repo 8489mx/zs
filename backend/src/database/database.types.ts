@@ -393,6 +393,8 @@ export interface ProductTable {
   cost_price: number;
   retail_price: number;
   wholesale_price: number;
+  credit_price?: number | null;
+  consumer_price?: number | null;
   min_selling_price?: number | null;
   stock_qty: number;
   reserved_qty: ColumnType<number, number | undefined, number | undefined>;
@@ -918,6 +920,9 @@ export interface SaleItemTable {
   allocated_discount?: number | null;
   allocated_tax?: number | null;
   price_type: 'retail' | 'wholesale';
+  consumer_price?: number | null;
+  pricing_tier_type?: 'cash' | 'credit' | 'offer' | string | null;
+  unit_offer_savings?: number | null;
   notes: ColumnType<string, string | undefined, string | undefined>;
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
   serials?: any;
@@ -3059,6 +3064,13 @@ export interface SalesOrderTable {
   delivery_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   sale_id: number | null;
   quotation_id: number | null;
+  rep_id?: number | null;
+  warehouse_location_id?: number | null;
+  order_source?: ColumnType<string, string | undefined, string | undefined>;
+  payment_terms?: ColumnType<string, string | undefined, string | undefined>;
+  supervisor_approved_at?: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  supervisor_approved_by?: number | null;
+  supervisor_rejection_reason?: string | null;
   notes: string | null;
   terms_conditions: string | null;
   created_by: number | null;
@@ -3078,6 +3090,10 @@ export interface SalesOrderItemTable {
   reserved_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   delivered_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   unit_price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  consumer_price?: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  pricing_tier_type?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  unit_multiplier?: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  unit_offer_savings?: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
   discount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   total: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   notes: string | null;

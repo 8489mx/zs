@@ -10,6 +10,9 @@ export interface VanSaleReceiptItem {
   unitPrice: number;
   lineTotal?: number;
   unitName?: string;
+  consumerPrice?: number | null;
+  unitOfferSavings?: number | null;
+  pricingTierType?: 'cash' | 'credit' | 'offer';
 }
 
 export interface VanSaleReceiptData {
@@ -61,6 +64,17 @@ export function buildVanSaleThermalReceiptHtml(
         <tr style="border-bottom: 1px dotted #ccc;">
           <td style="text-align: right; padding: 3px 0; font-weight: 700; font-size: 10px; line-height: 1.25;">
             ${escapeHtml(it.name)}
+            ${it.consumerPrice != null && Number(it.consumerPrice) > 0 ? `
+              <div style="font-size: 8.5px; color: #1d4ed8; font-weight: 600; margin-top: 1px;">
+                سعر المستهلك: ${Number(it.consumerPrice).toFixed(2)} ${escapeHtml(currency)}
+                ${Number(it.consumerPrice) > Number(it.unitPrice) ? ` | هامش المحل: ${(Number(it.consumerPrice) - Number(it.unitPrice)).toFixed(2)}` : ''}
+              </div>
+            ` : ''}
+            ${it.unitOfferSavings != null && Number(it.unitOfferSavings) > 0 ? `
+              <div style="font-size: 8.5px; color: #15803d; font-weight: 600; margin-top: 1px;">
+                وفر العرض: ${Number(it.unitOfferSavings).toFixed(2)} ${escapeHtml(currency)}
+              </div>
+            ` : ''}
           </td>
           <td style="text-align: center; padding: 3px 0; font-size: 10px;">
             ${it.qty}${it.unitName ? ' ' + escapeHtml(it.unitName) : ''}

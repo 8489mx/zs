@@ -83,6 +83,8 @@ function buildProductPayload(values: ProductFormValues) {
     costPrice: Number(values.costPrice || 0),
     retailPrice: Number(values.retailPrice || 0),
     wholesalePrice: Number(values.wholesalePrice || 0),
+    creditPrice: values.creditPrice != null && Number(values.creditPrice) > 0 ? Number(values.creditPrice) : undefined,
+    consumerPrice: values.consumerPrice != null && Number(values.consumerPrice) > 0 ? Number(values.consumerPrice) : undefined,
     stock: groupedEntryEnabled ? 0 : Number(values.stock || 0),
     minStock: Number(values.minStock || 0),
     categoryId: values.categoryId ? Number(values.categoryId) : undefined,

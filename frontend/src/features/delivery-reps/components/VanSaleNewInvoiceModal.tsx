@@ -31,6 +31,7 @@ interface VanSaleItem {
   product: Product;
   qty: number;
   price: number;
+  consumerPrice?: number | null;
 }
 
 interface VanSaleNewInvoiceModalProps {
@@ -127,16 +128,35 @@ export function VanSaleNewInvoiceModal({
       .slice(0, 6);
   }, [products, searchQuery]);
 
+  const getProductPriceForTerm = (product: Product, terms: 'cash' | 'credit') => {
+    if (terms === 'credit') {
+      const creditP = Number((product as any).credit_price ?? (product as any).creditPrice ?? 0);
+      if (creditP > 0) return creditP;
+    }
+    return Number((product as any).retail_price ?? (product as any).retailPrice ?? (product as any).price ?? 0);
+  };
+
+  const handlePaymentMethodChange = (newMethod: 'cash' | 'credit') => {
+    setPaymentMethod(newMethod);
+    setCart((prev) =>
+      prev.map((item) => ({
+        ...item,
+        price: getProductPriceForTerm(item.product, newMethod),
+      }))
+    );
+  };
+
   const handleAddProduct = (product: Product) => {
     const existingIndex = cart.findIndex((item) => String(item.product.id) === String(product.id));
-    const price = Number((product as any).retail_price ?? (product as any).retailPrice ?? (product as any).price ?? 0);
+    const price = getProductPriceForTerm(product, paymentMethod);
+    const consumerPrice = Number((product as any).consumer_price ?? (product as any).consumerPrice ?? 0) || null;
 
     if (existingIndex >= 0) {
       const updated = [...cart];
       updated[existingIndex].qty += 1;
       setCart(updated);
     } else {
-      setCart([...cart, { product, qty: 1, price }]);
+      setCart([...cart, { product, qty: 1, price, consumerPrice }]);
     }
     setSearchQuery('');
   };
@@ -534,24 +554,33 @@ export function VanSaleNewInvoiceModal({
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 'bold', fontSize: '0.9em', color: '#0f172a' }}>{item.product.name}</div>
-                      <div style={{ fontSize: '0.8em', color: '#64748b' }}>{formatCurrency(item.price)} للوحدة</div>
+                      <div style={{ fontSize: '0.8em', color: '#64748b', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>{formatCurrency(item.price)} للوحدة</span>
+                        {item.consumerPrice && item.consumerPrice > 0 ? (
+                          <span style={{ color: '#2563eb', fontWeight: 600 }}>
+                            (سعر المستهلك: {formatCurrency(item.consumerPrice)})
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '2px 4px' }}>
                         <button
                           type="button"
-                          onClick={() => handleUpdateQty(idx, -1)}
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', padding: '0 4px' }}
+                          onClick={() => handleUpdateQty(idx, 1)}
+                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', padding: '0 4px', color: '#170e5e' }}
+                          title="زيادة الكمية"
                         >
-                          -
+                          +
                         </button>
                         <span style={{ fontWeight: 'bold', minWidth: '20px', textAlign: 'center' }}>{item.qty}</span>
                         <button
                           type="button"
-                          onClick={() => handleUpdateQty(idx, 1)}
+                          onClick={() => handleUpdateQty(idx, -1)}
                           style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', padding: '0 4px' }}
+                          title="إنقاص الكمية"
                         >
-                          +
+                          -
                         </button>
                       </div>
                       <span style={{ fontWeight: 'bold', minWidth: '60px', textAlign: 'left', color: '#170e5e' }}>
@@ -698,7 +727,7 @@ export function VanSaleNewInvoiceModal({
               <div style={{ display: 'flex', gap: '6px' }}>
                 <Button
                   variant={paymentMethod === 'cash' ? 'primary' : 'secondary'}
-                  onClick={() => setPaymentMethod('cash')}
+                  onClick={() => handlePaymentMethodChange('cash')}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -716,7 +745,7 @@ export function VanSaleNewInvoiceModal({
                       toast.warning('البيع الآجل يتطلب اختيار عميل مسجل من القائمة لتقييد المديونية على حسابه.');
                       setIsCashCustomer(false);
                     }
-                    setPaymentMethod('credit');
+                    handlePaymentMethodChange('credit');
                   }}
                   style={{
                     display: 'inline-flex',

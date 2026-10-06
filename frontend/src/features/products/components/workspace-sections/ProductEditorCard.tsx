@@ -41,7 +41,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
-      costPrice: 0, retailPrice: 0, wholesalePrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
+      costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
     }
   });
 
@@ -122,8 +122,10 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
           {watchedItemKind === 'fashion' ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           {watchedItemKind === 'fashion' ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
-          <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
+          <Field label="سعر القطاعي (الكاش)"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
+          <Field label="سعر البيع الآجل (توزيع)"><input type="number" step="0.01" {...form.register('creditPrice')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+          <Field label="سعر المستهلك / الجمهور (SRP)"><input type="number" step="0.01" {...form.register('consumerPrice')} disabled={mutation.isPending} placeholder="سعر بيع المحل للمستهلك" /></Field>
           <Field label="المخزون الحالي"><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
           <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
           <Field label="تاريخ انتهاء الصلاحية">

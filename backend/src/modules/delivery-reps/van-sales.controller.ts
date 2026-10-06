@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { VanSalesService } from './van-sales.service';
 import { DeliveryRepsService } from './delivery-reps.service';
+import { VanPreSalesService } from './services/van-pre-sales.service';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -12,7 +13,59 @@ export class VanSalesController {
   constructor(
     private readonly vanSalesService: VanSalesService,
     private readonly deliveryRepsService: DeliveryRepsService,
+    private readonly vanPreSalesService: VanPreSalesService,
   ) {}
+
+  @Get('pre-sales/catalog')
+  async listPreSalesCatalog(
+    @Headers('authorization') authHeader: string,
+    @Query('warehouseLocationId') warehouseLocationId?: string,
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanPreSalesService.listWarehouseCatalog(
+      driver.tenantId,
+      warehouseLocationId ? Number(warehouseLocationId) : undefined,
+      { search, categoryId: categoryId ? Number(categoryId) : undefined },
+    );
+  }
+
+  @Post('pre-sales/orders')
+  async createPreSalesOrder(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanPreSalesService.createPreSalesOrder(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
+  @Get('pre-sales/my-orders')
+  async listMyPreSalesOrders(
+    @Headers('authorization') authHeader: string,
+    @Query('status') status?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('search') search?: string,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanPreSalesService.listPreSalesOrders(driver.tenantId, {
+      repId: driver.repId,
+      status,
+      dateFrom,
+      dateTo,
+      search,
+    });
+  }
+
+  @Get('pre-sales/orders/:id')
+  async getMyPreSalesOrderDetails(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanPreSalesService.getPreSalesOrderDetails(id, driver.tenantId);
+  }
 
   @Get('active-trip')
   async getActiveTrip(@Headers('authorization') authHeader: string) {
@@ -320,7 +373,63 @@ export class VanSalesController {
 @Controller('api/van-sales/admin')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 export class VanSalesAdminController {
-  constructor(private readonly vanSalesService: VanSalesService) {}
+  constructor(
+    private readonly vanSalesService: VanSalesService,
+    private readonly vanPreSalesService: VanPreSalesService,
+  ) {}
+
+  @Get('pre-sales-orders')
+  @RequireAnyPermission('deliveryReps', 'sales')
+  async listPreSalesOrders(
+    @Req() req: RequestWithAuth,
+    @Query('repId') repId?: string,
+    @Query('customerId') customerId?: string,
+    @Query('status') status?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('search') search?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.listPreSalesOrders(tenantId, {
+      repId: repId ? Number(repId) : undefined,
+      customerId: customerId ? Number(customerId) : undefined,
+      status,
+      dateFrom,
+      dateTo,
+      search,
+    });
+  }
+
+  @Get('pre-sales-orders/:id')
+  @RequireAnyPermission('deliveryReps', 'sales')
+  async getPreSalesOrderDetails(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.getPreSalesOrderDetails(id, tenantId);
+  }
+
+  @Post('pre-sales-orders/:id/approve')
+  @RequireAnyPermission('deliveryReps', 'sales')
+  async approvePreSalesOrder(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.approvePreSalesOrder(id, Number(req.authContext!.userId), tenantId, accountId);
+  }
+
+  @Post('pre-sales-orders/:id/reject')
+  @RequireAnyPermission('deliveryReps', 'sales')
+  async rejectPreSalesOrder(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason?: string,
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.rejectPreSalesOrder(id, Number(req.authContext!.userId), tenantId, accountId, reason);
+  }
 
   @Get('trips')
   @RequireAnyPermission('deliveryReps', 'sales', 'inventory')

@@ -69,6 +69,8 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     costPrice: 0,
     retailPrice: 0,
     wholesalePrice: 0,
+    creditPrice: 0,
+    consumerPrice: 0,
     stock: 0,
     minStock: 5,
     expiryDate: '',
@@ -385,8 +387,10 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         </Field>
 
         <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
-        <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
+        <Field label="سعر القطاعي (الكاش)"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
         <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
+        <Field label="سعر البيع الآجل (توزيع)"><input type="number" step="0.01" {...form.register('creditPrice')} disabled={mutation.isPending} placeholder="اختياري - افتراضياً نفس الكاش" /></Field>
+        <Field label="سعر المستهلك / الجمهور (SRP)"><input type="number" step="0.01" {...form.register('consumerPrice')} disabled={mutation.isPending} placeholder="سعر بيع المحل للجمهور" /></Field>
         {!usesVariantBuilder ? <Field label="المخزون الافتتاحي"><input type="number" {...form.register('stock')} disabled={mutation.isPending} /></Field> : null}
         <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
 

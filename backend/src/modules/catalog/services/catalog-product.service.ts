@@ -26,6 +26,8 @@ type ProductRow = {
   cost_price: string | number;
   retail_price: string | number;
   wholesale_price: string | number;
+  credit_price?: string | number | null;
+  consumer_price?: string | number | null;
   min_selling_price?: string | number | null;
   stock_qty: string | number;
   min_stock_qty: string | number;
@@ -78,7 +80,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -276,7 +278,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -491,7 +493,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -519,6 +521,8 @@ export class CatalogProductService {
           'p.size',
           'p.retail_price',
           'p.wholesale_price',
+          'p.credit_price',
+          'p.consumer_price',
           'p.min_selling_price',
           'p.stock_qty',
           'p.min_stock_qty',
@@ -561,6 +565,8 @@ export class CatalogProductService {
         'p.size',
         'p.retail_price',
         'p.wholesale_price',
+        'p.credit_price',
+        'p.consumer_price',
         'p.min_selling_price',
         'p.stock_qty',
         'p.min_stock_qty',
@@ -605,6 +611,8 @@ export class CatalogProductService {
         'p.size',
         'p.retail_price',
         'p.wholesale_price',
+        'p.credit_price',
+        'p.consumer_price',
         'p.min_selling_price',
         'p.stock_qty',
         'p.min_stock_qty',
@@ -849,6 +857,8 @@ export class CatalogProductService {
       size: product.size || '',
       retailPrice: Number(product.retail_price || 0),
       wholesalePrice: Number(product.wholesale_price || 0),
+      creditPrice: product.credit_price != null ? Number(product.credit_price) : null,
+      consumerPrice: product.consumer_price != null ? Number(product.consumer_price) : null,
       minSellingPrice: product.min_selling_price == null ? null : Number(product.min_selling_price),
       categoryId: product.category_id ? String(product.category_id) : undefined,
       stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
@@ -1323,6 +1333,8 @@ export class CatalogProductService {
       costPrice: Number(payload.costPrice || 0),
       retailPrice: Number(payload.retailPrice || 0),
       wholesalePrice: Number(payload.wholesalePrice || 0),
+      creditPrice: payload.creditPrice === undefined ? undefined : payload.creditPrice === null ? null : Number(payload.creditPrice),
+      consumerPrice: payload.consumerPrice === undefined ? undefined : payload.consumerPrice === null ? null : Number(payload.consumerPrice),
       minSellingPrice: payload.minSellingPrice === undefined ? undefined : payload.minSellingPrice === null ? null : Number(payload.minSellingPrice),
       minStock: Number(payload.minStock || 0),
       notes: normalizeArabicInput(payload.notes),
@@ -1652,6 +1664,8 @@ export class CatalogProductService {
             cost_price: draft.costPrice,
             retail_price: draft.retailPrice,
             wholesale_price: draft.wholesalePrice,
+            credit_price: draft.creditPrice ?? null,
+            consumer_price: draft.consumerPrice ?? null,
             min_selling_price: draft.minSellingPrice ?? null,
             stock_qty: initialStockQty,
             min_stock_qty: draft.minStock,
@@ -1748,6 +1762,8 @@ export class CatalogProductService {
         cost_price: normalized.costPrice,
         retail_price: normalized.retailPrice,
         wholesale_price: normalized.wholesalePrice,
+        credit_price: normalized.creditPrice === undefined ? (existing as any).credit_price : (normalized.creditPrice ?? null),
+        consumer_price: normalized.consumerPrice === undefined ? (existing as any).consumer_price : (normalized.consumerPrice ?? null),
         min_selling_price: normalized.minSellingPrice === undefined ? existing.min_selling_price : normalized.minSellingPrice,
         min_stock_qty: normalized.minStock,
         default_location_id: normalized.warehouseId || null,
@@ -1827,7 +1843,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

@@ -285,9 +285,22 @@ export class PriceListsService {
     productId: number,
     quantity: number,
     basePrice: number,
+    options?: { paymentTerms?: 'cash' | 'credit' },
   ) {
     const scope = requireTenantScope(auth);
     const tenantId = scope.tenantId;
+
+    if (options?.paymentTerms === 'credit') {
+      const prod = await this.db
+        .selectFrom('products')
+        .select(['credit_price'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', productId)
+        .executeTakeFirst();
+      if (prod?.credit_price != null && Number(prod.credit_price) > 0) {
+        basePrice = Number(prod.credit_price);
+      }
+    }
 
     let priceListId: number | null = null;
     if (customerId) {

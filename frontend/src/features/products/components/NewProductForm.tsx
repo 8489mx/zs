@@ -62,6 +62,8 @@ function getDefaultValues(
     costPrice: 0,
     retailPrice: 0,
     wholesalePrice: 0,
+    creditPrice: 0,
+    consumerPrice: 0,
     stock: 0,
     minStock: defaultMinStock,
     categoryId: '',
@@ -582,6 +584,14 @@ export function NewProductForm({
               </div>
               <Field label="سعر الجملة">
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} />
+              </Field>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '0.65rem' }}>
+              <Field label="سعر البيع الآجل (التوزيع والجملة)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('creditPrice')} disabled={isFormDisabled} placeholder="اختياري - افتراضياً نفس الكاش" />
+              </Field>
+              <Field label="سعر المستهلك / الجمهور (SRP)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('consumerPrice')} disabled={isFormDisabled} placeholder="سعر بيع المحل للجمهور لطباعته بالفاتورة" />
               </Field>
             </div>
           </div>

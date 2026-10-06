@@ -16,6 +16,7 @@ import {
   RefreshCwIcon,
   CreditCardIcon,
   HomeIcon,
+  ShoppingBagIcon,
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { vanOfflineDb } from '../offline/van-sales-offline.db';
@@ -32,6 +33,7 @@ import { VanFleetTab } from '../components/VanFleetTab';
 import { VanTransferModal } from '../components/VanTransferModal';
 import { DriverNewLoadRequisitionView } from '../components/DriverNewLoadRequisitionView';
 import { VanSalesHistoryTab } from '../components/VanSalesHistoryTab';
+import { VanPreSalesTab } from '../components/VanPreSalesTab';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -290,7 +292,7 @@ export default function VanSalesMobilePage() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'cockpit' | 'itinerary' | 'inventory' | 'sale' | 'sales-history' | 'collection' | 'fleet' | 'settle' | 'requisitions'>('cockpit');
+  const [activeTab, setActiveTab] = useState<'cockpit' | 'itinerary' | 'inventory' | 'sale' | 'pre-sales' | 'sales-history' | 'collection' | 'fleet' | 'settle' | 'requisitions'>('cockpit');
   const [stockSearch, setStockSearch] = useState('');
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -1497,6 +1499,24 @@ export default function VanSalesMobilePage() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setActiveTab('pre-sales')}
+                    style={{
+                      flex: 1,
+                      minWidth: '70px',
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: currentTab === 'pre-sales' ? '#170e5e' : 'transparent',
+                      color: currentTab === 'pre-sales' ? '#ffffff' : '#475569',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    حجز من المخزن
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab('sales-history')}
                     style={{
                       flex: 1,
@@ -1703,6 +1723,24 @@ export default function VanSalesMobilePage() {
                     }}
                   >
                     فاتورة بيع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('pre-sales')}
+                    style={{
+                      flex: 1,
+                      minWidth: '70px',
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: currentTab === 'pre-sales' ? '#170e5e' : 'transparent',
+                      color: currentTab === 'pre-sales' ? '#ffffff' : '#475569',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    حجز من المخزن
                   </button>
                   <button
                     type="button"
@@ -2369,6 +2407,26 @@ export default function VanSalesMobilePage() {
               )
             )}
 
+            {/* TAB CONTENT: PRE-SALES (Order Booking from Main Warehouse) */}
+            {currentTab === 'pre-sales' && (
+              <VanPreSalesTab
+                customers={allAvailableCustomers}
+                selectedCustomerId={selectedCustomerId}
+                onSelectCustomer={(val) => {
+                  setSelectedCustomerId(val);
+                  if (val) {
+                    setNewCustomerName('');
+                    const cust = allAvailableCustomers.find((c) => c.id === Number(val));
+                    if (cust && (!activeVisit || activeVisit.customerId !== Number(val))) {
+                      handleStartVisit(Number(val), cust.name);
+                    }
+                  }
+                }}
+                repId={session.rep.id}
+                repName={session.rep.name}
+              />
+            )}
+
             {/* TAB CONTENT: SALES HISTORY */}
             {currentTab === 'sales-history' && (
               <VanSalesHistoryTab
@@ -2686,6 +2744,41 @@ export default function VanSalesMobilePage() {
 
             <button
               type="button"
+              onClick={() => setActiveTab('pre-sales')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'pre-sales' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'pre-sales' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'pre-sales' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ShoppingBagIcon size={17} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>حجز مخزن</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('inventory')}
               style={{
                 flex: 1,
@@ -2859,6 +2952,41 @@ export default function VanSalesMobilePage() {
                 <MapPinIcon size={17} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
               </div>
               <span>خط السير</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('pre-sales')}
+              style={{
+                flex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: currentTab === 'pre-sales' ? '#170e5e' : '#64748b',
+                fontWeight: currentTab === 'pre-sales' ? 800 : 600,
+                fontSize: '11px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '24px',
+                  borderRadius: '12px',
+                  backgroundColor: currentTab === 'pre-sales' ? '#eef2ff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ShoppingBagIcon size={17} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
+              </div>
+              <span>حجز طلبيات</span>
             </button>
 
             <button

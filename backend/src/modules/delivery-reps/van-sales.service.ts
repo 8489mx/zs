@@ -1010,8 +1010,30 @@ export class VanSalesService {
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
       const saleItemRecords: any[] = [];
+      const sortedItems = this.sortItemsByProductId(payload.items);
+      const productIds = sortedItems.map((it) => Number(it.productId));
+      const nowIso = new Date().toISOString().slice(0, 10);
 
-      for (const item of this.sortItemsByProductId(payload.items)) {
+      const rawOffers = productIds.length > 0 ? await trxAny
+        .selectFrom('product_offers')
+        .select(['product_id', 'offer_type', 'value', 'min_qty', 'start_date', 'end_date'])
+        .where('product_id', 'in', productIds)
+        .where('tenant_id', '=', tenantId)
+        .where('is_active', '=', true)
+        .execute() : [];
+
+      const offersByProduct = new Map<number, any[]>();
+      for (const off of rawOffers) {
+        const pId = Number(off.product_id);
+        const start = off.start_date ? String(off.start_date).slice(0, 10) : null;
+        const end = off.end_date ? String(off.end_date).slice(0, 10) : null;
+        if ((!start || start <= nowIso) && (!end || end >= nowIso)) {
+          if (!offersByProduct.has(pId)) offersByProduct.set(pId, []);
+          offersByProduct.get(pId)!.push(off);
+        }
+      }
+
+      for (const item of sortedItems) {
         const pid = Number(item.productId);
         const qty = Number(item.qty || 0);
         if (qty <= 0) continue;
@@ -1019,7 +1041,7 @@ export class VanSalesService {
         // CANONICAL LOCK ORDER: Lock products first!
         const prod = await trxAny
           .selectFrom('products')
-          .select(['id', 'name', 'cost_price', 'retail_price'])
+          .select(['id', 'name', 'cost_price', 'retail_price', 'wholesale_price', 'credit_price', 'consumer_price'])
           .where('id', '=', pid)
           .where('tenant_id', '=', tenantId)
           .forUpdate()
@@ -1064,10 +1086,42 @@ export class VanSalesService {
           unitCost: Number(prod.cost_price || 0),
         });
 
-        const unitPrice = item.unitPrice ? Number(item.unitPrice) : Number(prod.retail_price || 0);
-        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, Number(prod.retail_price || 0));
-        const lineTotal = unitPrice * qty;
-        const lineSubtotal = originalPrice * qty;
+        const isCreditSale = payload.paymentMethod === 'credit' || payload.paymentMethod === 'split';
+        const defaultBasePrice = isCreditSale && prod.credit_price != null && Number(prod.credit_price) > 0
+          ? Number(prod.credit_price)
+          : Number(prod.retail_price || 0);
+
+        let unitPrice = item.unitPrice ? Number(item.unitPrice) : defaultBasePrice;
+        let pricingTierType: 'cash' | 'credit' | 'offer' = isCreditSale ? 'credit' : 'cash';
+        let unitOfferSavings = 0;
+
+        if (!item.unitPrice) {
+          const activeOffers = offersByProduct.get(pid) || [];
+          const matchingOffer = activeOffers
+            .filter((off) => qty >= Math.max(1, Number(off.min_qty || 1)))
+            .sort((a, b) => Number(b.min_qty || 0) - Number(a.min_qty || 0))[0];
+
+          if (matchingOffer) {
+            const offerVal = Number(matchingOffer.value || 0);
+            if (matchingOffer.offer_type === 'percent' && offerVal > 0) {
+              unitPrice = Math.max(0, Number((defaultBasePrice * (1 - offerVal / 100)).toFixed(2)));
+              pricingTierType = 'offer';
+              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            } else if (matchingOffer.offer_type === 'fixed' && offerVal > 0) {
+              unitPrice = Math.max(0, Number((defaultBasePrice - offerVal).toFixed(2)));
+              pricingTierType = 'offer';
+              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            } else if (matchingOffer.offer_type === 'price' && offerVal > 0) {
+              unitPrice = Number(offerVal.toFixed(2));
+              pricingTierType = 'offer';
+              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            }
+          }
+        }
+
+        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, defaultBasePrice);
+        const lineTotal = Number((unitPrice * qty).toFixed(2));
+        const lineSubtotal = Number((originalPrice * qty).toFixed(2));
         totalSale += lineTotal;
         subtotalSale += lineSubtotal;
 
@@ -1078,6 +1132,9 @@ export class VanSalesService {
           unit_price: unitPrice,
           line_total: lineTotal,
           cost_price: Number(prod.cost_price || 0),
+          consumer_price: prod.consumer_price != null && Number(prod.consumer_price) > 0 ? Number(prod.consumer_price) : null,
+          pricing_tier_type: pricingTierType,
+          unit_offer_savings: unitOfferSavings,
         });
       }
 
@@ -1220,6 +1277,9 @@ export class VanSalesService {
             unit_price: it.unit_price,
             line_total: it.line_total,
             cost_price: it.cost_price,
+            consumer_price: it.consumer_price,
+            pricing_tier_type: it.pricing_tier_type,
+            unit_offer_savings: it.unit_offer_savings,
             tenant_id: tenantId,
             account_id: accountId,
           })
@@ -2275,6 +2335,9 @@ export class VanSalesService {
         sql<number>`cast(si.qty as numeric)`.as('qty'),
         sql<number>`cast(si.unit_price as numeric)`.as('unitPrice'),
         sql<number>`cast(si.line_total as numeric)`.as('lineTotal'),
+        sql<number>`cast(si.consumer_price as numeric)`.as('consumerPrice'),
+        'si.pricing_tier_type as pricingTierType',
+        sql<number>`cast(si.unit_offer_savings as numeric)`.as('unitOfferSavings'),
       ])
       .where('si.tenant_id', '=', tenantId)
       .where('si.sale_id', 'in', saleIds)
@@ -2293,6 +2356,9 @@ export class VanSalesService {
         qty: Number(item.qty),
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.lineTotal),
+        consumerPrice: item.consumerPrice != null ? Number(item.consumerPrice) : null,
+        pricingTierType: item.pricingTierType || null,
+        unitOfferSavings: item.unitOfferSavings != null ? Number(item.unitOfferSavings) : 0,
       });
     }
 

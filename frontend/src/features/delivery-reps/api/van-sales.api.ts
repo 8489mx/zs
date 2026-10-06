@@ -8,11 +8,86 @@ export interface VanStockItem {
   mainWarehouseQty?: number;
   costPrice: number;
   retailPrice: number;
+  creditPrice?: number | null;
+  consumerPrice?: number | null;
   unitName?: string;
   originalPrice?: number;
   discountPerUnit?: number;
   hasActiveOffer?: boolean;
   offerBadge?: string;
+}
+
+export interface PreSalesCatalogItem {
+  id: number;
+  name: string;
+  barcode: string;
+  categoryName?: string;
+  costPrice: number;
+  retailPrice: number;
+  creditPrice?: number | null;
+  consumerPrice?: number | null;
+  warehouseStock: number;
+  warehouseReserved: number;
+  warehouseAvailable: number;
+  units: Array<{
+    id: number;
+    name: string;
+    multiplier: number;
+    isBase: boolean;
+    isSaleDefault: boolean;
+  }>;
+  offers: Array<{
+    id: number;
+    offerType: string;
+    value: number;
+    minQty: number;
+  }>;
+}
+
+export interface PreSalesOrderItemInput {
+  productId: number;
+  unitName?: string;
+  quantity: number;
+  unitMultiplier?: number;
+  unitPrice?: number;
+}
+
+export interface PreSalesOrderRecord {
+  id: number;
+  orderNumber: string;
+  orderSource: string;
+  status: string;
+  paymentTerms: 'cash' | 'credit';
+  repId: number;
+  repName?: string;
+  repPhone?: string;
+  customerId: number;
+  customerName?: string;
+  customerPhone?: string;
+  warehouseLocationId?: number;
+  warehouseLocationName?: string;
+  totalAmount: number;
+  subtotalAmount: number;
+  itemsCount: number;
+  notes?: string;
+  deliveryDate?: string;
+  supervisorApprovedAt?: string;
+  supervisorApprovedByName?: string;
+  supervisorRejectionReason?: string;
+  createdAt: string;
+  items?: Array<{
+    id: number;
+    productId: number;
+    productName: string;
+    unitName: string;
+    quantity: number;
+    unitMultiplier: number;
+    unitPrice: number;
+    consumerPrice?: number | null;
+    pricingTierType: 'cash' | 'credit' | 'offer';
+    unitOfferSavings?: number | null;
+    lineTotal: number;
+  }>;
 }
 
 export interface VanTripSummary {
@@ -1201,6 +1276,94 @@ export const vanSalesApi = {
     const qs = sp.toString();
     const res = await http<{ ok: boolean; transfers: InterVanTransferRecord[] }>(`/api/van-sales/admin/transfers${qs ? `?${qs}` : ''}`);
     return res.transfers || [];
+  },
+
+  // Field Pre-Sales (Order Booking from Main Warehouse) API
+  fetchPreSalesCatalog: async (params?: { warehouseLocationId?: number; search?: string; categoryId?: number }): Promise<PreSalesCatalogItem[]> => {
+    const sp = new URLSearchParams();
+    if (params?.warehouseLocationId) sp.set('warehouseLocationId', String(params.warehouseLocationId));
+    if (params?.search) sp.set('search', params.search);
+    if (params?.categoryId) sp.set('categoryId', String(params.categoryId));
+    const qs = sp.toString();
+    const res = await http<any>(
+      `/api/driver-portal/van-sales/pre-sales/catalog${qs ? `?${qs}` : ''}`,
+      { headers: getDriverAuthHeaders() }
+    );
+    return res.products || res.items || [];
+  },
+
+  createPreSalesOrder: async (payload: {
+    customerId: number;
+    paymentMethod: 'cash' | 'credit';
+    warehouseLocationId?: number;
+    notes?: string;
+    deliveryDate?: string;
+    items: PreSalesOrderItemInput[];
+  }): Promise<{ ok: boolean; orderId: number; orderNumber: string; totalAmount: number; status: string }> => {
+    return http('/api/driver-portal/van-sales/pre-sales/orders', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  fetchMyPreSalesOrders: async (params?: { status?: string; dateFrom?: string; dateTo?: string; search?: string }): Promise<PreSalesOrderRecord[]> => {
+    const sp = new URLSearchParams();
+    if (params?.status) sp.set('status', params.status);
+    if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) sp.set('dateTo', params.dateTo);
+    if (params?.search) sp.set('search', params.search);
+    const qs = sp.toString();
+    const res = await http<{ ok: boolean; orders: PreSalesOrderRecord[] }>(
+      `/api/driver-portal/van-sales/pre-sales/my-orders${qs ? `?${qs}` : ''}`,
+      { headers: getDriverAuthHeaders() }
+    );
+    return res.orders || [];
+  },
+
+  getPreSalesOrderDetails: async (orderId: number): Promise<PreSalesOrderRecord> => {
+    const res = await http<any>(
+      `/api/driver-portal/van-sales/pre-sales/orders/${orderId}`,
+      { headers: getDriverAuthHeaders() }
+    );
+    return res.order || res;
+  },
+
+  // Supervisor Admin Pre-Sales Endpoints
+  listAdminPreSalesOrders: async (filters?: {
+    repId?: number;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+  }): Promise<PreSalesOrderRecord[]> => {
+    const sp = new URLSearchParams();
+    if (filters?.repId) sp.set('repId', String(filters.repId));
+    if (filters?.status) sp.set('status', filters.status);
+    if (filters?.dateFrom) sp.set('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) sp.set('dateTo', filters.dateTo);
+    if (filters?.search) sp.set('search', filters.search);
+    const qs = sp.toString();
+    const res = await http<{ ok: boolean; orders: PreSalesOrderRecord[] }>(`/api/van-sales/admin/pre-sales-orders${qs ? `?${qs}` : ''}`);
+    return res.orders || [];
+  },
+
+  getAdminPreSalesOrderDetails: async (orderId: number): Promise<PreSalesOrderRecord> => {
+    const res = await http<any>(`/api/van-sales/admin/pre-sales-orders/${orderId}`);
+    return res.order || res;
+  },
+
+  approveAdminPreSalesOrder: async (orderId: number): Promise<{ ok: boolean; status: string }> => {
+    return http(`/api/van-sales/admin/pre-sales-orders/${orderId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  rejectAdminPreSalesOrder: async (orderId: number, reason?: string): Promise<{ ok: boolean; status: string }> => {
+    return http(`/api/van-sales/admin/pre-sales-orders/${orderId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
   },
 };
 

@@ -11,6 +11,7 @@ import { VanReturnsService } from './services/van-returns.service';
 import { VanTargetsService } from './services/van-targets.service';
 import { VanTransfersService } from './services/van-transfers.service';
 import { VanRoutesService } from './services/van-routes.service';
+import { VanPreSalesService } from './services/van-pre-sales.service';
 
 import { DatabaseModule } from '../../database/database.module';
 import { AccountingModule } from '../accounting/accounting.module';
@@ -28,6 +29,7 @@ import { SalesModule } from '../sales/sales.module';
     VanTargetsService,
     VanTransfersService,
     VanRoutesService,
+    VanPreSalesService,
   ],
   exports: [
     DeliveryRepsService,
@@ -38,6 +40,7 @@ import { SalesModule } from '../sales/sales.module';
     VanTargetsService,
     VanTransfersService,
     VanRoutesService,
+    VanPreSalesService,
   ],
 })
 export class DeliveryRepsModule {}

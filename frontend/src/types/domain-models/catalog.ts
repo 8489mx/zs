@@ -47,6 +47,8 @@ export interface Product {
   costPrice: number;
   retailPrice: number;
   wholesalePrice: number;
+  creditPrice?: number | null;
+  consumerPrice?: number | null;
   stock: number;
   minStock: number;
   notes: string;
