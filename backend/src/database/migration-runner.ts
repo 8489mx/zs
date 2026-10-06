@@ -204,6 +204,24 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
         WHERE name = '2040000000134_performance_hot_path_indexes'
       `.execute(db);
     }
+
+    // Reconcile 194 / 195 race condition if 195 was recorded prematurely before 194 was exported
+    const hrCheck = await sql<{ found: number }>`
+      SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+      WHERE name = '2040000000194_hr_payroll_and_loan_hardening'
+    `.execute(db);
+
+    const vanCheck = await sql<{ found: number }>`
+      SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+      WHERE name = '2040000000195_van_sales_hardening'
+    `.execute(db);
+
+    if (hrCheck.rows.length === 0 && vanCheck.rows.length > 0) {
+      await sql`
+        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name = '2040000000195_van_sales_hardening'
+      `.execute(db);
+    }
   } catch {
     // Best-effort reconciliation; do not block migrations if schema inspection fails
   }
@@ -216,6 +234,7 @@ export async function runMigrationCommand(command: MigrationCommand): Promise<vo
     db,
     provider: new FileMigrationProvider(getMigrationsPath()),
     migrationTableSchema: process.env.DATABASE_SCHEMA ?? 'public',
+    allowUnorderedMigrations: true,
   });
 
   if (command === 'list') {
