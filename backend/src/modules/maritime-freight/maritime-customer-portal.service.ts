@@ -142,7 +142,7 @@ export class MaritimeCustomerPortalService {
       // Fetch company / tenant name
       const tenantRow = await this.db
         .selectFrom('tenants')
-        .select(['name'])
+        .select(['business_name'])
         .where('id', '=', matched.tenant_id)
         .executeTakeFirst();
 
@@ -168,7 +168,7 @@ export class MaritimeCustomerPortalService {
           balance: Number(matched.balance || 0),
           creditLimit: Number(matched.credit_limit || 0),
           tenantId: matched.tenant_id,
-          tenantName: tenantRow?.name || 'Z-Systems Freight',
+          tenantName: tenantRow?.business_name || 'Z-Systems Freight',
           portalToken: matched.portal_token,
         },
       };
@@ -202,7 +202,7 @@ export class MaritimeCustomerPortalService {
 
     const tenantRow = await this.db
       .selectFrom('tenants')
-      .select(['name'])
+      .select(['business_name'])
       .where('id', '=', matched.tenant_id)
       .executeTakeFirst();
 
@@ -228,7 +228,7 @@ export class MaritimeCustomerPortalService {
         balance: Number(matched.balance || 0),
         creditLimit: Number(matched.credit_limit || 0),
         tenantId: matched.tenant_id,
-        tenantName: tenantRow?.name || 'Z-Systems Freight',
+        tenantName: tenantRow?.business_name || 'Z-Systems Freight',
         portalToken: matched.portal_token,
       },
     };
@@ -286,7 +286,7 @@ export class MaritimeCustomerPortalService {
       FROM maritime_jobs 
       WHERE tenant_id = ${auth.tenantId} 
         AND customer_id = ${auth.customerId}
-        AND status NOT IN ('delivered', 'closed', 'cancelled')
+        AND status = 'active'
     `.execute(this.db);
     const activeShipmentsCount = Number(activeShipmentsRes.rows[0]?.count || 0);
 
@@ -296,7 +296,7 @@ export class MaritimeCustomerPortalService {
       FROM maritime_jobs 
       WHERE tenant_id = ${auth.tenantId} 
         AND customer_id = ${auth.customerId}
-        AND status IN ('delivered', 'closed')
+        AND status = 'completed'
     `.execute(this.db);
     const deliveredShipmentsCount = Number(deliveredShipmentsRes.rows[0]?.count || 0);
 
@@ -400,9 +400,9 @@ export class MaritimeCustomerPortalService {
       .where('customer_id', '=', auth.customerId);
 
     if (query.status === 'active') {
-      q = q.where('status', 'not in', ['delivered', 'closed', 'cancelled']);
+      q = q.where('status', '=', 'active');
     } else if (query.status === 'completed') {
-      q = q.where('status', 'in', ['delivered', 'closed']);
+      q = q.where('status', '=', 'completed');
     }
 
     if (query.search && query.search.trim()) {
@@ -444,18 +444,19 @@ export class MaritimeCustomerPortalService {
           .selectAll()
           .where('job_id', '=', job.id)
           .where('tenant_id', '=', auth.tenantId)
-          .orderBy('milestone_date', 'asc')
+          .orderBy('occurred_at', 'asc')
           .execute();
 
         // Calculate demurrage & free time indicator
         let freeDaysRemaining: number | null = null;
         let demurrageStatus: 'safe' | 'warning' | 'critical' | 'demurrage' = 'safe';
 
-        if (job.eta && job.free_days) {
+        const containerFreeDays = containers[0]?.free_days || 14;
+        if (job.eta) {
           const etaDate = new Date(job.eta).getTime();
           const now = Date.now();
           const daysSinceArrival = Math.max(0, Math.floor((now - etaDate) / (1000 * 60 * 60 * 24)));
-          freeDaysRemaining = (job.free_days || 14) - daysSinceArrival;
+          freeDaysRemaining = containerFreeDays - daysSinceArrival;
 
           if (freeDaysRemaining < 0) demurrageStatus = 'demurrage';
           else if (freeDaysRemaining <= 3) demurrageStatus = 'critical';
@@ -509,7 +510,7 @@ export class MaritimeCustomerPortalService {
       .selectAll()
       .where('job_id', '=', job.id)
       .where('tenant_id', '=', auth.tenantId)
-      .orderBy('milestone_date', 'asc')
+      .orderBy('occurred_at', 'asc')
       .execute();
 
     const charges = await this.db
@@ -807,7 +808,7 @@ export class MaritimeCustomerPortalService {
           .where('tenant_id', '=', auth.tenantId)
           .execute();
 
-        const totalCharges = charges.reduce((acc, c) => acc + Number(c.amount || 0), 0);
+        const totalCharges = charges.reduce((acc, c) => acc + Number(c.sell_amount || 0), 0);
         return {
           ...j,
           chargesCount: charges.length,
