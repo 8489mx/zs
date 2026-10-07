@@ -30,20 +30,104 @@ import { InlandTruckingTab } from '../components/InlandTruckingTab';
 import { CarrierTrackingHubTab } from '../components/CarrierTrackingHubTab';
 
 const NAV_TABS = [
-  { path: 'dashboard', label: 'لوحة المؤشرات والتحليلات', mobileLabel: 'اللوحة التحليلية', countKey: 'jobs' as const },
-  { path: 'inquiries', label: 'استفسارات شحن العملاء', mobileLabel: 'استفسارات الشحن', countKey: 'inquiries' as const },
-  { path: 'rfqs', label: 'عروض تسعير الخطوط (RFQ)', mobileLabel: 'تسعير الخطوط', countKey: 'rfqs' as const },
-  { path: 'matrix', label: 'مقارنة عروض الخطوط', mobileLabel: 'مقارنة العروض', countKey: 'matrixBids' as const },
-  { path: 'quotations', label: 'عروض أسعار العملاء', mobileLabel: 'عروض الأسعار', countKey: 'quotations' as const },
-  { path: 'jobs', label: 'أوامر تشغيل الشحنات', mobileLabel: 'أوامر التشغيل', countKey: 'jobs' as const },
-  { path: 'radar', label: 'رادار الغرامات وفترات السماح', mobileLabel: 'رادار الغرامات', countKey: 'containers' as const },
-  { path: 'audit', label: 'تدقيق فواتير النواقل', mobileLabel: 'تدقيق الفواتير', countKey: 'jobs' as const },
-  { path: 'agents', label: 'حسابات ومقاصة الوكلاء (SOA)', mobileLabel: 'حسابات الوكلاء', countKey: 'master' as const },
-  { path: 'trucking', label: 'النقل البري وترحيل الحاويات', mobileLabel: 'النقل البري', countKey: 'jobs' as const },
-  { path: 'tracking', label: 'بوابة التتبع المباشر للنواقل', mobileLabel: 'تتبع النواقل', countKey: 'containers' as const },
-  { path: 'containers', label: 'تتبع الحاويات والطرود', mobileLabel: 'تتبع الحاويات', countKey: 'containers' as const },
-  { path: 'lines', label: 'دليل النواقل والموانئ والمطارات', mobileLabel: 'دليل النواقل', countKey: 'master' as const },
-  { path: 'settings', label: 'إعدادات وسياسات الشحن', mobileLabel: 'إعدادات الشحن', countKey: 'settings' as const },
+  {
+    path: 'dashboard',
+    label: 'لوحة المؤشرات',
+    fullTitle: 'لوحة المؤشرات والتحليلات البيانية للشحن واللوجستيات',
+    mobileLabel: 'المؤشرات',
+    countKey: undefined,
+  },
+  {
+    path: 'inquiries',
+    label: 'استفسارات الشحن',
+    fullTitle: 'استفسارات شحن العملاء وطلبات عروض الأسعار',
+    mobileLabel: 'استفسارات الشحن',
+    countKey: 'inquiries' as const,
+  },
+  {
+    path: 'rfqs',
+    label: 'تسعير الخطوط (RFQ)',
+    fullTitle: 'عروض تسعير الخطوط الملاحية والجوية (RFQ)',
+    mobileLabel: 'تسعير الخطوط',
+    countKey: 'rfqs' as const,
+  },
+  {
+    path: 'matrix',
+    label: 'مقارنة العروض',
+    fullTitle: 'مصفوفة ومقارنة عروض أسعار النواقل والخطوط',
+    mobileLabel: 'مقارنة العروض',
+    countKey: 'matrixBids' as const,
+  },
+  {
+    path: 'quotations',
+    label: 'عروض الأسعار',
+    fullTitle: 'عروض أسعار العملاء وحساب هوامش الربحية',
+    mobileLabel: 'عروض الأسعار',
+    countKey: 'quotations' as const,
+  },
+  {
+    path: 'jobs',
+    label: 'أوامر الشحن (Jobs)',
+    fullTitle: 'أوامر تشغيل ومتابعة الشحنات متعددة الوسائط',
+    mobileLabel: 'أوامر التشغيل',
+    countKey: 'jobs' as const,
+  },
+  {
+    path: 'radar',
+    label: 'رادار الغرامات',
+    fullTitle: 'رادار الغرامات وفترات السماح والأرضيات (Demurrage & Detention)',
+    mobileLabel: 'رادار الغرامات',
+    countKey: undefined,
+  },
+  {
+    path: 'audit',
+    label: 'تدقيق الفواتير',
+    fullTitle: 'تدقيق ومطابقة فواتير النواقل والخطوط (Freight Audit)',
+    mobileLabel: 'تدقيق الفواتير',
+    countKey: undefined,
+  },
+  {
+    path: 'agents',
+    label: 'مقاصة الوكلاء (SOA)',
+    fullTitle: 'حسابات ومقاصة الوكلاء الدوليين (Statement of Account)',
+    mobileLabel: 'مقاصة الوكلاء',
+    countKey: undefined,
+  },
+  {
+    path: 'trucking',
+    label: 'النقل البري',
+    fullTitle: 'النقل البري وترحيل الحاويات والشاحنات',
+    mobileLabel: 'النقل البري',
+    countKey: undefined,
+  },
+  {
+    path: 'tracking',
+    label: 'تتبع النواقل المباشر',
+    fullTitle: 'بوابة التتبع المباشر من أنظمة الخطوط الملاحية والجوية',
+    mobileLabel: 'تتبع النواقل',
+    countKey: undefined,
+  },
+  {
+    path: 'containers',
+    label: 'تتبع الحاويات والطرود',
+    fullTitle: 'سجل وتتبع الحاويات والطرود وحالات الشحن',
+    mobileLabel: 'تتبع الحاويات',
+    countKey: 'containers' as const,
+  },
+  {
+    path: 'lines',
+    label: 'دليل النواقل والموانئ',
+    fullTitle: 'دليل النواقل والموانئ والمطارات ومحطات الشحن',
+    mobileLabel: 'دليل النواقل',
+    countKey: 'master' as const,
+  },
+  {
+    path: 'settings',
+    label: 'إعدادات الشحن',
+    fullTitle: 'إعدادات وسياسات الشحن والعملات والضوابط التشغيلية',
+    mobileLabel: 'إعدادات الشحن',
+    countKey: undefined,
+  },
 ];
 
 function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -97,6 +181,17 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
   const handleNavigate = (path: string) => {
     navigate(`/maritime/${path}`);
   };
+
+  const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (tabsContainerRef.current) {
+      const activeEl = tabsContainerRef.current.querySelector<HTMLElement>('.maritime-nav-tab-btn.is-active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [currentSubPath]);
 
   return (
     <div className="document-form-prototype" dir="rtl">
@@ -276,16 +371,102 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
           </div>
         </div>
 
-        {/* شريط التبويبات القياسي مقسم على سطرين متوازيين لمنع شريط التمرير الأفقي */}
+        {/* شريط التبويبات القياسي المتناسق هندسياً والمحمي من التداخل */}
         <style>{`
+          .maritime-nav-tabs-wrapper {
+            background: #ffffff;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            margin-bottom: 16px;
+            box-sizing: border-box;
+            width: 100%;
+          }
           .maritime-nav-tabs-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 7px;
+            width: 100%;
+            box-sizing: border-box;
           }
-          @media (max-width: 1024px) {
+          .maritime-nav-tab-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 8px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.78rem;
+            cursor: pointer;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+            direction: rtl;
+            transition: none; /* دستور منع رعشة الخطوط والتنقل اللحظي 0ms */
+          }
+          .maritime-nav-tab-btn:hover:not(.is-active) {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #0f172a;
+          }
+          .maritime-nav-tab-btn.is-active {
+            background: #170e5e !important;
+            border-color: #170e5e !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(23, 14, 94, 0.2);
+          }
+          .maritime-tab-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+            text-align: center;
+            line-height: 1.2;
+            flex: 1;
+          }
+          .maritime-tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 19px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-inline-start: 2px;
+          }
+          .maritime-nav-tab-btn.is-active .maritime-tab-badge {
+            background: rgba(255, 255, 255, 0.25) !important;
+            color: #ffffff !important;
+          }
+          @media (max-width: 1240px) and (min-width: 769px) {
             .maritime-nav-tabs-grid {
-              grid-template-columns: repeat(2, 1fr);
+              display: flex !important;
+              overflow-x: auto !important;
+              flex-wrap: nowrap !important;
+              gap: 8px !important;
+              padding-bottom: 4px !important;
+              scrollbar-width: thin !important;
+              -webkit-overflow-scrolling: touch !important;
+            }
+            .maritime-nav-tab-btn {
+              flex: 0 0 auto !important;
+              width: auto !important;
+              min-width: max-content !important;
+              padding: 0 14px !important;
             }
           }
           @media (max-width: 768px) {
@@ -310,85 +491,51 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
               justify-content: center !important;
               flex-shrink: 0 !important;
             }
+            .maritime-nav-tabs-wrapper {
+              padding: 6px !important;
+              margin-bottom: 10px !important;
+            }
             .maritime-nav-tabs-grid {
               grid-template-columns: repeat(2, 1fr) !important;
               gap: 6px !important;
-              padding: 8px !important;
-              margin-bottom: 10px !important;
             }
             .maritime-nav-tab-btn {
               height: 34px !important;
               padding: 0 8px !important;
-              font-size: 0.76rem !important;
-              gap: 5px !important;
+              font-size: 0.75rem !important;
+              gap: 4px !important;
             }
           }
         `}</style>
-        <div
-          className="maritime-nav-tabs-grid"
-          style={{
-            background: '#ffffff',
-            padding: '10px 12px',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            marginBottom: '14px',
-          }}
-        >
-          {NAV_TABS.map((tab) => {
-            const isActive = isTabActive(tab.path);
-            const count = counts[tab.countKey];
+        <div className="maritime-nav-tabs-wrapper">
+          <div ref={tabsContainerRef} className="maritime-nav-tabs-grid">
+            {NAV_TABS.map((tab) => {
+              const isActive = isTabActive(tab.path);
+              const count = tab.countKey ? counts[tab.countKey] : undefined;
 
-            return (
-              <button
-                key={tab.path}
-                type="button"
-                className="maritime-nav-tab-btn"
-                onClick={() => handleNavigate(tab.path)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  height: '38px',
-                  padding: '0 12px',
-                  borderRadius: '8px',
-                  border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                  background: isActive ? '#170e5e' : '#f8fafc',
-                  color: isActive ? '#ffffff' : '#334155',
-                  fontWeight: 600,
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  width: '100%',
-                  direction: 'rtl',
-                }}
-              >
-                <span className="desktop-only-inline">{tab.label}</span>
-                <span className="mobile-only-inline">{tab.mobileLabel}</span>
-                {tab.path !== 'settings' && tab.path !== 'dashboard' && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '20px',
-                      height: '18px',
-                      padding: '0 6px',
-                      borderRadius: '999px',
-                      background: isActive ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
-                      color: isActive ? '#ffffff' : '#475569',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {count}
+              return (
+                <button
+                  key={tab.path}
+                  type="button"
+                  className={`maritime-nav-tab-btn ${isActive ? 'is-active' : ''}`}
+                  onClick={() => handleNavigate(tab.path)}
+                  title={tab.fullTitle || tab.label}
+                >
+                  <span className="maritime-tab-text desktop-only-inline">
+                    {tab.label}
                   </span>
-                )}
-              </button>
-            );
-          })}
+                  <span className="maritime-tab-text mobile-only-inline">
+                    {tab.mobileLabel}
+                  </span>
+                  {count !== undefined && (
+                    <span className="maritime-tab-badge">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* تابات بيئة عمل الشحن المحفوظة بالذاكرة (Keep-Alive) لمنع الهدم وإعادة التحميل والرعشة */}
