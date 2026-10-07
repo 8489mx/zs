@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  freightCustomerPortalApi,
+  useMaritimeCustomerPortal,
   FreightPortalCustomer,
   FreightPortalDashboard,
-} from '../api/maritime-freight.api';
+} from '../hooks/use-maritime-customer-portal';
 import {
   printOceanBillOfLading,
   printAirWaybill,
@@ -32,6 +32,7 @@ import { toast } from '@/shared/components/system-alert';
 type ActiveTab = 'shipments' | 'request_quote' | 'quotes' | 'documents' | 'statement';
 
 export function MaritimeCustomerPortalPage() {
+  const { portalApi: freightCustomerPortalApi } = useMaritimeCustomerPortal();
   const [searchParams] = useSearchParams();
   const urlToken = searchParams.get('token');
 
