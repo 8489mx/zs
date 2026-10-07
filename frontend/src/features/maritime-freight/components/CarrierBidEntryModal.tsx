@@ -41,6 +41,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
       if (parsed.freeDays) setFreeDays(parsed.freeDays);
       if (parsed.transitTimeDays) setTransitTimeDays(parsed.transitTimeDays);
       if (parsed.thcOrigin) setThcOrigin(parsed.thcOrigin);
+      if (parsed.thcDestination) setThcDestination(parsed.thcDestination);
     } catch {
       // ignore
     }

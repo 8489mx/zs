@@ -80,8 +80,64 @@ export function MaritimeJobsTab({
     });
   }, [jobs, modeFilter, searchQuery]);
 
+  const oceanJobsCount = jobs.filter((j) => (j.transport_mode || 'sea') === 'sea').length;
+  const airRoadJobsCount = jobs.filter((j) => j.transport_mode === 'air' || j.transport_mode === 'road').length;
+  const completedCount = jobs.filter((j) => j.stage === 'customs_cleared' || j.stage === 'delivered' || j.stage === 'completed').length;
+
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* بطاقات المؤشرات اللوجستية لأوامر الشحن القياسية */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي أوامر التشغيل</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {jobs.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أمر</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+            <AppIcons.FileText size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>شحنات النقل البحري</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {oceanJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eef2ff', border: '1px solid #e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338ca', flexShrink: 0 }}>
+            <AppIcons.Ship size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>شحنات جوية وبرية</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {airRoadJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
+            <AppIcons.Plane size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>مكتملة ومفرجة جمركياً</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {completedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+            <AppIcons.CheckCircle size={18} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
       {/* Header الكارت الموحد */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
@@ -329,5 +385,6 @@ export function MaritimeJobsTab({
         </table>
       </div>
     </div>
-  );
+  </div>
+);
 }

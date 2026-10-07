@@ -31,7 +31,7 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/contracting/projects')).toBe(true);
   });
 
-  it('resolves maritime and strictly hides retail POS when activityType is maritime', () => {
+  it('resolves maritime and strictly hides retail POS, retail sales, retail quotes, and general purchases when activityType is maritime', () => {
     const tenant = {
       id: 'maritime-co',
       slug: 'blue-ocean',
@@ -42,7 +42,15 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(vertical).toBe('maritime');
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
     expect(isRouteAllowedInVertical(vertical, 'pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, 'sales')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/quotations')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, 'quotations')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/purchases')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/purchases/rfqs')).toBe(false);
     expect(isRouteAllowedInVertical(vertical, '/maritime/jobs')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/customers')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/suppliers')).toBe(true);
   });
 
   it('resolves wholesale_van and hides retail POS while enabling van sales', () => {

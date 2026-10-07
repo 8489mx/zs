@@ -222,6 +222,30 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
         WHERE name = '2040000000195_van_sales_hardening'
       `.execute(db);
     }
+
+    // Reconcile ghost migration 2040000000200_logistics_couriers_and_cod_settlements
+    // which was superseded by 2040000000200_maritime_complete_enterprise_expansion
+    const courierMigrationCheck = await sql<{ found: number }>`
+      SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+      WHERE name = '2040000000200_logistics_couriers_and_cod_settlements'
+    `.execute(db);
+
+    if (courierMigrationCheck.rows.length > 0) {
+      await sql`
+        ALTER TABLE IF EXISTS ${sql.id(schema, 'shipments')} 
+        DROP COLUMN IF EXISTS courier_id, 
+        DROP COLUMN IF EXISTS settlement_batch_id CASCADE
+      `.execute(db);
+
+      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'courier_settlement_lines')} CASCADE`.execute(db);
+      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'courier_settlement_batches')} CASCADE`.execute(db);
+      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'shipping_couriers')} CASCADE`.execute(db);
+
+      await sql`
+        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name = '2040000000200_logistics_couriers_and_cod_settlements'
+      `.execute(db);
+    }
   } catch {
     // Best-effort reconciliation; do not block migrations if schema inspection fails
   }

@@ -71,14 +71,15 @@ export function MaritimeMatrixTab({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '8px 14px',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '0.8rem',
-                color: '#1e40af',
+                color: '#170e5e',
                 cursor: syncing ? 'not-allowed' : 'pointer',
                 opacity: syncing ? 0.7 : 1,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
               }}
               title="سحب وفحص الإيميلات الواردة من الخطوط وقراءتها آلياً"
             >
@@ -202,8 +203,65 @@ export function MaritimeMatrixTab({
           جاري تجهيز مصفوفة المقارنة...
         </div>
       ) : !currentRfq?.bids || currentRfq.bids.length === 0 ? (
-        <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
-          لم يتم استلام أي عروض أسعار لهذا الطلب حتى الآن. يمكنك النقر على زر "تسجيل عرض سعر يدوي" لإدخال عروض الوكلاء.
+        <div
+          style={{
+            background: '#ffffff',
+            padding: '48px 24px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '14px',
+              background: '#f1f5f9',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b',
+            }}
+          >
+            <AppIcons.Mail size={26} />
+          </div>
+          <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+            بانتظار ورود عروض أسعار النواقل والخطوط
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '440px', lineHeight: 1.5 }}>
+            لم يتم تسجيل أو استلام عروض أسعار لهذا الطلب حتى الآن. يمكنك مزامنة الردود الواردة عبر البريد آلياً أو إدخال عرض سعر مستلم يدوياً.
+          </div>
+          {currentRfq && (
+            <button
+              type="button"
+              onClick={() => onOpenAddBid(currentRfq)}
+              style={{
+                marginTop: '6px',
+                padding: '8px 18px',
+                background: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
+              }}
+            >
+              <AppIcons.Plus size={16} />
+              <span>تسجيل عرض سعر يدوي لهذا الطلب</span>
+            </button>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>

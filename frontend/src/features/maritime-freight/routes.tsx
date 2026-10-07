@@ -15,62 +15,6 @@ const MaritimeWorkspaceLazy = createLazyRoute(() =>
 export const maritimeFreightRouteModule: FeatureRouteModule = {
   routes: [
     {
-      path: 'maritime/dashboard',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/inquiries',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/rfqs',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/matrix',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/quotations',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/jobs',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/radar',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/audit',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/agents',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/trucking',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/tracking',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/containers',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/lines',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
-      path: 'maritime/settings',
-      element: MaritimeWorkspaceLazy,
-    },
-    {
       path: 'maritime',
       element: MaritimeWorkspaceLazy,
     },

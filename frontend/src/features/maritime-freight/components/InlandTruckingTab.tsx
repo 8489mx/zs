@@ -150,8 +150,59 @@ export function InlandTruckingTab() {
         </button>
       </div>
 
-      {/* 2. Filters */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+      {/* 2. KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي رحلات النقل البري</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {trips.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>رحلة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+            <AppIcons.Truck size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>رحلات جارية وقيد النقل</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {trips.filter((t) => t.trip_status === 'in_transit' || t.trip_status === 'loading' || t.trip_status === 'assigned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>رحلة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
+            <AppIcons.Clock size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تم التسليم للوجهة</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {trips.filter((t) => t.trip_status === 'delivered').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+            <AppIcons.CheckCircle size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تم رد الحاويات الفارغة</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {trips.filter((t) => t.trip_status === 'empty_returned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#faf5ff', border: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
+            <AppIcons.RotateCcw size={18} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Filters */}
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#475569' }}>تصفية حسب حالة الرحلة:</div>
         {['all', 'assigned', 'loading', 'in_transit', 'delivered', 'empty_returned'].map((st) => (
           <button
@@ -159,14 +210,15 @@ export function InlandTruckingTab() {
             type="button"
             onClick={() => setStatusFilter(st)}
             style={{
-              padding: '4px 10px',
+              padding: '5px 12px',
               borderRadius: '6px',
-              border: statusFilter === st ? '1px solid #170e5e' : '1px solid #cbd5e1',
-              background: statusFilter === st ? '#170e5e' : '#f8fafc',
+              border: statusFilter === st ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+              background: statusFilter === st ? '#170e5e' : '#ffffff',
               color: statusFilter === st ? '#ffffff' : '#475569',
               fontSize: '0.78rem',
               fontWeight: 600,
               cursor: 'pointer',
+              transition: 'none',
             }}
           >
             {st === 'all' ? 'الكل' : st === 'assigned' ? 'تم التعيين' : st === 'loading' ? 'جاري التحميل' : st === 'in_transit' ? 'في الطريق' : st === 'delivered' ? 'تم التسليم' : 'تم رد الفارغ'}

@@ -105,11 +105,18 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
       <style>{`
         .maritime-stepper-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 7px;
           align-items: stretch;
+          width: 100%;
+          box-sizing: border-box;
         }
-        @media (max-width: 768px) {
+        @media (max-width: 960px) {
+          .maritime-stepper-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+        }
+        @media (max-width: 600px) {
           .maritime-stepper-grid {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 6px !important;
@@ -157,12 +164,13 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
                 border: `1px solid ${borderColor}`,
                 background: bgColor,
                 borderRadius: '8px',
-                padding: '10px 12px',
+                padding: '9px 10px',
+                minWidth: 0,
                 cursor: onStepClick ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                transition: 'all 0.15s ease',
+                transition: 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>

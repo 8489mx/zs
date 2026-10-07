@@ -158,7 +158,9 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -166,20 +168,20 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               إجمالي فواتير النواقل المدققة
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
               {summary.totalInvoices} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>فاتورة</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               إجمالي المبالغ: ${Number(summary.totalInvoicedAmount || 0).toLocaleString()}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#eff6ff',
               border: '1px solid #dbeafe',
@@ -187,9 +189,10 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#1e40af',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.FileText size={20} />
+            <AppIcons.FileText size={18} />
           </div>
         </div>
 
@@ -198,7 +201,9 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -206,20 +211,20 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#15803d' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               فواتير مطابقة للتعرفة (Matched)
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
-              {summary.matchedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>مطابقة</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {summary.matchedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>مطابقة</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               {summary.totalInvoices > 0 ? `${Math.round((summary.matchedCount / summary.totalInvoices) * 100)}% معدل التوافق` : '0%'}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#f0fdf4',
               border: '1px solid #dcfce7',
@@ -227,18 +232,21 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#15803d',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.CheckCircle size={20} />
+            <AppIcons.CheckCircle size={18} />
           </div>
         </div>
 
         <div
           style={{
             background: '#ffffff',
-            border: '1px solid #fee2e2',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -246,20 +254,20 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               فواتير بزيادة غير معتمدة (Overcharge)
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#b91c1c', marginTop: '4px' }}>
-              {summary.overchargeCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c' }}>فاتورة</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {summary.overchargeCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>فاتورة</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: summary.overchargeCount > 0 ? '#b91c1c' : '#64748b', fontWeight: summary.overchargeCount > 0 ? 700 : 500, marginTop: '3px' }}>
               إجمالي الزيادات: +${Number(summary.totalOverchargeAmount || 0).toLocaleString()}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#fef2f2',
               border: '1px solid #fecaca',
@@ -267,18 +275,21 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#dc2626',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.AlertTriangle size={20} />
+            <AppIcons.AlertTriangle size={18} />
           </div>
         </div>
 
         <div
           style={{
             background: '#ffffff',
-            border: '1px solid #fef3c7',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -286,20 +297,20 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#b45309' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               نزاعات مالية مفتوحة (Disputed)
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
-              {summary.disputedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309' }}>نزاع</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {summary.disputedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>نزاع</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               فواتير محجوزة عن الصرف لحين التسوية
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#fffbeb',
               border: '1px solid #fde68a',
@@ -307,9 +318,10 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#d97706',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.Shield size={20} />
+            <AppIcons.Shield size={18} />
           </div>
         </div>
       </div>

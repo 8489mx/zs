@@ -143,33 +143,65 @@ export function MaritimeFreightDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }} dir="rtl">
-      {/* 1. بطاقات المؤشرات المالية والتشغيلية الرئيسية (Executive KPI Grid) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-        }}
-      >
+      {/* 1. بطاقات المؤشرات المالية والتشغيلية الرئيسية (Executive KPI Grid - 5 Cards Single Row) */}
+      <style>{`
+        .maritime-dashboard-kpis {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        @media (max-width: 960px) {
+          .maritime-dashboard-kpis {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          }
+        }
+      `}</style>
+      <div className="maritime-dashboard-kpis">
         {/* Card 1: الإيرادات المفوترة */}
         <div
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            borderTop: '3px solid #170e5e',
+            minHeight: '88px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
           }}
         >
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
-            إيرادات الشحن واللوجستيات
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              إيرادات الشحن واللوجستيات
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              {currencySymbol} {financialMetrics.totalRevenue.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              مفوترة من {jobs.length} أمر تشغيل
+            </div>
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#170e5e', marginTop: '4px' }}>
-            {currencySymbol} {financialMetrics.totalRevenue.toLocaleString()}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            مفوترة من {jobs.length} أمر تشغيل
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: '#eff6ff',
+              border: '1px solid #dbeafe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1e40af',
+              flexShrink: 0,
+            }}
+          >
+            <AppIcons.TrendingUp size={18} />
           </div>
         </div>
 
@@ -179,19 +211,43 @@ export function MaritimeFreightDashboard() {
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            borderTop: '3px solid #b91c1c',
+            minHeight: '88px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
           }}
         >
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
-            تكلفة النواقل المباشرة
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              تكلفة النواقل المباشرة
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              {currencySymbol} {financialMetrics.totalCarrierCost.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              نولون الخطوط ومصروفات الموانئ
+            </div>
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b91c1c', marginTop: '4px' }}>
-            {currencySymbol} {financialMetrics.totalCarrierCost.toLocaleString()}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            نولون الخطوط ومصروفات الموانئ
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#475569',
+              flexShrink: 0,
+            }}
+          >
+            <AppIcons.CreditCard size={18} />
           </div>
         </div>
 
@@ -201,22 +257,46 @@ export function MaritimeFreightDashboard() {
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            borderTop: '3px solid #15803d',
+            minHeight: '88px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>صافي الأرباح التشغيلية</span>
-            <span style={{ padding: '1px 6px', background: '#dcfce7', color: '#15803d', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-              {financialMetrics.marginPct}%
-            </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>صافي الأرباح</span>
+              <span style={{ padding: '1px 5px', background: '#dcfce7', color: '#15803d', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
+                {financialMetrics.marginPct}%
+              </span>
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              {currencySymbol} {financialMetrics.netProfit.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              المساهمة الصافية للعمليات
+            </div>
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d', marginTop: '4px' }}>
-            {currencySymbol} {financialMetrics.netProfit.toLocaleString()}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            المساهمة الصافية بعد خصم كافة التكاليف
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: '#f0fdf4',
+              border: '1px solid #dcfce7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#15803d',
+              flexShrink: 0,
+            }}
+          >
+            <AppIcons.Coins size={18} />
           </div>
         </div>
 
@@ -226,41 +306,94 @@ export function MaritimeFreightDashboard() {
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            borderTop: '3px solid #0369a1',
+            minHeight: '88px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
           }}
         >
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
-            حجم الحاويات المشحونة
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              حجم الحاويات المشحونة
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              {containerMetrics.totalTeu} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>TEU</span>
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              إجمالي {containerMetrics.totalContainers} حاوية مسجلة
+            </div>
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0369a1', marginTop: '4px' }}>
-            {containerMetrics.totalTeu} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>TEU</span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            إجمالي {containerMetrics.totalContainers} حاوية مسجلة
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: '#eff6ff',
+              border: '1px solid #dbeafe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0284c7',
+              flexShrink: 0,
+            }}
+          >
+            <AppIcons.Ship size={18} />
           </div>
         </div>
 
         {/* Card 5: مؤشر الحاويات الحرجة ورادار الغرامات */}
         <div
           style={{
-            background: containerMetrics.overdueCount > 0 ? '#fffdfd' : '#ffffff',
-            border: containerMetrics.overdueCount > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            borderTop: containerMetrics.overdueCount > 0 ? '3px solid #dc2626' : '3px solid #f59e0b',
+            minHeight: '88px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
           }}
         >
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: containerMetrics.overdueCount > 0 ? '#b91c1c' : '#64748b' }}>
-            رادار الحاويات الحرجة
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>الحاويات الحرجة</span>
+              {containerMetrics.overdueCount > 0 && (
+                <span style={{ padding: '1px 5px', background: '#fee2e2', color: '#b91c1c', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
+                  تحت الغرامة
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              {containerMetrics.overdueCount + containerMetrics.criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>حاوية</span>
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {containerMetrics.overdueCount} متأخرة | {containerMetrics.criticalCount} متبقي &le; 3 أيام
+            </div>
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: containerMetrics.overdueCount > 0 ? '#dc2626' : '#b45309', marginTop: '4px' }}>
-            {containerMetrics.overdueCount + containerMetrics.criticalCount} <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>حاوية</span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            {containerMetrics.overdueCount} متأخرة | {containerMetrics.criticalCount} متبقي &le; 3 أيام
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: containerMetrics.overdueCount > 0 ? '#fef2f2' : '#fffbeb',
+              border: containerMetrics.overdueCount > 0 ? '1px solid #fecaca' : '1px solid #fde68a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: containerMetrics.overdueCount > 0 ? '#dc2626' : '#d97706',
+              flexShrink: 0,
+            }}
+          >
+            <AppIcons.AlertTriangle size={18} />
           </div>
         </div>
       </div>
@@ -554,9 +687,9 @@ export function MaritimeFreightDashboard() {
               onClick={() => navigate('/maritime/radar')}
               style={{
                 padding: '10px 14px',
-                background: '#fffbeb',
-                color: '#b45309',
-                border: '1px solid #fde68a',
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
@@ -576,9 +709,9 @@ export function MaritimeFreightDashboard() {
               onClick={() => navigate('/maritime/audit')}
               style={{
                 padding: '10px 14px',
-                background: '#eff6ff',
-                color: '#1e40af',
-                border: '1px solid #bfdbfe',
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 fontSize: '0.8rem',
                 fontWeight: 700,

@@ -79,8 +79,64 @@ export function MaritimeQuotationsTab({
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const approvedCount = quotations.filter((q) => q.status === 'approved' || q.status === 'converted_to_job').length;
+  const pendingCount = quotations.filter((q) => q.status === 'sent' || q.status === 'draft').length;
+  const totalEstimatedVal = quotations.reduce((acc, q) => acc + Number(q.final_total || 0), 0);
+
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* بطاقات المؤشرات اللوجستية لعروض الأسعار القياسية */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي عروض الأسعار</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {quotations.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+            <AppIcons.FileText size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>عروض معتمدة ومحولة</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {approvedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+            <AppIcons.CheckCircle size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>عروض جارية وقيد المراجعة</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {pendingCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
+            <AppIcons.Clock size={18} />
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي القيمة التقديرية</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              ${totalEstimatedVal.toLocaleString()}
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#faf5ff', border: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
+            <AppIcons.Coins size={18} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
       {/* Header الكارت الموحد */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -317,5 +373,6 @@ export function MaritimeQuotationsTab({
         </table>
       </div>
     </div>
-  );
+  </div>
+);
 }

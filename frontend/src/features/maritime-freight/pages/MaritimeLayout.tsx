@@ -185,10 +185,10 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
   const tabsContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (tabsContainerRef.current) {
+    if (tabsContainerRef.current && typeof window !== 'undefined' && window.innerWidth <= 1240) {
       const activeEl = tabsContainerRef.current.querySelector<HTMLElement>('.maritime-nav-tab-btn.is-active');
       if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        activeEl.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
       }
     }
   }, [currentSubPath]);
@@ -309,64 +309,64 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         />
 
         {/* بطاقات المؤشرات الرئيسية (KPIs) المتطابقة مع معيار المنظومة */}
-        <div className="workspace-compact-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
-          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div className="workspace-compact-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px', marginBottom: '14px' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
               <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
                 <span className="desktop-only-inline">طلبات واستفسارات الشحن</span>
                 <span className="mobile-only-inline">استفسارات الشحن</span>
               </div>
-              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
                 {counts.inquiries} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلب</span>
               </div>
             </div>
-            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
-              <FileTextIcon size={20} />
+            <div className="kpi-card-icon" style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af', flexShrink: 0 }}>
+              <FileTextIcon size={18} />
             </div>
           </div>
 
-          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
               <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
                 <span className="desktop-only-inline">طلبات التسعير (RFQs)</span>
                 <span className="mobile-only-inline">عروض التسعير</span>
               </div>
-              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
                 {counts.rfqs} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلب</span>
               </div>
             </div>
-            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
-              <MailIcon size={20} />
+            <div className="kpi-card-icon" style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af', flexShrink: 0 }}>
+              <MailIcon size={18} />
             </div>
           </div>
 
-          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
               <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
                 <span className="desktop-only-inline">عروض أسعار العملاء</span>
                 <span className="mobile-only-inline">عروض الأسعار</span>
               </div>
-              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
                 {counts.quotations} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
               </div>
             </div>
-            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
-              <ReceiptIcon size={20} />
+            <div className="kpi-card-icon" style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207', flexShrink: 0 }}>
+              <ReceiptIcon size={18} />
             </div>
           </div>
 
-          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div className="workspace-compact-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
               <div className="kpi-card-title" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
                 <span className="desktop-only-inline">أوامر تشغيل الشحنات</span>
                 <span className="mobile-only-inline">أوامر التشغيل</span>
               </div>
-              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div className="kpi-card-value" style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
                 {counts.jobs} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أمر</span>
               </div>
             </div>
-            <div className="kpi-card-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
-              <ShipIcon size={20} />
+            <div className="kpi-card-icon" style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d', flexShrink: 0 }}>
+              <ShipIcon size={18} />
             </div>
           </div>
         </div>
@@ -592,14 +592,14 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         <CreateRfqModal
           open={isCreateRfqOpen}
           onClose={() => setIsCreateRfqOpen(false)}
-          onCreated={() => void refreshCounts()}
+          onCreated={() => void refreshAll()}
         />
 
         {/* نافذة تسجيل استفسار عميل جديد */}
         <CreateInquiryModal
           open={isCreateInquiryOpen}
           onClose={() => setIsCreateInquiryOpen(false)}
-          onCreated={() => void refreshCounts()}
+          onCreated={() => void refreshAll()}
         />
       </main>
     </div>

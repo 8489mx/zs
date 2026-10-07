@@ -1138,6 +1138,7 @@ export const AppIcons = {
   Calculator: CalculatorIcon,
   TrendingUp: TrendingUpIcon,
   Mail: MailIcon,
+  Inbox: MailIcon,
   Send: SendIcon,
   Globe: GlobeIcon,
   Copy: CopyIcon,

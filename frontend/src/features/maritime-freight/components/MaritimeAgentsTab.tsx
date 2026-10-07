@@ -185,36 +185,61 @@ export function MaritimeAgentsTab() {
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات المدين (لنا بالخارج)</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534', marginTop: '4px' }}>
-            $ {totalDebitUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات المدين (لنا بالخارج)</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              $ {totalDebitUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>شحنات Collect ومناصفات مستحقة لنا</div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#15803d', marginTop: '2px' }}>شحنات Collect ومناصفات مستحقة لنا</div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d', flexShrink: 0 }}>
+            <AppIcons.FileText size={18} />
+          </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات الدائن (علينا للوكلاء)</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c', marginTop: '4px' }}>
-            $ {totalCreditUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات الدائن (علينا للوكلاء)</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              $ {totalCreditUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>مصاريف منشأ وشحنات Prepaid للوكلاء</div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#dc2626', marginTop: '2px' }}>مصاريف منشأ وشحنات Prepaid للوكلاء</div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
+            <AppIcons.Receipt size={18} />
+          </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>صافي الرصيد المتبادل (Net Balance)</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: netBalanceUsd >= 0 ? '#170e5e' : '#b45309', marginTop: '4px' }}>
-            $ {Math.abs(netBalanceUsd).toLocaleString(undefined, { minimumFractionDigits: 2 })} {netBalanceUsd >= 0 ? '(مدين لنا)' : '(دائن علينا)'}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>صافي الرصيد المتبادل (Net Balance)</span>
+              <span style={{ padding: '1px 6px', borderRadius: '4px', background: netBalanceUsd >= 0 ? '#dcfce7' : '#fef3c7', color: netBalanceUsd >= 0 ? '#15803d' : '#b45309', fontSize: '0.68rem', fontWeight: 700 }}>
+                {netBalanceUsd >= 0 ? 'مدين لنا' : 'دائن علينا'}
+              </span>
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              $ {Math.abs(netBalanceUsd).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>رصيد المقاصة الإجمالي الصافي</div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>رصيد المقاصة الإجمالي الصافي</div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#170e5e', flexShrink: 0 }}>
+            <AppIcons.Coins size={18} />
+          </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شبكة الوكلاء المعتمدين بالدليل</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0284c7', marginTop: '4px' }}>
-            {agents.length} وكيل دولي
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>شبكة الوكلاء المعتمدين بالدليل</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {agents.length} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>وكيل دولي</span>
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>شبكات WCA و FIATA حول العالم</div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '2px' }}>شبكات WCA و FIATA حول العالم</div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0 }}>
+            <AppIcons.Globe size={18} />
+          </div>
         </div>
       </div>
 

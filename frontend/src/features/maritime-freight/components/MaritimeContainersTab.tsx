@@ -209,33 +209,53 @@ export function MaritimeContainersTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* بطاقات المؤشرات اللوجستية ورادار الأرضيات */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي الحاويات المتداولة</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#170e5e', marginTop: '4px' }}>
-            {totalContainers} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+      {/* بطاقات المؤشرات اللوجستية ورادار الأرضيات القياسية */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي الحاويات المتداولة</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {totalContainers} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+            <AppIcons.Container size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #fecaca', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600 }}>حاويات تجاوزت السماح (غرامات)</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '4px' }}>
-            {overdueCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#b91c1c' }}>حاوية</span>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>حاويات تجاوزت السماح (غرامات)</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {overdueCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
+            <AppIcons.AlertTriangle size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #fed7aa', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.78rem', color: '#c2410c', fontWeight: 600 }}>تأمينات محتجزة لدى التوكيلات</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ea580c', marginTop: '4px' }}>
-            {depositHeldTotal.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c2410c' }}><CurrencySymbol /></span>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تأمينات محتجزة لدى التوكيلات</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {depositHeldTotal.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
+            <AppIcons.Shield size={18} />
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #bbf7d0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600 }}>حاويات تم إرجاعها بنجاح</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '4px' }}>
-            {returnedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#15803d' }}>حاوية</span>
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>حاويات تم إرجاعها بنجاح</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+              {returnedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+            </div>
+          </div>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+            <AppIcons.CheckCircle size={18} />
           </div>
         </div>
       </div>
@@ -245,10 +265,10 @@ export function MaritimeContainersTab({
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              رادار الحاويات وتأمين الفارغ (Container Lifecycle & Demurrage Radar)
+              سجل وتتبع دورة حياة الحاويات والطرود (Container & Cargo Lifecycle Tracking)
             </h3>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              متابعة فترات السماح (Free Days)، منع غرامات الأرضيات، وإدارة استرداد مبالغ التأمين
+              متابعة تداول الحاويات، فترات السماح (Free Days)، ومطابقة استرداد ودائع التأمين لدى التوكيلات الملاحية
             </p>
           </div>
 

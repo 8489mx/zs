@@ -861,8 +861,11 @@ export function AppShell({ children }: PropsWithChildren) {
       'maritime-matrix': 'مقارنة عروض الخطوط',
       'maritime-quotations': 'عروض أسعار العملاء',
       'maritime-jobs': 'أوامر تشغيل الشحنات',
-      'maritime-containers': 'تتبع الحاويات',
+      'maritime-radar': 'رادار الغرامات وفترات السماح',
+      'maritime-audit': 'تدقيق فواتير النواقل',
+      'maritime-containers': 'تتبع الحاويات والطرود',
       'maritime-lines': 'دليل النواقل والموانئ والمطارات',
+      'maritime-portal': 'بوابة عملاء الشحن (B2B)',
       'maritime-settings': 'إعدادات وسياسات الشحن',
       'contracting-projects': 'سجل المشاريع',
       'contracting-boq': 'جداول الكميات',
@@ -890,6 +893,10 @@ export function AppShell({ children }: PropsWithChildren) {
       'saas-admin-tenants': 'إدارة المشتركين',
       'saas-admin-plans': 'باقات الاشتراكات',
     };
+    if (isMaritimeVertical) {
+      labelOverrides['customers'] = 'الشاحنون والمستوردون';
+      labelOverrides['suppliers'] = 'النواقل ومقدمو الخدمات';
+    }
     const isPlatformAdminUser = isPlatformAdmin(user);
     const isEnterpriseCommerceActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || settings?.enableEnterpriseFeatures === true;
 
@@ -934,7 +941,33 @@ export function AppShell({ children }: PropsWithChildren) {
         }
 
         if (isMaritimeVertical) {
-          const maritimeDisallowed = ['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'sales-orders', 'returns', 'price-lists'];
+          const maritimeDisallowed = [
+            'pos',
+            'cash-drawer',
+            'online-orders',
+            'kds',
+            'displays',
+            'signage',
+            'product-modifiers',
+            'delivery-reps',
+            'trade-in',
+            'imei-history',
+            'maintenance',
+            'sales',
+            'sales-orders',
+            'returns',
+            'price-lists',
+            'quotations',
+            'purchases-rfqs',
+            'purchases-orders',
+            'purchases-reorder',
+            'purchases',
+            'purchases-new',
+            'purchase-returns',
+            'reports-sales',
+            'reports-purchases',
+            'installments',
+          ];
           if (settings?.inventoryModuleEnabled !== true) {
             maritimeDisallowed.push('pricing-center', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory');
           }
@@ -1051,7 +1084,7 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     if (currentVertical === 'maritime') {
-      return [...dashKeys, 'maritime-jobs', 'maritime-containers', 'maritime-quotations'];
+      return dashKeys;
     }
 
     if (currentVertical === 'manufacturing') {
@@ -1171,19 +1204,31 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'maritime-group',
           label: 'الشحن واللوجستيات',
-          itemKeys: ['maritime-inquiries', 'maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines', 'maritime-settings'],
+          itemKeys: [
+            'maritime-inquiries',
+            'maritime-rfqs',
+            'maritime-matrix',
+            'maritime-quotations',
+            'maritime-jobs',
+            'maritime-radar',
+            'maritime-audit',
+            'maritime-containers',
+            'maritime-lines',
+            'maritime-portal',
+            'maritime-settings',
+          ],
           iconKey: 'ship',
         },
         {
-          key: 'sales-group',
-          label: 'العملاء وعروض الأسعار',
-          itemKeys: ['crm', 'quotations', 'sales', 'customers'],
-          iconKey: 'sales',
+          key: 'customers-group',
+          label: 'الشاحنون والعملاء',
+          itemKeys: ['customers', 'crm'],
+          iconKey: 'users',
         },
         {
-          key: 'purchases-group',
-          label: 'الخطوط والموردين',
-          itemKeys: ['purchases-rfqs', 'purchases-orders', 'purchases', 'purchases-new', 'suppliers'],
+          key: 'carriers-group',
+          label: 'النواقل ومقدمو الخدمات',
+          itemKeys: ['suppliers'],
           iconKey: 'purchases',
         },
         ...(settings?.inventoryModuleEnabled ? [{
@@ -1207,7 +1252,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'reports-group',
           label: 'تقارير الشحن',
-          itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-treasury', 'reports-balances', 'reports-employees'],
+          itemKeys: ['reports-overview', 'reports-treasury', 'reports-balances', 'reports-employees'],
           iconKey: 'reports',
         },
         ...(isPlatformAdminUser ? [{

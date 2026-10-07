@@ -4,13 +4,13 @@ import { maritimeApi } from '../api/maritime-freight.api';
 import { toast } from '@/shared/components/system-alert';
 
 const SUPPORTED_CARRIERS = [
-  { code: 'MAEU', name: 'ميرسك لاين (Maersk Line)', logo: 'MAERSK', color: '#002b49' },
-  { code: 'MSCU', name: 'إم إس سي (MSC Mediterranean)', logo: 'MSC', color: '#d97706' },
-  { code: 'CMDU', name: 'سي إم إيه سي جي إم (CMA CGM)', logo: 'CMA CGM', color: '#dc2626' },
-  { code: 'HLCU', name: 'هاباج لويد (Hapag-Lloyd)', logo: 'HAPAG-LLOYD', color: '#ea580c' },
-  { code: 'COSU', name: 'كوسكو شيبنج (COSCO Shipping)', logo: 'COSCO', color: '#0284c7' },
-  { code: 'ONEY', name: 'أوشن نتورك إكسبرس (ONE)', logo: 'ONE', color: '#db2777' },
-  { code: 'EGLV', name: 'إيفرجرين لاين (Evergreen)', logo: 'EVERGREEN', color: '#16a34a' },
+  { code: 'MAEU', name: 'ميرسك لاين', logo: 'MAERSK', color: '#002b49' },
+  { code: 'MSCU', name: 'إم إس سي', logo: 'MSC', color: '#d97706' },
+  { code: 'CMDU', name: 'سي إم إيه', logo: 'CMA CGM', color: '#dc2626' },
+  { code: 'HLCU', name: 'هاباج لويد', logo: 'HAPAG-LLOYD', color: '#ea580c' },
+  { code: 'COSU', name: 'كوسكو شيبنج', logo: 'COSCO', color: '#0284c7' },
+  { code: 'ONEY', name: 'أوشن (ONE)', logo: 'ONE', color: '#db2777' },
+  { code: 'EGLV', name: 'إيفرجرين', logo: 'EVERGREEN', color: '#16a34a' },
 ];
 
 export function CarrierTrackingHubTab() {
@@ -68,24 +68,47 @@ export function CarrierTrackingHubTab() {
         </div>
 
         {/* Carrier Badges */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+        <style>{`
+          .maritime-carrier-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          @media (max-width: 900px) {
+            .maritime-carrier-grid {
+              grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            }
+          }
+        `}</style>
+        <div className="maritime-carrier-grid">
           {SUPPORTED_CARRIERS.map((c) => (
             <button
               key={c.code}
               type="button"
               onClick={() => setCarrierCode(c.code)}
               style={{
-                padding: '10px 8px',
-                borderRadius: '8px',
-                border: carrierCode === c.code ? `2px solid ${c.color}` : '1px solid #e2e8f0',
+                height: '64px',
+                minHeight: '64px',
+                boxSizing: 'border-box',
+                padding: '8px 4px',
+                borderRadius: '10px',
+                border: carrierCode === c.code ? '2px solid #170e5e' : '1px solid #e2e8f0',
                 background: carrierCode === c.code ? '#f8fafc' : '#ffffff',
+                boxShadow: carrierCode === c.code ? '0 2px 6px rgba(23, 14, 94, 0.08)' : 'none',
                 cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.1s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                minWidth: 0,
+                transition: 'none',
               }}
             >
-              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: c.color }}>{c.logo}</div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name.split(' ')[0]}</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: c.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.3px' }}>{c.logo}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
             </button>
           ))}
         </div>

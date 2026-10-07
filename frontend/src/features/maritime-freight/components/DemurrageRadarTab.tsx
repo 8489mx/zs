@@ -172,9 +172,11 @@ export function DemurrageRadarTab({
         <div
           style={{
             background: '#ffffff',
-            border: '1px solid #fee2e2',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -182,20 +184,20 @@ export function DemurrageRadarTab({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#b91c1c' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               حاويات متأخرة تحت الغرامة (Overdue)
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b91c1c', marginTop: '4px' }}>
-              {overdueCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c' }}>حاوية</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {overdueCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: overdueCount > 0 ? '#b91c1c' : '#64748b', fontWeight: overdueCount > 0 ? 700 : 500, marginTop: '3px' }}>
               غرامات متراكمة: ${totalAccruedDemurrage.toLocaleString()}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#fef2f2',
               border: '1px solid #fecaca',
@@ -203,18 +205,21 @@ export function DemurrageRadarTab({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#dc2626',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.AlertTriangle size={20} />
+            <AppIcons.AlertTriangle size={18} />
           </div>
         </div>
 
         <div
           style={{
             background: '#ffffff',
-            border: '1px solid #fef3c7',
+            border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -222,20 +227,20 @@ export function DemurrageRadarTab({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#b45309' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               حاويات حرجة (Critical &le; 3 أيام)
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '4px' }}>
-              {criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309' }}>حاوية</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               مهلة السماح توشك على النفاد
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#fffbeb',
               border: '1px solid #fde68a',
@@ -243,9 +248,10 @@ export function DemurrageRadarTab({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#d97706',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.Clock size={20} />
+            <AppIcons.Clock size={18} />
           </div>
         </div>
 
@@ -254,7 +260,9 @@ export function DemurrageRadarTab({
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -262,20 +270,20 @@ export function DemurrageRadarTab({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               أمانات محتجزة لدى الخطوط (Deposits)
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
               {depositHeldCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700, marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               قيمة التأمينات: ${depositHeldTotal.toLocaleString()}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#eff6ff',
               border: '1px solid #dbeafe',
@@ -283,9 +291,10 @@ export function DemurrageRadarTab({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#1e40af',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.Shield size={20} />
+            <AppIcons.Shield size={18} />
           </div>
         </div>
 
@@ -294,7 +303,9 @@ export function DemurrageRadarTab({
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '14px 18px',
+            padding: '12px 16px',
+            minHeight: '88px',
+            boxSizing: 'border-box',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -302,20 +313,20 @@ export function DemurrageRadarTab({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#15803d' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
               حاويات أعيدت بسلام (Returned)
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
-              {returnedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>من {totalContainers}</span>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
+              {returnedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>من {totalContainers}</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               {totalContainers > 0 ? `${Math.round((returnedCount / totalContainers) * 100)}% معدل الإعادة المكتملة` : '0%'}
             </div>
           </div>
           <div
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: '#f0fdf4',
               border: '1px solid #dcfce7',
@@ -323,9 +334,10 @@ export function DemurrageRadarTab({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#15803d',
+              flexShrink: 0,
             }}
           >
-            <AppIcons.CheckCircle size={20} />
+            <AppIcons.CheckCircle size={18} />
           </div>
         </div>
       </div>

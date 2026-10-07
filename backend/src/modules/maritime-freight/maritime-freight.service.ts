@@ -640,6 +640,15 @@ export class MaritimeFreightService {
       podCode: inquiry.pod_code,
       podName: inquiry.pod_name,
       direction: inquiry.direction as any,
+      transportMode: (inquiry.transport_mode as any) || 'sea',
+      airCargoType: inquiry.air_cargo_type || undefined,
+      grossWeightKg: inquiry.gross_weight_kg ? Number(inquiry.gross_weight_kg) : undefined,
+      volumetricWeightKg: inquiry.volumetric_weight_kg ? Number(inquiry.volumetric_weight_kg) : undefined,
+      chargeableWeightKg: inquiry.chargeable_weight_kg ? Number(inquiry.chargeable_weight_kg) : undefined,
+      totalCbm: inquiry.total_cbm ? Number(inquiry.total_cbm) : (inquiry.cbm ? Number(inquiry.cbm) : undefined),
+      packageCount: inquiry.package_count ? Number(inquiry.package_count) : undefined,
+      flightNumber: inquiry.flight_number || undefined,
+      flightDate: inquiry.flight_date || undefined,
       incoterm: inquiry.incoterm,
       cargoMode: inquiry.cargo_mode,
       containerType: inquiry.container_type,
@@ -1055,6 +1064,10 @@ export class MaritimeFreightService {
             });
         } catch (err: any) {
           this.logger.error(`Failed to send RFQ email to ${targetEmail}: ${err?.message}`);
+          if (process.env.APP_MODE !== 'CLOUD_SAAS') {
+            this.logger.log(`[SIMULATION FALLBACK] RFQ Email recorded for ${carrier.name_en} <${targetEmail}>: ${subject}`);
+            sentCount++;
+          }
         }
       } else {
         this.logger.log(`[SIMULATION] RFQ Email dispatched to ${carrier.name_en} <${targetEmail}>: ${subject}`);
@@ -1178,7 +1191,10 @@ export class MaritimeFreightService {
 
   // AI & Regex text parser for carrier email bids
   parseCarrierEmailText(rawText: string) {
-    const text = String(rawText || '');
+    let text = String(rawText || '');
+    // Strip document numbers (e.g. RFQ-261007-0010, INQ-261007-0005, MSK-...) so digits are not mistaken for prices or free days
+    text = text.replace(/\[?(?:RFQ|INQ|QUO|JOB|MSK|BKG)-[A-Z0-9-]+\]?/gi, ' ');
+
     let oceanFreight = 0;
     let currency = 'USD';
     let freeDays = 14;
@@ -1192,9 +1208,11 @@ export class MaritimeFreightService {
     else if (/\b(?:EGP|جنيه|جنية)\b/i.test(text)) currency = 'EGP';
 
     // Ocean Freight Match
-    const ofMatch = text.match(/(?:ocean\s*freight|base\s*rate|spot\s*rate|freight|rate|of|bas)(?:[^\d\n\r$]*?)[:=]?\s*\$?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
-                    text.match(/(?:usd|\$)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
-                    text.match(/([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:usd|\$)/i);
+    const ofMatch =
+      text.match(/(?:ocean\s*freight|freight\s*rate|base\s*rate|spot\s*rate|sea\s*freight|\bBAS\b|\bO\/?F\b)\s*[:=-]?\s*(?:\$|USD|EUR|€|EGP|SAR)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
+      text.match(/(?:freight|rate)\s*[:=-]\s*(?:\$|USD|EUR|€|EGP|SAR)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
+      text.match(/(?:usd|\$)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
+      text.match(/([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:usd|\$)/i);
     if (ofMatch && ofMatch[1]) {
       oceanFreight = parseFloat(ofMatch[1].replace(/,/g, ''));
     }

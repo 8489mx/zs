@@ -393,21 +393,20 @@ export class MaritimeCustomerPortalService {
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 20)));
     const offset = (page - 1) * pageSize;
 
-    let q = this.db
+    let baseQuery = this.db
       .selectFrom('maritime_jobs')
-      .selectAll()
       .where('tenant_id', '=', auth.tenantId)
       .where('customer_id', '=', auth.customerId);
 
     if (query.status === 'active') {
-      q = q.where('status', '=', 'active');
+      baseQuery = baseQuery.where('status', '=', 'active');
     } else if (query.status === 'completed') {
-      q = q.where('status', '=', 'completed');
+      baseQuery = baseQuery.where('status', '=', 'completed');
     }
 
     if (query.search && query.search.trim()) {
       const term = `%${query.search.trim()}%`;
-      q = q.where((eb) =>
+      baseQuery = baseQuery.where((eb) =>
         eb.or([
           eb('job_number', 'ilike', term),
           eb('booking_number', 'ilike', term),
@@ -419,10 +418,10 @@ export class MaritimeCustomerPortalService {
       );
     }
 
-    const totalRes = await q.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirst();
+    const totalRes = await baseQuery.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirst();
     const total = Number(totalRes?.count || 0);
 
-    const jobs = await q
+    const jobs = await baseQuery
       .selectAll()
       .orderBy('created_at', 'desc')
       .offset(offset)

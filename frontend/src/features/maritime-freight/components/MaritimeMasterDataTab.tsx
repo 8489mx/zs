@@ -500,8 +500,8 @@ export function MaritimeMasterDataTab({
                 height: '36px',
                 padding: '0 12px',
                 background: '#ffffff',
-                color: '#0284c7',
-                border: '1px solid #bae6fd',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '0.78rem',
@@ -513,7 +513,7 @@ export function MaritimeMasterDataTab({
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
-              <AppIcons.FileSpreadsheet size={15} />
+              <AppIcons.FileSpreadsheet size={15} color="#0f766e" />
               <span>استيراد من Excel / CSV</span>
             </button>
             <button
@@ -524,8 +524,8 @@ export function MaritimeMasterDataTab({
                 height: '36px',
                 padding: '0 12px',
                 background: '#ffffff',
-                color: '#15803d',
-                border: '1px solid #bbf7d0',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '0.78rem',
@@ -537,7 +537,7 @@ export function MaritimeMasterDataTab({
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
-              <AppIcons.FileSpreadsheet size={15} />
+              <AppIcons.FileSpreadsheet size={15} color="#15803d" />
               <span>تصدير إلى Excel / CSV</span>
             </button>
 
@@ -628,7 +628,7 @@ export function MaritimeMasterDataTab({
                 style={{
                   height: '36px',
                   padding: '0 14px',
-                  background: '#0284c7',
+                  background: '#170e5e',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -639,7 +639,7 @@ export function MaritimeMasterDataTab({
                   alignItems: 'center',
                   gap: '6px',
                   whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 4px rgba(2, 132, 199, 0.15)',
+                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
                 }}
               >
                 <AppIcons.Plus size={15} />
@@ -760,8 +760,8 @@ export function MaritimeMasterDataTab({
                 height: '32px',
                 padding: '0 10px',
                 borderRadius: '6px',
-                border: subTab === 'airlines' ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
-                background: subTab === 'airlines' ? '#0284c7' : '#ffffff',
+                border: subTab === 'airlines' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+                background: subTab === 'airlines' ? '#170e5e' : '#ffffff',
                 color: subTab === 'airlines' ? '#ffffff' : '#334155',
                 fontWeight: 700,
                 fontSize: '0.78rem',
@@ -846,8 +846,8 @@ export function MaritimeMasterDataTab({
                 height: '32px',
                 padding: '0 10px',
                 borderRadius: '6px',
-                border: subTab === 'airports' ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
-                background: subTab === 'airports' ? '#0284c7' : '#ffffff',
+                border: subTab === 'airports' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+                background: subTab === 'airports' ? '#170e5e' : '#ffffff',
                 color: subTab === 'airports' ? '#ffffff' : '#334155',
                 fontWeight: 700,
                 fontSize: '0.78rem',

@@ -127,7 +127,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
         />
       </Field>
       
-      {(profile.id === 'distribution' || settingsQuery.data?.deliveryFleetModuleEnabled) && (
+      {profile.id === 'distribution' && (
         <fieldset style={{ padding: '12px 16px', border: '1px solid #bfdbfe', borderRadius: '10px', background: '#eff6ff', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <legend style={{ padding: '0 8px', fontWeight: 800, color: '#1e40af', fontSize: '0.84rem' }}>بيانات التوزيع وخطوط السير (Distribution & Route)</legend>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>

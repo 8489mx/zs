@@ -48,18 +48,18 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
         return (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              {code && (
+              {code && profile.id === 'distribution' && (
                 <span style={{ fontSize: '11px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', padding: '1px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
                   #{code}
                 </span>
               )}
               <strong>{customer.name}</strong>
-              {route && (
+              {route && profile.id === 'distribution' && (
                 <span style={{ fontSize: '11px', fontWeight: 600, background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px' }}>
                   {route}
                 </span>
               )}
-              {loc && (
+              {loc && profile.id === 'distribution' && (
                 <a
                   href={loc}
                   target="_blank"
