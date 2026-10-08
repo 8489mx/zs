@@ -99,6 +99,9 @@ export interface TruckRequirementInput {
   totalCbm?: number;
   palletCount?: number;
   preferredTruckType?: TruckTypeCode;
+  assignedTrucks?: number;
+  axleLoadsKg?: number[];
+  maxAxleLoadKg?: number;
 }
 
 export interface TruckRequirementResult {
@@ -124,9 +127,20 @@ export function calculateTrucksRequired(input: TruckRequirementInput): TruckRequ
     : 'flatbed';
   const spec = STANDARD_TRUCK_SPECIFICATIONS[typeCode];
 
-  const grossWeightKg = Math.max(0, Number(input.grossWeightKg || 0));
-  const totalCbm = Math.max(0, Number(input.totalCbm || 0));
-  const palletCount = Math.max(0, Number(input.palletCount || 0));
+  const grossWeightKg = Number(input.grossWeightKg ?? 0);
+  const totalCbm = Number(input.totalCbm ?? 0);
+  const palletCount = Number(input.palletCount ?? 0);
+  if (![grossWeightKg, totalCbm, palletCount].every((n) => Number.isFinite(n) && n >= 0)) {
+    throw new Error('Invalid road freight weight, volume or pallet count');
+  }
+  if (input.axleLoadsKg) {
+    const axleLimit = Number(input.maxAxleLoadKg);
+    if (!Number.isFinite(axleLimit) || axleLimit <= 0 || input.axleLoadsKg.length === 0 ||
+      input.axleLoadsKg.some((load) => !Number.isFinite(load) || load < 0 || load > axleLimit) ||
+      input.axleLoadsKg.reduce((sum, load) => sum + load, 0) < grossWeightKg) {
+      throw new Error('Truck axle load exceeds the permitted limit or lacks a valid limit');
+    }
+  }
 
   if (grossWeightKg === 0 && totalCbm === 0 && palletCount === 0) {
     return {
@@ -148,6 +162,9 @@ export function calculateTrucksRequired(input: TruckRequirementInput): TruckRequ
   const trucksByPallets = palletCount > 0 ? Math.ceil(palletCount / spec.maxStandardPallets) : 0;
 
   const requiredTrucks = Math.max(1, trucksByWeight, trucksByVolume, trucksByPallets);
+  if (input.assignedTrucks !== undefined && (!Number.isInteger(input.assignedTrucks) || input.assignedTrucks < requiredTrucks)) {
+    throw new Error(`Shipment requires at least ${requiredTrucks} trucks for its weight and volume`);
+  }
 
   let limitingFactor: 'weight' | 'volume' | 'pallets' | 'none' = 'weight';
   if (requiredTrucks === trucksByPallets && trucksByPallets > trucksByWeight && trucksByPallets >= trucksByVolume) {
@@ -199,6 +216,12 @@ export interface RoadFreightCostInput {
   fuelSurcharge?: number;
   detentionDays?: number;
   detentionDailyRate?: number;
+  loadingWaitHours?: number;
+  unloadingWaitHours?: number;
+  borderWaitHours?: number;
+  freeWaitingHours?: number;
+  detentionHourlyRate?: number;
+  overnightDays?: number;
   customsBorderFee?: number;
   escortOverweightFee?: number;
   otherCharges?: number;
@@ -225,8 +248,11 @@ export interface RoadFreightCostResult {
  */
 export function calculateRoadFreightCost(input: RoadFreightCostInput): RoadFreightCostResult {
   const mode = input.pricingMode || 'per_trip';
-  const trucks = Math.max(1, Number(input.truckCount || 1));
-  const rate = Math.max(0, Number(input.rate || 0));
+  const trucks = Number(input.truckCount ?? 1);
+  const rate = Number(input.rate ?? 0);
+  if (!Number.isInteger(trucks) || trucks <= 0 || !Number.isFinite(rate) || rate < 0) {
+    throw new Error('Invalid truck count or freight rate');
+  }
 
   let baseFreightCost = 0;
   if (mode === 'per_trip') {
@@ -239,9 +265,20 @@ export function calculateRoadFreightCost(input: RoadFreightCostInput): RoadFreig
     baseFreightCost = Math.round(km * rate * trucks * 100) / 100;
   }
 
-  const detentionDays = Math.max(0, Number(input.detentionDays || 0));
-  const detentionRate = Math.max(0, Number(input.detentionDailyRate || 0));
-  const detentionCost = Math.round(detentionDays * detentionRate * trucks * 100) / 100;
+  const detentionDays = Number(input.detentionDays ?? 0);
+  const detentionRate = Number(input.detentionDailyRate ?? 0);
+  const waits = [input.loadingWaitHours, input.unloadingWaitHours, input.borderWaitHours]
+    .map((value) => Number(value ?? 0));
+  const waitingHours = waits.reduce((sum, value) => sum + value, 0);
+  const freeHours = Number(input.freeWaitingHours ?? 0);
+  const overnightDays = Number(input.overnightDays ?? detentionDays);
+  const hourlyRate = Number(input.detentionHourlyRate ?? 0);
+  if (![...waits, freeHours, overnightDays, hourlyRate, detentionDays, detentionRate]
+    .every((n) => Number.isFinite(n) && n >= 0)) {
+    throw new Error('Invalid truck detention duration or rate');
+  }
+  const detentionCost = Math.round(((Math.max(0, waitingHours - freeHours) * hourlyRate) +
+    (overnightDays * detentionRate)) * trucks * 100) / 100;
 
   const emptyReturnFee = Math.round(Math.max(0, Number(input.emptyReturnFee || 0)) * 100) / 100;
   const roadTollsFee = Math.round(Math.max(0, Number(input.roadTollsFee || 0)) * 100) / 100;
@@ -309,8 +346,14 @@ export function validateCmrWaybillNumber(waybillNo: string): WaybillValidationRe
       error: 'رقم بوليصة الشحن البري يحتوي على رموز غير مقبولة (يسمح بالحروف الإنجليزية والأرقام والشرطات فقط)',
     };
   }
+  if (!/\d/.test(clean) || /[-\/]{2}|^[-\/]|[-\/]$/.test(clean)) {
+    return { valid: false, error: 'رقم بوليصة الشحن البري غير مكتمل' };
+  }
 
   const isInternationalCmr = clean.startsWith('CMR') || clean.includes('/CMR/') || clean.startsWith('TIR');
+  if (isInternationalCmr && (!/(?:^|\/)(?:CMR|TIR)[-/]/.test(clean) || (clean.match(/\d/g) || []).length < 3)) {
+    return { valid: false, error: 'رقم بوليصة CMR/TIR غير مكتمل؛ يلزم مرجع متسلسل واضح' };
+  }
   const formattedWaybill = clean;
 
   return {

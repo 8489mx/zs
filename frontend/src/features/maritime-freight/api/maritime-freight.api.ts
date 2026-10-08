@@ -226,7 +226,7 @@ export interface MaritimeContainer {
   demurrage_amount: number;
   deposit_amount: number;
   deposit_currency: string;
-  deposit_status: 'not_required' | 'held_by_line' | 'pending_return_proof' | 'refunded_to_treasury';
+  deposit_status: 'not_required' | 'held_by_line' | 'pending_return_proof' | 'refunded_to_treasury' | 'forfeited';
   deposit_treasury_id: number | null;
   empty_return_proof_url: string | null;
   gated_in_at: string | null;

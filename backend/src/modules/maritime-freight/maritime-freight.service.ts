@@ -62,6 +62,151 @@ export class MaritimeFreightService {
     private readonly whatsAppGatewayService: WhatsAppGatewayService,
   ) {}
 
+  private async assertJobCanClose(tenantId: string, jobId: string) {
+    const [unbilledCharge, unpostedCarrierInvoice, journals, containers, invoicedCharges] = await Promise.all([
+      this.db.selectFrom('maritime_job_charges').select('id').where('tenant_id', '=', tenantId)
+        .where('job_id', '=', jobId).where('is_invoiced', '=', false)
+        .where((eb) => eb.or([eb('cost_amount', '>', 0), eb('sell_amount', '>', 0)]))
+        .executeTakeFirst(),
+      this.db.selectFrom('maritime_carrier_invoices').select('id').where('tenant_id', '=', tenantId)
+        .where('job_id', '=', jobId).where('journal_entry_id', 'is', null).executeTakeFirst(),
+      this.db.selectFrom('journal_entries as je')
+        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .select(['je.source_type', 'jl.debit', 'jl.credit'])
+        .where('je.tenant_id', '=', tenantId).where('je.source_id', '=', Number(jobId))
+        .where('je.status', '=', 'posted')
+        .where('je.source_type', 'in', ['maritime_job', 'maritime_job_expense', 'maritime_carrier_invoice'])
+        .execute(),
+      this.db.selectFrom('maritime_containers').select(['return_deadline', 'empty_returned_at', 'demurrage_rate_per_day'])
+        .where('tenant_id', '=', tenantId).where('job_id', '=', jobId).execute(),
+      this.db.selectFrom('maritime_job_charges').select(['charge_code', 'charge_name_en', 'sell_amount', 'cost_amount', 'currency'])
+        .where('tenant_id', '=', tenantId).where('job_id', '=', jobId).where('is_invoiced', '=', true).execute(),
+    ]);
+    if (unbilledCharge || unpostedCarrierInvoice) {
+      throw new BadRequestException('لا يمكن إغلاق الشحنة: توجد تكاليف غير مفوترة أو فاتورة ناقل غير مرحلة');
+    }
+    const expenses = journals.filter((row) => row.source_type !== 'maritime_job')
+      .reduce((sum, row) => sum + Number(row.debit || 0), 0);
+    const billed = journals.filter((row) => row.source_type === 'maritime_job')
+      .reduce((sum, row) => sum + Number(row.credit || 0), 0);
+    if (expenses > billed + 0.01) {
+      throw new BadRequestException('لا يمكن إغلاق الشحنة: المصروفات المرحلة تتجاوز فواتير العميل المرحلة');
+    }
+    let chargeCostsBase = 0;
+    for (const charge of invoicedCharges) {
+      chargeCostsBase += Number(charge.cost_amount || 0) *
+        await this.resolveFreightExchangeRate(tenantId, charge.currency);
+    }
+    if (chargeCostsBase > billed + 0.01) {
+      throw new BadRequestException('لا يمكن إغلاق الشحنة: تكاليف بنود التشغيل تتجاوز الفواتير المرحلة للعميل');
+    }
+    const hasDueDemurrage = containers.some((container) => container.return_deadline &&
+      new Date(container.empty_returned_at || Date.now()).toISOString().slice(0, 10) > container.return_deadline &&
+      Number(container.demurrage_rate_per_day || 0) > 0);
+    if (hasDueDemurrage && (billed <= 0 || !invoicedCharges.some((charge) =>
+      /DEM|DETENTION/i.test(`${charge.charge_code} ${charge.charge_name_en}`) && Number(charge.sell_amount) > 0))) {
+      throw new BadRequestException('لا يمكن إغلاق الشحنة: غرامات الحاويات المستحقة لم تُفوتر للعميل');
+    }
+  }
+
+  private async assertRoadProofOfDelivery(tenantId: string, jobId: string, bookingNumber: string | null | undefined) {
+    const cmr = validateCmrWaybillNumber(bookingNumber || '');
+    if (!cmr.valid || !cmr.isInternationalCmr) {
+      throw new BadRequestException('لا يمكن تأكيد تسليم الشحنة البرية دون رقم بوليصة CMR مكتمل');
+    }
+    const documents = await this.db.selectFrom('maritime_job_documents')
+      .select(['doc_type', 'title', 'file_url']).where('tenant_id', '=', tenantId)
+      .where('job_id', '=', jobId).execute();
+    if (!documents.some((doc) => /POD|SIGNED.?CMR|إثبات التسليم/i.test(`${doc.doc_type} ${doc.title}`) &&
+      /^(https?:\/\/|s3:\/\/)/i.test(doc.file_url))) {
+      throw new BadRequestException('يرجى إرفاق مستند إثبات التسليم POD أو بوليصة CMR موقعة قبل التسليم');
+    }
+  }
+
+  private async assertUniqueMasterBl(tenantId: string, mbl: string | null | undefined, jobId?: string, parentJobId?: string | null, trx?: any) {
+    const normalized = mbl?.trim().toUpperCase();
+    if (!normalized) return;
+    const existing: Array<{ id: string; parent_job_id: string | null }> = await (trx || this.db).selectFrom('maritime_jobs').select(['id', 'parent_job_id'])
+      .where('tenant_id', '=', tenantId).where(sql<string>`UPPER(TRIM(mbl_number))`, '=', normalized)
+      .execute();
+    const familyId = parentJobId || jobId;
+    if (existing.some((row) => String(row.id) !== jobId &&
+      !(familyId && (String(row.id) === String(familyId) || row.parent_job_id === familyId)))) {
+      throw new BadRequestException('رقم بوليصة الشحن الرئيسية Master B/L مستخدم في أمر شحن آخر');
+    }
+  }
+
+  private async postContainerDepositJournal(
+    trx: any, tenantId: string, containerId: string, amount: number, currency: string,
+    event: 'open' | 'refund' | 'forfeit', userId: number,
+  ) {
+    if (!Number.isFinite(amount) || amount <= 0) throw new BadRequestException('مبلغ تأمين الحاوية غير صالح');
+    const assetId = await this.resolveAccountId(tenantId, '1170');
+    const otherId = await this.resolveAccountId(tenantId, event === 'forfeit' ? '6400' : '1110');
+    if (!assetId || !otherId) throw new BadRequestException('حساب أمانات الحاويات أو الخزينة/المصروف غير متاح');
+    let baseAmount: number;
+    if (event === 'open') {
+      const rate = await trx.selectFrom('currency_exchange_rates').select(['exchange_rate', 'is_base'])
+        .where('tenant_id', '=', tenantId).where('currency_code', '=', currency.toUpperCase()).executeTakeFirst();
+      if (!rate || !Number.isFinite(Number(rate.exchange_rate)) || Number(rate.exchange_rate) <= 0) {
+        throw new BadRequestException(`سعر صرف تأمين الحاوية ${currency} غير متاح`);
+      }
+      baseAmount = Math.round(amount * (rate.is_base ? 1 : Number(rate.exchange_rate)) * 100) / 100;
+    } else {
+      const opening = await trx.selectFrom('journal_entries as je')
+        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .select('jl.debit').where('je.tenant_id', '=', tenantId)
+        .where('je.source_type', '=', 'maritime_container_deposit_open')
+        .where('je.source_id', '=', Number(containerId)).where('je.status', '=', 'posted')
+        .where('jl.account_id', '=', assetId).executeTakeFirst();
+      if (!opening || Number(opening.debit) <= 0) {
+        throw new BadRequestException('يلزم إثبات قيد دفع تأمين الحاوية قبل تسجيل الاسترداد أو المصادرة');
+      }
+      baseAmount = Number(opening.debit);
+    }
+    const entryDate = new Date();
+    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+    const description = `تأمين حاوية ${containerId}: ${event} (${amount} ${currency})`;
+    const [entry] = await trx.insertInto('journal_entries').values({
+      entry_no: `JRN-TMP-DEP-${crypto.randomUUID()}`, tenant_id: tenantId, account_id: tenantId,
+      entry_date: entryDate, description, source_type: `maritime_container_deposit_${event}`,
+      source_id: Number(containerId), status: 'posted', created_by: userId,
+      posted_by: userId, posted_at: sql`NOW()`,
+    }).returning('id').execute();
+    await trx.updateTable('journal_entries').set({ entry_no: `JE-${String(entry.id).padStart(8, '0')}` })
+      .where('tenant_id', '=', tenantId).where('id', '=', entry.id).execute();
+    await trx.insertInto('journal_entry_lines').values([
+      { tenant_id: tenantId, journal_entry_id: entry.id, account_id: event === 'open' ? assetId : otherId,
+        description, debit: baseAmount, credit: 0, partner_type: 'none', partner_id: null },
+      { tenant_id: tenantId, journal_entry_id: entry.id, account_id: event === 'open' ? otherId : assetId,
+        description, debit: 0, credit: baseAmount, partner_type: 'none', partner_id: null },
+    ]).execute();
+  }
+
+  private async resolveFreightExchangeRate(tenantId: string, currency: string | undefined, suppliedRate?: number): Promise<number> {
+    const setting = await this.db.selectFrom('settings').select('value')
+      .where('tenant_id', '=', tenantId).where('key', '=', 'currency').executeTakeFirst();
+    let baseCurrency = 'EGP';
+    if (setting?.value) {
+      try { baseCurrency = String(JSON.parse(setting.value)); }
+      catch { baseCurrency = String(setting.value); }
+    }
+    const sourceCurrency = (currency || baseCurrency).trim().toUpperCase();
+    if (sourceCurrency === baseCurrency.trim().toUpperCase()) return 1;
+    if (suppliedRate !== undefined) {
+      if (!Number.isFinite(Number(suppliedRate)) || Number(suppliedRate) <= 0) {
+        throw new BadRequestException('سعر الصرف يجب أن يكون موجباً وصالحاً');
+      }
+      return Number(suppliedRate);
+    }
+    const rate = await this.db.selectFrom('currency_exchange_rates').select('exchange_rate')
+      .where('tenant_id', '=', tenantId).where('currency_code', '=', sourceCurrency).executeTakeFirst();
+    if (!rate || !Number.isFinite(Number(rate.exchange_rate)) || Number(rate.exchange_rate) <= 0) {
+      throw new BadRequestException(`سعر صرف ${sourceCurrency} غير متاح؛ لا يمكن ترحيل قيمة بعملة خاطئة`);
+    }
+    return Number(rate.exchange_rate);
+  }
+
   /**
    * Ensures hardcoded master catalog (14 shipping lines, 27 overseas agents, 18 ports)
    * is seeded for the specified tenant. If records are missing, it safely seeds them
@@ -670,10 +815,10 @@ export class MaritimeFreightService {
     let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
     let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
 
-    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0)) {
       const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
-      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
-      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+      volumetricWeightKg = Math.max(volumetricWeightKg, airCalc.volumetricWeightKg);
+      chargeableWeightKg = Math.max(chargeableWeightKg, airCalc.chargeableWeightKg);
     }
 
     return await this.db.transaction().execute(async (trx) => {
@@ -850,10 +995,10 @@ export class MaritimeFreightService {
     let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
     let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
 
-    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0)) {
       const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
-      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
-      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+      volumetricWeightKg = Math.max(volumetricWeightKg, airCalc.volumetricWeightKg);
+      chargeableWeightKg = Math.max(chargeableWeightKg, airCalc.chargeableWeightKg);
     }
 
     return await this.db.transaction().execute(async (trx) => {
@@ -1581,10 +1726,10 @@ export class MaritimeFreightService {
     let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
     let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
 
-    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0)) {
       const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
-      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
-      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+      volumetricWeightKg = Math.max(volumetricWeightKg, airCalc.volumetricWeightKg);
+      chargeableWeightKg = Math.max(chargeableWeightKg, airCalc.chargeableWeightKg);
     }
 
     return await this.db.transaction().execute(async (trx) => {
@@ -1650,7 +1795,7 @@ export class MaritimeFreightService {
           const rate = Number(chg.unitRate || 0);
           const tot = Number(chg.totalAmount || (qty * rate));
           const taxPct = Number(chg.taxRatePercent || 0);
-          const taxAmt = Number(chg.taxAmount || (tot * taxPct / 100));
+          const taxAmt = Number(chg.taxAmount ?? (tot * taxPct / 100));
           await trx
             .insertInto('maritime_quotation_charges')
             .values({
@@ -1746,13 +1891,22 @@ export class MaritimeFreightService {
     let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
     let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
 
-    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0)) {
       const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
-      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
-      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+      volumetricWeightKg = Math.max(volumetricWeightKg, airCalc.volumetricWeightKg);
+      chargeableWeightKg = Math.max(chargeableWeightKg, airCalc.chargeableWeightKg);
+    }
+
+    const containerNumbers = (dto.containers || []).map((c) => c.containerNumber.trim().toUpperCase());
+    if (containerNumbers.some((number) => !number) || new Set(containerNumbers).size !== containerNumbers.length) {
+      throw new BadRequestException('لا يمكن إضافة رقم الحاوية أكثر من مرة في أمر الشحن');
     }
 
     return await this.db.transaction().execute(async (trx) => {
+      if (dto.mblNumber?.trim()) {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId}), hashtext(${dto.mblNumber.trim().toUpperCase()}))`.execute(trx);
+        await this.assertUniqueMasterBl(tenantId, dto.mblNumber, undefined, dto.parentJobId, trx);
+      }
       const tempNumber = `JOB-TMP-${crypto.randomUUID()}`;
 
       // 1. Insert Job record first with tempNumber
@@ -1792,7 +1946,7 @@ export class MaritimeFreightService {
           eta: dto.eta || null,
           port_cut_off: dto.portCutOff ? new Date(dto.portCutOff) : null,
           bl_type: dto.blType || 'original',
-          mbl_number: dto.mblNumber || null,
+          mbl_number: dto.mblNumber?.trim().toUpperCase() || null,
           hbl_number: dto.hblNumber || null,
           shipper_details: dto.shipperDetails || null,
           consignee_details: dto.consigneeDetails || null,
@@ -1840,9 +1994,9 @@ export class MaritimeFreightService {
         for (const chg of dto.charges) {
           const cost = Number(chg.costAmount || 0);
           const sell = Number(chg.sellAmount || 0);
-          const profit = Number(chg.profitAmount || (sell - cost));
+          const profit = Number(chg.profitAmount ?? (sell - cost));
           const taxPct = Number(chg.taxRatePercent || 0);
-          const taxAmt = Number(chg.taxAmount || (sell * taxPct / 100));
+          const taxAmt = Number(chg.taxAmount ?? (sell * taxPct / 100));
           await trx
             .insertInto('maritime_job_charges')
             .values({
@@ -1858,7 +2012,7 @@ export class MaritimeFreightService {
               is_local_charge: Boolean(chg.isLocalCharge),
               tax_rate_percent: taxPct,
               tax_amount: taxAmt,
-              is_invoiced: Boolean(chg.isInvoiced),
+              is_invoiced: false,
             })
             .execute();
         }
@@ -1937,12 +2091,12 @@ export class MaritimeFreightService {
       // 5. If containers provided, insert them
       if (dto.containers && dto.containers.length > 0) {
         for (const c of dto.containers) {
-          await trx
+          const [container] = await trx
             .insertInto('maritime_containers')
             .values({
               tenant_id: tenantId,
               job_id: String(job.id),
-              container_number: c.containerNumber.toUpperCase(),
+              container_number: c.containerNumber.trim().toUpperCase(),
               container_type: c.containerType || '40HC',
               seal_number: c.sealNumber || null,
               gross_weight_kg: Number(c.grossWeightKg || 0),
@@ -1952,7 +2106,11 @@ export class MaritimeFreightService {
               deposit_currency: c.depositCurrency || 'EGP',
               deposit_status: Number(c.depositAmount || 0) > 0 ? 'held_by_line' : 'not_required',
             })
-            .execute();
+            .returning('id').execute();
+          if (Number(c.depositAmount || 0) > 0) {
+            await this.postContainerDepositJournal(trx, tenantId, String(container.id), Number(c.depositAmount),
+              c.depositCurrency || 'EGP', 'open', auth.userId);
+          }
         }
       }
 
@@ -2030,7 +2188,7 @@ export class MaritimeFreightService {
           containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
           containerType,
           freeDays,
-          depositAmount: 5000,
+          depositAmount: 0,
           depositCurrency: 'EGP',
         });
       }
@@ -2200,14 +2358,32 @@ export class MaritimeFreightService {
 
   async updateJob(auth: AuthContext, id: string, dto: any) {
     const { tenantId } = requireTenantScope(auth);
-    const existing = await this.db
+    return await this.db.transaction().execute(async (trx) => {
+    const existing = await trx
       .selectFrom('maritime_jobs')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where('id', '=', id as any)
+      .forUpdate()
       .executeTakeFirst();
 
     if (!existing) throw new NotFoundException('Shipment Job not found');
+    const closingMode = dto.transportMode || existing.transport_mode;
+    if (dto.status === 'completed' && existing.status !== 'completed') {
+      await this.assertJobCanClose(tenantId, id);
+      if (closingMode === 'air' && existing.milestone_status !== 'DLV') {
+        throw new BadRequestException('إغلاق الشحنة الجوية يتطلب استكمال معالم Cargo iQ حتى التسليم');
+      }
+      if (closingMode === 'road') {
+        await this.assertRoadProofOfDelivery(tenantId, id, dto.bookingNumber ?? existing.booking_number);
+      }
+    }
+    if (dto.mblNumber !== undefined) {
+      if (dto.mblNumber?.trim()) {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId}), hashtext(${dto.mblNumber.trim().toUpperCase()}))`.execute(trx);
+      }
+      await this.assertUniqueMasterBl(tenantId, dto.mblNumber, id, existing.parent_job_id, trx);
+    }
 
     const updatePayload: any = {
       updated_at: sql`NOW()`,
@@ -2236,10 +2412,10 @@ export class MaritimeFreightService {
     let volumetricWeightKg = dto.volumetricWeightKg !== undefined ? Number(dto.volumetricWeightKg || 0) : Number(existing.volumetric_weight_kg || 0);
     let chargeableWeightKg = dto.chargeableWeightKg !== undefined ? Number(dto.chargeableWeightKg || 0) : Number(existing.chargeable_weight_kg || 0);
 
-    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0)) {
       const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
-      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
-      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+      volumetricWeightKg = Math.max(volumetricWeightKg, airCalc.volumetricWeightKg);
+      chargeableWeightKg = Math.max(chargeableWeightKg, airCalc.chargeableWeightKg);
     }
 
     if (dto.grossWeightKg !== undefined) updatePayload.gross_weight_kg = grossWeightKg;
@@ -2259,7 +2435,7 @@ export class MaritimeFreightService {
     if (dto.eta !== undefined) updatePayload.eta = dto.eta || null;
     if (dto.portCutOff !== undefined) updatePayload.port_cut_off = dto.portCutOff || null;
     if (dto.blType !== undefined) updatePayload.bl_type = dto.blType;
-    if (dto.mblNumber !== undefined) updatePayload.mbl_number = dto.mblNumber || null;
+    if (dto.mblNumber !== undefined) updatePayload.mbl_number = dto.mblNumber?.trim().toUpperCase() || null;
     if (dto.hblNumber !== undefined) updatePayload.hbl_number = dto.hblNumber || null;
     if (dto.shipperDetails !== undefined) updatePayload.shipper_details = dto.shipperDetails || null;
     if (dto.consigneeDetails !== undefined) updatePayload.consignee_details = dto.consigneeDetails || null;
@@ -2268,7 +2444,7 @@ export class MaritimeFreightService {
     if (dto.shippingLineName !== undefined) updatePayload.shipping_line_name = dto.shippingLineName;
     if (dto.notes !== undefined) updatePayload.notes = dto.notes || null;
 
-    const [updatedJob] = await this.db
+    const [updatedJob] = await trx
       .updateTable('maritime_jobs')
       .set(updatePayload)
       .where('tenant_id', '=', tenantId)
@@ -2277,12 +2453,38 @@ export class MaritimeFreightService {
       .execute();
 
     return updatedJob;
+    });
   }
 
   async addJobMilestone(auth: AuthContext, jobId: string, milestoneKey: ShipmentMilestoneKey, notes?: string, location?: string) {
     const { tenantId } = requireTenantScope(auth);
+    const job = await this.db.selectFrom('maritime_jobs').select(['transport_mode', 'milestone_status'])
+      .where('tenant_id', '=', tenantId).where('id', '=', jobId as any).executeTakeFirst();
+    if (!job) throw new NotFoundException('Shipment Job not found');
+    if (job.transport_mode === 'air') {
+      const currentIndex = IATA_CARGO_IQ_MILESTONES.findIndex((m) => m.key === job.milestone_status);
+      const nextIndex = IATA_CARGO_IQ_MILESTONES.findIndex((m) => m.key === milestoneKey);
+      if (nextIndex < 0 || nextIndex !== currentIndex + 1) {
+        throw new BadRequestException('لا يمكن تخطي المعالم الإلزامية لمسار الشحن الجوي Cargo iQ');
+      }
+    }
+    if (milestoneKey === 'RETN') await this.assertJobCanClose(tenantId, jobId);
+    if (milestoneKey === 'RETN') {
+      const containers = await this.db.selectFrom('maritime_containers').select(['discharged_at'])
+        .where('tenant_id', '=', tenantId).where('job_id', '=', jobId as any).execute();
+      if (containers.some((container) => !container.discharged_at ||
+        new Date(container.discharged_at).getTime() > Date.now())) {
+        throw new BadRequestException('لا يمكن إرجاع الحاويات قبل تسجيل تفريغها');
+      }
+    }
+    if (job.transport_mode === 'road' && milestoneKey === 'TRK_POD') {
+      const roadJob = await this.db.selectFrom('maritime_jobs').select('booking_number')
+        .where('tenant_id', '=', tenantId).where('id', '=', jobId as any).executeTakeFirst();
+      await this.assertRoadProofOfDelivery(tenantId, jobId, roadJob?.booking_number);
+    }
     const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey)
-      || IATA_CARGO_IQ_MILESTONES.find((m) => m.key === milestoneKey);
+      || IATA_CARGO_IQ_MILESTONES.find((m) => m.key === milestoneKey)
+      || ROAD_FREIGHT_MILESTONES.find((m) => m.key === milestoneKey);
     const milestoneTitle = milestoneDef ? `${milestoneDef.title_ar} (${milestoneDef.title_en})` : milestoneKey;
 
     await this.db
@@ -2347,18 +2549,21 @@ export class MaritimeFreightService {
       updatePayload.delivered_to_client_at = sql`NOW()`;
     } else if (milestoneKey === 'RETN') {
       // 4. Empty Container Returned: close container & job
+      const containers = await this.db.selectFrom('maritime_containers').selectAll()
+        .where('tenant_id', '=', tenantId).where('job_id', '=', jobId as any).execute();
       updatePayload.status = 'completed';
-      await this.db
-        .updateTable('maritime_containers')
-        .set({
+      for (const container of containers.filter((row) => !row.empty_returned_at)) {
+        const deadline = container.return_deadline ? Date.parse(container.return_deadline) : Date.now();
+        const overdueDays = Math.max(0, Math.floor((Date.now() - deadline) / 86_400_000));
+        await this.db.updateTable('maritime_containers').set({
           empty_returned_at: sql`NOW()`,
-          deposit_status: 'pending_return_proof',
+          deposit_status: ['refunded_to_treasury', 'forfeited'].includes(container.deposit_status)
+            ? container.deposit_status : Number(container.deposit_amount || 0) > 0 ? 'pending_return_proof' : 'not_required',
+          is_overdue: false, overdue_days: overdueDays,
+          demurrage_amount: overdueDays * Number(container.demurrage_rate_per_day || 0),
           updated_at: sql`NOW()`,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('job_id', '=', jobId as any)
-        .where('empty_returned_at', 'is', null)
-        .execute();
+        }).where('tenant_id', '=', tenantId).where('id', '=', container.id as any).execute();
+      }
     }
 
     const [updatedJob] = await this.db
@@ -2639,14 +2844,45 @@ export class MaritimeFreightService {
 
   async updateContainer(auth: AuthContext, containerId: string, dto: UpdateMaritimeContainerDto) {
     const { tenantId } = requireTenantScope(auth);
-    const container = await this.db
+    return await this.db.transaction().execute(async (trx) => {
+    const container = await trx
       .selectFrom('maritime_containers')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .where('id', '=', containerId as any)
+      .forUpdate()
       .executeTakeFirst();
 
     if (!container) throw new NotFoundException('Container not found');
+    const dischargedAtValue = dto.dischargedAt !== undefined ? dto.dischargedAt : container.discharged_at;
+    const returnedAtValue = dto.emptyReturnedAt !== undefined ? dto.emptyReturnedAt : container.empty_returned_at;
+    if ([dischargedAtValue, returnedAtValue].some((value) => value && !Number.isFinite(new Date(String(value)).getTime()))) {
+      throw new BadRequestException('تاريخ تفريغ أو إرجاع الحاوية غير صالح');
+    }
+    if (dischargedAtValue && returnedAtValue && new Date(String(returnedAtValue)).getTime() < new Date(String(dischargedAtValue)).getTime()) {
+      throw new BadRequestException('تاريخ إرجاع الحاوية لا يمكن أن يسبق تاريخ التفريغ');
+    }
+    if (dto.depositAmount !== undefined && Number(dto.depositAmount) !== Number(container.deposit_amount)) {
+      throw new BadRequestException('لا يمكن تغيير مبلغ تأمين سبق قيده محاسبياً');
+    }
+    if (dto.depositCurrency !== undefined && dto.depositCurrency !== container.deposit_currency) {
+      throw new BadRequestException('لا يمكن تغيير عملة تأمين سبق قيده محاسبياً');
+    }
+    if (dto.depositStatus === 'not_required' && Number(container.deposit_amount) > 0) {
+      throw new BadRequestException('لا يمكن إلغاء تأمين حاوية له مبلغ وقيد محاسبي');
+    }
+    const terminalDepositStatus = String(dto.depositStatus || '');
+    if (['refunded_to_treasury', 'forfeited'].includes(terminalDepositStatus)) {
+      if (['refunded_to_treasury', 'forfeited'].includes(container.deposit_status)) {
+        if (container.deposit_status !== terminalDepositStatus) throw new BadRequestException('تمت تسوية تأمين الحاوية مسبقاً');
+      } else {
+        await this.postContainerDepositJournal(trx, tenantId, containerId, Number(container.deposit_amount),
+          container.deposit_currency, terminalDepositStatus === 'forfeited' ? 'forfeit' : 'refund', auth.userId);
+      }
+    } else if (['refunded_to_treasury', 'forfeited'].includes(container.deposit_status) &&
+      dto.depositStatus !== undefined && dto.depositStatus !== container.deposit_status) {
+      throw new BadRequestException('لا يمكن إعادة فتح تأمين تمت تسويته محاسبياً');
+    }
 
     if (dto.freeDays !== undefined && (!Number.isInteger(dto.freeDays) || dto.freeDays < 0)) {
       throw new BadRequestException('فترة السماح يجب أن تكون عدداً صحيحاً غير سالب');
@@ -2698,7 +2934,25 @@ export class MaritimeFreightService {
       updatePayload.demurrage_amount = 0;
     }
 
-    const [updated] = await this.db
+    const originalDemurrage = Math.max(Number(container.demurrage_amount || 0),
+      Number(updatePayload.overdue_days || 0) * Number(container.demurrage_rate_per_day || 0));
+    if (Number(updatePayload.demurrage_amount || 0) > Number(container.demurrage_amount || 0) + 0.01) {
+      const job = await trx.selectFrom('maritime_jobs').select('status')
+        .where('tenant_id', '=', tenantId).where('id', '=', container.job_id as any).executeTakeFirst();
+      if (job?.status === 'completed') {
+        throw new BadRequestException('أعد فتح الشحنة وفوتر غرامة التأخير الجديدة قبل تعديل الحاوية');
+      }
+    }
+    if (originalDemurrage > Number(updatePayload.demurrage_amount || 0) + 0.01) {
+      const reason = (dto.notes || '').trim();
+      if (!['admin', 'super_admin', 'finance_manager'].includes(auth.role.toLowerCase()) ||
+        reason.length < 10 || reason === (container.notes || '').trim()) {
+        throw new BadRequestException('خفض غرامة التأخير يتطلب اعتماد مدير مالي وسبباً موثقاً لا يقل عن 10 أحرف');
+      }
+      updatePayload.notes = `${container.notes || ''}\nاعتماد خفض الغرامة من ${originalDemurrage} إلى ${updatePayload.demurrage_amount}: ${reason} (مستخدم ${auth.userId})`;
+    }
+
+    const [updated] = await trx
       .updateTable('maritime_containers')
       .set(updatePayload)
       .where('tenant_id', '=', tenantId)
@@ -2707,10 +2961,13 @@ export class MaritimeFreightService {
       .execute();
 
     return updated;
+    });
   }
 
   async createContainer(auth: AuthContext, dto: any) {
     const { tenantId } = requireTenantScope(auth);
+    const containerNumber = String(dto.containerNumber || '').trim().toUpperCase();
+    if (!containerNumber) throw new BadRequestException('رقم الحاوية مطلوب');
 
     const freeDays = Number(dto.freeDays ?? 14);
     const demurrageRate = Number(dto.demurrageRatePerDay ?? 0);
@@ -2727,12 +2984,21 @@ export class MaritimeFreightService {
       depositStatus = 'held_by_line';
     }
 
-    const [inserted] = await this.db
+    const inserted = await this.db.transaction().execute(async (trx) => {
+    const job = await trx.selectFrom('maritime_jobs').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', String(dto.jobId) as any)
+      .forUpdate().executeTakeFirst();
+    if (!job) throw new NotFoundException('Shipment Job not found');
+    const duplicate = await trx.selectFrom('maritime_containers').select('id')
+      .where('tenant_id', '=', tenantId).where('job_id', '=', String(dto.jobId))
+      .where(sql<string>`UPPER(TRIM(container_number))`, '=', containerNumber).executeTakeFirst();
+    if (duplicate) throw new BadRequestException('رقم الحاوية موجود مسبقاً في أمر الشحن');
+    const [container] = await trx
       .insertInto('maritime_containers')
       .values({
         tenant_id: tenantId,
         job_id: dto.jobId,
-        container_number: (dto.containerNumber || '').toUpperCase(),
+        container_number: containerNumber,
         container_type: dto.containerType || "40' HC",
         seal_number: dto.sealNumber || null,
         gross_weight_kg: Number(dto.grossWeightKg) || 0,
@@ -2750,6 +3016,12 @@ export class MaritimeFreightService {
       })
       .returningAll()
       .execute();
+    if (Number(dto.depositAmount || 0) > 0) {
+      await this.postContainerDepositJournal(trx, tenantId, String(container.id), Number(dto.depositAmount),
+        dto.depositCurrency || 'USD', 'open', auth.userId);
+    }
+    return container;
+    });
 
     return inserted;
   }
@@ -3094,7 +3366,7 @@ export class MaritimeFreightService {
       throw new BadRequestException('يجب تحديد مبلغ صالح للفاتورة أكبر من صفر');
     }
 
-    const exchangeRate = dto?.exchangeRate && Number(dto.exchangeRate) > 0 ? Number(dto.exchangeRate) : 1;
+    const exchangeRate = await this.resolveFreightExchangeRate(tenantId, dto?.currency, dto?.exchangeRate);
     const baseInvoiceAmount = Math.round(invoiceAmount * exchangeRate * 100) / 100;
 
     // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100).
@@ -3175,14 +3447,21 @@ export class MaritimeFreightService {
         ])
         .execute();
 
+      const postedRevenue = await trx.selectFrom('journal_entries as je')
+        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .select(sql<number>`COALESCE(SUM(jl.credit), 0)`.as('amount'))
+        .where('je.tenant_id', '=', tenantId).where('je.source_type', '=', 'maritime_job')
+        .where('je.source_id', '=', Number(job.id)).where('je.status', '=', 'posted')
+        .executeTakeFirst();
+      const billedTotal = Number(postedRevenue?.amount || 0);
       const carrierCost = Number(job.carrier_cost_total || 0);
       const otherCosts = Number(job.other_costs_total || 0);
-      const netProfit = invoiceAmount - (carrierCost + otherCosts);
+      const netProfit = billedTotal - (carrierCost + otherCosts);
 
       const [updated] = await trx
         .updateTable('maritime_jobs')
         .set({
-          client_invoiced_total: invoiceAmount,
+          client_invoiced_total: billedTotal,
           net_profit: netProfit,
           updated_at: sql`NOW()`,
         })
@@ -3222,11 +3501,14 @@ export class MaritimeFreightService {
     const job = await this.getJobById(auth, jobId);
 
     const amount = Number(dto.amount || 0);
+    if (job.status === 'completed') {
+      throw new BadRequestException('أعد فتح الشحنة قبل إضافة مصروفات جديدة حتى لا تتسرب من الفوترة');
+    }
     if (amount <= 0) {
       throw new BadRequestException('يجب تحديد مبلغ صالح للمصروف أكبر من صفر');
     }
 
-    const exchangeRate = Number(dto?.exchangeRate) > 0 ? Number(dto.exchangeRate) : 1;
+    const exchangeRate = await this.resolveFreightExchangeRate(tenantId, dto.currency, dto.exchangeRate);
     const baseExpenseAmount = Math.round(amount * exchangeRate * 100) / 100;
 
     // 1. Ensure cost center exists
@@ -3348,9 +3630,9 @@ export class MaritimeFreightService {
       let otherCosts = Number(job.other_costs_total || 0);
 
       if (dto.expenseType === 'carrier') {
-        carrierCost += amount;
+        carrierCost += baseExpenseAmount;
       } else {
-        otherCosts += amount;
+        otherCosts += baseExpenseAmount;
       }
 
       const revenue = Number(job.client_invoiced_total || 0);
@@ -4355,7 +4637,7 @@ export class MaritimeFreightService {
       );
     }
 
-    const exchangeRate = Number(params.exchangeRate) > 0 ? Number(params.exchangeRate) : 1;
+    const exchangeRate = await this.resolveFreightExchangeRate(tenantId, params.currency, params.exchangeRate);
     const baseTotalAmount = Math.round(totalAmount * exchangeRate * 100) / 100;
     const fxSuffix = exchangeRate !== 1 ? ` (${totalAmount} ${params.currency || 'USD'} @ ${exchangeRate})` : '';
 
@@ -4417,7 +4699,7 @@ export class MaritimeFreightService {
       ])
       .execute();
 
-    const newCarrierCost = Number(job.carrier_cost_total || 0) + totalAmount;
+    const newCarrierCost = Number(job.carrier_cost_total || 0) + baseTotalAmount;
     const revenue = Number(job.client_invoiced_total || 0);
     const otherCosts = Number(job.other_costs_total || 0);
     const newNetProfit = revenue - (newCarrierCost + otherCosts);
@@ -4528,6 +4810,9 @@ export class MaritimeFreightService {
   ) {
     const { tenantId } = requireTenantScope(auth);
     const job = await this.getJobById(auth, jobId);
+    if (job.status === 'completed') {
+      throw new BadRequestException('أعد فتح الشحنة قبل إضافة فاتورة ناقل جديدة');
+    }
 
     const totalAmount = Number(dto.totalInvoicedAmount || 0);
     if (totalAmount <= 0) {
@@ -4537,28 +4822,7 @@ export class MaritimeFreightService {
       throw new BadRequestException('يجب إدخال رقم فاتورة الخط الملاحي');
     }
     const currency = (dto.currency || 'USD').trim().toUpperCase();
-    const currencySetting = await this.db
-      .selectFrom('settings')
-      .select('value')
-      .where('tenant_id', '=', tenantId)
-      .where('key', '=', 'currency')
-      .executeTakeFirst();
-    let systemCurrency = 'EGP';
-    if (currencySetting) {
-      try { systemCurrency = String(JSON.parse(currencySetting.value)); }
-      catch { systemCurrency = String(currencySetting.value); }
-    }
-    systemCurrency = systemCurrency.trim().toUpperCase();
-
-    let exchangeRate = Number(dto.exchangeRate || 0);
-    if (exchangeRate <= 0) {
-      if (currency === systemCurrency) {
-        exchangeRate = 1;
-      } else {
-        const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
-        exchangeRate = Number(pipelineConfig.defaultExchangeRate) > 0 ? Number(pipelineConfig.defaultExchangeRate) : 1;
-      }
-    }
+    const exchangeRate = await this.resolveFreightExchangeRate(tenantId, currency, dto.exchangeRate);
 
     // 1. Audit against rate card
     const auditPreview = await this.previewCarrierInvoiceAudit(auth, jobId, {
@@ -4706,22 +4970,7 @@ export class MaritimeFreightService {
       let entryId = invoice.journal_entry_id ? Number(invoice.journal_entry_id) : null;
       if (!entryId) {
         const invCurrency = String(invoice.currency || 'USD').trim().toUpperCase();
-        let fxRate = 1;
-        const currencySetting = await trx
-          .selectFrom('settings')
-          .select('value')
-          .where('tenant_id', '=', tenantId)
-          .where('key', '=', 'currency')
-          .executeTakeFirst();
-        let sysCurr = 'EGP';
-        if (currencySetting) {
-          try { sysCurr = String(JSON.parse(currencySetting.value)); }
-          catch { sysCurr = String(currencySetting.value); }
-        }
-        if (invCurrency !== sysCurr.trim().toUpperCase()) {
-          const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
-          fxRate = Number(pipelineConfig.defaultExchangeRate) > 0 ? Number(pipelineConfig.defaultExchangeRate) : 1;
-        }
+        const fxRate = await this.resolveFreightExchangeRate(tenantId, invCurrency);
 
         entryId = await this.postCarrierInvoiceJournal(trx, tenantId, {
           job,
@@ -5513,25 +5762,43 @@ export class MaritimeFreightService {
 
   async updateJobCharges(auth: AuthContext, jobId: string | number, dto: UpdateJobChargesDto) {
     const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, String(jobId));
+    if (job.status === 'completed') {
+      throw new BadRequestException('أعد فتح الشحنة قبل تعديل مصروفاتها ورسومها');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      const invoicedCharges = dto.charges.filter((charge) => charge.isInvoiced);
+      if (invoicedCharges.length > 0) {
+        const posted = await trx.selectFrom('journal_entries as je')
+          .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+          .select(sql<number>`COALESCE(SUM(jl.credit), 0)`.as('amount'))
+          .where('je.tenant_id', '=', tenantId).where('je.source_id', '=', Number(jobId))
+          .where('je.source_type', '=', 'maritime_job').where('je.status', '=', 'posted')
+          .executeTakeFirst();
+        let markedTotal = 0;
+        for (const charge of invoicedCharges) {
+          if (Number(charge.sellAmount || 0) <= 0) {
+            throw new BadRequestException('لا يمكن وسم بند تكلفة مفوتر دون مبلغ بيع للعميل');
+          }
+          markedTotal += Number(charge.sellAmount) *
+            await this.resolveFreightExchangeRate(tenantId, charge.currency || 'USD');
+        }
+        if (markedTotal > Number(posted?.amount || 0) + 0.01) {
+          throw new BadRequestException('البنود الموسومة مفوترة تتجاوز فواتير العميل المرحلة فعلياً');
+        }
+      }
       await trx
         .deleteFrom('maritime_job_charges')
         .where('tenant_id', '=', tenantId)
         .where('job_id', '=', String(jobId))
         .execute();
 
-      let totalCost = 0;
-      let totalSell = 0;
-
       for (const chg of dto.charges) {
         const cost = Number(chg.costAmount || 0);
         const sell = Number(chg.sellAmount || 0);
-        const profit = Number(chg.profitAmount || (sell - cost));
+        const profit = Number(chg.profitAmount ?? (sell - cost));
         const taxPct = Number(chg.taxRatePercent || 0);
-        const taxAmt = Number(chg.taxAmount || (sell * taxPct / 100));
-
-        totalCost += cost;
-        totalSell += sell;
+        const taxAmt = Number(chg.taxAmount ?? (sell * taxPct / 100));
 
         await trx
           .insertInto('maritime_job_charges')
@@ -5553,18 +5820,6 @@ export class MaritimeFreightService {
           .execute();
       }
 
-      await trx
-        .updateTable('maritime_jobs')
-        .set({
-          carrier_cost_total: totalCost,
-          client_invoiced_total: totalSell,
-          net_profit: totalSell - totalCost,
-          updated_at: sql`NOW()`,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', String(jobId) as any)
-        .execute();
-
       return await trx
         .selectFrom('maritime_job_charges')
         .selectAll()
@@ -5577,6 +5832,9 @@ export class MaritimeFreightService {
 
   async calculateJobForexGainLoss(auth: AuthContext, jobId: string | number, actualRoe: number) {
     const { tenantId } = requireTenantScope(auth);
+    if (!Number.isFinite(actualRoe) || actualRoe <= 0) {
+      throw new BadRequestException('سعر الصرف الفعلي يجب أن يكون موجباً وصالحاً');
+    }
     const job = await this.db
       .selectFrom('maritime_jobs')
       .selectAll()
@@ -5587,12 +5845,20 @@ export class MaritimeFreightService {
     if (!job) throw new NotFoundException('Job not found');
 
     const quoteRoe = Number(job.quote_roe || 0);
-    const foreignTotal = Number(job.carrier_cost_total || 0);
-
-    let forexGainLoss = 0;
-    if (quoteRoe > 0 && actualRoe > 0) {
-      forexGainLoss = (actualRoe - quoteRoe) * foreignTotal;
+    const base = await this.db.selectFrom('currency_exchange_rates').select('currency_code')
+      .where('tenant_id', '=', tenantId).where('is_base', '=', true).executeTakeFirst();
+    const invoices = await this.db.selectFrom('maritime_carrier_invoices')
+      .select(['currency', 'total_invoiced_amount']).where('tenant_id', '=', tenantId)
+      .where('job_id', '=', String(jobId)).where('journal_entry_id', 'is not', null).execute();
+    const foreignInvoices = invoices.filter((invoice) => invoice.currency.toUpperCase() !== (base?.currency_code || 'EGP').toUpperCase());
+    if (new Set(foreignInvoices.map((invoice) => invoice.currency.toUpperCase())).size > 1) {
+      throw new BadRequestException('توجد أكثر من عملة ناقل؛ يلزم احتساب فروق الصرف لكل عملة على حدة');
     }
+    if (foreignInvoices.length > 0 && (!Number.isFinite(quoteRoe) || quoteRoe <= 0)) {
+      throw new BadRequestException('سعر الصرف التعاقدي غير متاح لحساب فرق العملة');
+    }
+    const foreignTotal = foreignInvoices.reduce((sum, invoice) => sum + Number(invoice.total_invoiced_amount || 0), 0);
+    const forexGainLoss = Math.round((quoteRoe - actualRoe) * foreignTotal * 100) / 100;
 
     const [updated] = await this.db
       .updateTable('maritime_jobs')
@@ -5886,12 +6152,15 @@ export class MaritimeFreightService {
       // If job exists, register milestone on the job
       const job = await trx
         .selectFrom('maritime_jobs')
-        .select(['id', 'transport_mode'])
+        .select(['id', 'transport_mode', 'status'])
         .where('tenant_id', '=', tenantId)
         .where('id', '=', String(dto.jobId) as any)
         .executeTakeFirst();
 
       if (job) {
+        if (job.status === 'completed') {
+          throw new BadRequestException('أعد فتح الشحنة قبل إضافة رحلة نقل بري جديدة');
+        }
         await trx
           .insertInto('maritime_job_milestones')
           .values({
@@ -5922,6 +6191,27 @@ export class MaritimeFreightService {
   async updateInlandTruckingTripStatus(auth: AuthContext, id: string | number, dto: UpdateInlandTruckingTripStatusDto) {
     const { tenantId } = requireTenantScope(auth);
     return await this.db.transaction().execute(async (trx) => {
+      const trip = await trx.selectFrom('maritime_inland_trucking_trips').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', String(id) as any)
+        .forUpdate().executeTakeFirst();
+      if (!trip) throw new NotFoundException('Inland trucking trip not found');
+      const job = await trx.selectFrom('maritime_jobs').select(['transport_mode', 'gross_weight_kg', 'total_cbm', 'booking_number'])
+        .where('tenant_id', '=', tenantId).where('id', '=', trip.job_id as any).executeTakeFirst();
+      if (job?.transport_mode === 'road' && dto.tripStatus === 'in_transit') {
+        const assigned = await trx.selectFrom('maritime_inland_trucking_trips').select('truck_plate')
+          .where('tenant_id', '=', tenantId).where('job_id', '=', trip.job_id)
+          .where('trip_status', 'in', ['assigned', 'loading', 'in_transit']).execute();
+        try {
+          calculateTrucksRequired({ grossWeightKg: Number(job.gross_weight_kg || 0),
+            totalCbm: Number(job.total_cbm || 0),
+            assignedTrucks: new Set(assigned.map((row) => row.truck_plate)).size });
+        } catch (error: any) {
+          throw new BadRequestException(error.message);
+        }
+      }
+      if (job?.transport_mode === 'road' && dto.tripStatus === 'delivered') {
+        await this.assertRoadProofOfDelivery(tenantId, trip.job_id, job.booking_number);
+      }
       const [updated] = await trx
         .updateTable('maritime_inland_trucking_trips')
         .set({

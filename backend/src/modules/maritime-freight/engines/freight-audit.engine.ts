@@ -97,15 +97,15 @@ export function calculateFreightAudit(input: FreightAuditInput): FreightAuditRes
   const invCurrency = (input.invoicedCurrency || 'USD').toUpperCase();
   const fxRate = Number(input.exchangeRate || 0);
 
-  if (cardCurrency !== invCurrency && fxRate <= 0) {
+  if (cardCurrency !== invCurrency && (!Number.isFinite(fxRate) || fxRate <= 0)) {
     return {
       hasRateCard: true,
       rateCardId: rateCard.id,
-      contractedRatePerUnit: Number(rateCard.totalFreightCost || 0),
+      contractedRatePerUnit: 0,
       containerCount,
-      contractedTotal: Number(rateCard.totalFreightCost || 0) * containerCount,
+      contractedTotal: 0,
       invoicedTotal,
-      varianceAmount: invoicedTotal,
+      varianceAmount: 0,
       variancePct: 0,
       auditStatus: 'currency_mismatch',
       isOvercharged: false,

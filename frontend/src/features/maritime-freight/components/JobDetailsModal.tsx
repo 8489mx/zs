@@ -457,7 +457,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         returnDeadline: addContainerForm.returnDeadline || undefined,
         demurrageRatePerDay: Number(addContainerForm.demurrageRatePerDay),
         depositAmount: Number(addContainerForm.depositAmount) || 0,
-        depositCurrency: addContainerForm.depositCurrency || 'USD',
+        depositCurrency: currencyCode,
         notes: addContainerForm.notes || undefined,
       });
       toast.success(`تمت إضافة الحاوية [${addContainerForm.containerNumber.toUpperCase()}] بنجاح`);
@@ -3352,6 +3352,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       { value: 'held_by_line', label: 'محتجزة لدى التوكيل الملاحي' },
                       { value: 'pending_return_proof', label: 'بانتظار إثبات إرجاع الفارغ' },
                       { value: 'refunded_to_treasury', label: 'تم الاسترداد للخزينة' },
+                      { value: 'forfeited', label: 'تمت مصادرة التأمين' },
                     ]}
                   />
                 </Field>

@@ -40,8 +40,11 @@ export interface AirWeightCalculationResult {
  * Chargeable Weight = Max(Gross Weight, Volumetric Weight) rounded up to nearest 0.5 kg.
  */
 export function calculateAirChargeableWeight(input: AirWeightCalculationInput): AirWeightCalculationResult {
-  const grossWeightKg = Math.max(0, Number(input.grossWeightKg || 0));
-  const divisor = Math.max(1, Number(input.divisor || 6000));
+  const grossWeightKg = Number(input.grossWeightKg ?? 0);
+  const divisor = Number(input.divisor ?? 6000);
+  if (!Number.isFinite(grossWeightKg) || grossWeightKg < 0 || !Number.isFinite(divisor) || divisor <= 0) {
+    throw new Error('Invalid air cargo weight or volumetric divisor');
+  }
   const roundToHalfKg = input.roundToHalfKg !== false; // defaults to true per IATA
   let totalCbm = 0;
   let volumetricWeightKg = 0;
@@ -49,23 +52,29 @@ export function calculateAirChargeableWeight(input: AirWeightCalculationInput): 
   if (input.dimensions && input.dimensions.length > 0) {
     let totalCubicCm = 0;
     for (const d of input.dimensions) {
-      const l = Math.max(0, Number(d.lengthCm || 0));
-      const w = Math.max(0, Number(d.widthCm || 0));
-      const h = Math.max(0, Number(d.heightCm || 0));
-      const q = Math.max(1, Number(d.quantity || 1));
+      const l = Number(d.lengthCm);
+      const w = Number(d.widthCm);
+      const h = Number(d.heightCm);
+      const q = Number(d.quantity);
+      if (![l, w, h, q].every(Number.isFinite) || l <= 0 || w <= 0 || h <= 0 || !Number.isInteger(q) || q <= 0) {
+        throw new Error('Invalid air cargo dimensions or package quantity');
+      }
       totalCubicCm += l * w * h * q;
     }
     // Divisor: 6000 cm3 = 1 kg (IATA standard) or 5000 cm3 = 1 kg (Express courier)
-    volumetricWeightKg = Math.round((totalCubicCm / divisor) * 1000) / 1000;
+    volumetricWeightKg = totalCubicCm / divisor;
     totalCbm = Math.round((totalCubicCm / 1000000) * 1000) / 1000;
-  } else if (input.cbm && Number(input.cbm) > 0) {
-    totalCbm = Math.round(Number(input.cbm) * 1000) / 1000;
+  } else if (input.cbm !== undefined) {
+    if (!Number.isFinite(Number(input.cbm)) || Number(input.cbm) < 0) {
+      throw new Error('Invalid air cargo volume');
+    }
+    totalCbm = Number(input.cbm);
     // 1 CBM in kg = 1,000,000 / divisor (166.667 for 6000, 200 for 5000)
     const factor = 1000000 / divisor;
-    volumetricWeightKg = Math.round((totalCbm * factor) * 1000) / 1000;
+    volumetricWeightKg = totalCbm * factor;
   }
 
-  const rawChargeableWeightKg = Math.round(Math.max(grossWeightKg, volumetricWeightKg) * 1000) / 1000;
+  const rawChargeableWeightKg = Math.max(grossWeightKg, volumetricWeightKg);
   // IATA standard: Round up to the next 0.5 kg
   const chargeableWeightKg = roundToHalfKg
     ? Math.ceil(rawChargeableWeightKg * 2) / 2
@@ -158,7 +167,11 @@ export function validateIataAwbNumber(awb: string): AwbValidationResult {
   }
 
   // Remove spaces, hyphens, slashes
-  const clean = awb.replace(/[\s\-\/]/g, '');
+  const normalized = awb.trim();
+  if (!/^(?:\d{11}|\d{3}-\d{8}|\d{3}-\d{4} \d{4})$/.test(normalized)) {
+    return { valid: false, error: 'صيغة بوليصة الشحن الجوي غير صحيحة' };
+  }
+  const clean = normalized.replace(/[\s-]/g, '');
 
   // Must be exactly 11 digits
   if (!/^\d{11}$/.test(clean)) {
