@@ -600,37 +600,43 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
         </div>
 
-        {/* Subtab Navigation Bar (Single Row, 6 tabs scrollable/fitted) */}
+        {/* Subtab Navigation Bar (2 balanced rows of 3 tabs on mobile, 6 on desktop, 100% visible) */}
+        <style>{`
+          @media (min-width: 640px) {
+            .van-settle-subtabs {
+              grid-template-columns: repeat(6, 1fr) !important;
+            }
+          }
+        `}</style>
         <div
+          className="van-settle-subtabs"
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
             backgroundColor: '#f1f5f9',
-            padding: '3px',
-            borderRadius: '8px',
-            gap: '3px',
+            padding: '4px',
+            borderRadius: '10px',
+            gap: '4px',
             width: '100%',
             boxSizing: 'border-box',
-            overflowX: 'auto',
           }}
         >
           <button
             type="button"
             onClick={() => setActiveSubTab('sales')}
             style={{
-              flex: '1 1 0',
-              minWidth: '58px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'sales' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'sales' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             فواتير ({sales.length})
@@ -639,18 +645,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             type="button"
             onClick={() => setActiveSubTab('collections')}
             style={{
-              flex: '1 1 0',
-              minWidth: '60px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'collections' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'collections' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             تحصيلات ({collections.length})
@@ -659,18 +665,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             type="button"
             onClick={() => setActiveSubTab('returns')}
             style={{
-              flex: '1 1 0',
-              minWidth: '60px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'returns' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'returns' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             مرتجعات ({returns.length})
@@ -679,18 +685,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             type="button"
             onClick={() => setActiveSubTab('expenses')}
             style={{
-              flex: '1 1 0',
-              minWidth: '60px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'expenses' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'expenses' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             مصروفات ({safeExpenses.length})
@@ -699,18 +705,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             type="button"
             onClick={() => setActiveSubTab('packaging')}
             style={{
-              flex: '1 1 0',
-              minWidth: '55px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'packaging' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'packaging' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             فوارغ ({safePackaging.length})
@@ -719,18 +725,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             type="button"
             onClick={() => setActiveSubTab('inventory')}
             style={{
-              flex: '1 1 0',
-              minWidth: '58px',
-              padding: '6px 2px',
+              padding: '7px 4px',
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: activeSubTab === 'inventory' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'inventory' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '10.5px',
+              fontSize: '11px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
             المخزون ({inventory.length})

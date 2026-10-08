@@ -75,13 +75,94 @@ export class VanPreSalesService {
   }
 
   /**
+   * Resolves the primary warehouse location for Pre-Sales booking.
+   * Priority:
+   * 1. Explicit preferredLocationId (if active and operational)
+   * 2. If productIds are provided, the operational warehouse with the highest stock for these items
+   * 3. Main internal warehouse (`location_type = 'internal_warehouse'`)
+   * 4. Branch's default stock location (`b.default_stock_location_id`)
+   * 5. Any operational warehouse location (excluding van_stock, damaged, in_transit)
+   */
+  async resolveDefaultWarehouseLocationId(
+    tenantId: string,
+    preferredLocationId?: number,
+    productIds?: number[],
+  ): Promise<number | null> {
+    if (preferredLocationId && preferredLocationId > 0) {
+      const explicit = await this.anyDb
+        .selectFrom('stock_locations')
+        .select(['id'])
+        .where('id', '=', preferredLocationId)
+        .where('tenant_id', '=', tenantId)
+        .where('is_active', '=', true)
+        .where('location_type', 'not in', ['van_stock', 'damaged', 'in_transit'])
+        .executeTakeFirst();
+      if (explicit) return Number(explicit.id);
+    }
+
+    // 1. If productIds are provided, check which operational warehouse has actual stock for these products!
+    if (productIds && productIds.length > 0) {
+      const locWithStock = await this.anyDb
+        .selectFrom('product_location_stock as pls')
+        .innerJoin('stock_locations as sl', 'sl.id', 'pls.location_id')
+        .select(['sl.id', sql<number>`sum(coalesce(pls.qty, 0))`.as('total_qty')])
+        .where('pls.product_id', 'in', productIds)
+        .where('pls.tenant_id', '=', tenantId)
+        .where('sl.is_active', '=', true)
+        .where('sl.location_type', 'not in', ['van_stock', 'damaged', 'in_transit'])
+        .groupBy('sl.id')
+        .orderBy('total_qty', 'desc')
+        .executeTakeFirst();
+      if (locWithStock && Number(locWithStock.total_qty || 0) > 0) {
+        return Number(locWithStock.id);
+      }
+    }
+
+    // 2. Main internal warehouse (internal_warehouse)
+    const internalWh = await this.anyDb
+      .selectFrom('stock_locations')
+      .select(['id'])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .where('location_type', '=', 'internal_warehouse')
+      .orderBy('id', 'asc')
+      .executeTakeFirst();
+    if (internalWh) return Number(internalWh.id);
+
+    // 3. Branch's default stock location
+    const branchDefault = await this.anyDb
+      .selectFrom('branches as b')
+      .innerJoin('stock_locations as sl', 'sl.id', 'b.default_stock_location_id')
+      .select(['sl.id'])
+      .where('b.tenant_id', '=', tenantId)
+      .where('sl.is_active', '=', true)
+      .where('sl.location_type', 'not in', ['van_stock', 'damaged', 'in_transit'])
+      .orderBy('b.id', 'asc')
+      .executeTakeFirst();
+    if (branchDefault) return Number(branchDefault.id);
+
+    // 4. Any operational warehouse location (excluding van_stock, damaged, in_transit)
+    const operationalWh = await this.anyDb
+      .selectFrom('stock_locations')
+      .select(['id'])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .where('location_type', 'not in', ['van_stock', 'damaged', 'in_transit'])
+      .orderBy('id', 'asc')
+      .executeTakeFirst();
+    if (operationalWh) return Number(operationalWh.id);
+
+    return null;
+  }
+
+  /**
    * Lists catalog items from the warehouse with live available stock, pricing tiers, and active offers.
    */
   async listWarehouseCatalog(
     tenantId: string,
     warehouseLocationId?: number,
     query?: { search?: string; categoryId?: number; limit?: number; offset?: number },
-  ): Promise<{ ok?: boolean; items: PreSalesCatalogItem[]; products?: PreSalesCatalogItem[]; total: number }> {
+  ): Promise<{ ok?: boolean; items: PreSalesCatalogItem[]; products?: PreSalesCatalogItem[]; total: number; targetWarehouseId?: number | null }> {
     let qb = this.anyDb
       .selectFrom('products as p')
       .select([
@@ -173,26 +254,82 @@ export class VanPreSalesService {
       }
     }
 
-    // If warehouseLocationId is specified, check location-specific stock
-    let locationStockMap = new Map<number, number>();
-    if (warehouseLocationId) {
+    // Resolve target warehouse location consistently
+    const targetWhId = await this.resolveDefaultWarehouseLocationId(tenantId, warehouseLocationId, productIds);
+
+    // Query location-specific stock AND unassigned stock for accurate availability matching reserveLocationStock
+    const locationStockMap = new Map<number, number>();
+    const locationReservedMap = new Map<number, number>();
+    if (targetWhId) {
       const locStocks = await this.anyDb
         .selectFrom('product_location_stock')
-        .select(['product_id', 'qty'])
+        .select([
+          'product_id',
+          sql<number>`cast(coalesce(qty, 0) as numeric)`.as('qty'),
+          sql<number>`cast(coalesce(reserved_qty, 0) as numeric)`.as('reserved_qty'),
+        ])
         .where('product_id', 'in', productIds)
-        .where('location_id', '=', warehouseLocationId)
+        .where('location_id', '=', targetWhId)
         .where('tenant_id', '=', tenantId)
         .execute();
       for (const ls of locStocks) {
         locationStockMap.set(Number(ls.product_id), Number(ls.qty || 0));
+        locationReservedMap.set(Number(ls.product_id), Number(ls.reserved_qty || 0));
       }
+    }
+
+    const unassignedStocks = await this.anyDb
+      .selectFrom('product_location_stock')
+      .select([
+        'product_id',
+        sql<number>`cast(coalesce(qty, 0) as numeric)`.as('qty'),
+        sql<number>`cast(coalesce(reserved_qty, 0) as numeric)`.as('reserved_qty'),
+      ])
+      .where('product_id', 'in', productIds)
+      .where('location_id', 'is', null)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    const unassignedStockMap = new Map<number, number>();
+    const unassignedReservedMap = new Map<number, number>();
+    for (const us of unassignedStocks) {
+      unassignedStockMap.set(Number(us.product_id), Number(us.qty || 0));
+      unassignedReservedMap.set(Number(us.product_id), Number(us.reserved_qty || 0));
     }
 
     const items: PreSalesCatalogItem[] = rawProducts.map((p: any) => {
       const pid = Number(p.id);
-      const stock = warehouseLocationId ? (locationStockMap.get(pid) ?? Number(p.stock_qty || 0)) : Number(p.stock_qty || 0);
-      const reserved = Number(p.reserved_qty || 0);
-      const available = Math.max(0, stock - reserved);
+      let stock = 0;
+      let reserved = 0;
+      let available = 0;
+
+      const globalStock = Number(p.stock_qty || 0);
+      const globalReserved = Number(p.reserved_qty || 0);
+      const globalAvailable = Math.max(0, globalStock - globalReserved);
+
+      if (targetWhId) {
+        const locQty = locationStockMap.get(pid) ?? 0;
+        const locReserved = locationReservedMap.get(pid) ?? 0;
+        const unassignedQty = unassignedStockMap.get(pid) ?? 0;
+        const unassignedReserved = unassignedReservedMap.get(pid) ?? 0;
+
+        // Mirror reserveLocationStock logic exactly:
+        const availableAtLocation = Math.max(0, locQty - locReserved) + Math.max(0, unassignedQty - unassignedReserved);
+        available = Math.min(availableAtLocation, globalAvailable);
+        stock = locQty + unassignedQty;
+        reserved = locReserved + unassignedReserved;
+
+        // If product has global stock but no location rows yet (legacy single-table stock):
+        if (available === 0 && globalAvailable > 0 && locQty === 0 && unassignedQty === 0) {
+          available = globalAvailable;
+          stock = globalStock;
+          reserved = globalReserved;
+        }
+      } else {
+        stock = globalStock;
+        reserved = globalReserved;
+        available = globalAvailable;
+      }
+
       const retail = Number(p.retail_price || 0);
       const credit = p.credit_price != null && Number(p.credit_price) > 0 ? Number(p.credit_price) : retail;
       const consumer = p.consumer_price != null && Number(p.consumer_price) > 0 ? Number(p.consumer_price) : retail;
@@ -225,7 +362,7 @@ export class VanPreSalesService {
       };
     });
 
-    return { ok: true, items, products: items, total: items.length };
+    return { ok: true, items, products: items, total: items.length, targetWarehouseId: targetWhId };
   }
 
   /**
@@ -278,18 +415,12 @@ export class VanPreSalesService {
       }
     }
 
-    // Resolve default warehouse if not supplied
+    // Resolve warehouse location consistently using smart resolution
+    const productIdsForLookup = payload.items.map((it: any) => Number(it.productId)).filter((id: number) => id > 0);
     let warehouseLocId = payload.warehouseLocationId ? Number(payload.warehouseLocationId) : 0;
     if (!warehouseLocId) {
-      const defaultWh = await this.anyDb
-        .selectFrom('stock_locations')
-        .select(['id'])
-        .where('tenant_id', '=', tenantId)
-        .where('is_active', '=', true)
-        .where('location_type', '!=', 'van_stock')
-        .orderBy('id', 'asc')
-        .executeTakeFirst();
-      if (defaultWh) warehouseLocId = Number(defaultWh.id);
+      const resolved = await this.resolveDefaultWarehouseLocationId(tenantId, undefined, productIdsForLookup);
+      if (resolved) warehouseLocId = resolved;
     }
 
     let orderId = 0;

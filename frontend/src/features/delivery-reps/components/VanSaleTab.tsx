@@ -614,8 +614,8 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
       <StandardDialog
         open={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}
-        title="بضاعة السيارة المتاحة للبيع"
-        subtitle="حدد الكميات المطلوبة لكل صنف للإضافة المباشرة إلى الفاتورة"
+        title="بضاعة السيارة المتاحة"
+        subtitle="تحديد كميات الأصناف لإضافتها للفاتورة"
         badge={`متاح ${availableInventory.length} صنف`}
         width="min(540px, 95vw)"
         compact={true}

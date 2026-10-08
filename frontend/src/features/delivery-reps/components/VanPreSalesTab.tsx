@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   RefreshCwIcon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   vanSalesApi,
@@ -67,8 +68,6 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   const {
     data: catalogProducts = [],
     isLoading: isCatalogLoading,
-    refetch: refetchCatalog,
-    isFetching: isCatalogFetching,
   } = useQuery({
     queryKey: ['van-presales-warehouse-catalog', searchCatalogQuery],
     queryFn: () => vanSalesApi.fetchPreSalesCatalog({ search: searchCatalogQuery.trim() || undefined }),
@@ -87,16 +86,29 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
     staleTime: 15_000,
   });
 
-  // Filter Catalog
+  const [showOutOfStock, setShowOutOfStock] = useState(false);
+
+  // Filter Catalog (Hide out-of-stock items by default for cleaner pre-sales workflow)
   const filteredCatalog = useMemo(() => {
-    if (!searchCatalogQuery.trim()) return catalogProducts;
-    const q = searchCatalogQuery.toLowerCase().trim();
     return catalogProducts.filter((p) => {
+      // By default, exclude products with 0 or negative available stock
+      if (!showOutOfStock && p.warehouseAvailable <= 0) return false;
+
+      if (!searchCatalogQuery.trim()) return true;
+      const q = searchCatalogQuery.toLowerCase().trim();
       const matchName = (p.name || '').toLowerCase().includes(q);
       const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
       return matchName || matchBarcode;
     });
-  }, [catalogProducts, searchCatalogQuery]);
+  }, [catalogProducts, searchCatalogQuery, showOutOfStock]);
+
+  const availableItemsCount = useMemo(() => {
+    return catalogProducts.filter((p) => p.warehouseAvailable > 0).length;
+  }, [catalogProducts]);
+
+  const outOfStockCount = useMemo(() => {
+    return catalogProducts.length - availableItemsCount;
+  }, [catalogProducts, availableItemsCount]);
 
   // Selected customer object
   const selectedCustomer = useMemo(() => {
@@ -339,7 +351,7 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '96px' }}>
       {/* SUB-TAB NAVIGATOR */}
       <div
         style={{
@@ -495,39 +507,96 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
           </div>
 
           {/* CATALOG SEARCH BAR */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input
+              type="text"
+              placeholder="ابحث بالاسم أو الباركود في المخزن الرئيسي..."
+              value={searchCatalogQuery}
+              onChange={(e) => setSearchCatalogQuery(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: searchCatalogQuery ? '0 32px 0 32px' : '0 32px 0 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12.5px',
+                boxSizing: 'border-box',
+                backgroundColor: '#ffffff',
+                outline: 'none',
+              }}
+            />
+            <SearchIcon
+              size={15}
+              color="#94a3b8"
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+              }}
+            />
+            {searchCatalogQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchCatalogQuery('')}
+                style={{
+                  position: 'absolute',
+                  left: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '22px',
+                  height: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  padding: 0,
+                }}
+                title="مسح البحث"
+              >
+                <XIcon size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* CATALOG FILTER & COUNT HEADER */}
           <div
             style={{
               display: 'flex',
-              gap: '6px',
+              justifyContent: 'space-between',
               alignItems: 'center',
+              padding: '0 4px',
+              fontSize: '11.5px',
             }}
           >
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                placeholder="ابحث عن صنف بالمخزن الرئيسي..."
-                value={searchCatalogQuery}
-                onChange={(e) => setSearchCatalogQuery(e.target.value)}
+            <span style={{ color: '#475569', fontWeight: 700 }}>
+              الأصناف المتوفرة للحجز: ({filteredCatalog.length})
+            </span>
+            {outOfStockCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowOutOfStock((prev) => !prev)}
                 style={{
-                  width: '100%',
-                  height: '36px',
-                  padding: '0 30px 0 10px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '12.5px',
-                  boxSizing: 'border-box',
+                  background: 'none',
+                  border: 'none',
+                  color: showOutOfStock ? '#170e5e' : '#64748b',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: 0,
                 }}
-              />
-              <SearchIcon size={15} color="#94a3b8" style={{ position: 'absolute', right: '10px', top: '10px' }} />
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => refetchCatalog()}
-              disabled={isCatalogFetching}
-              style={{ height: '36px', padding: '0 10px' }}
-            >
-              <RefreshCwIcon size={14} className={isCatalogFetching ? 'spin' : ''} />
-            </Button>
+              >
+                {showOutOfStock
+                  ? 'إخفاء غير المتوفر'
+                  : `إظهار غير المتوفر بالمخزن (${outOfStockCount})`}
+              </button>
+            )}
           </div>
 
           {/* WAREHOUSE CATALOG LIST */}
@@ -540,10 +609,7 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
-              maxHeight: '260px',
-              overflowY: 'auto',
             }}
-            className="thin-scrollbar"
           >
             {isCatalogLoading ? (
               <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>
@@ -561,55 +627,112 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                   <div
                     key={prod.id}
                     style={{
-                      border: '1px solid #f1f5f9',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      backgroundColor: isOutOfStock ? '#f8fafc' : '#ffffff',
+                      opacity: isOutOfStock ? 0.65 : 1,
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      backgroundColor: isOutOfStock ? '#fafafa' : '#ffffff',
-                      opacity: isOutOfStock ? 0.6 : 1,
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                     }}
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '12.5px', color: '#0f172a' }}>{prod.name}</div>
-                      <div style={{ fontSize: '11px', display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                        <span style={{ color: '#170e5e', fontWeight: 800 }}>
-                          {pricing.effectivePrice.toFixed(2)} <CurrencySymbol />
-                          {pricing.tierType === 'credit' ? (
-                            <span style={{ color: '#b45309', fontSize: '10px' }}> (سعر آجل)</span>
-                          ) : null}
+                    {/* Row 1: Product Name & Barcode */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13px', color: '#0f172a', lineHeight: 1.35, flex: 1 }}>
+                        {prod.name}
+                      </span>
+                      {prod.barcode ? (
+                        <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace', flexShrink: 0 }}>
+                          {prod.barcode}
                         </span>
-                        {pricing.consumerPrice ? (
-                          <span style={{ color: '#2563eb', fontWeight: 600 }}>
-                            سعر المستهلك: {pricing.consumerPrice.toFixed(2)}
-                          </span>
-                        ) : null}
-                        <span style={{ color: isOutOfStock ? '#b91c1c' : '#15803d', fontWeight: 700 }}>
-                          متاح بالمخزن: {prod.warehouseAvailable}
-                        </span>
-                      </div>
+                      ) : null}
                     </div>
 
-                    <Button
-                      variant="primary"
-                      onClick={() => handleAddToCart(prod, 1, 'قطعة')}
-                      disabled={isOutOfStock}
-                      style={{
-                        height: '30px',
-                        padding: '0 10px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        backgroundColor: '#170e5e',
-                        color: '#fff',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <PlusIcon size={13} />
-                      <span>إضافة</span>
-                    </Button>
+                    {/* Row 2: Pricing Badges & Expected Profit */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#170e5e', fontWeight: 900, fontSize: '14px' }}>
+                        {pricing.effectivePrice.toFixed(2)} <CurrencySymbol />
+                        {pricing.tierType === 'credit' ? (
+                          <span style={{ color: '#b45309', fontSize: '10.5px', fontWeight: 700, marginRight: '3px' }}> (آجل)</span>
+                        ) : null}
+                      </span>
+
+                      {pricing.consumerPrice ? (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#475569',
+                            backgroundColor: '#f1f5f9',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          سعر المستهلك: {pricing.consumerPrice.toFixed(2)} <CurrencySymbol />
+                        </span>
+                      ) : null}
+
+                      {pricing.consumerPrice && pricing.consumerPrice > pricing.effectivePrice ? (
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            color: '#059669',
+                            backgroundColor: '#ecfdf5',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            border: '1px solid #a7f3d0',
+                          }}
+                        >
+                          ربح: +{(pricing.consumerPrice - pricing.effectivePrice).toFixed(2)}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Row 3: Warehouse Stock & Add Button */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: isOutOfStock ? '#b91c1c' : '#047857',
+                          backgroundColor: isOutOfStock ? '#fee2e2' : '#f0fdf4',
+                          border: `1px solid ${isOutOfStock ? '#fca5a5' : '#bbf7d0'}`,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isOutOfStock ? '#ef4444' : '#10b981', display: 'inline-block' }} />
+                        {isOutOfStock ? 'نفد من المخزن' : `متاح بالمخزن: ${prod.warehouseAvailable} قطعة`}
+                      </span>
+
+                      <Button
+                        variant="primary"
+                        onClick={() => handleAddToCart(prod, 1, 'قطعة')}
+                        disabled={isOutOfStock}
+                        style={{
+                          height: '32px',
+                          padding: '0 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          borderRadius: '7px',
+                        }}
+                      >
+                        <PlusIcon size={14} />
+                        <span>إضافة</span>
+                      </Button>
+                    </div>
                   </div>
                 );
               })

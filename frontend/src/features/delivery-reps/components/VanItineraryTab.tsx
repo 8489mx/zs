@@ -2143,8 +2143,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         <StandardDialog
           open={addCustomerModalOpen}
           onClose={() => setAddCustomerModalOpen(false)}
-          title="إضافة محل / عميل جديد لخط السير"
-          subtitle="تسجيل بيانات المحل وإدراجه مباشرة في خط سير اليوم"
+          title="إضافة محل جديد لخط السير"
+          subtitle="تسجيل بيانات المحل وإدراجه بخط سير اليوم"
           minHeight="420px"
           footerActions={
             <StandardDialogFooter

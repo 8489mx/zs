@@ -123,19 +123,54 @@ export function StandardDialog({
         }}
       >
         {/* Header */}
-        <div className="standard-dialog-header">
-          <div className="standard-dialog-header-info">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 className="standard-dialog-title">{title}</h3>
+        <div className="standard-dialog-header" style={{ flexWrap: 'nowrap', gap: '8px', minWidth: 0 }}>
+          <div className="standard-dialog-header-info" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, width: '100%' }}>
+              <h3
+                className="standard-dialog-title"
+                style={{
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 1,
+                }}
+              >
+                {title}
+              </h3>
               {badge && (
-                <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    background: '#eff6ff',
+                    color: '#1e40af',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {badge}
                 </span>
               )}
             </div>
             {/* div, not p: subtitle can now carry block-level content (e.g. a badge row), and a
                 <div> inside a <p> is invalid HTML that browsers silently mis-nest. */}
-            {subtitle && <div className="standard-dialog-subtitle">{subtitle}</div>}
+            {subtitle && (
+              <div
+                className="standard-dialog-subtitle"
+                style={{
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                }}
+              >
+                {subtitle}
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -143,6 +178,7 @@ export function StandardDialog({
             className="standard-dialog-close-btn"
             aria-label="إغلاق النافذة"
             title="إغلاق"
+            style={{ flexShrink: 0 }}
           >
             <XIcon size={18} />
           </button>
