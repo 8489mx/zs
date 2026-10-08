@@ -77,10 +77,22 @@ export function TrialSignupPage() {
   }
 
   const features = [
-    "متابعة المبيعات والأرباح والتقارير لحظة بلحظة",
-    "جرد ذكي للمخازن ومستودعات الفروع المتعددة",
-    "توافق تام مع الفاتورة الإلكترونية والربط الزكوي",
-    "حماية فائقة من السرقات وحساب تلقائي لصندوق الكاشير"
+    {
+      title: "إدارة المقاولات والمشاريع",
+      desc: "المقايسات، المستخلصات التنفيذية، ومراكز التكلفة اللحظية"
+    },
+    {
+      title: "الشحن الدولي واللوجستيات",
+      desc: "تتبع الشحنات، إدارة الحاويات، والتكاليف اللوجستية"
+    },
+    {
+      title: "سلاسل الإمداد ومنافذ البيع",
+      desc: "المستودعات المركزية، نقاط البيع السريعة، والتوزيع الميداني"
+    },
+    {
+      title: "الحوكمة والرقابة المالية",
+      desc: "قيود محاسبية مزدوجة، فاتورة إلكترونية معتمدة، ورقابة إدارية صارمة"
+    }
   ];
 
   return (
@@ -98,12 +110,12 @@ export function TrialSignupPage() {
           </div>
 
           <h1 className="login-brand-title">
-            <span className="title-part1">مرحباً بك مجدداً في نظام</span>
+            <span className="title-part1">مرحباً بك مجدداً في منظومة</span>
             <span className="title-part2">Z ERP</span>
           </h1>
 
           <p className="login-brand-subtitle">
-            المنظومة المالية والإدارية الأسهل والأسرع لمتابعة فروعك، مبيعاتك، ومخازنك من أي مكان في العالم.
+            المنصة السحابية الموحدة لإدارة قطاعات الأعمال، المشاريع الهندسية، الشحن وسلاسل الإمداد، والرقابة المالية المركزية.
           </p>
 
           <div className="login-features-list">
@@ -112,14 +124,17 @@ export function TrialSignupPage() {
                 <div className="login-feature-icon">
                   <CheckIcon />
                 </div>
-                <span>{feature}</span>
+                <div className="login-feature-text">
+                  <strong className="login-feature-title">{feature.title}:</strong>{' '}
+                  <span className="login-feature-desc">{feature.desc}</span>
+                </div>
               </div>
             ))}
           </div>
 
           <div className="login-brand-footer">
             <span className="line"></span>
-            نظام مالي وإداري معتمد وسحابي بالكامل
+            المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع
             <span className="line"></span>
           </div>
         </div>

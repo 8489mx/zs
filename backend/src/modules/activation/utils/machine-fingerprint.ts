@@ -21,17 +21,19 @@ function readWindowsMachineGuid(): string {
 }
 
 function readWindowsCsProductUuid(): string {
-  const ps = safeExec('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_ComputerSystemProduct).UUID']);
-  if (ps) return ps.split(/\r?\n/).map((x) => x.trim()).find(Boolean) || '';
   const wmic = safeExec('wmic', ['csproduct', 'get', 'uuid']);
-  return wmic.split(/\r?\n/).map((x) => x.trim()).find((x) => x && x.toLowerCase() !== 'uuid') || '';
+  const val = wmic.split(/\r?\n/).map((x) => x.trim()).find((x) => x && x.toLowerCase() !== 'uuid');
+  if (val) return val;
+  const ps = safeExec('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_ComputerSystemProduct).UUID']);
+  return ps ? ps.split(/\r?\n/).map((x) => x.trim()).find(Boolean) || '' : '';
 }
 
 function readWindowsBiosSerial(): string {
-  const ps = safeExec('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_BIOS).SerialNumber']);
-  if (ps) return ps.split(/\r?\n/).map((x) => x.trim()).find(Boolean) || '';
   const wmic = safeExec('wmic', ['bios', 'get', 'serialnumber']);
-  return wmic.split(/\r?\n/).map((x) => x.trim()).find((x) => x && x.toLowerCase() !== 'serialnumber') || '';
+  const val = wmic.split(/\r?\n/).map((x) => x.trim()).find((x) => x && x.toLowerCase() !== 'serialnumber');
+  if (val) return val;
+  const ps = safeExec('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_BIOS).SerialNumber']);
+  return ps ? ps.split(/\r?\n/).map((x) => x.trim()).find(Boolean) || '' : '';
 }
 
 function readLinuxFile(path: string): string {
@@ -61,10 +63,26 @@ function collectParts(): string[] {
   return parts.filter(Boolean);
 }
 
-export function getMachineFingerprint() {
+export interface MachineFingerprint {
+  machineId: string;
+  fingerprintHash: string;
+  rawParts: string[];
+}
+
+let cachedFingerprint: MachineFingerprint | null = null;
+
+export function getMachineFingerprint(): MachineFingerprint {
+  if (cachedFingerprint) {
+    return cachedFingerprint;
+  }
   const rawParts = collectParts();
   const raw = rawParts.join('|');
   const digest = createHash('sha256').update(raw).digest('hex').toUpperCase();
   const short = digest.slice(0, 24).match(/.{1,4}/g)?.join('-') || digest.slice(0, 24);
-  return { machineId: short, fingerprintHash: digest, rawParts };
+  cachedFingerprint = { machineId: short, fingerprintHash: digest, rawParts };
+  return cachedFingerprint;
+}
+
+export function clearCachedMachineFingerprint(): void {
+  cachedFingerprint = null;
 }

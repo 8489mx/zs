@@ -86,7 +86,7 @@ export function ForgotPasswordPage() {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                placeholder="مثال: my-store"
+                placeholder="مثال: enterprise-id أو كود المنشأة"
                 className="login-input-pro"
               />
             </div>

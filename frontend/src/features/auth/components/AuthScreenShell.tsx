@@ -36,7 +36,7 @@ export function AuthScreenShell({ title, subtitle, children, footer }: AuthScree
 
           <div className="login-brand-footer">
             <span className="line"></span>
-            نظام مالي وإداري معتمد وسحابي بالكامل
+            المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع
             <span className="line"></span>
           </div>
         </div>

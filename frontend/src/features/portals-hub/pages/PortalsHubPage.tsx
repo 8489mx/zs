@@ -162,6 +162,7 @@ export function PortalsHubPage() {
             style={{
               display: 'flex',
               flexWrap: 'nowrap',
+              overflowX: 'auto',
               alignItems: 'center',
               gap: '4px',
               backgroundColor: '#f1f5f9',
@@ -169,14 +170,17 @@ export function PortalsHubPage() {
               borderRadius: '8px',
               width: '100%',
               boxSizing: 'border-box',
+              scrollbarWidth: 'none',
             }}
           >
             {[
               { id: 'all', label: `الكل (${PORTALS_LIST.length})` },
+              { id: 'logistics', label: 'شحن ولوجستيات' },
+              { id: 'projects', label: 'مشاريع ومقاولات' },
               { id: 'staff', label: 'خدمة ذاتية' },
-              { id: 'field', label: 'ميداني' },
-              { id: 'branch', label: 'صالة' },
-              { id: 'management', label: 'إدارة' },
+              { id: 'field', label: 'توزيع وميداني' },
+              { id: 'branch', label: 'تشغيل وصالة' },
+              { id: 'management', label: 'إدارة ورقابة' },
             ].map((tab) => {
               const isActive = selectedCategory === tab.id;
               return (
@@ -185,10 +189,10 @@ export function PortalsHubPage() {
                   type="button"
                   onClick={() => setSelectedCategory(tab.id)}
                   style={{
-                    flex: '1 1 0',
-                    minWidth: 0,
+                    flex: '1 1 auto',
+                    minWidth: 'max-content',
                     height: '28px',
-                    padding: '0 4px',
+                    padding: '0 10px',
                     borderRadius: '6px',
                     border: 'none',
                     backgroundColor: isActive ? '#ffffff' : 'transparent',

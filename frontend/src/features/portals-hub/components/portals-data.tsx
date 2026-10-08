@@ -10,12 +10,17 @@ import {
   QrCodeIcon,
   BarChartIcon,
   BuildingIcon,
+  ShipIcon,
+  GlobeIcon,
+  CompassIcon,
+  ToolIcon,
+  LayersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export interface PortalItem {
   id: string;
   title: string;
-  category: 'staff' | 'field' | 'branch' | 'management';
+  category: 'staff' | 'logistics' | 'projects' | 'field' | 'branch' | 'management';
   categoryName: string;
   description: string;
   path: string;
@@ -55,7 +60,76 @@ export const PORTALS_LIST: PortalItem[] = [
     keywords: ['بصمة', 'حضور', 'انصراف', 'موبايل', 'سيلفي', 'gps', 'punch'],
   },
 
-  // 2. Field & Delivery
+  // 2. Logistics & International Freight
+  {
+    id: 'shipment-tracking',
+    title: 'بوابة تتبع الشحنات والحاويات',
+    category: 'logistics',
+    categoryName: 'شحن ولوجستيات',
+    description: 'تتبع مسار الحاويات وبوالص الشحن البحري والجوي للعملاء لحظياً.',
+    path: '/track',
+    icon: <ShipIcon size={20} color="#0284c7" />,
+    iconBg: '#f0f9ff',
+    iconColor: '#0284c7',
+    badgeText: 'تتبع البوالص',
+    keywords: ['شحن', 'تتبع', 'حاوية', 'بوليصة', 'لوجستيات', 'بحري', 'جوي', 'track', 'shipment'],
+  },
+  {
+    id: 'freight-portal',
+    title: 'بوابة عملاء الشحن واللوجستيات',
+    category: 'logistics',
+    categoryName: 'شحن ولوجستيات',
+    description: 'منصة العملاء لاستعراض بوالص الشحن، مستندات التخليص، وكشوف الحساب.',
+    path: '/freight-portal',
+    icon: <GlobeIcon size={20} color="#0369a1" />,
+    iconBg: '#e0f2fe',
+    iconColor: '#0369a1',
+    badgeText: 'لعملاء الشحن',
+    keywords: ['عملاء الشحن', 'تخليص', 'بوالص', 'شحن دولي', 'لوجستيات', 'freight', 'maritime', 'portal'],
+  },
+  {
+    id: 'carrier-quote-portal',
+    title: 'بوابة تسعير الخطوط والناقلين',
+    category: 'logistics',
+    categoryName: 'شحن ولوجستيات',
+    description: 'بوابة الخطوط الملاحية والجوية لتقديم عروض أسعار النوالين والـ RFQs.',
+    path: '/portal/carrier-quote/rfq-demo',
+    icon: <CompassIcon size={20} color="#0891b2" />,
+    iconBg: '#ecfeff',
+    iconColor: '#0891b2',
+    badgeText: 'لوكلاء الشحن',
+    keywords: ['تسعير', 'نولون', 'خطوط ملاحية', 'ناقلين', 'rfq', 'carrier', 'quote'],
+  },
+
+  // 3. Contracting & Engineering Projects
+  {
+    id: 'contracting-field-portal',
+    title: 'بوابة العمليات ويوميات الموقع',
+    category: 'projects',
+    categoryName: 'مشاريع ومقاولات',
+    description: 'تسجيل وقائع اليومية الميدانية، حصر الأعمال المنفذة، وحركة العمالة والمعدات.',
+    path: '/contracting/field',
+    icon: <ToolIcon size={20} color="#d97706" />,
+    iconBg: '#fffbeb',
+    iconColor: '#d97706',
+    badgeText: 'مهندس الموقع',
+    keywords: ['مقاولات', 'موقع', 'يومية', 'مهندس', 'مشاريع', 'حصر', 'عمالة', 'معدات', 'contracting', 'field'],
+  },
+  {
+    id: 'contracting-ipc-station',
+    title: 'محطة المشاريع والمستخلصات',
+    category: 'projects',
+    categoryName: 'مشاريع ومقاولات',
+    description: 'استعراض بنود المقايسات SOV، مستخلصات المقاولين والاستشاري، ومراكز التكلفة.',
+    path: '/contracting/projects',
+    icon: <LayersIcon size={20} color="#7c3aed" />,
+    iconBg: '#faf5ff',
+    iconColor: '#7c3aed',
+    badgeText: 'إدارة المشاريع',
+    keywords: ['مستخلص', 'مقايسة', 'sov', 'ipc', 'مشاريع', 'مقاولين', 'projects'],
+  },
+
+  // 4. Field & Delivery
   {
     id: 'driver-portal',
     title: 'بوابة مندوبي التوصيل',
@@ -83,12 +157,12 @@ export const PORTALS_LIST: PortalItem[] = [
     keywords: ['فان', 'سيارة', 'توزيع', 'مبيعات متنقلة', 'مندوب كاشير', 'van'],
   },
 
-  // 3. Branch & POS Displays
+  // 5. Branch & POS Displays
   {
     id: 'kds',
     title: 'شاشة المطبخ (KDS)',
     category: 'branch',
-    categoryName: 'صالة وعمليات',
+    categoryName: 'تشغيل وصالة',
     description: 'متابعة أوامر تحضير وتجهيز الوجبات بالمطاعم والكافيهات لحظياً.',
     path: '/kds',
     icon: <UtensilsIcon size={20} color="#d97706" />,
@@ -101,7 +175,7 @@ export const PORTALS_LIST: PortalItem[] = [
     id: 'customer-display',
     title: 'شاشة العميل بنقطة البيع (CFD)',
     category: 'branch',
-    categoryName: 'صالة وعمليات',
+    categoryName: 'تشغيل وصالة',
     description: 'شاشة كاونتر لعرض تفاصيل الفاتورة الحية، السعر، وعروض الولاء للمشتري.',
     path: '/pos/customer-display',
     icon: <MonitorIcon size={20} color="#059669" />,
@@ -114,7 +188,7 @@ export const PORTALS_LIST: PortalItem[] = [
     id: 'digital-signage',
     title: 'شاشة العروض الرقمية (Signage)',
     category: 'branch',
-    categoryName: 'صالة وعمليات',
+    categoryName: 'تشغيل وصالة',
     description: 'لوحة تفاعلية لشاشات التلفزيون بالمعرض لعرض الأسعار والخصومات التسويقية.',
     path: '/signage',
     icon: <TagIcon size={20} color="#7c3aed" />,
@@ -127,7 +201,7 @@ export const PORTALS_LIST: PortalItem[] = [
     id: 'table-qr',
     title: 'الطلب الذاتي من الطاولة (QR)',
     category: 'branch',
-    categoryName: 'صالة وعمليات',
+    categoryName: 'تشغيل وصالة',
     description: 'تصفح المنيو والطلب الفوري من طاولة الصالة عبر مسح كود الـ QR بالهاتف.',
     path: '/table/1',
     icon: <QrCodeIcon size={20} color="#db2777" />,
@@ -137,7 +211,7 @@ export const PORTALS_LIST: PortalItem[] = [
     keywords: ['طاولة', 'qr', 'منيو', 'طلب ذاتي', 'طاولات', 'table'],
   },
 
-  // 4. Management & Enterprise
+  // 6. Management & Enterprise
   {
     id: 'owner-companion',
     title: 'رادار متابعة المالك المتنقل',

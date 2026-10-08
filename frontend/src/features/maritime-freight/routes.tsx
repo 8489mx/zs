@@ -40,6 +40,8 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
     { key: 'maritime-jobs', label: 'أوامر تشغيل الشحنات', to: '/maritime/jobs' },
     { key: 'maritime-radar', label: 'رادار الغرامات وفترات السماح', to: '/maritime/radar' },
     { key: 'maritime-audit', label: 'تدقيق فواتير النواقل', to: '/maritime/audit' },
+    { key: 'maritime-agents', label: 'مقاصة الوكلاء (SOA)', to: '/maritime/agents' },
+    { key: 'maritime-trucking', label: 'النقل البري والترحيل', to: '/maritime/trucking' },
     { key: 'maritime-containers', label: 'تتبع الحاويات والطرود', to: '/maritime/containers' },
     { key: 'maritime-lines', label: 'دليل النواقل والموانئ والمطارات', to: '/maritime/lines' },
     { key: 'maritime-portal', label: 'بوابة عملاء الشحن (B2B Portal)', to: '/freight-portal' },
