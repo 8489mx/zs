@@ -29,6 +29,30 @@ import { ContractingProcurementPage } from './ContractingProcurementPage';
 import { ContractingFieldPage } from './ContractingFieldPage';
 import { ContractingCloseoutPage } from './ContractingCloseoutPage';
 
+interface KeepAliveTabPaneProps {
+  isActive: boolean;
+  isVisited: boolean;
+  children: React.ReactNode;
+}
+
+const KeepAliveTabPane = React.memo(
+  function KeepAliveTabPane({ isActive, isVisited, children }: KeepAliveTabPaneProps) {
+    if (!isVisited && !isActive) return null;
+    return (
+      <div style={{ display: isActive ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+        {children}
+      </div>
+    );
+  },
+  (prev, next) => {
+    // High-performance invariant: Inactive tabs frozen in memory without virtual DOM re-render
+    if (!prev.isActive && !next.isActive && prev.isVisited === next.isVisited) {
+      return true;
+    }
+    return false;
+  }
+);
+
 function ContractingLayoutContent({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -103,6 +127,29 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
     if (isTabActive('closeout')) return 'closeout';
     return 'projects';
   };
+
+  const currentPhase = getCurrentPhase();
+
+  // Lazy Keep-Alive: Only mount tabs after first visit to avoid 8 concurrent heavy renders
+  const [visitedTabs, setVisitedTabs] = React.useState<Set<string>>(() => new Set([currentPhase]));
+
+  React.useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(currentPhase)) return prev;
+      const next = new Set(prev);
+      next.add(currentPhase);
+      return next;
+    });
+  }, [currentPhase]);
+
+  const handleTabHover = React.useCallback((tabPath: string) => {
+    setVisitedTabs((prev) => {
+      if (prev.has(tabPath)) return prev;
+      const next = new Set(prev);
+      next.add(tabPath);
+      return next;
+    });
+  }, []);
 
   const handleNavigate = (pathWithOptionalQuery: string) => {
     const hasQuery = pathWithOptionalQuery.includes('?');
@@ -309,6 +356,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
         <ProjectLifecycleStepper
           currentPhase={getCurrentPhase()}
           onPhaseSelect={handlePhaseSelect}
+          onPhaseHover={handleTabHover}
           activeProject={activeProject}
           totalProjectsCount={projects.length}
           onOpenTenderEstimator={() => handleNavigate('tender')}
@@ -405,30 +453,30 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
           children
         ) : (
           <>
-            <div style={{ display: isTabActive('projects') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <KeepAliveTabPane isActive={isTabActive('projects')} isVisited={visitedTabs.has('projects')}>
               <ContractingProjectsPage />
-            </div>
-            <div style={{ display: isTabActive('tender') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('tender')} isVisited={visitedTabs.has('tender')}>
               <ContractingTenderPage />
-            </div>
-            <div style={{ display: isTabActive('boq') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('boq')} isVisited={visitedTabs.has('boq')}>
               <ContractingBoqPage />
-            </div>
-            <div style={{ display: isTabActive('planning') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('planning')} isVisited={visitedTabs.has('planning')}>
               <ContractingPlanningPage />
-            </div>
-            <div style={{ display: isTabActive('procurement') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('procurement')} isVisited={visitedTabs.has('procurement')}>
               <ContractingProcurementPage initialSubTab={currentSubPath === 'materials' ? 'materials' : 'subcontracts'} />
-            </div>
-            <div style={{ display: isTabActive('field') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('field')} isVisited={visitedTabs.has('field')}>
               <ContractingFieldPage initialSubTab={currentSubPath === 'rfis' ? 'rfis' : 'daily-logs'} />
-            </div>
-            <div style={{ display: isTabActive('financials') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('financials')} isVisited={visitedTabs.has('financials')}>
               <ContractingFinancialsPage initialSubTab={currentSubPath === 'change-orders' ? 'change-orders' : 'invoices'} />
-            </div>
-            <div style={{ display: isTabActive('closeout') ? 'block' : 'none', minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            </KeepAliveTabPane>
+            <KeepAliveTabPane isActive={isTabActive('closeout')} isVisited={visitedTabs.has('closeout')}>
               <ContractingCloseoutPage />
-            </div>
+            </KeepAliveTabPane>
           </>
         )}
 

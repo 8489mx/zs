@@ -23,11 +23,25 @@ export type DcsaMilestoneKey =
   | 'DLVR'  // Cargo Delivered to Customer
   | 'RETN'; // Empty Container Returned
 
+export type CargoIqMilestoneKey =
+  | 'BKD'   // Air Booking confirmed
+  | 'RCS'   // Cargo Received from Shipper
+  | 'MAN'   // Manifested on Flight
+  | 'DEP'   // Flight Departed
+  | 'ARR'   // Flight Arrived
+  | 'RCF'   // Cargo Received from Flight
+  | 'CUST'  // Customs Cleared
+  | 'NFD'   // Consignee Notified
+  | 'AWD'   // Documents / D.O Delivered
+  | 'DLV';  // Cargo Delivered to Consignee
+
+export type ShipmentMilestoneKey = DcsaMilestoneKey | CargoIqMilestoneKey | string;
+
 export interface DcsaMilestoneDefinition {
-  key: DcsaMilestoneKey;
+  key: DcsaMilestoneKey | CargoIqMilestoneKey;
   title_ar: string;
   title_en: string;
-  category: 'equipment' | 'transport' | 'shipment';
+  category: 'equipment' | 'transport' | 'shipment' | 'booking' | 'origin' | 'flight' | 'destination' | 'delivery';
 }
 
 export const DCSA_STANDARD_MILESTONES: DcsaMilestoneDefinition[] = [
@@ -41,6 +55,19 @@ export const DCSA_STANDARD_MILESTONES: DcsaMilestoneDefinition[] = [
   { key: 'GTO', title_ar: 'خروج الحاوية وتسليم إذن الإفراج (D/O)', title_en: 'Gated-out / Delivery Order Released', category: 'equipment' },
   { key: 'DLVR', title_ar: 'وصول البضاعة وتسليمها للعميل', title_en: 'Cargo Delivered to Customer', category: 'shipment' },
   { key: 'RETN', title_ar: 'إعادة الحاوية فارغة لساحة الخط الملاحي', title_en: 'Empty Container Returned', category: 'equipment' },
+];
+
+export const IATA_CARGO_IQ_MILESTONES: DcsaMilestoneDefinition[] = [
+  { key: 'BKD', title_ar: 'تأكيد حجز الشحنة الجوية', title_en: 'Air Cargo Booking Confirmed', category: 'booking' },
+  { key: 'RCS', title_ar: 'استلام الشحنة بمستودع المطار (GTI)', title_en: 'Cargo Received from Shipper', category: 'origin' },
+  { key: 'MAN', title_ar: 'إدراج الشحنة على مانيفست الرحلة', title_en: 'Manifested on Flight', category: 'origin' },
+  { key: 'DEP', title_ar: 'إقلاع رحلة الشحن الجوي (ATD)', title_en: 'Flight Departed', category: 'flight' },
+  { key: 'ARR', title_ar: 'هبوط ووصول الرحلة بمطار المقصد (ATA)', title_en: 'Flight Arrived', category: 'flight' },
+  { key: 'RCF', title_ar: 'تفريغ ودخول الشحنة مستودع المطار', title_en: 'Cargo Received from Flight', category: 'destination' },
+  { key: 'CUST', title_ar: 'إنهاء الإفراج والتخليص الجمركي بالمطار', title_en: 'Customs Cleared', category: 'destination' },
+  { key: 'NFD', title_ar: 'إشعار العميل المستلم بالوصول', title_en: 'Consignee Notified', category: 'destination' },
+  { key: 'AWD', title_ar: 'تسليم إذن التسليم والمستندات', title_en: 'Documents Delivered', category: 'delivery' },
+  { key: 'DLV', title_ar: 'تسليم الشحنة للعميل نهائياً (POD)', title_en: 'Cargo Delivered (Proof of Delivery)', category: 'delivery' },
 ];
 
 export interface MaritimeInquiry {

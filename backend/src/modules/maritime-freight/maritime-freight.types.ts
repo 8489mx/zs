@@ -28,6 +28,48 @@ export type DcsaMilestoneKey =
   | 'DLVR'  // Cargo Delivered to Customer
   | 'RETN'; // Empty Container Returned
 
+export type CargoIqMilestoneKey =
+  | 'BKD'   // Booking confirmed
+  | 'RCS'   // Cargo Received from Shipper
+  | 'MAN'   // Manifested on Flight
+  | 'DEP'   // Flight Departed
+  | 'ARR'   // Flight Arrived
+  | 'RCF'   // Cargo Received from Flight
+  | 'CUST'  // Customs Cleared
+  | 'NFD'   // Consignee Notified
+  | 'AWD'   // Documents / D.O Delivered
+  | 'DLV';  // Cargo Delivered to Consignee
+
+export type RoadMilestoneKey =
+  | 'TRK_ASSIGN'   // Truck & driver assigned
+  | 'TRK_GATE_IN'  // Arrived at origin / Gate In
+  | 'TRK_LOADED'   // Cargo loaded & lashed
+  | 'TRK_DISPATCH' // Truck departed / En route
+  | 'TRK_BORDER'   // Customs border / Waypoint
+  | 'TRK_ARRIVED'  // Arrived at destination
+  | 'TRK_UNLOADED' // Cargo unloaded
+  | 'TRK_POD';     // Proof of delivery / Signed CMR
+
+export type ShipmentMilestoneKey = DcsaMilestoneKey | CargoIqMilestoneKey | RoadMilestoneKey | string;
+
+export interface RoadMilestoneDefinition {
+  key: RoadMilestoneKey;
+  title_ar: string;
+  title_en: string;
+  category: 'origin' | 'transit' | 'destination' | 'pod';
+}
+
+export const ROAD_FREIGHT_MILESTONES: RoadMilestoneDefinition[] = [
+  { key: 'TRK_ASSIGN', title_ar: 'تعيين الشاحنة والسائق', title_en: 'Truck & Driver Assigned', category: 'origin' },
+  { key: 'TRK_GATE_IN', title_ar: 'وصول الشاحنة لموقع التحميل', title_en: 'Arrived at Origin / Gate In', category: 'origin' },
+  { key: 'TRK_LOADED', title_ar: 'إتمام التحميل وتربيط البضاعة', title_en: 'Cargo Loaded & Lashed', category: 'origin' },
+  { key: 'TRK_DISPATCH', title_ar: 'انطلاق الشاحنة على الطريق (En Route)', title_en: 'Truck Dispatched / En Route', category: 'transit' },
+  { key: 'TRK_BORDER', title_ar: 'الوصول للمنفذ الجمركي / معبر الحدود', title_en: 'Border Clearance / Waypoint', category: 'transit' },
+  { key: 'TRK_ARRIVED', title_ar: 'وصول الشاحنة لموقع العميل المستلم', title_en: 'Arrived at Destination', category: 'destination' },
+  { key: 'TRK_UNLOADED', title_ar: 'إتمام تفريغ البضاعة ومطابقة الطرود', title_en: 'Cargo Unloaded', category: 'destination' },
+  { key: 'TRK_POD', title_ar: 'توقيع بوليصة الشحن وإثبات التسليم (POD)', title_en: 'Proof of Delivery / Signed CMR', category: 'pod' },
+];
+
 export interface DcsaMilestoneDefinition {
   key: DcsaMilestoneKey;
   title_ar: string;

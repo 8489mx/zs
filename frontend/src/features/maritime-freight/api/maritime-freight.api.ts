@@ -606,6 +606,19 @@ export const maritimeApi = {
       body: JSON.stringify(data),
     }),
 
+  // Tab Badges & Summary Counts
+  getCounts: () =>
+    http<{
+      inquiries: number;
+      rfqs: number;
+      matrixBids: number;
+      quotations: number;
+      jobs: number;
+      containers: number;
+      master: number;
+      settings: number;
+    }>('/api/maritime-freight/counts'),
+
   // Client Freight Inquiries Engine
   getInquiries: (params?: { status?: string; search?: string }) =>
     http<any[]>(`/api/maritime-freight/inquiries${toQueryString(params)}`),

@@ -198,6 +198,7 @@ export function validateIataAwbNumber(awb: string): AwbValidationResult {
 }
 
 export const IATA_CARGO_IQ_MILESTONES = [
+  { key: 'BKD', title_ar: 'تأكيد حجز الشحنة الجوية', title_en: 'Air Cargo Booking Confirmed', category: 'booking' },
   { key: 'RCS', title_ar: 'استلام الشحنة بمستودع المطار (GTI)', title_en: 'Cargo Received from Shipper', category: 'origin' },
   { key: 'MAN', title_ar: 'إدراج الشحنة على مانيفست الرحلة', title_en: 'Manifested on Flight', category: 'origin' },
   { key: 'DEP', title_ar: 'إقلاع رحلة الشحن الجوي (ATD)', title_en: 'Flight Departed', category: 'flight' },

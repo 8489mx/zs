@@ -34,7 +34,7 @@ export interface DefaultPortSeed {
   name_en: string;
   country_code: string;
   country_name: string;
-  port_type?: 'sea' | 'air' | 'road';
+  port_type?: 'sea' | 'air' | 'land';
   iata_code?: string | null;
   icao_code?: string | null;
 }
@@ -1978,6 +1978,100 @@ export const DEFAULT_CARGO_AIRPORTS: DefaultPortSeed[] = [
     country_name: 'الولايات المتحدة الأمريكية',
     port_type: 'air',
     iata_code: 'JFK'
+  }
+];
+
+export const DEFAULT_TRUCKING_COMPANIES: DefaultCarrierSeed[] = [
+  {
+    code: 'TRK-NILE',
+    name_ar: 'شركة النيل للنقل البري والخدمات اللوجستية',
+    name_en: 'Nile Overland Transport & Logistics',
+    carrier_type: 'trucking',
+    country_name: 'مصر',
+    country_code: 'EG',
+    city_name: 'القاهرة والإسكندرية',
+    contact_person: 'إدارة الحركة وعمليات الشاحنات',
+    email: 'operations@nile-trucking.com',
+    rfq_email: 'pricing@nile-trucking.com',
+    booking_email: 'dispatch@nile-trucking.com',
+    phone: '+20 2 2450 1100',
+    whatsapp: '+20 100 234 5678',
+    trade_lanes: 'domestic_egypt,delta,upper_egypt,ports_corridor',
+    services_offered: 'Flatbed 28T, Curtainsider 26T, Box 25T, Reefer Cold Chain',
+    notes: 'أسطول شاحنات مجهز لنقل الحاويات والبضائع العامة بين الموانئ والمستودعات والموانئ الجافة'
+  },
+  {
+    code: 'TRK-GULF',
+    name_ar: 'الخليج للنقل البري الدولي (عبر الحدود)',
+    name_en: 'Gulf Cross-Border Overland Express',
+    carrier_type: 'trucking',
+    country_name: 'السعودية ومصر',
+    country_code: 'SA',
+    city_name: 'الرياض وجدة والسويس',
+    contact_person: 'قسم النقل الدولي العابر للحدود (TIR)',
+    email: 'crossborder@gulf-express.com',
+    rfq_email: 'rates@gulf-express.com',
+    booking_email: 'booking@gulf-express.com',
+    phone: '+966 11 478 9900',
+    trade_lanes: 'gulf_cooperation,egypt_saudi_jordan,levant',
+    services_offered: 'Cross-Border Trucking, CMR Consignment, TIR CarNet, Reefer, Heavy Lift Lowbed',
+    notes: 'خدمات النقل البري الدولي العابر للحدود بنظام التير والدفاتر الدولية والشاحنات المبردة والمسطحة'
+  },
+  {
+    code: 'TRK-DELTA',
+    name_ar: 'الدلتا لأسطول النقل الثقيل والمستودعات',
+    name_en: 'Delta Heavy Haulage & Fleet Logistics',
+    carrier_type: 'trucking',
+    country_name: 'مصر',
+    country_code: 'EG',
+    city_name: 'السادس من أكتوبر والعاشر من رمضان',
+    contact_person: 'عمليات النقل الثقيل واللوبد',
+    email: 'fleet@deltaheavy.com',
+    rfq_email: 'rates@deltaheavy.com',
+    booking_email: 'dispatch@deltaheavy.com',
+    phone: '+20 2 3833 4455',
+    trade_lanes: 'industrial_cities,dry_ports,suez_canal_zone',
+    services_offered: 'Lowbed Multi-axle, Oversized Heavy Haulage, Flatbed Trailers',
+    notes: 'متخصصون في نقل الماكينات والمشروعات الصناعية والحمولات الاستثنائية والسطحات المنخفضة'
+  }
+];
+
+export const DEFAULT_DRY_PORTS_DEPOTS: DefaultPortSeed[] = [
+  {
+    code: 'EGSOC',
+    name_ar: 'الميناء الجاف بالسادس من أكتوبر (6th October Dry Port - ODPO)',
+    name_en: '6th of October Dry Port & Inland Depot',
+    country_code: 'EG',
+    country_name: 'مصر',
+    port_type: 'land',
+    iata_code: null
+  },
+  {
+    code: 'EGTRD',
+    name_ar: 'الميناء الجاف والمنطقة اللوجستية بالعاشر من رمضان',
+    name_en: '10th of Ramadan Dry Port & Logistics Terminal',
+    country_code: 'EG',
+    country_name: 'مصر',
+    port_type: 'land',
+    iata_code: null
+  },
+  {
+    code: 'EGSDT',
+    name_ar: 'ميناء السادات الجاف ومجمع المستودعات',
+    name_en: 'Sadat City Dry Port & Logistics Hub',
+    country_code: 'EG',
+    country_name: 'مصر',
+    port_type: 'land',
+    iata_code: null
+  },
+  {
+    code: 'SARUH-DRY',
+    name_ar: 'ميناء الرياض الجاف (Riyadh Dry Port)',
+    name_en: 'Riyadh Dry Port Inland Logistics Center',
+    country_code: 'SA',
+    country_name: 'السعودية',
+    port_type: 'land',
+    iata_code: null
   }
 ];
 

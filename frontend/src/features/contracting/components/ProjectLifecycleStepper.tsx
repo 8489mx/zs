@@ -74,6 +74,7 @@ export const CONTRACTING_PHASES: PhaseDefinition[] = [
 interface ProjectLifecycleStepperProps {
   currentPhase: ContractingPhaseKey;
   onPhaseSelect: (phaseKey: ContractingPhaseKey) => void;
+  onPhaseHover?: (phaseKey: ContractingPhaseKey) => void;
   activeProject: ContractingProject | null;
   totalProjectsCount: number;
   onOpenTenderEstimator?: () => void;
@@ -82,6 +83,7 @@ interface ProjectLifecycleStepperProps {
 export function ProjectLifecycleStepper({
   currentPhase,
   onPhaseSelect,
+  onPhaseHover,
   activeProject,
   totalProjectsCount,
   onOpenTenderEstimator,
@@ -117,6 +119,8 @@ export function ProjectLifecycleStepper({
           <button
             type="button"
             onClick={() => onPhaseSelect('projects')}
+            onMouseEnter={() => onPhaseHover?.('projects')}
+            onFocus={() => onPhaseHover?.('projects')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -186,6 +190,8 @@ export function ProjectLifecycleStepper({
                   onPhaseSelect(phase.key);
                 }
               }}
+              onMouseEnter={() => onPhaseHover?.(phase.key)}
+              onFocus={() => onPhaseHover?.(phase.key)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

@@ -101,28 +101,34 @@ export function MaritimeProvider({ children }: { children: React.ReactNode }) {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [inquiriesData, rfqsData, quotesData, jobsData, containersData, portsData, linesData] = await Promise.all([
-        maritimeApi.getInquiries().catch(() => []),
-        maritimeApi.getRfqs().catch(() => []),
-        maritimeApi.getQuotations().catch(() => []),
-        maritimeApi.getJobs().catch(() => []),
-        maritimeApi.getContainers().catch(() => []),
-        maritimeApi.getPorts().catch(() => []),
-        maritimeApi.getShippingLines().catch(() => []),
-      ]);
+      let newCounts: MaritimeCounts;
+      try {
+        newCounts = await maritimeApi.getCounts();
+      } catch {
+        // Fallback to individual calls if fast endpoint is unavailable
+        const [inquiriesData, rfqsData, quotesData, jobsData, containersData, portsData, linesData] = await Promise.all([
+          maritimeApi.getInquiries().catch(() => []),
+          maritimeApi.getRfqs().catch(() => []),
+          maritimeApi.getQuotations().catch(() => []),
+          maritimeApi.getJobs().catch(() => []),
+          maritimeApi.getContainers().catch(() => []),
+          maritimeApi.getPorts().catch(() => []),
+          maritimeApi.getShippingLines().catch(() => []),
+        ]);
 
-      const totalBids = (rfqsData || []).reduce((acc: number, r: any) => acc + (r.bidsCount || 0), 0);
+        const totalBids = (rfqsData || []).reduce((acc: number, r: any) => acc + (r.bidsCount || 0), 0);
 
-      const newCounts: MaritimeCounts = {
-        inquiries: (inquiriesData || []).length,
-        rfqs: (rfqsData || []).length,
-        matrixBids: totalBids,
-        quotations: (quotesData || []).length,
-        jobs: (jobsData || []).length,
-        containers: (containersData || []).length,
-        master: (portsData || []).length + (linesData || []).length,
-        settings: 0,
-      };
+        newCounts = {
+          inquiries: (inquiriesData || []).length,
+          rfqs: (rfqsData || []).length,
+          matrixBids: totalBids,
+          quotations: (quotesData || []).length,
+          jobs: (jobsData || []).length,
+          containers: (containersData || []).length,
+          master: (portsData || []).length + (linesData || []).length,
+          settings: 0,
+        };
+      }
 
       memoryCachedCounts = newCounts;
       try {

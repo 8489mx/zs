@@ -21,7 +21,7 @@ import { CreateJobDocumentDto } from './dto/job-document.dto';
 import { CreateAgentSettlementDto, UpdateAgentSettlementStatusDto } from './dto/agent-settlement.dto';
 import { CreateInlandTruckingTripDto, UpdateInlandTruckingTripStatusDto } from './dto/inland-trucking.dto';
 import { CarrierTrackingEventDto, CarrierTrackingSyncDto } from './dto/carrier-tracking.dto';
-import { DcsaMilestoneKey } from './maritime-freight.types';
+import { DcsaMilestoneKey, ShipmentMilestoneKey } from './maritime-freight.types';
 
 @Controller(['maritime-freight', 'api/maritime-freight'])
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -32,6 +32,12 @@ export class MaritimeFreightController {
     private readonly freightService: MaritimeFreightService,
     private readonly mailService: MaritimeMailService,
   ) {}
+
+  // 0. Aggregated Metrics & Tab Badges
+  @Get('counts')
+  async getCounts(@Req() req: RequestWithAuth) {
+    return this.freightService.getCounts(req.authContext!);
+  }
 
   // 1. Ports Master Data
   @Get('ports')
@@ -211,7 +217,7 @@ export class MaritimeFreightController {
   @Post('jobs/:id/milestones')
   async addMilestone(
     @Param('id') id: string,
-    @Body('milestoneKey') milestoneKey: DcsaMilestoneKey,
+    @Body('milestoneKey') milestoneKey: ShipmentMilestoneKey,
     @Body('notes') notes: string,
     @Body('location') location: string,
     @Req() req: RequestWithAuth,
@@ -227,7 +233,7 @@ export class MaritimeFreightController {
   @Get('jobs/:id/whatsapp-alert')
   async getJobMilestoneWhatsApp(
     @Param('id') id: string,
-    @Query('milestone') milestoneKey: DcsaMilestoneKey,
+    @Query('milestone') milestoneKey: ShipmentMilestoneKey,
     @Req() req: RequestWithAuth,
   ) {
     return this.freightService.getMilestoneWhatsAppMessage(req.authContext!, id, milestoneKey);
@@ -236,7 +242,7 @@ export class MaritimeFreightController {
   @Post('jobs/:id/send-whatsapp')
   async sendJobMilestoneWhatsApp(
     @Param('id') id: string,
-    @Body('milestone') milestoneKey: DcsaMilestoneKey,
+    @Body('milestone') milestoneKey: ShipmentMilestoneKey,
     @Body('phone') phone: string,
     @Req() req: RequestWithAuth,
   ) {

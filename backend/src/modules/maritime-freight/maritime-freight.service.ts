@@ -15,8 +15,19 @@ import { CreateRateCardDto, UpdateRateCardStatusDto } from './dto/rate-card.dto'
 import { CreateCustomsDeclarationDto, CreateCustomsDeclarationItemDto, UpdateCustomsDeclarationStatusDto } from './dto/customs-declaration.dto';
 import { CreateCargoInsuranceDto, UpdateCargoInsuranceDto, ClaimCargoInsuranceDto } from './dto/cargo-insurance.dto';
 import { CreateWarehouseReceiptDto, ReleaseWarehouseReceiptDto } from './dto/warehouse-receipt.dto';
-import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey, MaritimePipelineConfig, DEFAULT_PIPELINE_CONFIG } from './maritime-freight.types';
-import { IATA_CARGO_IQ_MILESTONES } from './engines/air-freight.engine';
+import { DCSA_STANDARD_MILESTONES, DcsaMilestoneKey, ShipmentMilestoneKey, RoadMilestoneKey, ROAD_FREIGHT_MILESTONES, MaritimePipelineConfig, DEFAULT_PIPELINE_CONFIG } from './maritime-freight.types';
+import {
+  calculateAirChargeableWeight,
+  calculateAirFreightCost,
+  validateIataAwbNumber,
+  IATA_CARGO_IQ_MILESTONES,
+} from './engines/air-freight.engine';
+import {
+  calculateTrucksRequired,
+  calculateRoadFreightCost,
+  validateCmrWaybillNumber,
+  STANDARD_TRUCK_SPECIFICATIONS,
+} from './engines/road-freight.engine';
 import * as crypto from 'crypto';
 import {
   DEFAULT_SHIPPING_LINES,
@@ -24,6 +35,8 @@ import {
   DEFAULT_SHIPPING_PORTS,
   DEFAULT_AIRLINES,
   DEFAULT_CARGO_AIRPORTS,
+  DEFAULT_TRUCKING_COMPANIES,
+  DEFAULT_DRY_PORTS_DEPOTS,
   DEFAULT_CONTAINER_TYPES,
   DEFAULT_INCOTERMS,
   DEFAULT_PORT_TERMINALS,
@@ -54,14 +67,16 @@ export class MaritimeFreightService {
    * is seeded for the specified tenant. If records are missing, it safely seeds them
    * without overwriting existing client modifications.
    */
-  async ensureDefaultMasterData(tenantId: string): Promise<{ portsAdded: number; linesAdded: number; agentsAdded: number; airlinesAdded: number; airportsAdded: number }> {
-    if (!tenantId) return { portsAdded: 0, linesAdded: 0, agentsAdded: 0, airlinesAdded: 0, airportsAdded: 0 };
+  async ensureDefaultMasterData(tenantId: string): Promise<{ portsAdded: number; linesAdded: number; agentsAdded: number; airlinesAdded: number; airportsAdded: number; truckingAdded: number; dryPortsAdded: number }> {
+    if (!tenantId) return { portsAdded: 0, linesAdded: 0, agentsAdded: 0, airlinesAdded: 0, airportsAdded: 0, truckingAdded: 0, dryPortsAdded: 0 };
 
     let portsAdded = 0;
     let linesAdded = 0;
     let agentsAdded = 0;
     let airlinesAdded = 0;
     let airportsAdded = 0;
+    let truckingAdded = 0;
+    let dryPortsAdded = 0;
 
     try {
       // 1. Check & Seed Ports for this tenant
@@ -204,19 +219,135 @@ export class MaritimeFreightService {
         airportsAdded++;
       }
 
-      if (portsAdded > 0 || linesAdded > 0 || agentsAdded > 0 || airlinesAdded > 0 || airportsAdded > 0) {
-        this.logger.log(`Seeded maritime defaults for tenant ${tenantId}: ports=${portsAdded}, lines=${linesAdded}, agents=${agentsAdded}, airlines=${airlinesAdded}, airports=${airportsAdded}`);
+      // 6. Check & Seed Trucking Companies for this tenant
+      const existingTrucking = await this.db
+        .selectFrom('shipping_lines')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where('carrier_type', '=', 'trucking')
+        .execute();
+
+      const existingTruckingCodes = new Set(existingTrucking.map((t) => t.code));
+      const missingTrucking = DEFAULT_TRUCKING_COMPANIES.filter((t) => !existingTruckingCodes.has(t.code));
+
+      for (const trucking of missingTrucking) {
+        await sql`
+          INSERT INTO shipping_lines (
+            tenant_id, code, name_ar, name_en, carrier_type, country_name, country_code,
+            city_name, contact_person, email, rfq_email, booking_email, phone, whatsapp,
+            trade_lanes, services_offered, notes, is_active
+          )
+          VALUES (
+            ${tenantId}, ${trucking.code}, ${trucking.name_ar}, ${trucking.name_en}, 'trucking',
+            ${trucking.country_name || null}, ${trucking.country_code || null},
+            ${trucking.city_name || null}, ${trucking.contact_person || null}, ${trucking.email || null},
+            ${trucking.rfq_email || null}, ${trucking.booking_email || null}, ${trucking.phone || null}, ${trucking.whatsapp || null},
+            ${trucking.trade_lanes || null}, ${trucking.services_offered || null},
+            ${trucking.notes || null}, true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        truckingAdded++;
+      }
+
+      // 7. Check & Seed Dry Ports & Inland Depots for this tenant
+      const existingDryPorts = await this.db
+        .selectFrom('shipping_ports')
+        .select('code')
+        .where('tenant_id', '=', tenantId)
+        .where('port_type', '=', 'land')
+        .execute();
+
+      const existingDryPortCodes = new Set(existingDryPorts.map((p) => p.code));
+      const missingDryPorts = DEFAULT_DRY_PORTS_DEPOTS.filter((p) => !existingDryPortCodes.has(p.code));
+
+      for (const dryPort of missingDryPorts) {
+        await sql`
+          INSERT INTO shipping_ports (
+            tenant_id, code, name_ar, name_en, country_code, country_name, port_type, is_active
+          )
+          VALUES (
+            ${tenantId}, ${dryPort.code}, ${dryPort.name_ar}, ${dryPort.name_en}, ${dryPort.country_code},
+            ${dryPort.country_name}, 'land', true
+          )
+          ON CONFLICT (tenant_id, code) DO NOTHING
+        `.execute(this.db);
+        dryPortsAdded++;
+      }
+
+      if (portsAdded > 0 || linesAdded > 0 || agentsAdded > 0 || airlinesAdded > 0 || airportsAdded > 0 || truckingAdded > 0 || dryPortsAdded > 0) {
+        this.logger.log(`Seeded maritime defaults for tenant ${tenantId}: ports=${portsAdded}, lines=${linesAdded}, agents=${agentsAdded}, airlines=${airlinesAdded}, airports=${airportsAdded}, trucking=${truckingAdded}, dryPorts=${dryPortsAdded}`);
       }
     } catch (err) {
       this.logger.error(`Error ensuring maritime defaults for tenant ${tenantId}:`, err);
     }
 
-    return { portsAdded, linesAdded, agentsAdded, airlinesAdded, airportsAdded };
+    return { portsAdded, linesAdded, agentsAdded, airlinesAdded, airportsAdded, truckingAdded, dryPortsAdded };
   }
 
   async seedDefaultMasterData(auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
     return await this.ensureDefaultMasterData(tenantId);
+  }
+
+  async getCounts(auth: AuthContext) {
+    const { tenantId } = requireTenantScope(auth);
+
+    const [inquiries, rfqs, bids, quotes, jobs, containers, ports, lines] = await Promise.all([
+      this.db
+        .selectFrom('maritime_inquiries')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('maritime_rfqs')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('maritime_rfq_bids')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('maritime_quotations')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('maritime_jobs')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('maritime_containers')
+        .where('tenant_id', '=', tenantId)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('shipping_ports')
+        .where((eb) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', 'default')]))
+        .where('is_active', '=', true)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('shipping_lines')
+        .where((eb) => eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', '=', 'default')]))
+        .where('is_active', '=', true)
+        .select(this.db.fn.countAll().as('count'))
+        .executeTakeFirst(),
+    ]);
+
+    return {
+      inquiries: Number(inquiries?.count || 0),
+      rfqs: Number(rfqs?.count || 0),
+      matrixBids: Number(bids?.count || 0),
+      quotations: Number(quotes?.count || 0),
+      jobs: Number(jobs?.count || 0),
+      containers: Number(containers?.count || 0),
+      master: Number(ports?.count || 0) + Number(lines?.count || 0),
+      settings: 0,
+    };
   }
 
   // --------------------------------------------------------------------------
@@ -533,6 +664,18 @@ export class MaritimeFreightService {
   async createInquiry(auth: AuthContext, dto: CreateMaritimeInquiryDto) {
     const { tenantId } = requireTenantScope(auth);
 
+    const transportMode = dto.transportMode || 'sea';
+    let grossWeightKg = Number(dto.grossWeightKg || 0);
+    let totalCbm = Number(dto.totalCbm || dto.cbm || 0);
+    let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
+    let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
+
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+      const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
+      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
+      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+    }
+
     return await this.db.transaction().execute(async (trx) => {
       const tempNumber = `INQ-TMP-${crypto.randomUUID()}`;
       const [inquiry] = await trx
@@ -545,7 +688,7 @@ export class MaritimeFreightService {
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
           direction: dto.direction || 'import',
-          transport_mode: dto.transportMode || 'sea',
+          transport_mode: transportMode,
           air_cargo_type: dto.airCargoType || null,
           pol_code: dto.polCode.toUpperCase(),
           pol_name: dto.polName,
@@ -557,16 +700,16 @@ export class MaritimeFreightService {
           container_count: dto.containerCount || 1,
           commodity_description: dto.commodityDescription || '',
           cargo_nature: dto.cargoNature || 'general',
-          gross_weight_kg: Number(dto.grossWeightKg || 0),
-          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
-          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
-          total_cbm: Number(dto.totalCbm || dto.cbm || 0),
+          gross_weight_kg: grossWeightKg,
+          volumetric_weight_kg: volumetricWeightKg,
+          chargeable_weight_kg: chargeableWeightKg,
+          total_cbm: totalCbm,
           package_count: dto.packageCount ? Number(dto.packageCount) : 0,
           flight_number: dto.flightNumber || null,
           flight_date: dto.flightDate || null,
           mawb_number: dto.mawbNumber || null,
           hawb_number: dto.hawbNumber || null,
-          cbm: Number(dto.cbm || dto.totalCbm || 0),
+          cbm: totalCbm,
           cargo_ready_date: dto.cargoReadyDate || null,
           target_delivery_date: dto.targetDeliveryDate || null,
           target_free_days: dto.targetFreeDays || 14,
@@ -701,6 +844,18 @@ export class MaritimeFreightService {
       cutOffDate = new Date(Date.now() + hours * 3600 * 1000);
     }
 
+    const transportMode = dto.transportMode || 'sea';
+    let grossWeightKg = Number(dto.grossWeightKg || 0);
+    let totalCbm = Number(dto.totalCbm || 0);
+    let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
+    let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
+
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+      const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
+      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
+      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+    }
+
     return await this.db.transaction().execute(async (trx) => {
       const tempNumber = `RFQ-TMP-${crypto.randomUUID()}`;
       const publicQuoteToken = crypto.randomBytes(16).toString('hex');
@@ -716,12 +871,12 @@ export class MaritimeFreightService {
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
           direction: dto.direction || 'import',
-          transport_mode: dto.transportMode || 'sea',
+          transport_mode: transportMode,
           air_cargo_type: dto.airCargoType || null,
-          gross_weight_kg: Number(dto.grossWeightKg || 0),
-          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
-          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
-          total_cbm: Number(dto.totalCbm || 0),
+          gross_weight_kg: grossWeightKg,
+          volumetric_weight_kg: volumetricWeightKg,
+          chargeable_weight_kg: chargeableWeightKg,
+          total_cbm: totalCbm,
           package_count: dto.packageCount ? Number(dto.packageCount) : 0,
           flight_number: dto.flightNumber || null,
           flight_date: dto.flightDate || null,
@@ -1402,6 +1557,18 @@ export class MaritimeFreightService {
     }
     const finalTotalLocal = finalTotal * exchangeRate;
 
+    const transportMode = dto.transportMode || 'sea';
+    let grossWeightKg = Number(dto.grossWeightKg || 0);
+    let totalCbm = Number(dto.totalCbm || 0);
+    let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
+    let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
+
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+      const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
+      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
+      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+    }
+
     return await this.db.transaction().execute(async (trx) => {
       const tempNumber = `QUO-TMP-${crypto.randomUUID()}`;
       const [quote] = await trx
@@ -1416,12 +1583,12 @@ export class MaritimeFreightService {
           customer_name: dto.customerName,
           customer_phone: dto.customerPhone || null,
           customer_email: dto.customerEmail || null,
-          transport_mode: dto.transportMode || 'sea',
+          transport_mode: transportMode,
           air_cargo_type: dto.airCargoType || null,
-          gross_weight_kg: Number(dto.grossWeightKg || 0),
-          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
-          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
-          total_cbm: Number(dto.totalCbm || 0),
+          gross_weight_kg: grossWeightKg,
+          volumetric_weight_kg: volumetricWeightKg,
+          chargeable_weight_kg: chargeableWeightKg,
+          total_cbm: totalCbm,
           package_count: dto.packageCount ? Number(dto.packageCount) : 0,
           flight_number: dto.flightNumber || null,
           flight_date: dto.flightDate || null,
@@ -1546,6 +1713,27 @@ export class MaritimeFreightService {
     const { tenantId } = requireTenantScope(auth);
     const trackingToken = crypto.randomBytes(16).toString('hex');
 
+    const transportMode = dto.transportMode || 'sea';
+    let formattedMawb: string | null = dto.mawbNumber || null;
+    if (transportMode === 'air' && dto.mawbNumber) {
+      const mawbValidation = validateIataAwbNumber(dto.mawbNumber);
+      if (!mawbValidation.valid) {
+        throw new BadRequestException(mawbValidation.error);
+      }
+      formattedMawb = mawbValidation.formattedAwb || dto.mawbNumber;
+    }
+
+    let grossWeightKg = Number(dto.grossWeightKg || 0);
+    let totalCbm = Number(dto.totalCbm || 0);
+    let volumetricWeightKg = Number(dto.volumetricWeightKg || 0);
+    let chargeableWeightKg = Number(dto.chargeableWeightKg || 0);
+
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+      const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
+      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
+      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+    }
+
     return await this.db.transaction().execute(async (trx) => {
       const tempNumber = `JOB-TMP-${crypto.randomUUID()}`;
 
@@ -1561,16 +1749,16 @@ export class MaritimeFreightService {
           customer_id: dto.customerId ? Number(dto.customerId) : null,
           customer_name: dto.customerName,
           direction: dto.direction || 'import',
-          transport_mode: dto.transportMode || 'sea',
+          transport_mode: transportMode,
           air_cargo_type: dto.airCargoType || null,
-          gross_weight_kg: Number(dto.grossWeightKg || 0),
-          volumetric_weight_kg: Number(dto.volumetricWeightKg || 0),
-          chargeable_weight_kg: Number(dto.chargeableWeightKg || 0),
-          total_cbm: Number(dto.totalCbm || 0),
+          gross_weight_kg: grossWeightKg,
+          volumetric_weight_kg: volumetricWeightKg,
+          chargeable_weight_kg: chargeableWeightKg,
+          total_cbm: totalCbm,
           package_count: dto.packageCount ? Number(dto.packageCount) : 0,
           flight_number: dto.flightNumber || null,
           flight_date: dto.flightDate || null,
-          mawb_number: dto.mawbNumber || null,
+          mawb_number: formattedMawb,
           hawb_number: dto.hawbNumber || null,
           payment_term: dto.paymentTerm || 'prepaid',
           shipping_line_id: dto.shippingLineId ? String(dto.shippingLineId) : null,
@@ -1591,7 +1779,7 @@ export class MaritimeFreightService {
           shipper_details: dto.shipperDetails || null,
           consignee_details: dto.consigneeDetails || null,
           notify_party: dto.notifyParty || null,
-          milestone_status: dto.transportMode === 'air' ? 'BKD' : 'BOOK',
+          milestone_status: dto.transportMode === 'air' ? 'BKD' : dto.transportMode === 'road' ? 'TRK_ASSIGN' : 'BOOK',
           cost_center_id: null,
           tracking_token: trackingToken,
           parent_job_id: dto.parentJobId ? String(dto.parentJobId) : null,
@@ -1700,17 +1888,30 @@ export class MaritimeFreightService {
         .returningAll()
         .execute();
 
-      // 4. Add initial milestone (DCSA BOOK for sea, Cargo iQ BKD for air)
+      // 4. Add initial milestone (DCSA BOOK for sea, Cargo iQ BKD for air, TRK_ASSIGN for road)
       const isAir = dto.transportMode === 'air';
+      const isRoad = dto.transportMode === 'road';
+      const initialKey = isAir ? 'BKD' : isRoad ? 'TRK_ASSIGN' : 'BOOK';
+      const initialTitle = isAir
+        ? 'تأكيد حجز الشحنة الجوية (Air Cargo Booked)'
+        : isRoad
+        ? 'تعيين وسيلة النقل البري والسائق (Truck & Driver Assigned)'
+        : 'تأكيد الحجز الملاحي (Booking Confirmed)';
+      const initialNotes = isAir
+        ? `تم فتح أمر التشغيل وتأكيد الحجز الجوي برقم ${dto.mawbNumber || finalJobNumber}`
+        : isRoad
+        ? `تم فتح أمر التشغيل وتعيين وسيلة النقل البري برقم ${dto.bookingNumber || finalJobNumber}`
+        : `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || finalJobNumber}`;
+
       await trx
         .insertInto('maritime_job_milestones')
         .values({
           tenant_id: tenantId,
           job_id: String(job.id),
-          milestone_key: isAir ? 'BKD' : 'BOOK',
-          milestone_title: isAir ? 'تأكيد حجز الشحنة الجوية (Air Cargo Booked)' : 'تأكيد الحجز الملاحي (Booking Confirmed)',
+          milestone_key: initialKey,
+          milestone_title: initialTitle,
           location: dto.polName,
-          notes: `تم فتح أمر التشغيل وتأكيد الحجز بنجاح برقم ${dto.bookingNumber || dto.mawbNumber || finalJobNumber}`,
+          notes: initialNotes,
           recorded_by: auth.userId ? Number(auth.userId) : null,
         })
         .execute();
@@ -1799,19 +2000,22 @@ export class MaritimeFreightService {
         .executeTakeFirst();
     }
 
+    const transportMode = quote.transport_mode || rfq?.transport_mode || 'sea';
     const containerCount = rfq?.container_count || 1;
     const containerType = rfq?.container_type || '40HC';
     const freeDays = bid?.free_days || rfq?.target_free_days || 14;
 
     const containersPayload: any[] = [];
-    for (let i = 1; i <= containerCount; i++) {
-      containersPayload.push({
-        containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
-        containerType,
-        freeDays,
-        depositAmount: 5000,
-        depositCurrency: 'EGP',
-      });
+    if (transportMode === 'sea') {
+      for (let i = 1; i <= containerCount; i++) {
+        containersPayload.push({
+          containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
+          containerType,
+          freeDays,
+          depositAmount: 5000,
+          depositCurrency: 'EGP',
+        });
+      }
     }
 
     return await this.createJob(auth, {
@@ -1834,11 +2038,11 @@ export class MaritimeFreightService {
       hawbNumber: quote.hawb_number || rfq?.hawb_number || null,
       paymentTerm: quote.payment_term,
       shippingLineId: bid?.shipping_line_id || null,
-      shippingLineName: bid?.shipping_line_name || (quote.transport_mode === 'air' ? 'شركة طيران معتمدة' : 'خط ملاحي معتمد'),
-      polCode: rfq?.pol_code || 'CNSHA',
-      polName: rfq?.pol_name || (quote.transport_mode === 'air' ? 'مطار الشحن' : 'ميناء الشحن'),
-      podCode: rfq?.pod_code || 'CAI',
-      podName: rfq?.pod_name || (quote.transport_mode === 'air' ? 'مطار الوصول' : 'ميناء الوصول'),
+      shippingLineName: bid?.shipping_line_name || (quote.transport_mode === 'air' ? 'شركة طيران معتمدة' : quote.transport_mode === 'road' ? 'شركة نقل بري معتمدة' : 'خط ملاحي معتمد'),
+      polCode: rfq?.pol_code || (quote.transport_mode === 'road' ? 'EGSOC' : quote.transport_mode === 'air' ? 'CAI' : 'CNSHA'),
+      polName: rfq?.pol_name || (quote.transport_mode === 'air' ? 'مطار الشحن' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الشحن' : 'ميناء الشحن'),
+      podCode: rfq?.pod_code || (quote.transport_mode === 'road' ? 'EGTRD' : quote.transport_mode === 'air' ? 'DXB' : 'EGALY'),
+      podName: rfq?.pod_name || (quote.transport_mode === 'air' ? 'مطار الوصول' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الوصول' : 'ميناء الوصول'),
       bookingNumber: `BKG-${Math.floor(100000 + Math.random() * 900000)}`,
       containers: containersPayload,
       notes: `أمر تشغيل تم تحويله وتفعيله آلياً من عرض السعر ${quote.quotation_number}`,
@@ -1938,6 +2142,14 @@ export class MaritimeFreightService {
       .orderBy('id', 'desc')
       .execute();
 
+    const truckingTrips = await this.db
+      .selectFrom('maritime_inland_trucking_trips')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('job_id', '=', id)
+      .orderBy('id', 'asc')
+      .execute();
+
     let customerBalance = 0;
     let customerAvailableCredit = 0;
     if (job.customer_id) {
@@ -1961,8 +2173,10 @@ export class MaritimeFreightService {
       milestones,
       insurances: insurances || [],
       warehouseReceipts: warehouseReceipts || [],
+      truckingTrips: truckingTrips || [],
       dcsaDefinitions: DCSA_STANDARD_MILESTONES,
       cargoIqDefinitions: IATA_CARGO_IQ_MILESTONES,
+      roadFreightDefinitions: ROAD_FREIGHT_MILESTONES,
     };
   }
 
@@ -1981,17 +2195,41 @@ export class MaritimeFreightService {
       updated_at: sql`NOW()`,
     };
 
+    const transportMode = dto.transportMode || existing.transport_mode;
     if (dto.transportMode !== undefined) updatePayload.transport_mode = dto.transportMode;
     if (dto.airCargoType !== undefined) updatePayload.air_cargo_type = dto.airCargoType || null;
     if (dto.flightNumber !== undefined) updatePayload.flight_number = dto.flightNumber || null;
     if (dto.flightDate !== undefined) updatePayload.flight_date = dto.flightDate || null;
-    if (dto.mawbNumber !== undefined) updatePayload.mawb_number = dto.mawbNumber || null;
+
+    if (transportMode === 'air' && dto.mawbNumber) {
+      const mawbValidation = validateIataAwbNumber(dto.mawbNumber);
+      if (!mawbValidation.valid) {
+        throw new BadRequestException(mawbValidation.error);
+      }
+      updatePayload.mawb_number = mawbValidation.formattedAwb || dto.mawbNumber;
+    } else if (dto.mawbNumber !== undefined) {
+      updatePayload.mawb_number = dto.mawbNumber || null;
+    }
+
     if (dto.hawbNumber !== undefined) updatePayload.hawb_number = dto.hawbNumber || null;
-    if (dto.grossWeightKg !== undefined) updatePayload.gross_weight_kg = Number(dto.grossWeightKg || 0);
-    if (dto.volumetricWeightKg !== undefined) updatePayload.volumetric_weight_kg = Number(dto.volumetricWeightKg || 0);
-    if (dto.chargeableWeightKg !== undefined) updatePayload.chargeable_weight_kg = Number(dto.chargeableWeightKg || 0);
-    if (dto.totalCbm !== undefined) updatePayload.total_cbm = Number(dto.totalCbm || 0);
+
+    let grossWeightKg = dto.grossWeightKg !== undefined ? Number(dto.grossWeightKg || 0) : Number(existing.gross_weight_kg || 0);
+    let totalCbm = dto.totalCbm !== undefined ? Number(dto.totalCbm || 0) : Number(existing.total_cbm || 0);
+    let volumetricWeightKg = dto.volumetricWeightKg !== undefined ? Number(dto.volumetricWeightKg || 0) : Number(existing.volumetric_weight_kg || 0);
+    let chargeableWeightKg = dto.chargeableWeightKg !== undefined ? Number(dto.chargeableWeightKg || 0) : Number(existing.chargeable_weight_kg || 0);
+
+    if (transportMode === 'air' && (grossWeightKg > 0 || totalCbm > 0) && (!chargeableWeightKg || !volumetricWeightKg)) {
+      const airCalc = calculateAirChargeableWeight({ grossWeightKg, cbm: totalCbm });
+      volumetricWeightKg = volumetricWeightKg || airCalc.volumetricWeightKg;
+      chargeableWeightKg = chargeableWeightKg || airCalc.chargeableWeightKg;
+    }
+
+    if (dto.grossWeightKg !== undefined) updatePayload.gross_weight_kg = grossWeightKg;
+    if (dto.volumetricWeightKg !== undefined || (transportMode === 'air' && volumetricWeightKg > 0)) updatePayload.volumetric_weight_kg = volumetricWeightKg;
+    if (dto.chargeableWeightKg !== undefined || (transportMode === 'air' && chargeableWeightKg > 0)) updatePayload.chargeable_weight_kg = chargeableWeightKg;
+    if (dto.totalCbm !== undefined) updatePayload.total_cbm = totalCbm;
     if (dto.packageCount !== undefined) updatePayload.package_count = Number(dto.packageCount || 0);
+    if (dto.status !== undefined) updatePayload.status = dto.status;
     if (dto.vesselName !== undefined) updatePayload.vessel_name = dto.vesselName || null;
     if (dto.voyageNumber !== undefined) updatePayload.voyage_number = dto.voyageNumber || null;
     if (dto.bookingNumber !== undefined) updatePayload.booking_number = dto.bookingNumber || null;
@@ -2023,9 +2261,10 @@ export class MaritimeFreightService {
     return updatedJob;
   }
 
-  async addJobMilestone(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey, notes?: string, location?: string) {
+  async addJobMilestone(auth: AuthContext, jobId: string, milestoneKey: ShipmentMilestoneKey, notes?: string, location?: string) {
     const { tenantId } = requireTenantScope(auth);
-    const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey);
+    const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey)
+      || IATA_CARGO_IQ_MILESTONES.find((m) => m.key === milestoneKey);
     const milestoneTitle = milestoneDef ? `${milestoneDef.title_ar} (${milestoneDef.title_en})` : milestoneKey;
 
     await this.db
@@ -2142,15 +2381,24 @@ export class MaritimeFreightService {
 
   async releaseDeliveryOrder(auth: AuthContext, jobId: string) {
     const { tenantId } = requireTenantScope(auth);
+    const job = await this.getJobById(auth, jobId);
+    const isAir = job?.transport_mode === 'air';
+    const isRoad = job?.transport_mode === 'road';
+    const milestoneKey = isAir ? 'AWD' : isRoad ? 'TRK_POD' : 'GTO';
+    const milestoneTitle = isAir
+      ? 'تم اعتماد وإصدار إذن التسليم الجوي وبوليصة الشحن (Air Cargo Delivery Order) للعميل'
+      : isRoad
+      ? 'توقيع بوليصة الشحن البري وتأكيد استلام وتسليم البضاعة (Signed Waybill / POD)'
+      : 'تم اعتماد وإصدار إذن التسليم الملاحي الرسمي (Delivery Order D/O) للعميل';
     return await this.addJobMilestone(
       auth,
       jobId,
-      'GTO',
-      'تم اعتماد وإصدار إذن التسليم الملاحي الرسمي (Delivery Order D/O) للعميل'
+      milestoneKey,
+      milestoneTitle
     );
   }
 
-  async sendMilestoneWhatsApp(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey, targetPhone?: string) {
+  async sendMilestoneWhatsApp(auth: AuthContext, jobId: string, milestoneKey: ShipmentMilestoneKey, targetPhone?: string) {
     const { tenantId } = requireTenantScope(auth);
     const msgData = await this.getMilestoneWhatsAppMessage(auth, jobId, milestoneKey);
     let phone = targetPhone || msgData.customerPhone;
@@ -2176,51 +2424,99 @@ export class MaritimeFreightService {
     return res;
   }
 
-  async getMilestoneWhatsAppMessage(auth: AuthContext, jobId: string, milestoneKey: DcsaMilestoneKey) {
+  async getMilestoneWhatsAppMessage(auth: AuthContext, jobId: string, milestoneKey: ShipmentMilestoneKey) {
     const job = await this.getJobById(auth, jobId);
     const trackingUrl = job.tracking_token
       ? `${process.env.APP_PUBLIC_URL || 'https://app.zsystemai.com'}/public/track/${job.tracking_token}`
       : '';
 
-    const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey);
+    const milestoneDef = DCSA_STANDARD_MILESTONES.find((m) => m.key === milestoneKey)
+      || IATA_CARGO_IQ_MILESTONES.find((m) => m.key === milestoneKey)
+      || ROAD_FREIGHT_MILESTONES.find((m) => m.key === milestoneKey);
     const title = milestoneDef ? milestoneDef.title_ar : milestoneKey;
 
     let actionContext = '';
     switch (milestoneKey) {
       case 'BOOK':
-        actionContext = `تم تأكيد حجز الشحنة بنجاح برقم الحجز: ${job.booking_number || job.job_number}`;
+      case 'BKD':
+      case 'TRK_ASSIGN':
+        actionContext = job.transport_mode === 'road'
+          ? `تم تأكيد حجز النقل البري وتعيين الشاحنة والسائق بنجاح برقم: ${job.booking_number || job.job_number}`
+          : `تم تأكيد حجز الشحنة بنجاح برقم الحجز: ${job.booking_number || job.mawb_number || job.job_number}`;
         break;
       case 'GTI':
         actionContext = `وصلت الحاوية ودخلت ساحة ميناء الشحن (${job.pol_name}) بانتظار التحميل على السفينة.`;
         break;
+      case 'TRK_GATE_IN':
+        actionContext = `وصلت الشاحنة إلى موقع التحميل (${job.pol_name}) وبدأت إجراءات الدخول والوزن.`;
+        break;
+      case 'RCS':
+        actionContext = `تم استلام الشحنة بمستودع قرية البضائع بمطار الشحن (${job.pol_name}) والتحقق من الأوزان والأبعاد.`;
+        break;
       case 'LOAD':
         actionContext = `تم تحميل وشحن الحاوية على متن السفينة (${job.vessel_name || 'السفينة المحددة'}) وجاري التجهيز للإبحار.`;
         break;
+      case 'TRK_LOADED':
+        actionContext = `تم إتمام تحميل وتربيط البضاعة بالشاحنة ووزن الحمولة بنجاح وجاهزة للتحرك.`;
+        break;
+      case 'MAN':
+        actionContext = `تم إدراج الشحنة على مانيفست رحلة الطيران المجدولة بنجاح.`;
+        break;
       case 'DEPT':
-        actionContext = `أبحرت السفينة رسمياً من ${job.pol_name} متجهة إلى ${job.pod_name}. موعد الوصول المتوقع (ETA): ${job.eta || 'قيد المتابعة'}.`;
+      case 'DEP':
+      case 'TRK_DISPATCH':
+        actionContext = job.transport_mode === 'air'
+          ? `أقلعت رحلة الشحن الجوي (${job.flight_number || 'الرحلة المجدولة'}) من مطار ${job.pol_name} متجهة إلى ${job.pod_name}. موعد الوصول المتوقع (ETA): ${job.eta || 'قيد المتابعة'}.`
+          : job.transport_mode === 'road'
+          ? `انطلقت الشاحنة رسمياً على مسار الرحلة متجهة إلى ${job.pod_name}. موعد الوصول المتوقع (ETA): ${job.eta || 'قيد المتابعة'}.`
+          : `أبحرت السفينة رسمياً من ${job.pol_name} متجهة إلى ${job.pod_name}. موعد الوصول المتوقع (ETA): ${job.eta || 'قيد المتابعة'}.`;
         break;
       case 'ARRI':
-        actionContext = `وصلت السفينة بحمد الله إلى ميناء المقصد (${job.pod_name}) وجاري ربط السفينة وبدء عمليات التفريغ.`;
+      case 'ARR':
+      case 'TRK_ARRIVED':
+        actionContext = job.transport_mode === 'air'
+          ? `هبطت طائرة الشحن الجوي بحمد الله في مطار المقصد (${job.pod_name}) وجاري تفريغ الشحنة إلى قرية البضائع.`
+          : job.transport_mode === 'road'
+          ? `وصلت الشاحنة بحمد الله إلى موقع المقصد (${job.pod_name}) بانتظار بدء إجراءات التفريغ.`
+          : `وصلت السفينة بحمد الله إلى ميناء المقصد (${job.pod_name}) وجاري ربط السفينة وبدء عمليات التفريغ.`;
         break;
       case 'DISC':
         actionContext = `تم تفريغ الحاوية على رصيف ميناء ${job.pod_name} وبدأ سريان فترة السماح (Free Days). جاري بدء إجراءات التخليص الجمركي.`;
         break;
+      case 'TRK_BORDER':
+        actionContext = `وصلت الشاحنة إلى المنفذ البري / المعبر الجمركي وجاري فحص وتخليص البضاعة العابرة للحدود.`;
+        break;
+      case 'RCF':
+        actionContext = `تم تفريغ ودخول الشحنة لمستودع قرية البضائع بمطار ${job.pod_name} وجاهزة لإجراءات المعاينة والتخليص.`;
+        break;
       case 'CUST':
         actionContext = `تم إنهاء كافة إجراءات الإفراج والمطابقة الجمركية للشحنة بنجاح.`;
         break;
+      case 'NFD':
+        actionContext = `تم إشعار العميل المستلم بوصول الشحنة لمطار المقصد وجاري التنسيق للتسليم النهائي.`;
+        break;
       case 'GTO':
-        actionContext = `تم إصدار إذن التسليم الملاحي (Delivery Order) وخروج الحاوية من بوابة الميناء في طريقها للعنوان المحدد.`;
+      case 'AWD':
+        actionContext = job.transport_mode === 'air'
+          ? `تم إصدار إذن التسليم الجوي وبوليصة الشحن (Delivery Order D/O) وتجهيز الشحنة للاستلام.`
+          : `تم إصدار إذن التسليم الملاحي (Delivery Order D/O) وخروج الحاوية من بوابة الميناء في طريقها للعنوان المحدد.`;
+        break;
+      case 'TRK_UNLOADED':
+        actionContext = `تم تفريغ البضاعة ومطابقة الطرود والكميات بمستودع المستلم.`;
         break;
       case 'DLVR':
-        actionContext = `تم تسليم البضاعة كاملة لمقر/مستودع العميل بنجاح. نشكركم على ثقتكم في خدماتنا اللوجستية!`;
+      case 'DLV':
+      case 'TRK_POD':
+        actionContext = `تم تسليم البضاعة كاملة وتوقيع إشعار / بوليصة الاستلام بنجاح (Proof of Delivery). نشكركم على ثقتكم في خدماتنا اللوجستية!`;
         break;
       case 'RETN':
         actionContext = `تم إرجاع الحاوية الفارغة لساحة التوكيل الملاحي بنجاح وجاري استرداد مبالغ التأمين للخزينة.`;
         break;
     }
 
+    const modeName = job.transport_mode === 'air' ? 'الجوية' : job.transport_mode === 'road' ? 'البرية' : 'الملاحية';
     const message = `عزيزنا العميل ${job.customer_name}،\n` +
-      `تحديث جديد بخصوص شحنتكم الملاحية [${job.job_number}]:\n` +
+      `تحديث جديد بخصوص شحنتكم ${modeName} [${job.job_number}]:\n` +
       `المرحلة الحالية: ${title}\n` +
       `${actionContext}\n\n` +
       `يمكنكم متابعة خط سير الشحنة لحظة بلحظة عبر رابط التتبع المباشر:\n` +
@@ -5452,52 +5748,132 @@ export class MaritimeFreightService {
 
   async createInlandTruckingTrip(auth: AuthContext, dto: CreateInlandTruckingTripDto) {
     const { tenantId } = requireTenantScope(auth);
-    const tripNumber = formatDailyDocumentNumber('TRIP', Math.floor(Math.random() * 9000) + 1000);
+    const tempTripNumber = `TRIP-TMP-${crypto.randomUUID()}`;
 
-    const [trip] = await this.db
-      .insertInto('maritime_inland_trucking_trips')
-      .values({
-        tenant_id: tenantId,
-        job_id: String(dto.jobId),
-        trip_number: tripNumber,
-        container_number: dto.containerNumber || null,
-        trucking_company: dto.truckingCompany,
-        driver_name: dto.driverName,
-        driver_phone: dto.driverPhone || null,
-        truck_plate: dto.truckPlate,
-        trailer_plate: dto.trailerPlate || null,
-        origin_port_terminal: dto.originPortTerminal,
-        delivery_destination: dto.deliveryDestination,
-        dispatch_date: dto.dispatchDate ? new Date(dto.dispatchDate) : sql`NOW()`,
-        delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
-        trip_status: 'assigned',
-        cost_amount: Number(dto.costAmount || 0),
-        sell_amount: Number(dto.sellAmount || 0),
-        currency: dto.currency || 'EGP',
-        notes: dto.notes || null,
-      })
-      .returningAll()
-      .execute();
+    return await this.db.transaction().execute(async (trx) => {
+      const [trip] = await trx
+        .insertInto('maritime_inland_trucking_trips')
+        .values({
+          tenant_id: tenantId,
+          job_id: String(dto.jobId),
+          trip_number: tempTripNumber,
+          container_number: dto.containerNumber || null,
+          trucking_company: dto.truckingCompany,
+          driver_name: dto.driverName,
+          driver_phone: dto.driverPhone || null,
+          truck_plate: dto.truckPlate,
+          trailer_plate: dto.trailerPlate || null,
+          origin_port_terminal: dto.originPortTerminal,
+          delivery_destination: dto.deliveryDestination,
+          dispatch_date: dto.dispatchDate ? new Date(dto.dispatchDate) : sql`NOW()`,
+          delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
+          trip_status: 'assigned',
+          cost_amount: Number(dto.costAmount || 0),
+          sell_amount: Number(dto.sellAmount || 0),
+          currency: dto.currency || 'EGP',
+          notes: dto.notes || null,
+        })
+        .returningAll()
+        .execute();
 
-    return trip;
+      const finalTripNumber = formatDailyDocumentNumber('TRIP', Number(trip.id));
+
+      const [updatedTrip] = await trx
+        .updateTable('maritime_inland_trucking_trips')
+        .set({ trip_number: finalTripNumber })
+        .where('id', '=', trip.id)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .execute();
+
+      // If job exists, register milestone on the job
+      const job = await trx
+        .selectFrom('maritime_jobs')
+        .select(['id', 'transport_mode'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', String(dto.jobId) as any)
+        .executeTakeFirst();
+
+      if (job) {
+        await trx
+          .insertInto('maritime_job_milestones')
+          .values({
+            tenant_id: tenantId,
+            job_id: String(job.id),
+            milestone_key: 'TRK_ASSIGN',
+            milestone_title: `تعيين الشاحنة والسائق للرحلة ${finalTripNumber} (${dto.truckPlate})`,
+            location: dto.originPortTerminal,
+            notes: `تم تكليف الشاحنة ${dto.truckPlate} والسائق ${dto.driverName} بالتحرك من ${dto.originPortTerminal} إلى ${dto.deliveryDestination}`,
+            recorded_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+
+        if (job.transport_mode === 'road') {
+          await trx
+            .updateTable('maritime_jobs')
+            .set({ milestone_status: 'TRK_ASSIGN' })
+            .where('id', '=', job.id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
+      }
+
+      return updatedTrip;
+    });
   }
 
   async updateInlandTruckingTripStatus(auth: AuthContext, id: string | number, dto: UpdateInlandTruckingTripStatusDto) {
     const { tenantId } = requireTenantScope(auth);
-    const [updated] = await this.db
-      .updateTable('maritime_inland_trucking_trips')
-      .set({
-        trip_status: dto.tripStatus,
-        delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : undefined,
-        notes: dto.notes !== undefined ? dto.notes : undefined,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', String(id) as any)
-      .returningAll()
-      .execute();
+    return await this.db.transaction().execute(async (trx) => {
+      const [updated] = await trx
+        .updateTable('maritime_inland_trucking_trips')
+        .set({
+          trip_status: dto.tripStatus,
+          delivery_date: dto.deliveryDate ? new Date(dto.deliveryDate) : undefined,
+          notes: dto.notes !== undefined ? dto.notes : undefined,
+          updated_at: sql`NOW()`,
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', String(id) as any)
+        .returningAll()
+        .execute();
 
-    return updated;
+      if (!updated) {
+        throw new NotFoundException('Inland trucking trip not found');
+      }
+
+      // Map trip status to job milestone progression
+      const statusMilestoneMap: Record<string, { key: string; title: string }> = {
+        loading: { key: 'TRK_LOADED', title: `إتمام تحميل وتربيط البضاعة بالشاحنة (Cargo Loaded - ${updated.trip_number})` },
+        in_transit: { key: 'TRK_DISPATCH', title: `انطلاق الشاحنة على مسار النقل (Truck In Transit - ${updated.trip_number})` },
+        delivered: { key: 'TRK_POD', title: `وصول الشاحنة وتفريغ وتسليم البضاعة وإثبات التسليم (Delivered & POD - ${updated.trip_number})` },
+      };
+
+      const mapping = statusMilestoneMap[dto.tripStatus];
+      if (mapping) {
+        await trx
+          .insertInto('maritime_job_milestones')
+          .values({
+            tenant_id: tenantId,
+            job_id: String(updated.job_id),
+            milestone_key: mapping.key,
+            milestone_title: mapping.title,
+            location: dto.tripStatus === 'delivered' ? updated.delivery_destination : updated.origin_port_terminal,
+            notes: dto.notes || `تم تحديث حالة رحلة النقل البري ${updated.trip_number} إلى ${dto.tripStatus}`,
+            recorded_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+
+        await trx
+          .updateTable('maritime_jobs')
+          .set({ milestone_status: mapping.key })
+          .where('id', '=', String(updated.job_id) as any)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      return updated;
+    });
   }
 
   // ==========================================
