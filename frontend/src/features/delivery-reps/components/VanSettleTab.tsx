@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
@@ -45,6 +45,24 @@ interface VanSettleTabProps {
     createdAt: string;
     customerName?: string;
   }[];
+  expenses?: {
+    id: number;
+    expenseType: string;
+    amount: number;
+    description?: string;
+    createdAt: string;
+  }[];
+  packagingMovements?: {
+    id: number;
+    packagingType: string;
+    qtyOut: number;
+    qtyIn: number;
+    customerName?: string;
+    createdAt: string;
+    notes?: string;
+  }[];
+  onOpenExpenseModal?: () => void;
+  onOpenPackagingModal?: () => void;
   inventory?: VanStockItem[];
   countedCash: string;
   onCountedCashChange: (val: string) => void;
@@ -59,6 +77,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   sales = [],
   collections = [],
   returns = [],
+  expenses = [],
+  packagingMovements = [],
+  onOpenExpenseModal,
+  onOpenPackagingModal,
   inventory = [],
   countedCash,
   onCountedCashChange,
@@ -68,7 +90,19 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   isSubmitting,
 }) => {
   const [activeSection, setActiveSection] = useState<'settle' | 'activity'>('settle');
-  const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'inventory'>('sales');
+  const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'expenses' | 'packaging' | 'inventory'>('sales');
+
+  const safeExpenses = useMemo(() => {
+    if (!expenses) return [];
+    if (Array.isArray(expenses)) return expenses;
+    return (expenses as any).expenses || [];
+  }, [expenses]);
+
+  const safePackaging = useMemo(() => {
+    if (!packagingMovements) return [];
+    if (Array.isArray(packagingMovements)) return packagingMovements;
+    return (packagingMovements as any).movements || [];
+  }, [packagingMovements]);
 
   const salesAmount = Number(tripData?.salesAmount || 0);
   const creditSales = Number(tripData?.creditSales || 0);
@@ -77,9 +111,13 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   const returnsAmount = Number(tripData?.returnsAmount || 0);
   const cashRefunds = Number(tripData?.cashRefunds || 0);
   const creditReturns = Math.max(0, returnsAmount - cashRefunds);
-  const cashCollected = Number(tripData?.cashCollected || 0);
+  const totalTripExpenses = (safeExpenses && safeExpenses.length > 0)
+    ? safeExpenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0)
+    : Number((tripData as any)?.tripExpenses || 0);
+  const netExpectedCash = Math.max(0, (cashSales + collectionsTotal - cashRefunds) - totalTripExpenses);
+  const cashCollected = Number((tripData as any)?.expectedCashToRemit ?? tripData?.cashCollected ?? netExpectedCash);
   const countedNum = Number(countedCash);
-  const totalActivities = sales.length + collections.length + returns.length;
+  const totalActivities = sales.length + collections.length + returns.length + safeExpenses.length + safePackaging.length;
   const totalDiscounts = sales.reduce((sum, s) => sum + Number(s.discount || 0), 0);
 
   const formatTime = (iso?: string) => {
@@ -319,6 +357,19 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             </span>
           </div>
 
+          {/* Approved Trip Expenses */}
+          {totalTripExpenses > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c', fontWeight: 700, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
+                مصروفات الرحلة المعتمدة (وقود / بوابات / صيانة):
+              </span>
+              <span style={{ fontWeight: 800, color: '#b91c1c' }}>
+                -{totalTripExpenses.toFixed(2)} <CurrencySymbol />
+              </span>
+            </div>
+          )}
+
           {/* Net Cash Required (Single Source of Truth) */}
           <div
             style={{
@@ -337,13 +388,63 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 صافي النقدية المتوقع تسليمها (كاش الدرج الإلزامي):
               </span>
               <span style={{ fontSize: '10px', color: '#047857' }}>
-                = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - مرتجعات الكاش ({cashRefunds.toFixed(0)})
+                = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - مرتجعات الكاش ({cashRefunds.toFixed(0)}) - المصروفات ({totalTripExpenses.toFixed(0)})
               </span>
             </div>
             <span style={{ fontSize: '16px', fontWeight: 900, color: '#065f46' }}>
               {cashCollected.toFixed(2)} <CurrencySymbol />
             </span>
           </div>
+        </div>
+
+        {/* Quick Action Buttons: Expenses & Packaging */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {onOpenExpenseModal && (
+            <button
+              type="button"
+              onClick={onOpenExpenseModal}
+              style={{
+                height: '36px',
+                borderRadius: '8px',
+                border: '1px dashed #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#170e5e',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <ReceiptIcon size={14} color="#170e5e" />
+              <span>+ تسجيل مصروف رحلة</span>
+            </button>
+          )}
+          {onOpenPackagingModal && (
+            <button
+              type="button"
+              onClick={onOpenPackagingModal}
+              style={{
+                height: '36px',
+                borderRadius: '8px',
+                border: '1px dashed #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#059669',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <PackageIcon size={14} color="#059669" />
+              <span>+ حركة فوارغ وصناديق</span>
+            </button>
+          )}
         </div>
 
         {/* Cash Counting Input */}
@@ -499,7 +600,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
         </div>
 
-        {/* Subtab Navigation Bar (Single Row, 4 tabs fit 100% without cut-off) */}
+        {/* Subtab Navigation Bar (Single Row, 6 tabs scrollable/fitted) */}
         <div
           style={{
             display: 'flex',
@@ -508,9 +609,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             backgroundColor: '#f1f5f9',
             padding: '3px',
             borderRadius: '8px',
-            gap: '4px',
+            gap: '3px',
             width: '100%',
             boxSizing: 'border-box',
+            overflowX: 'auto',
           }}
         >
           <button
@@ -518,7 +620,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             onClick={() => setActiveSubTab('sales')}
             style={{
               flex: '1 1 0',
-              minWidth: 0,
+              minWidth: '58px',
               padding: '6px 2px',
               borderRadius: '6px',
               border: 'none',
@@ -526,7 +628,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               backgroundColor: activeSubTab === 'sales' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'sales' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '11px',
+              fontSize: '10.5px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
             }}
@@ -538,7 +640,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             onClick={() => setActiveSubTab('collections')}
             style={{
               flex: '1 1 0',
-              minWidth: 0,
+              minWidth: '60px',
               padding: '6px 2px',
               borderRadius: '6px',
               border: 'none',
@@ -546,7 +648,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               backgroundColor: activeSubTab === 'collections' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'collections' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '11px',
+              fontSize: '10.5px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
             }}
@@ -558,7 +660,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             onClick={() => setActiveSubTab('returns')}
             style={{
               flex: '1 1 0',
-              minWidth: 0,
+              minWidth: '60px',
               padding: '6px 2px',
               borderRadius: '6px',
               border: 'none',
@@ -566,7 +668,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               backgroundColor: activeSubTab === 'returns' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'returns' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '11px',
+              fontSize: '10.5px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
             }}
@@ -575,10 +677,50 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setActiveSubTab('expenses')}
+            style={{
+              flex: '1 1 0',
+              minWidth: '60px',
+              padding: '6px 2px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'expenses' ? '#170e5e' : 'transparent',
+              color: activeSubTab === 'expenses' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: '10.5px',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+            }}
+          >
+            مصروفات ({safeExpenses.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('packaging')}
+            style={{
+              flex: '1 1 0',
+              minWidth: '55px',
+              padding: '6px 2px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'packaging' ? '#170e5e' : 'transparent',
+              color: activeSubTab === 'packaging' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: '10.5px',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+            }}
+          >
+            فوارغ ({safePackaging.length})
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveSubTab('inventory')}
             style={{
               flex: '1 1 0',
-              minWidth: 0,
+              minWidth: '58px',
               padding: '6px 2px',
               borderRadius: '6px',
               border: 'none',
@@ -586,7 +728,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               backgroundColor: activeSubTab === 'inventory' ? '#170e5e' : 'transparent',
               color: activeSubTab === 'inventory' ? '#ffffff' : '#475569',
               fontWeight: 700,
-              fontSize: '11px',
+              fontSize: '10.5px',
               whiteSpace: 'nowrap',
               textAlign: 'center',
             }}
@@ -784,7 +926,127 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             )
           )}
 
-          {/* 4. REMAINING VAN INVENTORY */}
+          {/* 4. TRIP OPERATIONAL EXPENSES */}
+          {activeSubTab === 'expenses' && (
+            safeExpenses.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <ReceiptIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد مصروفات مسجلة لهذه الرحلة</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {safeExpenses.map((exp: any) => (
+                  <div
+                    key={exp.id}
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                          {exp.expenseType === 'fuel' ? 'وقود وبنزين' :
+                           exp.expenseType === 'toll' ? 'كارتات وبوابات' :
+                           exp.expenseType === 'maintenance' ? 'صيانة طارئة' :
+                           exp.expenseType === 'food_allowance' ? 'بدل وجبة' : 'مصروف نثري'}
+                        </span>
+                        <span style={{ color: '#94a3b8', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <ClockIcon size={12} color="#94a3b8" />
+                          {formatTime(exp.createdAt)}
+                        </span>
+                      </div>
+                      {(exp.notes || exp.description) && (
+                        <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                          {exp.notes || exp.description}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: '#b91c1c' }}>
+                      -{Number(exp.amount).toFixed(2)} <CurrencySymbol />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* 5. RETURNABLE PACKAGING & EMPTIES MOVEMENTS */}
+          {activeSubTab === 'packaging' && (
+            safePackaging.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد حركات فوارغ أو صناديق مسجلة في هذه الرحلة</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {safePackaging.map((pkg: any) => {
+                  const pType = pkg.packageType || pkg.packagingType;
+                  const delivered = pkg.deliveredQty ?? pkg.qtyOut ?? 0;
+                  const returned = pkg.returnedQty ?? pkg.qtyIn ?? 0;
+                  return (
+                    <div
+                      key={pkg.id}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                            {pType === 'crate_plastic' || pType === 'plastic_crate' ? 'صناديق بلاستيك' :
+                             pType === 'wooden_pallet' || pType === 'pallet' || pType === 'box_wooden' ? 'طبالي خشبية (بالتات)' :
+                             pType === 'cylinder_gas' || pType === 'gas_cylinder' ? 'أسطوانات غاز' : 'فوارغ أخرى'}
+                          </span>
+                          {pkg.customerName && (
+                            <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>
+                              ({pkg.customerName})
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                          <span style={{ color: '#94a3b8', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <ClockIcon size={12} color="#94a3b8" />
+                            {formatTime(pkg.createdAt)}
+                          </span>
+                          {pkg.notes && (
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              • {pkg.notes}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800 }}>
+                        {delivered > 0 && (
+                          <span style={{ color: '#c2410c', backgroundColor: '#fff7ed', padding: '2px 6px', borderRadius: '4px' }}>
+                            صادر: {delivered}
+                          </span>
+                        )}
+                        {returned > 0 && (
+                          <span style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
+                            وارد: {returned}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
+          {/* 6. REMAINING VAN INVENTORY */}
           {activeSubTab === 'inventory' && (
             inventory.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>

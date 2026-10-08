@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
-import { vanSalesApi, type VanTripSummary, type TripAdminDetails } from '../api/van-sales.api';
+import { vanSalesApi, type VanTripSummary, type TripAdminDetails, type VanTripExpense, type VanPackagingMovement } from '../api/van-sales.api';
 
 export function VanTripsTab() {
   const queryClient = useQueryClient();
@@ -45,6 +45,113 @@ export function VanTripsTab() {
     queryFn: () => vanSalesApi.getTripDetails(selectedTripId!),
     enabled: Boolean(selectedTripId),
   });
+
+  // Query for admin trip expenses
+  // Query for admin trip expenses
+  const { data: adminExpensesData } = useQuery({
+    queryKey: ['van-admin-trip-expenses', selectedTripId],
+    queryFn: () => (selectedTripId ? vanSalesApi.getAdminTripExpenses(selectedTripId) : Promise.resolve({ expenses: [], totalExpenses: 0 })),
+    enabled: Boolean(selectedTripId),
+  });
+  const adminExpenses: VanTripExpense[] = useMemo(() => {
+    if (!adminExpensesData) return [];
+    if (Array.isArray(adminExpensesData)) return adminExpensesData;
+    return (adminExpensesData as any).expenses || [];
+  }, [adminExpensesData]);
+
+  // Query for admin trip packaging movements
+  const { data: adminPackagingData } = useQuery({
+    queryKey: ['van-admin-trip-packaging', selectedTripId],
+    queryFn: () => (selectedTripId ? vanSalesApi.getAdminTripPackaging(selectedTripId) : Promise.resolve([])),
+    enabled: Boolean(selectedTripId),
+  });
+  const adminPackaging: VanPackagingMovement[] = useMemo(() => {
+    if (!adminPackagingData) return [];
+    if (Array.isArray(adminPackagingData)) return adminPackagingData;
+    return (adminPackagingData as any).movements || [];
+  }, [adminPackagingData]);
+
+  // Chronological journey trail of the van trip
+  const chronologicalTrail = useMemo(() => {
+    if (!tripDetails) return [];
+    const events: {
+      id: string;
+      type: 'sale' | 'collection' | 'expense' | 'packaging';
+      time: string;
+      title: string;
+      subtitle: string;
+      amount?: number;
+      gpsLat?: number;
+      gpsLng?: number;
+      badge: string;
+      badgeBg: string;
+      badgeColor: string;
+    }[] = [];
+
+    for (const s of tripDetails.sales) {
+      events.push({
+        id: `sale-${s.id}`,
+        type: 'sale',
+        time: s.createdAt,
+        title: `فاتورة بيع #${s.docNo} - ${s.customerName || 'عميل نقدي'}`,
+        subtitle: `طريقة الدفع: ${s.paymentMethod === 'cash' ? 'نقدي' : s.paymentMethod === 'credit' ? 'آجل' : 'مجزأ'}${s.isCreditOverridden ? ' • تم الاعتماد الاستثنائي لسقف الائتمان بالـ PIN' : ''}`,
+        amount: s.total,
+        gpsLat: s.deliveryGpsLat,
+        gpsLng: s.deliveryGpsLng,
+        badge: s.paymentMethod === 'cash' ? 'بيع كاش' : 'بيع آجل',
+        badgeBg: s.paymentMethod === 'cash' ? '#dcfce7' : '#fef3c7',
+        badgeColor: s.paymentMethod === 'cash' ? '#15803d' : '#b45309',
+      });
+    }
+
+    for (const c of tripDetails.collections) {
+      events.push({
+        id: `col-${c.id}`,
+        type: 'collection',
+        time: c.createdAt,
+        title: `سند تحصيل نقدي - ${c.customerName}`,
+        subtitle: c.note || 'تحصيل من حساب العميل',
+        amount: c.amount,
+        gpsLat: c.gpsLat,
+        gpsLng: c.gpsLng,
+        badge: 'تحصيل كاش',
+        badgeBg: '#e0f2fe',
+        badgeColor: '#0369a1',
+      });
+    }
+
+    for (const exp of adminExpenses) {
+      events.push({
+        id: `exp-${exp.id}`,
+        type: 'expense',
+        time: exp.createdAt,
+        title: `مصروف رحلة: ${exp.expenseType === 'fuel' ? 'وقود' : exp.expenseType === 'toll' ? 'كارتة' : exp.expenseType === 'maintenance' ? 'صيانة' : 'إكراميات'}`,
+        subtitle: (exp as any).notes || (exp as any).description || 'مصروف ميداني للسيارة',
+        amount: -exp.amount,
+        badge: 'مصروف',
+        badgeBg: '#fee2e2',
+        badgeColor: '#b91c1c',
+      });
+    }
+
+    for (const pkg of adminPackaging) {
+      const pType = (pkg as any).packageType || (pkg as any).packagingType;
+      const delivered = (pkg as any).deliveredQty ?? (pkg as any).qtyOut ?? 0;
+      const returned = (pkg as any).returnedQty ?? (pkg as any).qtyIn ?? 0;
+      events.push({
+        id: `pkg-${pkg.id}`,
+        type: 'packaging',
+        time: pkg.createdAt,
+        title: `حركة فوارغ: ${pType === 'crate_plastic' || pType === 'plastic_crate' ? 'صناديق بلاستيك' : 'بالتات/أسطوانات'}`,
+        subtitle: `${pkg.customerName ? `عميل: ${pkg.customerName} • ` : ''}صادر: ${delivered} | وارد: ${returned}`,
+        badge: 'فوارغ',
+        badgeBg: '#f3e8ff',
+        badgeColor: '#7e22ce',
+      });
+    }
+
+    return events.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  }, [tripDetails, adminExpenses, adminPackaging]);
 
   const totalLoaded = trips.reduce((sum, t) => sum + t.loadedAmount, 0);
   const totalSales = trips.reduce((sum, t) => sum + t.salesAmount, 0);
@@ -331,7 +438,7 @@ export function VanTripsTab() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
               {/* Financial KPI Summary */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>البضاعة المحملة</span>
                   <strong style={{ fontSize: '14px', color: '#1e293b' }}>{tripDetails.trip.loadedAmount.toFixed(2)} <CurrencySymbol /></strong>
@@ -347,6 +454,12 @@ export function VanTripsTab() {
                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي المرتجعات</span>
                   <strong style={{ fontSize: '14px', color: '#b91c1c' }}>{tripDetails.trip.returnsAmount.toFixed(2)} <CurrencySymbol /></strong>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>مصروفات الرحلة</span>
+                  <strong style={{ fontSize: '14px', color: '#b91c1c' }}>
+                    {(adminExpenses.reduce((s, e) => s + Number(e.amount || 0), 0) || Number(tripDetails.trip.tripExpenses || 0)).toFixed(2)} <CurrencySymbol />
+                  </strong>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>عجز / زيادة الوردية</span>
@@ -386,7 +499,14 @@ export function VanTripsTab() {
                       {tripDetails.sales.map((s) => (
                         <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 700 }}>{s.docNo}</td>
-                          <td style={{ padding: '8px 12px', fontWeight: 600 }}>{s.customerName}</td>
+                          <td style={{ padding: '8px 12px', fontWeight: 600 }}>
+                            <div>{s.customerName}</div>
+                            {s.isCreditOverridden && (
+                              <span style={{ fontSize: '9.5px', backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, display: 'inline-block', marginTop: '2px' }}>
+                                اعتماد استثنائي بالـ PIN: {s.creditOverrideReason || 'موافقة المشرف'}
+                              </span>
+                            )}
+                          </td>
                           <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                             <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '4px', background: s.paymentMethod === 'cash' ? '#dcfce7' : '#eff6ff', color: s.paymentMethod === 'cash' ? '#15803d' : '#1d4ed8', fontWeight: 700 }}>
                               {s.paymentMethod === 'cash' ? 'نقدي' : 'آجل'}
@@ -530,6 +650,227 @@ export function VanTripsTab() {
                       ))}
                     </tbody>
                   </table>
+                )}
+              </div>
+
+              {/* Section 4: Approved Field Trip Expenses */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                    مصروفات الرحلة الميدانية ({adminExpenses.length} مصروف)
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#b91c1c', fontWeight: 700 }}>
+                    إجمالي المصروفات: {adminExpenses.reduce((s, e) => s + Number(e.amount || 0), 0).toFixed(2)} <CurrencySymbol />
+                  </span>
+                </div>
+                {adminExpenses.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                    لم يتم تسجيل أي مصروفات تشغيلية في هذه الرحلة.
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>نوع المصروف</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المبلغ</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>البيان والتفاصيل</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>الوقت</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminExpenses.map((e) => (
+                        <tr key={e.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>
+                            {e.expenseType === 'fuel' ? 'وقود وبنزين' :
+                             e.expenseType === 'toll' ? 'كارتات وبوابات' :
+                             e.expenseType === 'maintenance' ? 'صيانة وإصلاح طارئ' :
+                             e.expenseType === 'food_allowance' ? 'بدل وجبة وإكراميات' : 'مصروفات نثرية أخرى'}
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
+                            {Number(e.amount).toFixed(2)} <CurrencySymbol />
+                          </td>
+                          <td style={{ padding: '8px 12px', color: '#475569' }}>
+                            {(e as any).notes || (e as any).description || '—'}
+                          </td>
+                          <td style={{ padding: '8px 12px', fontSize: '11px', color: '#64748b' }}>
+                            {new Date(e.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Section 5: Returnable Packaging & Empties Ledger */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                    ذمة الفوارغ والصناديق والبالتات ({adminPackaging.length} حركة)
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    متابعة الأقفاص البلاستيكية والأسطوانات المسلمة والمستردة
+                  </span>
+                </div>
+                {adminPackaging.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                    لا توجد حركات تسليم أو استلام فوارغ مسجلة في هذه الرحلة.
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>نوع الفارغ</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>العميل / المحل</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المسلم (صادر)</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المستلم (وارد)</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700 }}>ملاحظات والوقت</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminPackaging.map((p: any) => {
+                        const pType = p.packageType || p.packagingType;
+                        const delivered = p.deliveredQty ?? p.qtyOut ?? 0;
+                        const returned = p.returnedQty ?? p.qtyIn ?? 0;
+                        return (
+                          <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>
+                              {pType === 'crate_plastic' || pType === 'plastic_crate' ? 'صناديق بلاستيك' :
+                               pType === 'wooden_pallet' || pType === 'pallet' || pType === 'box_wooden' ? 'طبالي خشبية (بالتات)' :
+                               pType === 'cylinder_gas' || pType === 'gas_cylinder' ? 'أسطوانات غاز' : 'فوارغ أخرى'}
+                            </td>
+                            <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1e293b' }}>
+                              {p.customerName || 'حركة عامة'}
+                            </td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 800, color: delivered > 0 ? '#c2410c' : '#94a3b8' }}>
+                              {delivered}
+                            </td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 800, color: returned > 0 ? '#15803d' : '#94a3b8' }}>
+                              {returned}
+                            </td>
+                            <td style={{ padding: '8px 12px', fontSize: '11px', color: '#64748b' }}>
+                              <span>{new Date(p.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+                              {p.notes && <span style={{ marginRight: '6px' }}>• {p.notes}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Section 6: Chronological Visual Journey / Route Trail */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                    مسار الرحلة الزمني الميداني ({chronologicalTrail.length} محطة وحركة)
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    تسلسل زمني دقيق لكافة تحركات وفواتير وتحصيلات ومصروفات الفان
+                  </span>
+                </div>
+                {chronologicalTrail.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                    لم تبدأ حركات هذه الرحلة بعد.
+                  </div>
+                ) : (
+                  <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {chronologicalTrail.map((ev, idx) => (
+                      <div
+                        key={ev.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* Timeline Step Dot & Line */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '28px', flexShrink: 0 }}>
+                          <div
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: ev.badgeBg,
+                              border: `2px solid ${ev.badgeColor}`,
+                              color: ev.badgeColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                            }}
+                          >
+                            {idx + 1}
+                          </div>
+                          {idx < chronologicalTrail.length - 1 && (
+                            <div style={{ width: '2px', height: '28px', backgroundColor: '#e2e8f0', marginTop: '4px' }} />
+                          )}
+                        </div>
+
+                        {/* Event Content */}
+                        <div
+                          style={{
+                            flex: 1,
+                            backgroundColor: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0',
+                            padding: '8px 12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                                {ev.title}
+                              </span>
+                              <span style={{ fontSize: '10px', backgroundColor: ev.badgeBg, color: ev.badgeColor, padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                {ev.badge}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                              {ev.subtitle}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {ev.amount != null && (
+                              <strong style={{ fontSize: '13px', color: ev.amount > 0 ? '#15803d' : '#b91c1c' }}>
+                                {ev.amount > 0 ? `+${ev.amount.toFixed(2)}` : ev.amount.toFixed(2)} <CurrencySymbol />
+                              </strong>
+                            )}
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                              {new Date(ev.time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {ev.gpsLat && ev.gpsLng && (
+                              <button
+                                type="button"
+                                onClick={() => openGoogleMaps(ev.gpsLat!, ev.gpsLng!)}
+                                style={{
+                                  background: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  border: '1px solid #bfdbfe',
+                                  borderRadius: '6px',
+                                  padding: '2px 6px',
+                                  fontSize: '10.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                GPS ↗
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 

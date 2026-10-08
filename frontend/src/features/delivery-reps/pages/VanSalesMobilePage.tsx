@@ -34,6 +34,8 @@ import { VanTransferModal } from '../components/VanTransferModal';
 import { DriverNewLoadRequisitionView } from '../components/DriverNewLoadRequisitionView';
 import { VanSalesHistoryTab } from '../components/VanSalesHistoryTab';
 import { VanPreSalesTab } from '../components/VanPreSalesTab';
+import { VanTripExpenseModal } from '../components/VanTripExpenseModal';
+import { VanTripPackagingModal } from '../components/VanTripPackagingModal';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -268,6 +270,32 @@ export default function VanSalesMobilePage() {
     staleTime: 60000,
   });
 
+  // Trip Expenses Query
+  const { data: tripExpensesData, refetch: refetchTripExpenses } = useQuery({
+    queryKey: ['van-trip-expenses', data?.trip?.id],
+    queryFn: () => (data?.trip?.id ? vanSalesApi.getTripExpenses(data.trip.id) : Promise.resolve({ expenses: [], totalExpenses: 0 })),
+    enabled: Boolean(data?.trip?.id),
+    staleTime: 30000,
+  });
+  const tripExpensesList = useMemo(() => {
+    if (!tripExpensesData) return [];
+    if (Array.isArray(tripExpensesData)) return tripExpensesData;
+    return (tripExpensesData as any).expenses || [];
+  }, [tripExpensesData]);
+
+  // Trip Packaging Movements Query
+  const { data: tripPackagingData, refetch: refetchTripPackaging } = useQuery({
+    queryKey: ['van-trip-packaging', data?.trip?.id],
+    queryFn: () => (data?.trip?.id ? vanSalesApi.getTripPackagingMovements(data.trip.id) : Promise.resolve([])),
+    enabled: Boolean(data?.trip?.id),
+    staleTime: 30000,
+  });
+  const tripPackagingList = useMemo(() => {
+    if (!tripPackagingData) return [];
+    if (Array.isArray(tripPackagingData)) return tripPackagingData;
+    return (tripPackagingData as any).movements || [];
+  }, [tripPackagingData]);
+
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
   const handleGlobalRefresh = async () => {
@@ -279,6 +307,8 @@ export default function VanSalesMobilePage() {
         refetchItinerary(),
         refetchFuelLogs(),
         refetchTransfers(),
+        refetchTripExpenses(),
+        refetchTripPackaging(),
         queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] }),
         queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] }),
         queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] }),
@@ -296,6 +326,8 @@ export default function VanSalesMobilePage() {
   const [stockSearch, setStockSearch] = useState('');
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [packagingModalOpen, setPackagingModalOpen] = useState(false);
   const [saleNotes, setSaleNotes] = useState('');
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState('');
   const [cartonsCount, setCartonsCount] = useState('');
@@ -413,6 +445,7 @@ export default function VanSalesMobilePage() {
         }
         return prev.map((c) => (c.productId === item.productId ? { ...c, qty: c.qty + 1 } : c));
       }
+      const initialUnit = item.availableUnits?.[0];
       return [
         ...prev,
         {
@@ -423,9 +456,49 @@ export default function VanSalesMobilePage() {
           originalPrice: item.originalPrice,
           offerBadge: item.offerBadge,
           maxQty: item.qty,
+          unitName: initialUnit?.name || (typeof item.packagingUnit === 'string' ? item.packagingUnit : item.packagingUnit?.name) || 'قطعة',
+          unitMultiplier: initialUnit?.multiplier || 1,
+          availableUnits: item.availableUnits,
+          isBonus: false,
         },
       ];
     });
+  };
+
+  const toggleCartItemBonus = (productId: number) => {
+    setCart((prev) =>
+      prev.map((c) => {
+        if (c.productId === productId) {
+          const nextBonus = !c.isBonus;
+          return {
+            ...c,
+            isBonus: nextBonus,
+            bonusReason: nextBonus ? 'بونص ترويجي ميداني' : undefined,
+            unitPrice: nextBonus ? 0 : (c.originalPrice || c.unitPrice),
+          };
+        }
+        return c;
+      }),
+    );
+  };
+
+  const changeCartItemUnit = (productId: number, unitName: string, multiplier: number) => {
+    setCart((prev) =>
+      prev.map((c) => {
+        if (c.productId === productId) {
+          const stockItem = data?.inventory?.find((it) => it.productId === productId);
+          const basePrice = stockItem?.retailPrice || c.originalPrice || c.unitPrice;
+          const newUnitPrice = c.isBonus ? 0 : basePrice * (multiplier || 1);
+          return {
+            ...c,
+            unitName,
+            unitMultiplier: multiplier,
+            unitPrice: newUnitPrice,
+          };
+        }
+        return c;
+      }),
+    );
   };
 
   const updateCartQty = (productId: number, delta: number) => {
@@ -474,10 +547,11 @@ export default function VanSalesMobilePage() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   }, [data?.customers, itinerary]);
 
-  const cartTotal = useMemo(() => cart.reduce((sum, c) => sum + c.qty * c.unitPrice, 0), [cart]);
+  const cartTotal = useMemo(() => cart.reduce((sum, c) => sum + (c.isBonus ? 0 : c.qty * c.unitPrice), 0), [cart]);
 
   const cartSubtotal = useMemo(() => {
     return cart.reduce((sum, c) => {
+      if (c.isBonus) return sum;
       const orig = (c.originalPrice && c.originalPrice > c.unitPrice) ? c.originalPrice : c.unitPrice;
       return sum + c.qty * orig;
     }, 0);
@@ -595,6 +669,10 @@ export default function VanSalesMobilePage() {
           unitPrice: c.unitPrice,
           originalPrice: c.originalPrice,
           lineTotal: c.qty * c.unitPrice,
+          unitName: c.unitName,
+          unitMultiplier: c.unitMultiplier,
+          isBonus: c.isBonus,
+          bonusReason: c.bonusReason,
         })),
         repName: data?.trip?.repName || (session?.rep as any)?.name || 'مندوب التوزيع',
         vehiclePlate: data?.assignedVehicle?.plateNumber || data?.trip?.vehiclePlate || '',
@@ -2368,6 +2446,8 @@ export default function VanSalesMobilePage() {
                   onPaymentMethodChange={setPaymentMethod}
                   cart={cart}
                   onUpdateCartQty={updateCartQty}
+                  onToggleBonus={toggleCartItemBonus}
+                  onChangeUnit={changeCartItemUnit}
                   cartTotal={cartTotal}
                   inventory={data?.inventory || []}
                   onAddToCart={addToCart}
@@ -2508,6 +2588,10 @@ export default function VanSalesMobilePage() {
                   sales={data.sales || []}
                   collections={data.collections || []}
                   returns={data.returns || []}
+                  expenses={tripExpensesList}
+                  packagingMovements={tripPackagingList}
+                  onOpenExpenseModal={() => setExpenseModalOpen(true)}
+                  onOpenPackagingModal={() => setPackagingModalOpen(true)}
                   inventory={data.inventory || []}
                   countedCash={countedCash}
                   onCountedCashChange={setCountedCash}
@@ -2599,6 +2683,8 @@ export default function VanSalesMobilePage() {
               deliveryGpsLat: gpsLat,
               deliveryGpsLng: gpsLng,
               deliveryProofPhoto: checkoutData.deliveryProofPhoto || deliveryProofPhoto || undefined,
+              supervisorOverridePin: checkoutData.supervisorOverridePin,
+              supervisorOverrideReason: checkoutData.supervisorOverrideReason,
               packagingBreakdown: checkoutData.cartonsCount
                 ? {
                     cartonsCount: Number(checkoutData.cartonsCount) || 0,
@@ -2611,6 +2697,10 @@ export default function VanSalesMobilePage() {
                 qty: c.qty,
                 unitPrice: c.unitPrice,
                 originalPrice: c.originalPrice,
+                unitName: c.unitName,
+                unitMultiplier: c.unitMultiplier,
+                isBonus: c.isBonus,
+                bonusReason: c.bonusReason,
               })),
             });
           }}
@@ -2623,6 +2713,34 @@ export default function VanSalesMobilePage() {
           receipt={lastSaleReceipt}
           onClose={() => setLastSaleReceipt(null)}
           storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
+        />
+      )}
+
+      {/* Trip Operational Expenses Modal */}
+      {data?.trip && expenseModalOpen && (
+        <VanTripExpenseModal
+          open={expenseModalOpen}
+          onClose={() => setExpenseModalOpen(false)}
+          tripId={data.trip.id}
+          onSuccess={() => {
+            refetch();
+            refetchTripExpenses();
+          }}
+        />
+      )}
+
+      {/* Returnable Packaging Movements Modal */}
+      {data?.trip && packagingModalOpen && (
+        <VanTripPackagingModal
+          open={packagingModalOpen}
+          onClose={() => setPackagingModalOpen(false)}
+          tripId={data.trip.id}
+          customers={allAvailableCustomers}
+          defaultCustomerId={selectedCustomerId ? Number(selectedCustomerId) : (activeVisit?.customerId || null)}
+          onSuccess={() => {
+            refetch();
+            refetchTripPackaging();
+          }}
         />
       )}
 

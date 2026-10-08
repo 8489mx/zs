@@ -46,6 +46,7 @@
     "test:e2e:van-sales": "ts-node test/e2e/van-sales-field-flow.e2e.ts",
     "test:e2e:fleet": "ts-node test/e2e/fleet-vehicle-reassignment.e2e.ts",
     "test:e2e:van-returns": "ts-node test/e2e/van-field-returns.e2e.ts",
+    "test:e2e:van-comprehensive": "ts-node test/e2e/van-distribution-comprehensive.e2e.ts",
     "test:e2e": "npm run test:e2e:auth && npm run test:e2e:catalog && npm run test:e2e:flows && npm run test:e2e:backup && npm run test:e2e:reports && npm run test:e2e:van-sales && npm run test:e2e:fleet && npm run test:e2e:van-returns",
     "check:architecture": "node scripts/check-architecture-guardrails.cjs",
     "db:check-connection": "ts-node src/database/check-connection.ts"

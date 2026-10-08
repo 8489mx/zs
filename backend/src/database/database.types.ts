@@ -76,7 +76,9 @@ export interface UserTable {
   must_change_password: boolean;
   failed_login_count: number;
   locked_until: Date | null;
-  last_login_at: Date | null;
+  pin?: string | null;
+  pin_hash?: string | null;
+  last_login_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -813,6 +815,33 @@ export interface VanFieldReturnTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface VanTripExpenseTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  trip_id: number;
+  expense_type: string;
+  amount: number;
+  notes?: string | null;
+  receipt_photo_url?: string | null;
+  created_by_user_id?: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanTripPackagingMovementTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  trip_id: number;
+  customer_id?: number | null;
+  package_type: string;
+  delivered_qty: number;
+  returned_qty: number;
+  notes?: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface DeliveryRepTargetTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
@@ -902,6 +931,9 @@ export interface SalesTable {
   zatca_response_json?: ColumnType<any, any | undefined, any | undefined>;
   zatca_egs_id?: number | null;
   zatca_invoice_type?: string | null;
+  is_credit_overridden?: boolean;
+  credit_override_by_user_id?: number | null;
+  credit_override_reason?: string | null;
 }
 
 export interface SaleItemTable {
@@ -925,6 +957,8 @@ export interface SaleItemTable {
   consumer_price?: number | null;
   pricing_tier_type?: 'cash' | 'credit' | 'offer' | string | null;
   unit_offer_savings?: number | null;
+  is_bonus?: boolean;
+  bonus_reason?: string | null;
   notes: ColumnType<string, string | undefined, string | undefined>;
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
   serials?: any;
@@ -2173,6 +2207,8 @@ export interface Database {
   fleet_vehicles: FleetVehicleTable;
   van_sales_trips: VanSalesTripTable;
   van_field_returns: VanFieldReturnTable;
+  van_trip_expenses: VanTripExpenseTable;
+  van_trip_packaging_movements: VanTripPackagingMovementTable;
   delivery_rep_targets: DeliveryRepTargetTable;
   van_load_requisitions: VanLoadRequisitionTable;
   updated_by: number | null;

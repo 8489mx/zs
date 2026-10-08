@@ -368,6 +368,67 @@ export class VanSalesController {
     const reps = await this.vanSalesService.getPeerReps(driver.tenantId, driver.repId);
     return { ok: true, reps };
   }
+
+  // =========================================================================
+  // TRIP OPERATIONAL EXPENSES
+  // =========================================================================
+
+  @Post('trips/:tripId/expenses')
+  async recordTripExpense(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+    @Body() body: { expenseType: string; amount: number; notes?: string; receiptPhotoUrl?: string },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.recordTripExpense(driver.repId, driver.tenantId, driver.accountId, {
+      ...body,
+      tripId,
+    });
+  }
+
+  @Get('trips/:tripId/expenses')
+  async getTripExpenses(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getTripExpenses(tripId, driver.tenantId);
+  }
+
+  // =========================================================================
+  // RETURNABLE PACKAGING & EMPTIES LEDGER
+  // =========================================================================
+
+  @Post('trips/:tripId/packaging')
+  async recordPackagingMovement(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+    @Body() body: { customerId?: number; packageType: string; deliveredQty: number; returnedQty: number; notes?: string },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.recordPackagingMovement(driver.repId, driver.tenantId, driver.accountId, {
+      ...body,
+      tripId,
+    });
+  }
+
+  @Get('trips/:tripId/packaging')
+  async getTripPackagingMovements(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getTripPackagingMovements(tripId, driver.tenantId);
+  }
+
+  @Get('customers/:customerId/packaging')
+  async getCustomerPackagingBalance(
+    @Headers('authorization') authHeader: string,
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getCustomerPackagingBalance(customerId, driver.tenantId);
+  }
 }
 
 @Controller('api/van-sales/admin')
@@ -980,5 +1041,37 @@ export class VanSalesAdminController {
       status,
     });
     return { ok: true, transfers };
+  }
+
+  // Trip Operational Expenses Audit
+  @Get('trips/:id/expenses')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async getAdminTripExpenses(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.getTripExpenses(id, tenantId);
+  }
+
+  // Returnable Packaging & Empties Ledger Audit
+  @Get('trips/:id/packaging')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getAdminTripPackaging(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.getTripPackagingMovements(id, tenantId);
+  }
+
+  @Get('customers/:customerId/packaging')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getAdminCustomerPackaging(
+    @Req() req: RequestWithAuth,
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.getCustomerPackagingBalance(customerId, tenantId);
   }
 }

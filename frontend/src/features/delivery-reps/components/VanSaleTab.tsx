@@ -20,6 +20,11 @@ export interface CartItem {
   maxQty: number;
   originalPrice?: number;
   offerBadge?: string;
+  unitName?: string;
+  unitMultiplier?: number;
+  isBonus?: boolean;
+  bonusReason?: string;
+  availableUnits?: { id: number; name: string; multiplier: number; isBase: boolean }[];
 }
 
 interface CustomerOption {
@@ -43,6 +48,8 @@ interface VanSaleTabProps {
   onPaymentMethodChange?: (val: any) => void;
   cart: CartItem[];
   onUpdateCartQty: (productId: number, delta: number) => void;
+  onToggleBonus?: (productId: number) => void;
+  onChangeUnit?: (productId: number, unitName: string, multiplier: number) => void;
   cartTotal: number;
   onGoToInventory: () => void;
   onSubmitSale: () => void;
@@ -66,6 +73,8 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
   onPaymentMethodChange: _onPaymentMethodChange,
   cart,
   onUpdateCartQty,
+  onToggleBonus,
+  onChangeUnit,
   cartTotal,
   onGoToInventory,
   onSubmitSale,
@@ -395,10 +404,16 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                     {c.name}
                   </h5>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                      {c.unitPrice.toFixed(2)} × {c.qty} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
-                    </span>
-                    {c.originalPrice && c.originalPrice > c.unitPrice && (
+                    {c.isBonus ? (
+                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 800, backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '4px' }}>
+                        بونص ترويجي مجاناً (0.00 <CurrencySymbol />) × {c.qty} {c.unitName || ''}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
+                        {c.unitPrice.toFixed(2)} × {c.qty} {c.unitName || ''} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
+                      </span>
+                    )}
+                    {c.originalPrice && c.originalPrice > c.unitPrice && !c.isBonus && (
                       <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
                         {(c.originalPrice * c.qty).toFixed(2)} <CurrencySymbol />
                       </span>
@@ -407,6 +422,53 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                       <span style={{ fontSize: '9px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
                         {c.offerBadge}
                       </span>
+                    )}
+                    {c.availableUnits && c.availableUnits.length > 1 && onChangeUnit && (
+                      <select
+                        value={c.unitName || c.availableUnits[0].name}
+                        onChange={(e) => {
+                          const selected = c.availableUnits?.find((u) => u.name === e.target.value);
+                          if (selected) {
+                            onChangeUnit(c.productId, selected.name, selected.multiplier);
+                          }
+                        }}
+                        style={{
+                          fontSize: '10px',
+                          padding: '1px 4px',
+                          borderRadius: '4px',
+                          border: '1px solid #cbd5e1',
+                          backgroundColor: '#f8fafc',
+                          color: '#1e293b',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        title="اختيار وحدة البيع (كرتونة / قطعة)"
+                      >
+                        {c.availableUnits.map((u) => (
+                          <option key={u.id} value={u.name}>
+                            {u.name} {u.multiplier > 1 ? `(${u.multiplier})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {onToggleBonus && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleBonus(c.productId)}
+                        style={{
+                          fontSize: '9.5px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          border: c.isBonus ? '1px solid #059669' : '1px solid #cbd5e1',
+                          backgroundColor: c.isBonus ? '#ecfdf5' : '#ffffff',
+                          color: c.isBonus ? '#065f46' : '#64748b',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        title="تحديد الصنف كبونص عيني ترويجي مجاني"
+                      >
+                        {c.isBonus ? 'بونص' : '+ بونص'}
+                      </button>
                     )}
                   </div>
                 </div>

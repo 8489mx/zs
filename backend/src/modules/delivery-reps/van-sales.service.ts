@@ -45,6 +45,8 @@ export interface VanStockItem {
   discountPerUnit?: number;
   hasActiveOffer?: boolean;
   offerBadge?: string;
+  packagingUnit?: { name: string; multiplier: number };
+  availableUnits?: { id: number; name: string; multiplier: number; isBase: boolean }[];
 }
 
 export interface VanTripSummary {
@@ -361,10 +363,34 @@ export class VanSalesService {
       }
     }
 
+    // Query product units for multi-UOM field sales
+    const rawUnits = prodIds.length > 0
+      ? await this.anyDb
+          .selectFrom('product_units')
+          .select(['id', 'product_id', 'name', 'multiplier', 'is_base_unit'])
+          .where('product_id', 'in', prodIds)
+          .orderBy('multiplier', 'asc')
+          .execute()
+      : [];
+
+    const unitsByProdId = new Map<number, any[]>();
+    for (const u of rawUnits) {
+      const pid = Number(u.product_id);
+      if (!unitsByProdId.has(pid)) unitsByProdId.set(pid, []);
+      unitsByProdId.get(pid)!.push({
+        id: Number(u.id),
+        name: u.name,
+        multiplier: Number(u.multiplier || 1),
+        isBase: Boolean(u.is_base_unit) || Number(u.multiplier) === 1,
+      });
+    }
+
     const inventory: VanStockItem[] = invRows.map((r: any) => {
       const pid = Number(r.productId);
       const baseRetail = Number(r.retailPrice || 0);
       const offer = offersByProdId.get(pid);
+      const availUnits = unitsByProdId.get(pid) || [];
+      const packUnitObj = availUnits.find((u) => u.multiplier > 1);
       let effectiveRetail = baseRetail;
       let discountPerUnit = 0;
       let offerBadge: string | undefined;
@@ -399,6 +425,8 @@ export class VanSalesService {
         hasActiveOffer: Boolean(offer && discountPerUnit > 0),
         offerBadge,
         unitName: r.unitName || 'قطعة',
+        packagingUnit: packUnitObj ? { name: packUnitObj.name, multiplier: packUnitObj.multiplier } : undefined,
+        availableUnits: availUnits.length > 0 ? availUnits : undefined,
       };
     });
 
@@ -888,13 +916,24 @@ export class VanSalesService {
       customerPhone?: string;
       paymentMethod: 'cash' | 'credit' | 'card' | 'split';
       paidAmount?: number;
-      items: { productId: number; qty: number; unitPrice?: number }[];
+      items: {
+        productId: number;
+        qty: number;
+        unitPrice?: number;
+        unitName?: string;
+        unitMultiplier?: number;
+        isBonus?: boolean;
+        bonusReason?: string;
+        originalPrice?: number;
+      }[];
       notes?: string;
       deliveryGpsLat?: number;
       deliveryGpsLng?: number;
       deliveryProofPhoto?: string;
       packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
       clientTxId?: string;
+      supervisorOverridePin?: string;
+      supervisorOverrideReason?: string;
     },
   ): Promise<{
     ok: boolean;
@@ -1035,8 +1074,14 @@ export class VanSalesService {
 
       for (const item of sortedItems) {
         const pid = Number(item.productId);
-        const qty = Number(item.qty || 0);
-        if (qty <= 0) continue;
+        const inputQty = Number(item.qty || 0);
+        if (inputQty <= 0) continue;
+
+        const multiplier = Number((item as any).unitMultiplier || 1);
+        const unitName = (item as any).unitName || null;
+        const isBonus = Boolean((item as any).isBonus);
+        const bonusReason = (item as any).bonusReason || (isBonus ? 'بونص ترويجي / عينة مجانية' : null);
+        const baseQty = Number((inputQty * multiplier).toFixed(4));
 
         // CANONICAL LOCK ORDER: Lock products first!
         const prod = await trxAny
@@ -1061,9 +1106,9 @@ export class VanSalesService {
           .executeTakeFirst();
 
         const currentQty = Number(vanStock?.qty || 0);
-        if (currentQty < qty) {
+        if (currentQty < baseQty) {
           throw new AppError(
-            `رصيد سيارة التوزيع لا يكفي للصنف "${prod.name || pid}". المتوفر بالسيارة: ${currentQty}، المطلوب: ${qty}`,
+            `رصيد سيارة التوزيع لا يكفي للصنف "${prod.name || pid}". المتوفر بالسيارة: ${currentQty} قطعة، المطلوب: ${baseQty} قطعة (${inputQty} ${unitName || 'وحدة'})`,
             'INSUFFICIENT_VAN_STOCK',
             400,
           );
@@ -1073,13 +1118,13 @@ export class VanSalesService {
         // A van sale leaves the company for good, so unlike a load it DOES reduce global stock.
         await this.moveVanStock(trx, {
           productId: pid,
-          delta: -qty,
+          delta: -baseQty,
           locationId: vanLocId,
           tenantId,
           accountId,
           userId: null,
           movementType: 'van_sale',
-          note: 'بيع من سيارة التوزيع',
+          note: isBonus ? 'صرف بونص ترويجي من سيارة التوزيع' : 'بيع من سيارة التوزيع',
           referenceType: 'van_sales_trip',
           referenceId: Number(trip?.id || 0),
           skipGlobalUpdate: false,
@@ -1091,50 +1136,61 @@ export class VanSalesService {
           ? Number(prod.credit_price)
           : Number(prod.retail_price || 0);
 
-        let unitPrice = item.unitPrice ? Number(item.unitPrice) : defaultBasePrice;
-        let pricingTierType: 'cash' | 'credit' | 'offer' = isCreditSale ? 'credit' : 'cash';
+        let unitPrice = item.unitPrice ? Number(item.unitPrice) : defaultBasePrice * multiplier;
+        let pricingTierType: 'cash' | 'credit' | 'offer' | 'bonus' = isBonus ? 'bonus' : (isCreditSale ? 'credit' : 'cash');
         let unitOfferSavings = 0;
 
-        if (!item.unitPrice) {
+        if (isBonus) {
+          unitPrice = 0;
+          pricingTierType = 'bonus';
+        } else if (!item.unitPrice) {
           const activeOffers = offersByProduct.get(pid) || [];
           const matchingOffer = activeOffers
-            .filter((off) => qty >= Math.max(1, Number(off.min_qty || 1)))
+            .filter((off) => baseQty >= Math.max(1, Number(off.min_qty || 1)))
             .sort((a, b) => Number(b.min_qty || 0) - Number(a.min_qty || 0))[0];
 
           if (matchingOffer) {
             const offerVal = Number(matchingOffer.value || 0);
             if (matchingOffer.offer_type === 'percent' && offerVal > 0) {
-              unitPrice = Math.max(0, Number((defaultBasePrice * (1 - offerVal / 100)).toFixed(2)));
+              const discountedBase = Math.max(0, Number((defaultBasePrice * (1 - offerVal / 100)).toFixed(2)));
+              unitPrice = Number((discountedBase * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'fixed' && offerVal > 0) {
-              unitPrice = Math.max(0, Number((defaultBasePrice - offerVal).toFixed(2)));
+              const discountedBase = Math.max(0, Number((defaultBasePrice - offerVal).toFixed(2)));
+              unitPrice = Number((discountedBase * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'price' && offerVal > 0) {
-              unitPrice = Number(offerVal.toFixed(2));
+              unitPrice = Number((offerVal * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
             }
           }
         }
 
-        const originalPrice = (item as any).originalPrice ? Number((item as any).originalPrice) : Math.max(unitPrice, defaultBasePrice);
-        const lineTotal = Number((unitPrice * qty).toFixed(2));
-        const lineSubtotal = Number((originalPrice * qty).toFixed(2));
+        const originalPrice = (item as any).originalPrice
+          ? Number((item as any).originalPrice)
+          : (isBonus ? defaultBasePrice * multiplier : Math.max(unitPrice, defaultBasePrice * multiplier));
+        const lineTotal = Number((unitPrice * inputQty).toFixed(2));
+        const lineSubtotal = Number((originalPrice * inputQty).toFixed(2));
         totalSale += lineTotal;
         subtotalSale += lineSubtotal;
 
         saleItemRecords.push({
           product_id: pid,
           product_name: prod.name || `صنف #${pid}`,
-          qty,
+          qty: inputQty,
           unit_price: unitPrice,
           line_total: lineTotal,
-          cost_price: Number(prod.cost_price || 0),
-          consumer_price: prod.consumer_price != null && Number(prod.consumer_price) > 0 ? Number(prod.consumer_price) : null,
+          cost_price: Number(prod.cost_price || 0) * multiplier,
+          consumer_price: prod.consumer_price != null && Number(prod.consumer_price) > 0 ? Number(prod.consumer_price) * multiplier : null,
           pricing_tier_type: pricingTierType,
           unit_offer_savings: unitOfferSavings,
+          unit_name: unitName,
+          unit_multiplier: multiplier,
+          is_bonus: isBonus,
+          bonus_reason: bonusReason,
         });
       }
 
@@ -1168,6 +1224,10 @@ export class VanSalesService {
       }
 
       // Enforce customer credit limit and credit block in the field
+      let isCreditOverridden = false;
+      let creditOverrideUserId: number | null = null;
+      let creditOverrideReason: string | null = null;
+
       if ((isCredit || isSplit) && creditOwed > 0 && resolvedCustomerId) {
         const custRecord = await trxAny
           .selectFrom('customers')
@@ -1178,6 +1238,29 @@ export class VanSalesService {
           .executeTakeFirst();
 
         if (custRecord) {
+          let supervisorOverrideApproved = false;
+          let overrideSupervisorName = '';
+          let overrideSupervisorId: number | null = null;
+
+          if (payload.supervisorOverridePin) {
+            const supervisorUser = await trxAny
+              .selectFrom('users')
+              .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
+              .where('tenant_id', '=', tenantId)
+              .where('is_active', '=', true)
+              .where(sql<boolean>`(role in ('admin', 'supervisor', 'super_admin') or permissions_json::text ilike '%deliveryReps%' or permissions_json::text ilike '%sales%')`)
+              .where(sql<boolean>`(pin = ${payload.supervisorOverridePin} or pin_hash = ${payload.supervisorOverridePin})`)
+              .executeTakeFirst();
+
+            if (supervisorUser) {
+              supervisorOverrideApproved = true;
+              overrideSupervisorId = Number(supervisorUser.id);
+              overrideSupervisorName = supervisorUser.name;
+            } else {
+              throw new AppError('رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بتجاوز الائتمان', 'INVALID_SUPERVISOR_PIN', 403);
+            }
+          }
+
           const creditCheck = evaluateCreditLimitCheck({
             customerId: resolvedCustomerId,
             customerName: custRecord.name || customerName,
@@ -1186,6 +1269,12 @@ export class VanSalesService {
             isCreditBlocked: Boolean(custRecord.is_credit_blocked),
             creditBlockReason: custRecord.credit_block_reason,
             requestedCreditAmount: creditOwed,
+            supervisorOverride: supervisorOverrideApproved ? {
+              approved: true,
+              supervisorId: overrideSupervisorId || undefined,
+              supervisorName: overrideSupervisorName,
+              reason: payload.supervisorOverrideReason || `اعتماد استثنائي من المشرف ${overrideSupervisorName}`,
+            } : undefined,
           });
 
           if (!creditCheck.allowed) {
@@ -1194,6 +1283,12 @@ export class VanSalesService {
               creditCheck.reasonCode || 'CREDIT_LIMIT_REJECTED',
               422,
             );
+          }
+
+          if (creditCheck.isOverridden) {
+            isCreditOverridden = true;
+            creditOverrideUserId = overrideSupervisorId;
+            creditOverrideReason = creditCheck.overrideReason || null;
           }
         }
       }
@@ -1223,6 +1318,9 @@ export class VanSalesService {
           delivery_rep_id: repId,
           van_trip_id: payload.tripId,
           sale_origin: 'van_sale',
+          is_credit_overridden: isCreditOverridden,
+          credit_override_by_user_id: creditOverrideUserId,
+          credit_override_reason: creditOverrideReason,
           note: payload.clientTxId
             ? `${payload.notes || 'فاتورة بيع ميداني من سيارة المندوب'} [tx:${payload.clientTxId}]`
             : payload.notes || `فاتورة بيع ميداني من سيارة المندوب`,
@@ -1280,6 +1378,10 @@ export class VanSalesService {
             consumer_price: it.consumer_price,
             pricing_tier_type: it.pricing_tier_type,
             unit_offer_savings: it.unit_offer_savings,
+            unit_name: it.unit_name || 'قطعة',
+            unit_multiplier: it.unit_multiplier || 1,
+            is_bonus: Boolean(it.is_bonus),
+            bonus_reason: it.bonus_reason || null,
             tenant_id: tenantId,
             account_id: accountId,
           })
@@ -1673,6 +1775,7 @@ export class VanSalesService {
     tripId: number;
     expectedCash: number;
     countedCash: number;
+    tripExpenses?: number;
     variance: number;
     stockVarianceAmount: number;
     unloadedItemsCount: number;
@@ -1733,7 +1836,17 @@ export class VanSalesService {
       throw new AppError(odometerResult.errorMessageAr!, 'INVALID_ODOMETER', 400);
     }
 
-    const expectedCash = Number(trip.cash_collected || 0);
+    // Fetch total trip expenses recorded for this trip
+    const tripExpensesRow = await this.anyDb
+      .selectFrom('van_trip_expenses')
+      .select(sql<number>`cast(coalesce(sum(amount), 0) as numeric)`.as('totalExpenses'))
+      .where('trip_id', '=', payload.tripId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const totalTripExpenses = Number(tripExpensesRow?.totalExpenses || 0);
+
+    const grossCashCollected = Number(trip.cash_collected || 0);
+    const expectedCash = Number((grossCashCollected - totalTripExpenses).toFixed(2));
     const countedCash = Number(payload.countedCash || 0);
     const cashVariance = Number((countedCash - expectedCash).toFixed(2));
     let unloadedItemsCount = 0;
@@ -1933,6 +2046,7 @@ export class VanSalesService {
         {
           expectedCash,
           countedCash,
+          tripExpenses: totalTripExpenses,
           branchId,
           locationId: vanLocationId,
           stockShortageAmount: totalStockVarianceCost,
@@ -1963,6 +2077,7 @@ export class VanSalesService {
       tripId: payload.tripId,
       expectedCash,
       countedCash,
+      tripExpenses: totalTripExpenses,
       variance: cashVariance,
       stockVarianceAmount: totalStockVarianceCost,
       unloadedItemsCount,
@@ -2819,5 +2934,216 @@ export class VanSalesService {
     },
   ) {
     return this.vanRoutesService.getSupervisorCustomerRoutes(tenantId, filters);
+  }
+
+  // =========================================================================
+  // TRIP OPERATIONAL EXPENSES (Fuel, Tolls, Road Maintenance, Tips)
+  // =========================================================================
+
+  /**
+   * Records an operational trip expense (fuel, toll, maintenance, tips, meals).
+   */
+  async recordTripExpense(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      expenseType: 'fuel' | 'toll' | 'maintenance' | 'tips' | 'meals' | 'other' | string;
+      amount: number;
+      notes?: string;
+      receiptPhotoUrl?: string;
+    },
+    authContext?: AuthContext,
+  ): Promise<{ ok: boolean; expenseId: number; totalTripExpenses: number }> {
+    if (!payload.amount || Number(payload.amount) <= 0) {
+      throw new AppError('مبلغ المصروف يجب أن يكون أكبر من الصفر', 'INVALID_EXPENSE_AMOUNT', 400);
+    }
+
+    const trip = await this.anyDb
+      .selectFrom('van_sales_trips')
+      .select(['id', 'status'])
+      .where('id', '=', payload.tripId)
+      .where('tenant_id', '=', tenantId)
+      .where('rep_id', '=', repId)
+      .executeTakeFirst();
+
+    if (!trip || trip.status !== 'open') {
+      throw new AppError('لا يمكن تسجيل مصروفات على رحلة مغلقة أو غير موجودة', 'INVALID_TRIP', 400);
+    }
+
+    const createdByUserId = authContext?.userId ? Number(authContext.userId) : null;
+    const [inserted] = await this.anyDb
+      .insertInto('van_trip_expenses')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        trip_id: payload.tripId,
+        expense_type: payload.expenseType || 'other',
+        amount: Number(payload.amount),
+        notes: payload.notes || null,
+        receipt_photo_url: payload.receiptPhotoUrl || null,
+        created_by_user_id: createdByUserId,
+      })
+      .returning(['id'])
+      .execute();
+
+    const sumRow = await this.anyDb
+      .selectFrom('van_trip_expenses')
+      .select(sql<number>`cast(coalesce(sum(amount), 0) as numeric)`.as('totalExpenses'))
+      .where('trip_id', '=', payload.tripId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    return {
+      ok: true,
+      expenseId: Number(inserted.id),
+      totalTripExpenses: Number(sumRow?.totalExpenses || 0),
+    };
+  }
+
+  /**
+   * Retrieves all recorded trip expenses for a van trip.
+   */
+  async getTripExpenses(tripId: number, tenantId: string) {
+    const rows = await this.anyDb
+      .selectFrom('van_trip_expenses as te')
+      .leftJoin('users as u', 'u.id', 'te.created_by_user_id')
+      .select([
+        'te.id',
+        'te.trip_id as tripId',
+        'te.expense_type as expenseType',
+        sql<number>`cast(te.amount as numeric)`.as('amount'),
+        'te.notes',
+        'te.receipt_photo_url as receiptPhotoUrl',
+        'te.created_at as createdAt',
+        sql<string>`coalesce(u.display_name, u.username)`.as('createdByName'),
+      ])
+      .where('te.trip_id', '=', tripId)
+      .where('te.tenant_id', '=', tenantId)
+      .orderBy('te.created_at', 'desc')
+      .execute();
+
+    const total = rows.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+    return {
+      expenses: rows.map((r: any) => ({
+        id: Number(r.id),
+        tripId: Number(r.tripId),
+        expenseType: r.expenseType,
+        amount: Number(r.amount),
+        notes: r.notes || '',
+        receiptPhotoUrl: r.receiptPhotoUrl || null,
+        createdAt: r.createdAt,
+        createdByName: r.createdByName || null,
+      })),
+      totalExpenses: Number(total.toFixed(2)),
+    };
+  }
+
+  // =========================================================================
+  // RETURNABLE PACKAGING & EMPTIES LEDGER (Crates, Bottles, Pallets, Gas Cylinders)
+  // =========================================================================
+
+  /**
+   * Records movement in the returnable packaging & empties ledger.
+   */
+  async recordPackagingMovement(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      customerId?: number;
+      packageType: 'crate_plastic' | 'box_wooden' | 'bottle_glass' | 'cylinder_gas' | 'pallet' | string;
+      deliveredQty: number;
+      returnedQty: number;
+      notes?: string;
+    },
+  ): Promise<{ ok: boolean; movementId: number }> {
+    const delivered = Math.max(0, Number(payload.deliveredQty || 0));
+    const returned = Math.max(0, Number(payload.returnedQty || 0));
+
+    if (delivered === 0 && returned === 0) {
+      throw new AppError('يجب تسجيل كمية مسلمة أو مستلمة واحدة على الأقل', 'EMPTY_PACKAGING_QTY', 400);
+    }
+
+    const [inserted] = await this.anyDb
+      .insertInto('van_trip_packaging_movements')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        trip_id: payload.tripId,
+        customer_id: payload.customerId ? Number(payload.customerId) : null,
+        package_type: payload.packageType || 'crate_plastic',
+        delivered_qty: delivered,
+        returned_qty: returned,
+        notes: payload.notes || null,
+      })
+      .returning(['id'])
+      .execute();
+
+    return {
+      ok: true,
+      movementId: Number(inserted.id),
+    };
+  }
+
+  /**
+   * Retrieves packaging movements for a van trip.
+   */
+  async getTripPackagingMovements(tripId: number, tenantId: string) {
+    const rows = await this.anyDb
+      .selectFrom('van_trip_packaging_movements as pm')
+      .leftJoin('customers as c', 'c.id', 'pm.customer_id')
+      .select([
+        'pm.id',
+        'pm.package_type as packageType',
+        'pm.delivered_qty as deliveredQty',
+        'pm.returned_qty as returnedQty',
+        'pm.notes',
+        'pm.created_at as createdAt',
+        'c.id as customerId',
+        'c.name as customerName',
+      ])
+      .where('pm.trip_id', '=', tripId)
+      .where('pm.tenant_id', '=', tenantId)
+      .orderBy('pm.created_at', 'desc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      packageType: r.packageType,
+      deliveredQty: Number(r.deliveredQty || 0),
+      returnedQty: Number(r.returnedQty || 0),
+      netBalance: Number(r.deliveredQty || 0) - Number(r.returnedQty || 0),
+      notes: r.notes || '',
+      createdAt: r.createdAt,
+      customerId: r.customerId ? Number(r.customerId) : null,
+      customerName: r.customerName || null,
+    }));
+  }
+
+  /**
+   * Retrieves customer returnable packaging balance summary across all trips.
+   */
+  async getCustomerPackagingBalance(customerId: number, tenantId: string) {
+    const rows = await this.anyDb
+      .selectFrom('van_trip_packaging_movements')
+      .select([
+        'package_type as packageType',
+        sql<number>`cast(coalesce(sum(delivered_qty), 0) as numeric)`.as('totalDelivered'),
+        sql<number>`cast(coalesce(sum(returned_qty), 0) as numeric)`.as('totalReturned'),
+      ])
+      .where('customer_id', '=', customerId)
+      .where('tenant_id', '=', tenantId)
+      .groupBy('package_type')
+      .execute();
+
+    return rows.map((r: any) => ({
+      packageType: r.packageType,
+      totalDelivered: Number(r.totalDelivered || 0),
+      totalReturned: Number(r.totalReturned || 0),
+      netOwedToCompany: Number(r.totalDelivered || 0) - Number(r.totalReturned || 0),
+    }));
   }
 }

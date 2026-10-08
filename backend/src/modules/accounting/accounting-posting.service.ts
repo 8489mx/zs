@@ -2274,6 +2274,10 @@ export class AccountingPostingService {
         '2145': { name_ar: 'تأمينات اجتماعية مستحقة السداد', name_en: 'Social Insurance Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
         '2146': { name_ar: 'ضريبة كسب عمل مستحقة', name_en: 'Income Tax Withholding Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
         '1160': { name_ar: 'سلف وقروض العاملين', name_en: 'Employee Advances & Loans', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '6400': { name_ar: 'مصاريف نقل وشحن ووقود رحلات', name_en: 'Delivery, Fuel & Freight Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '5200': { name_ar: 'فروق تكلفة المخزون', name_en: 'Inventory Cost Variance', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
+        '4100': { name_ar: 'مبيعات المنتجات', name_en: 'Product Sales', type: 'revenue', group: 'income', balance: 'credit' },
+        '5100': { name_ar: 'تكلفة بضاعة مباعة', name_en: 'COGS', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
       };
       const known = knownAccounts[code];
       if (known) {
@@ -3368,6 +3372,7 @@ export class AccountingPostingService {
     params: {
       expectedCash: number;
       countedCash: number;
+      tripExpenses?: number;
       branchId: number | null;
       locationId: number | null;
       stockShortageAmount?: number;
@@ -3388,9 +3393,10 @@ export class AccountingPostingService {
 
     const expected = this.toMoney(params.expectedCash);
     const counted = this.toMoney(params.countedCash);
+    const tripExpenses = params.tripExpenses ? this.toMoney(params.tripExpenses) : 0;
     const stockShortage = params.stockShortageAmount ? this.toMoney(params.stockShortageAmount) : 0;
 
-    if (expected <= 0 && counted <= 0 && stockShortage <= 0) return { posted: false, journalEntryId: null };
+    if (expected <= 0 && counted <= 0 && tripExpenses <= 0 && stockShortage <= 0) return { posted: false, journalEntryId: null };
     const variance = this.toMoney(counted - expected);
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -3405,8 +3411,14 @@ export class AccountingPostingService {
     const branchId = params.branchId;
     const locationId = params.locationId;
 
-    if (expected > 0) {
-      this.addLine(lines, { accountId: receivableAccountId, description: `تصفية عهدة نقدية مندوب - رحلة #${tripId}`, debit: 0, credit: expected, partnerType: 'none', partnerId: null, branchId, locationId });
+    const grossReceivableToClear = this.toMoney(expected + tripExpenses);
+    if (grossReceivableToClear > 0) {
+      this.addLine(lines, { accountId: receivableAccountId, description: `تصفية عهدة نقدية مندوب - رحلة #${tripId}`, debit: 0, credit: grossReceivableToClear, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    if (tripExpenses > 0) {
+      const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6400');
+      this.addLine(lines, { accountId: expenseAccountId, description: `مصروفات تشغيلية ووقود رحلة توزيع #${tripId}`, debit: tripExpenses, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     if (variance < -0.01) {

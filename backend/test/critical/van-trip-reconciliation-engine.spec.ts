@@ -310,4 +310,66 @@ const nightStockApproved = evaluateNightStockRetention({
 assert.equal(nightStockApproved.allowed, true);
 assert.equal(nightStockApproved.status, 'night_stock_approved');
 
+// =========================================================================
+// 7. Trip Operational Expenses & Supervisor Credit Limit Override Tests
+// =========================================================================
+
+// Test 7.1: Trip with fuel and toll expenses correctly deducted from expected cash
+const expenseTrip = reconcileTripFinancials({
+  loadedAmount: 10000,
+  salesAmount: 6000,
+  cashSales: 4000,
+  creditSales: 2000,
+  fieldCollections: 1000,
+  returnsAmount: 0,
+  cashRefunds: 0,
+  tripExpenses: 500, // 350 fuel + 150 tolls
+  countedCash: 4500,  // Expected: 4000 + 1000 - 0 - 500 = 4500
+  remainingVanStockValue: 4000,
+});
+assert.equal(expenseTrip.totalTripExpenses, 500);
+assert.equal(expenseTrip.expectedCash, 4500);
+assert.equal(expenseTrip.countedCash, 4500);
+assert.equal(expenseTrip.cashVariance, 0);
+assert.equal(expenseTrip.cashVarianceStatus, 'balanced');
+
+// Test 7.2: Credit Limit Exceeded but permitted via Supervisor Override
+const overrideExceeded = evaluateCreditLimitCheck({
+  customerId: 45,
+  customerName: 'سوبرماركت البركة',
+  currentBalance: 8000,
+  creditLimit: 10000,
+  isCreditBlocked: false,
+  requestedCreditAmount: 4000, // Total 12,000 > 10,000
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 1,
+    supervisorName: 'مدير المبيعات',
+    reason: 'عميل استراتيجي - اعتماد مؤقت حتى الأحد القادم',
+  },
+});
+assert.equal(overrideExceeded.allowed, true);
+assert.equal(overrideExceeded.isOverridden, true);
+assert.equal(overrideExceeded.reasonCode, 'SUPERVISOR_OVERRIDE');
+assert.equal(overrideExceeded.exceededAmount, 2000);
+
+// Test 7.3: Blocked Customer permitted via Supervisor Override
+const overrideBlocked = evaluateCreditLimitCheck({
+  customerId: 88,
+  customerName: 'محل التقوى',
+  currentBalance: 2000,
+  creditLimit: 5000,
+  isCreditBlocked: true,
+  creditBlockReason: 'تأخر في سداد فواتير سابقة',
+  requestedCreditAmount: 1500,
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 1,
+    reason: 'سداد نصف المديونية بشيك بنكي تحت التحصيل',
+  },
+});
+assert.equal(overrideBlocked.allowed, true);
+assert.equal(overrideBlocked.isOverridden, true);
+assert.equal(overrideBlocked.reasonCode, 'SUPERVISOR_OVERRIDE');
+
 console.log('[OK] All VanTripReconciliationEngine critical unit tests passed 100% successfully.');

@@ -27,13 +27,22 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
       const fullPath = join(this.migrationsPath, fileName);
       if (!existsSync(fullPath)) continue;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const migrationModule = require(fullPath) as { migration?: Migration; default?: Migration };
+        const migrationModule = require(fullPath) as {
+          migration?: Migration;
+          default?: Migration;
+          up?: Migration['up'];
+          down?: Migration['down'];
+        };
         const key = fileName.replace(/\.(ts|js)$/, '');
         if (migrationModule.migration) {
           migrations[key] = migrationModule.migration;
         } else if (migrationModule.default) {
           migrations[key] = migrationModule.default;
+        } else if (typeof migrationModule.up === 'function') {
+          migrations[key] = {
+            up: migrationModule.up,
+            down: migrationModule.down,
+          };
         }
       } catch (err) {
         // If a file is being written or missing during hot reload, throw clear error

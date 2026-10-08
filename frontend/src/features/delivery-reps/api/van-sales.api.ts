@@ -15,6 +15,38 @@ export interface VanStockItem {
   discountPerUnit?: number;
   hasActiveOffer?: boolean;
   offerBadge?: string;
+  packagingUnit?: { name: string; multiplier: number };
+  availableUnits?: { id: number; name: string; multiplier: number; isBase: boolean }[];
+}
+
+export interface VanTripExpense {
+  id: number;
+  tripId: number;
+  expenseType: 'fuel' | 'toll' | 'maintenance' | 'tips' | 'meals' | 'other' | string;
+  amount: number;
+  notes: string;
+  receiptPhotoUrl?: string | null;
+  createdAt: string;
+  createdByName?: string | null;
+}
+
+export interface VanPackagingMovement {
+  id: number;
+  packageType: string;
+  deliveredQty: number;
+  returnedQty: number;
+  netBalance: number;
+  notes: string;
+  createdAt: string;
+  customerId?: number | null;
+  customerName?: string | null;
+}
+
+export interface CustomerPackagingBalance {
+  packageType: string;
+  totalDelivered: number;
+  totalReturned: number;
+  netOwedToCompany: number;
 }
 
 export interface PreSalesCatalogItem {
@@ -113,6 +145,8 @@ export interface VanTripSummary {
   creditSales: number;
   returnsAmount: number;
   cashRefunds?: number;
+  tripExpenses?: number;
+  expectedCashToRemit?: number;
   variance: number;
   notes?: string;
 }
@@ -435,6 +469,8 @@ export interface TripAdminDetails {
     customerPhone: string;
     deliveryGpsLat?: number;
     deliveryGpsLng?: number;
+    isCreditOverridden?: boolean;
+    creditOverrideReason?: string;
   }>;
   collections: Array<{
     id: number;
@@ -634,12 +670,24 @@ export const vanSalesApi = {
     customerPhone?: string;
     paymentMethod: 'cash' | 'credit' | 'card' | 'split';
     paidAmount?: number;
-    items: { productId: number; qty: number; unitPrice?: number }[];
+    items: {
+      productId: number;
+      qty: number;
+      unitPrice?: number;
+      unitName?: string;
+      unitMultiplier?: number;
+      isBonus?: boolean;
+      bonusReason?: string;
+      originalPrice?: number;
+    }[];
     notes?: string;
     deliveryGpsLat?: number;
     deliveryGpsLng?: number;
     deliveryProofPhoto?: string;
     packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
+    clientTxId?: string;
+    supervisorOverridePin?: string;
+    supervisorOverrideReason?: string;
   }): Promise<{
     ok: boolean;
     saleId: number;
@@ -1364,6 +1412,104 @@ export const vanSalesApi = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  },
+
+  // =========================================================================
+  // Trip Operational Expenses API
+  // =========================================================================
+
+  recordTripExpense: async (
+    payloadOrTripId: number | { tripId: number; expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string },
+    extraPayload?: { expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string },
+  ): Promise<{ ok: boolean; expenseId: number; totalTripExpenses: number }> => {
+    let tripId: number;
+    let body: any;
+    if (typeof payloadOrTripId === 'number') {
+      tripId = payloadOrTripId;
+      body = {
+        tripId,
+        expenseType: extraPayload?.expenseType,
+        amount: extraPayload?.amount,
+        notes: extraPayload?.notes || extraPayload?.description,
+        receiptPhotoUrl: extraPayload?.receiptPhotoUrl || extraPayload?.receiptPhoto,
+      };
+    } else {
+      tripId = payloadOrTripId.tripId;
+      body = {
+        tripId,
+        expenseType: payloadOrTripId.expenseType,
+        amount: payloadOrTripId.amount,
+        notes: payloadOrTripId.notes || payloadOrTripId.description,
+        receiptPhotoUrl: payloadOrTripId.receiptPhotoUrl || payloadOrTripId.receiptPhoto,
+      };
+    }
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/expenses`, {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+  },
+
+  getTripExpenses: async (tripId: number): Promise<{ expenses: VanTripExpense[]; totalExpenses: number }> => {
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/expenses`, {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  getAdminTripExpenses: async (tripId: number): Promise<{ expenses: VanTripExpense[]; totalExpenses: number }> => {
+    return http(`/api/van-sales/admin/trips/${tripId}/expenses`);
+  },
+
+  // =========================================================================
+  // Returnable Packaging & Empties Ledger API
+  // =========================================================================
+
+  recordPackagingMovement: async (
+    payloadOrTripId: number | { tripId: number; customerId?: number; packageType?: string; packagingType?: string; deliveredQty?: number; qtyOut?: number; returnedQty?: number; qtyIn?: number; notes?: string },
+    extraPayload?: { customerId?: number; packageType?: string; packagingType?: string; deliveredQty?: number; qtyOut?: number; returnedQty?: number; qtyIn?: number; notes?: string },
+  ): Promise<{ ok: boolean; movementId: number }> => {
+    let tripId: number;
+    let p: any;
+    if (typeof payloadOrTripId === 'number') {
+      tripId = payloadOrTripId;
+      p = extraPayload || {};
+    } else {
+      tripId = payloadOrTripId.tripId;
+      p = payloadOrTripId;
+    }
+    const body = {
+      tripId,
+      customerId: p.customerId,
+      packageType: p.packageType || p.packagingType || 'crate_plastic',
+      deliveredQty: p.deliveredQty ?? p.qtyOut ?? 0,
+      returnedQty: p.returnedQty ?? p.qtyIn ?? 0,
+      notes: p.notes,
+    };
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/packaging`, {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+  },
+
+  getTripPackagingMovements: async (tripId: number): Promise<VanPackagingMovement[]> => {
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/packaging`, {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  getAdminTripPackaging: async (tripId: number): Promise<VanPackagingMovement[]> => {
+    return http(`/api/van-sales/admin/trips/${tripId}/packaging`);
+  },
+
+  getCustomerPackagingBalance: async (customerId: number): Promise<CustomerPackagingBalance[]> => {
+    return http(`/api/driver-portal/van-sales/customers/${customerId}/packaging`, {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  getAdminCustomerPackaging: async (customerId: number): Promise<CustomerPackagingBalance[]> => {
+    return http(`/api/van-sales/admin/customers/${customerId}/packaging`);
   },
 };
 

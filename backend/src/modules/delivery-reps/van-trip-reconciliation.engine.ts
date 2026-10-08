@@ -18,6 +18,7 @@ export interface TripFinancialSummaryInput {
   fieldCollections: number;
   returnsAmount: number;
   cashRefunds: number;
+  tripExpenses?: number;
   countedCash: number;
   remainingVanStockValue: number;
 }
@@ -29,6 +30,7 @@ export interface TripFinancialReconciliationResult {
   actualRemainingValue: number;
   isGoodsEquationBalanced: boolean;
   goodsEquationDiscrepancy: number;
+  totalTripExpenses: number;
   expectedCash: number;
   countedCash: number;
   cashVariance: number;
@@ -78,11 +80,19 @@ export interface CreditLimitEvaluationParams {
   isCreditBlocked: boolean;
   creditBlockReason?: string | null;
   requestedCreditAmount: number;
+  supervisorOverride?: {
+    approved: boolean;
+    supervisorId?: number;
+    supervisorName?: string;
+    reason?: string;
+  };
 }
 
 export interface CreditLimitEvaluationResult {
   allowed: boolean;
-  reasonCode?: 'CUSTOMER_BLOCKED' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST';
+  isOverridden?: boolean;
+  overrideReason?: string;
+  reasonCode?: 'CUSTOMER_BLOCKED' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST' | 'SUPERVISOR_OVERRIDE';
   errorMessageAr?: string;
   currentBalance: number;
   creditLimit: number;
@@ -144,6 +154,7 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
   const fieldCollections = toMoney(input.fieldCollections);
   const returnsAmount = toMoney(input.returnsAmount);
   const cashRefunds = toMoney(input.cashRefunds);
+  const totalTripExpenses = toMoney(input.tripExpenses || 0);
   const countedCash = toMoney(input.countedCash);
   const actualRemainingValue = toMoney(input.remainingVanStockValue);
 
@@ -157,8 +168,8 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
   const goodsEquationDiscrepancy = toMoney(totalLoaded - accountedGoodsValue);
   const isGoodsEquationBalanced = Math.abs(goodsEquationDiscrepancy) <= 0.05;
 
-  // Expected Cash = Cash Sales + Collections - Cash Refunds for Returns
-  const expectedCash = toMoney(cashSales + fieldCollections - cashRefunds);
+  // Expected Cash = Cash Sales + Collections - Cash Refunds for Returns - Approved Trip Expenses
+  const expectedCash = toMoney(cashSales + fieldCollections - cashRefunds - totalTripExpenses);
   const cashVariance = toMoney(countedCash - expectedCash);
 
   let cashVarianceStatus: 'balanced' | 'shortage' | 'overage' = 'balanced';
@@ -180,6 +191,7 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
     actualRemainingValue,
     isGoodsEquationBalanced,
     goodsEquationDiscrepancy,
+    totalTripExpenses,
     expectedCash,
     countedCash,
     cashVariance,
@@ -275,6 +287,19 @@ export function evaluateCreditLimitCheck(params: CreditLimitEvaluationParams): C
   }
 
   if (params.isCreditBlocked) {
+    if (params.supervisorOverride?.approved) {
+      return {
+        allowed: true,
+        isOverridden: true,
+        overrideReason: params.supervisorOverride.reason || 'اعتماد استثنائي من المشرف لتجاوز حظر العميل',
+        reasonCode: 'SUPERVISOR_OVERRIDE',
+        currentBalance,
+        creditLimit,
+        requestedCreditAmount,
+        projectedBalance,
+        exceededAmount: 0,
+      };
+    }
     const reasonDetail = params.creditBlockReason ? `: ${params.creditBlockReason}` : '';
     return {
       allowed: false,
@@ -290,6 +315,19 @@ export function evaluateCreditLimitCheck(params: CreditLimitEvaluationParams): C
 
   if (creditLimit > 0 && projectedBalance > creditLimit) {
     const exceededAmount = Number((projectedBalance - creditLimit).toFixed(2));
+    if (params.supervisorOverride?.approved) {
+      return {
+        allowed: true,
+        isOverridden: true,
+        overrideReason: params.supervisorOverride.reason || `اعتماد استثنائي لتجاوز سقف الائتمان بمقدار ${exceededAmount.toFixed(2)}`,
+        reasonCode: 'SUPERVISOR_OVERRIDE',
+        currentBalance,
+        creditLimit,
+        requestedCreditAmount,
+        projectedBalance,
+        exceededAmount,
+      };
+    }
     return {
       allowed: false,
       reasonCode: 'LIMIT_EXCEEDED',

@@ -43,6 +43,8 @@ export interface VanSaleCheckoutModalProps {
     notes?: string;
     cartonsCount?: number;
     deliveryProofPhoto?: string;
+    supervisorOverridePin?: string;
+    supervisorOverrideReason?: string;
   }) => void;
 }
 
@@ -69,6 +71,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const [cashInput, setCashInput] = useState<string>(cartTotal.toFixed(2));
   const [localNotes, setLocalNotes] = useState<string>(propNotes);
   const [validationError, setValidationError] = useState<string>('');
+  const [supervisorPin, setSupervisorPin] = useState<string>('');
+  const [supervisorReason, setSupervisorReason] = useState<string>('');
 
   useEffect(() => {
     if (open) {
@@ -76,6 +80,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       setPaymentMethod('cash');
       setValidationError('');
       setLocalNotes(propNotes);
+      setSupervisorPin('');
+      setSupervisorReason('');
     }
   }, [open, cartTotal, propNotes]);
 
@@ -125,6 +131,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     return curBal;
   }, [customer?.balance, paymentMethod, cartTotal, splitCreditDebt]);
 
+  const isCreditExceeded = useMemo(() => {
+    if (paymentMethod !== 'credit' && paymentMethod !== 'split') return false;
+    if (!customer?.creditLimit || customer.creditLimit <= 0) return false;
+    return customerBalanceAfter > customer.creditLimit;
+  }, [paymentMethod, customer?.creditLimit, customerBalanceAfter]);
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -161,12 +173,19 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       return;
     }
 
+    if (isCreditExceeded && !supervisorPin.trim()) {
+      setValidationError('سقف الائتمان متجاوز. يتطلب إدخال الرمز السري للمشرف (PIN) للمتابعة بالبيع الآجل استثنائياً.');
+      return;
+    }
+
     onConfirmCheckout({
       paymentMethod,
       paidAmount: paymentMethod === 'cash' ? cartTotal : (paymentMethod === 'split' ? cashPaid : (paymentMethod === 'card' ? cartTotal : 0)),
       notes: localNotes,
       cartonsCount: Number(cartonsCount) || undefined,
       deliveryProofPhoto: deliveryProofPhoto || undefined,
+      supervisorOverridePin: isCreditExceeded && supervisorPin.trim() ? supervisorPin.trim() : undefined,
+      supervisorOverrideReason: isCreditExceeded && supervisorReason.trim() ? supervisorReason.trim() : undefined,
     });
   };
 
@@ -544,6 +563,65 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Supervisor Credit Limit Override Block */}
+        {isCreditExceeded && (
+          <div
+            style={{
+              backgroundColor: '#fff7ed',
+              border: '1px solid #fdba74',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c2410c', fontWeight: 800, fontSize: '12px' }}>
+              <AlertTriangleIcon size={16} color="#ea580c" />
+              <span>
+                تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة ({customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح ({customer?.creditLimit?.toFixed(2)} ج.م)
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#9a3412', lineHeight: 1.4 }}>
+              يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
+              <input
+                type="password"
+                maxLength={6}
+                value={supervisorPin}
+                onChange={(e) => setSupervisorPin(e.target.value)}
+                placeholder="PIN المشرف"
+                style={{
+                  height: '36px',
+                  borderRadius: '6px',
+                  border: '1px solid #f97316',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  textAlign: 'center',
+                  backgroundColor: '#ffffff',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <input
+                type="text"
+                value={supervisorReason}
+                onChange={(e) => setSupervisorReason(e.target.value)}
+                placeholder="سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)"
+                style={{
+                  height: '36px',
+                  borderRadius: '6px',
+                  border: '1px solid #fed7aa',
+                  fontSize: '12px',
+                  padding: '0 8px',
+                  backgroundColor: '#ffffff',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* 3-Chips Financial Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>

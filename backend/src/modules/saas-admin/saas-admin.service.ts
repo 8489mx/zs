@@ -1311,7 +1311,7 @@ export class SaasAdminService {
       if (verticalKey !== 'pharmacy') {
         modulesToSet['enablePharmacyModule'] = false;
       }
-      if (verticalKey !== 'maintenance' && verticalKey !== 'electronics') {
+      if (verticalKey !== 'maintenance' && (verticalKey as string) !== 'electronics') {
         modulesToSet['enableMobileStoreFeatures'] = false;
       }
       if (verticalKey === 'wholesale_van') {
