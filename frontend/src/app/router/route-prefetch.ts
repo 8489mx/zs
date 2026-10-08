@@ -26,6 +26,13 @@ export function prefetchRouteData(to: string) {
         case 'pos':
           void import('@/features/pos/pages/PosPage');
           break;
+        case 'maritime':
+        case 'maritime-freight':
+          void import('@/features/maritime-freight/pages/MaritimeLayout');
+          break;
+        case 'contracting':
+          void import('@/features/contracting/pages/ContractingLayout');
+          break;
         case 'settings':
           void import('@/features/settings/pages/SettingsPage');
           break;

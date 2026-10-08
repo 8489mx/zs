@@ -45,6 +45,24 @@
 - **تخصيص الموبايل اللحظي:** شريط التنقل السفلي في الموبايل (`MobileBottomNav.tsx`) ونافذة الإجراءات السريعة (`MobileQuickActionSheet.tsx`) تتكيف فورياً لعرض الأدوات الميدانية الخاصة بالنشاط (مثل تتبع الحاويات وأوامر تشغيل الشحنات واستفسارات الشحن للشحن؛ والمشاريع والمستخلصات ويوميات الموقع للمقاولات؛ وأذونات تحميل سيارات الفان لتوزيع الجملة).
 - **حماية المسارات والبحث:** البحث الشامل (`GlobalSearchModal.tsx`) وحارس المسارات المباشرة (`hasRequiredFeature` في `access.ts`) يحجبان أي موديول غير مخصص لنمط المنشأة حتى عند كتابة الرابط يدوياً في المتصفح.
 
+### قدرة: العزل القطاعي الشامل لكافة صفحات وتبويبات وأقسام الإعدادات (Settings Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
+- **العزل التام لتبويبات الإعدادات (`SettingsSectionTabs`):**
+  - عند اختيار نمط الشحن والتوكيلات الملاحية (`maritime`) أو المقاولات (`contracting`): يتم حجب أقسام التجزئة والتجارة الإلكترونية تلقائياً (`storefront`, `marketplaces`, `locations`, `demo-data`) من شريط التبويبات العلوي، ويتم تحويل مسار المستخدم تلقائياً (`<Navigate to="/settings/core" replace />`) إذا حاول كتابة الرابط يدوياً في المتصفح.
+- **التكييف الكامل لتبويب الفروع وأماكن التخزين (`SettingsReferenceSection` & `cards.tsx` & `row-actions.tsx`):**
+  - في الشحن الملاحي: يتحول التبويب إلى **«المقرات الملاحية والموانئ ومحطات الحاويات»**؛ وتتحول الفروع إلى «المقرات والمكاتب الملاحية»، والمخازن إلى «الموانئ ومحطات ومستودعات الحاويات (UN/LOCODE)».
+  - في المقاولات: يتحول التبويب إلى **«المقرات الإدارية ومواقع العمل والتشوين»** والمخازن إلى «مخازن التشوين الميدانية».
+  - حجب خيارات نقاط البيع ومخزون البيع بالتجزئة (`مخزن البيع الأساسي`، `مصدر مخزون البيع`، `السماح بالبيع من المخازن الخارجية`) بالكامل عند تعديل المقر الملاحي أو موقع العمل في الأنماط غير التجزئية (`isNonPos`).
+  - تكييف نوافذ التعديل والإضافة السريعة ومودالات تأكيد الحذف بمسميات قطاعية دقيقة (حذف المقر الملاحي / حذف الميناء / حذف موقع التشوين).
+- **التكييف القطاعي لتبويب المستخدمين والصلاحيات (`UserManagementSection` & `UserManagementEditorCard` & `UserManagementPermissionGroups`):**
+  - حظر صلاحيات التجزئة والكاشير ونقاط البيع (`cashDrawer`, `canDiscount`, `canSellWholesale`, `canAdjustInventory`, `pricingCenterManage`, إلخ) عن قطاعي الشحن والمقاولات؛ وتضمين الصلاحيات التشغيلية التخصصية الحصرية (بوالص الشحن، تتبع الحاويات، استفسارات الشحن، عروض أسعار النولون، مقارنة الخطوط RFQ للشحن؛ والمشاريع والمستخلصات والمقايسات ويوميات الموقع وأوامر التغيير للمقاولات).
+  - **قاعدة التعيين التلقائي للفرع الواحد (Single Branch Auto-Selection):** عند وجود فرع أو مقر ملاحي واحد فقط بالمنشأة، يمسكه النظام ويعلم عليه تلقائياً للمستخدم الجديد (`newDraft.branchIds = [branches[0].id]`)، وعند وجود أكثر من فرع يترك التحديد فارغاً ويفرض اختيار فرع واحد على الأقل مع رسالة توجيهية مانعة للحفظ بدون اختيار فرع (`يجب اختيار مقر أو مكتب ملاحي واحد على الأقل`).
+  - تكييف الأدوار الوظيفية والقوالب السريعة ومسميات الإحصائيات (مسؤول عمليات وتتبع للشحن، مهندس موقع للمقاولات).
+  - تطبيق دستور الحظر التام للتمرير الخارجي (`Zero Scroll`) وتوسيع نافذة تعديل المستخدم إلى `min(1280px, 97vw)` مع شبكة متوازنة ثلاثية الأعمدة لمجموعات الصلاحيات وبطاقة سوبر أدمن مدمجة وتمرير داخلي انسيابي.
+- **التكييف القطاعي لتبويبات النسخ الاحتياطي والاستيراد والمراسلات:**
+  - في تبويب النسخ الاحتياطي (`SettingsBackupImportSection`): إخفاء كارت تصفير المخزون وكارت استيراد بضائع المخزن في الشحن، وتحويل الاستيراد إلى «استيراد دليل الخدمات ورسوم الشحن والنولون»، و«استيراد الشاحنين والمستلمين (Shippers & Consignees)»، و«استيراد الخطوط الملاحية والوكلاء والموانئ».
+  - في بوابة الواتساب والملخص اليومي (`SettingsWhatsAppGatewaySection` & `SettingsDailyDigestSection`): تكييف رسائل الفواتير والتقارير الذكية لعكس بوالص الشحن والحاويات TEU والإنذارات الملاحية ومصاريف الأرضيات (Demurrage) أو المستخلصات ونسب الإنجاز في المقاولات.
+- **تطهير كامل من الـ Native Alert / Confirm:** استبدال دوال `confirm(...)` بـ `await systemConfirm(...)` المعتمدة مؤسسياً في قسم أوضاع الشبكة المحلية (`SettingsLanModesSection`).
+
 ### قدرة: دستور شاشات الموبايل المضغوطة وعزل نسخة الكمبيوتر وحظر أسهم الرجوع في الشاشات الرئيسية — ✅ مفعّلة ومحروسة (أكتوبر 2026)
 - **حظر أسهم الرجوع في الشاشات الرئيسية:** الشريط العلوي الموحد `GlobalAppToolbar.tsx` يعتمد على محرك `isRootLandingRoute` لفحص صفحات الهبوط للقطاعات (`/`, `/dashboard`, `/maritime`, `/maritime-freight`, `/maritime/inquiries`, `/contracting`, `/contracting/projects`, `/pos`, `/van-sales`, `/inventory/van-sales`, `/manufacturing`, `/driver`, `/setup`, `/activate`) ويحجب سهم الرجوع تماماً عند التواجد فيها.
 - **حارس تاريخ التصفح الفعلي:** لا يظهر زر الرجوع إلا إذا كان للمستخدم تاريخ تنقل داخل الجلسة (`window.history.length > 1 && window.history.state?.idx > 0`). الروابط المباشرة وإعادة تحميل الصفحة لا تُظهر زراً يخرج المستخدم أو يوجهه إلى لوحة تجزئة عامة.
@@ -6093,3 +6111,275 @@
   8. **مراحل التتبع DCSA:** تسجيل واختبار كافة معالم التتبع التسعة (الحجز، دخول الميناء، التحميل، الإبحار، الوصول، التفريغ، الإفراج الجمركي، الخروج، والتسليم).
   9. **رادار الغرامات وتأمين الحاويات:** فحص رادار فترات السماح وإثبات إعادة الحاويات واسترداد التأمين للخزينة (`refunded_to_treasury`).
   10. **إصدار إذن التسليم وإغلاق الشحنة:** إصدار إذن التسليم الملاحي الجمركي (D/O) بنجاح وإغلاق وأرشفة الشحنة بالكامل.
+
+
+## 163. تسريع تجميع خادم التطوير المحلي للباك إند (Backend Incremental Dev Compilation Acceleration - 8 October 2026)
+
+- **المشكلة:** مع نمو حجم الباك إند إلى أكثر من 855 ملف TypeScript و293 ملف هجرة، كان بدء خادم التطوير `nest start --watch` يستغرق أكثر من دقيقة كاملة (نحو 70 ثانية) في كل تشغيل.
+- **السبب الجذري:** خيار `deleteOutDir: true` في `nest-cli.json` كان يقوم بمسح مجلد `dist` كاملاً في كل تشغيلة، مما يحذف ملف كاش التجميع التراكمي `tsbuildinfo` ويجبر المترجم على تجميع كافة الملفات من الصفر (Cold Compilation).
+- **الحل الجذري المطبق:**
+  1. توجيه ملف الكاش التراكمي `tsBuildInfoFile` ليُحفظ بشكل دائم داخل `node_modules/.cache/tsconfig.build.tsbuildinfo`.
+  2. تعطيل مسح المجلد في وضع المراقبة `deleteOutDir: false` في `nest-cli.json` لإتاحة الاستفادة من الكاش التراكمي.
+  3. حماية البناء الإنتاجي في `package.json` بمسح `dist` بشكل صريح ونظيف قبل أي أمر بناء للإنتاج `npm run build` لضمان عدم تأثر الإنتاج أو الساس أو الإلكترون نهائياً.
+- **النتيجة:** تقليص وقت بدء التجميع لخادم التطوير من 70 ثانية إلى 2-4 ثوانٍ مع بقاء مخرجات الإنتاج مطابقة 100%.
+
+
+## 164. منظومة الشحن الجوي الدولي ومطابقة معايير إياتا (International Air Freight, IATA Resolution 502 & Cargo iQ Standards - 8 October 2026)
+
+- **حالة الموديول:** 🟢 مكتمل بنسبة 100% ومختبر آلياً برحلة تشغيلية حقيقية كاملة.
+- **معيار الامتثال الدولي:**
+  - معيار الاتحاد الدولي للنقل الجوي **IATA Resolution 502** لحساب الوزن الحجمي والوزن الخاضع للرسوم (Volumetric Ratio 1:6000 cm³/kg / 1 CBM = 166.67 kg).
+  - خوارزمية التحقق الرسمية لبوالص الشحن الجوي **IATA Modulo-7 Check Digit Rule** (IATA Resolution 600a - الصيغة القياسية: `PPP-SSSS SSSC`).
+  - معايير تتبع الشحنات الجوية لمبادرة **Cargo iQ** التابعة لمنظمة IATA عبر محطات المسار المعتمدة (`BKD`, `RCS`, `MAN`, `DEP`, `ARR`, `RCF`, `CUST`, `NFD`, `AWD`, `DLV`).
+- **الملفات والمحركات الأساسية:**
+  - المحرك الحسابي البحت: `backend/src/modules/maritime-freight/engines/air-freight.engine.ts`.
+  - خدمة العمليات واللوجستيات: `backend/src/modules/maritime-freight/maritime-freight.service.ts`.
+  - المتحكم والمسارات: `backend/src/modules/maritime-freight/maritime-freight.controller.ts`.
+  - تعريفات الأنواع في الباك والفرونت: `backend/src/modules/maritime-freight/maritime-freight.types.ts` و `frontend/src/features/maritime-freight/maritime-freight.types.ts`.
+  - جناح الاختبار الآلي الحاكم: `backend/test/test-air-freight-full-lifecycle.ts` (11 مرحلة ناجحة 100% - Exit code 0).
+- **المعالجات والتحصينات الهندسية المنفذة:**
+  1. **توصيل المحرك الحسابي البحت لمنظومة الشحن الجوي (Wired Air Freight Calculation Engine):**
+     - تم ربط دوال `calculateAirChargeableWeight` و `calculateAirFreightCost` و `validateIataAwbNumber` مباشرة في مسارات الخدمة: `createInquiry` و `createRfq` و `createQuotation` و `createJob` و `updateJob`.
+     - الاستنتاج التلقائي للوزن الخاضع للرسوم (Chargeable Weight) وفق معيار إياتا: في حال إدخال الوزن الإجمالي بالأطنان أو الكيلوغرام والحجم بالمتر المكعب CBM دون تحديد الوزن الخاضع للرسوم، يقوم النظام آلياً بحساب الوزن الحجمي بدقة ومقارنته بالوزن الفعلي وتطبيق قاعدة التقريب الصاعد لأقرب نصف كيلوغرام (0.5 kg).
+  2. **دستور خلو الشحنات الجوية من الحاويات البحرية (Zero Ocean Containers Invariant - MARITIME-INV-13):**
+     - تم القضاء نهائياً على ثغرة توليد حاويات بحرية وهمية (`MSKU...` / 40HC مع تأمين 5000 ج.م) عند تحويل عروض أسعار الشحن الجوي إلى أوامر تشغيل في `autoConvertQuotationToJob`.
+     - الشحنات الجوية أصبحت تنشأ بدقة مع مصفوفة حاويات فارغة بالكامل (`containers: []`) لتعقب الطرود والأوزان والرحلات فقط، مما يمنع تشغيل رادار غرامات الأرضيات البحرية أو حجز تأمينات غير حقيقية.
+  3. **بوابة التحقق الصارمة من بوالص الشحن الجوي إياتا مودولو 7 (IATA Modulo-7 Gate - MARITIME-INV-14):**
+     - فحص رقم بوليصة الشحن الجوي الماستر (MAWB) والتأكد من مطابقة خانة التحقق: `serialNumber % 7 === checkDigit`.
+     - حظر الأرقام غير المطابقة مع رمي استثناء رسمي `400 Bad Request` باللغة العربية يوضح الرقم المتوقع والرقم المسجل.
+     - التنسيق القياسي التلقائي للبوليصة بالصيغة الدولية المعتمدة: `077-1234 5675`.
+  4. **مواءمة مراحل التتبع مع مبادرة Cargo iQ (Cargo iQ Milestones Parity):**
+     - تم إدراج معالم Cargo iQ باللغتين العربية والإنجليزية في دوال التتبع `addJobMilestone` و `getMilestoneWhatsAppMessage` بدلاً من الاقتصار على معالم DCSA البحرية.
+     - تحديد المعلم الأولي للشحنة الجوية فور فتح أمر التشغيل كـ `BKD` (Air Cargo Booking Confirmed).
+  5. **إصدار إذن التسليم الجوي (Air Cargo Delivery Order Release):**
+     - تم تعديل `releaseDeliveryOrder` لتميز تلقائياً بين الشحنات البحرية والجوية: في الشحن الجوي يتم تسجيل المعلم `AWD` ("تسليم إذن التسليم والمستندات - Documents Delivered") بدلاً من خروج الحاوية من بوابة الميناء `GTO`.
+  6. **رسائل تنبيهات الواتساب متعددة الوسائط (Multimodal WhatsApp Alerts):**
+     - صياغة نصوص التنبيهات لتخاطب العميل بمفردات الشحن الجوي ("شحنتكم الجوية"، رقم الرحلة الجوية، مطار الشحن، قرية البضائع، ومطار الوصول).
+- **تفاصيل المراحل الـ 11 المختبرة بنجاح في الجناح الآلي:**
+  1. **البيانات المرجعية:** التحقق من وجود مصر للطيران للشحن الجوي (كود MS وبادئة 077)، طيران الإمارات (كود EK وبادئة 176)، مطار القاهرة الدولي CAI، ومطار دبي الدولي DXB.
+  2. **المحرك الحسابي:** التحقق من حساب 500 كجم و4 م3 ينتج 667 كجم كوزن خاضع للرسوم، وحساب النولون الإجمالي مع إضافي الوقود FSC والتأمين SSC ومصاريف البوليصة.
+  3. **استفسار شحن جوي:** إنشاء الاستفسار `INQ-261008-0010` (مطار القاهرة إلى مطار دبي - 15 طرد أجهزة طبية).
+  4. **مناقصة شركات الطيران:** إنشاء المناقصة `RFQ-261008-0014` وتوجيهها لشركتي مصر للطيران والإمارات.
+  5. **عروض شركات الطيران:** تقديم عرض مصر للطيران ($2,084.35 شامل كافة الإضافيات) وعرض الإمارات ($2,317.60).
+  6. **الترسية:** ترسية المناقصة على مصر للطيران في مصفوفة المقارنة.
+  7. **تسعير العميل:** إصدار عرض السعر `QUO-261008-0007` بهامش ربح $500 وسعر صرف 48.5 ج.م/$ (إجمالي $2,584.35).
+  8. **التحويل لأمر تشغيل جوي:** إنشاء `JOB-261008-0005`، إثبات 0 حاويات بحرية، وفتح مركز تكلفة تحليلي تلقائياً `[JOB-261008-0005]`.
+  9. **حجز الرحلة والتحقق من البوليصة:** حجب البوليصة الخاطئة `077-12345674` وقبول وتنسيق البوليصة الصحيحة `077-1234 5675` على الرحلة `MS-801`.
+  10. **مسار مراحل Cargo iQ:** تتبع المراحل `RCS` (استلام قرية البضائع) ➔ `MAN` (مانيفست الرحلة) ➔ `DEP` (إقلاع الرحلة) ➔ `ARR` (وصول الرحلة) ➔ `RCF` (تفريغ البضائع) ➔ `CUST` (الإفراج الجمركي) ➔ `NFD` (إشعار المستلم).
+  11. **إذن التسليم وإغلاق العملية:** إصدار إذن التسليم الجوي `AWD` وإثبات التسليم النهائي `DLV` وإغلاق الشحنة بنجاح 100%.
+
+
+## 165. منظومة الشحن البري والنقل الداخلي والموانئ الجافة (Road Freight, Inland Trucking & Dry Ports Architecture - 8 October 2026)
+
+- **حالة الموديول:** 🟢 مكتمل بنسبة 100% ومختبر آلياً برحلة تشغيلية حقيقية كاملة.
+- **معيار الامتثال التشغيلي والدولي:**
+  - معيار النقل البري الدولي للبضائع **CMR Convention** واتفاقية النقل البري بالترانزيت الدولي **TIR CarNet**.
+  - محرك متعدد القيود لمطابقة سعات الشاحنات والمقطورات وتحديد عدد السيارات المطلوب وفق الوزن والحجم وعدد الطبليات القياسية (120x80 سم Euro Pallets).
+  - معايير مراحل دورة النقل البري المعتمدة: (`TRK_ASSIGN`, `TRK_GATE_IN`, `TRK_LOADED`, `TRK_DISPATCH`, `TRK_BORDER`, `TRK_ARRIVED`, `TRK_UNLOADED`, `TRK_POD`).
+  - معيار الموانئ الجافة والمناطق اللوجستية والمستودعات المركزية (6th of October Dry Port ODPO, 10th of Ramadan Logistics Terminal).
+- **الملفات والمحركات الأساسية:**
+  - المحرك الحسابي البحت: `backend/src/modules/maritime-freight/engines/road-freight.engine.ts`.
+  - جناح الاختبارات الحسابية للمحرك: `backend/src/modules/maritime-freight/engines/road-freight.engine.spec.ts` (10 سيناريوهات ناجحة 100% - Exit code 0).
+  - خدمة العمليات واللوجستيات: `backend/src/modules/maritime-freight/maritime-freight.service.ts`.
+  - البيانات المرجعية المسبقة: `backend/src/modules/maritime-freight/maritime-defaults.data.ts` (شركات النقل البري: النيل للنقل البري، الخليج للنقل الدولي، الدلتا لأسطول النقل الثقيل، والموانئ الجافة).
+  - تعريفات الأنواع في الباك والفرونت: `backend/src/modules/maritime-freight/maritime-freight.types.ts`.
+  - جناح الاختبار الآلي الحاكم للدورة التشغيلية الكاملة: `backend/test/test-road-freight-full-lifecycle.ts` (11 مرحلة ناجحة 100% - Exit code 0).
+- **المعالجات والتحصينات الهندسية المنفذة:**
+  1. **المحرك الحسابي البحت للنقل البري (Pure Road Freight Engine):**
+     - بناء المحرك `road-freight.engine.ts` بمواصفات الشاحنات القياسية: التريلا المسطحة/الفرش (Flatbed 28T / 33 pallets)، التريلا الستارة/الطربال (Curtainsider 26T / 86 CBM / 34 pallets)، الشاحنة المقفلة (Box 25T / 82 CBM)، الشاحنة المبردة (Reefer 22T / 76 CBM)، اللوبد للحمولات الثقيلة (Lowbed 50T)، سيارات الجامبو (Jumbo 6.5T)، وسيارات البيك أب (Pickup 1.8T).
+     - دالة حل القيود المتعددة `calculateTrucksRequired`: حساب عدد الشاحنات اللازمة للشحنة بالمفاضلة بين سقف الوزن، الحجم بالمتر المكعب، وعدد الطبليات المتجاورة (`Math.max(byWeight, byVolume, byPallets)`) مع استخراج نسبة الإشغال الفعلية والسبب الحاكم للزيادة (`limitingFactor: 'weight' | 'volume' | 'pallets'`).
+     - دالة حساب تكلفة النولون البري `calculateRoadFreightCost`: دعم التسعير بالرحلة/المشوار (`per_trip`)، بالطن (`per_ton`)، أو بالكيلومتر (`per_km`) مع تفنيد دقيق لبنود غرامات المبيت والانتظار (Detention Daily Rates)، كارتات وموازين الطرق، رسوم العبور الجمركي والمنافذ البرية، ومصاريف الحراسة وتصاريح الأوزان الشاذة.
+     - دالة فحص وتنسيق بوالص الشحن البري `validateCmrWaybillNumber` والتحقق من التنسيق الدولي والمحلي.
+  2. **دستور خلو الشحنات البرية من الحاويات البحرية (Zero Ocean Containers Invariant - MARITIME-INV-18):**
+     - تم حصر توليد الحاويات البحرية (`MSKU...`) في `autoConvertQuotationToJob` حصرياً على الشحن البحري (`if (transportMode === 'sea')`).
+     - الشحنات البرية أصبحت تنشأ بصفر حاويات بحرية (`containers: []`) لمنع أي تسريب لأرقام خطوط ملاحية وهمية أو حجز تأمينات حاويات غير حقيقية أو استدعاء رادار الغرامات البحرية.
+  3. **ترقيم رحلات النقل البري المقاوم للتصادم (Collision-Proof Sequence Numbering - MARITIME-INV-20):**
+     - تم إصلاح دالة `createInlandTruckingTrip` واستبدال التوليد العشوائي القديم بآلية الإدراج المؤقت ثم الترقيم التسلسلي اليومي الموحد: `TRIP-YYMMDD-XXXX`.
+  4. **المزامنة الحية التلقائية لحالات الرحلات مع معالم أمر التشغيل (Real-Time Trip Status Auto-Progression):**
+     - تم ربط تحديث حالة رحلة النقل البري في `updateInlandTruckingTripStatus` بالمعالم التشغيلية لأمر الشحن:
+       - حالة `loading` ➔ تسجل تلقائياً المعلم `TRK_LOADED` ("إتمام تحميل وتربيط البضاعة بالشاحنة").
+       - حالة `in_transit` ➔ تسجل تلقائياً المعلم `TRK_DISPATCH` ("انطلاق الشاحنة على مسار النقل").
+       - حالة `delivered` ➔ تسجل تلقائياً المعلم `TRK_POD` وتحدث حالة الشحنة إلى `TRK_POD`.
+  5. **إثراء تفاصيل الشحنة في `getJobById`:**
+     - تضمين جدول رحلات النقل البري `truckingTrips` مع بيانات السائق ورقم السيارة والمقطورة وتكلفة الرحلة وقيمتها ضمن الرد الموحد للشحنة، مع إرفاق قاموس معالم الشحن البري `roadFreightDefinitions`.
+  6. **إصدار إذن التسليم البري وإثبات الاستلام (Road Freight POD Release):**
+     - تم تعديل `releaseDeliveryOrder` لتسجل المعلم `TRK_POD` ("توقيع بوليصة الشحن البري وتأكيد استلام وتسليم البضاعة - Signed Waybill / POD") للشحنات البرية بدلاً من المعلم البحري `GTO`.
+  7. **قوالب تنبيهات الواتساب المتخصصة للنقل البري:**
+     - دعم كامل لمعالم الشحن البري الثمانية (`TRK_ASSIGN`, `TRK_GATE_IN`, `TRK_LOADED`, `TRK_DISPATCH`, `TRK_BORDER`, `TRK_ARRIVED`, `TRK_UNLOADED`, `TRK_POD`) مع صياغة رسائل موجهة توضح نوع وسيلة النقل البرية ورابط التتبع المباشر.
+- **تفاصيل المراحل الـ 11 المختبرة بنجاح في الجناح الآلي (`test-road-freight-full-lifecycle.ts`):**
+  1. **البيانات المرجعية:** التحقق من غرس شركات النقل المعتمدة (شركة النيل للنقل البري TRK-NILE، الخليج للنقل الدولي TRK-GULF) والموانئ الجافة (ميناء 6 أكتوبر الجاف EGSOC، العاشر من رمضان اللوجستي EGTRD).
+  2. **المحرك الحسابي:** التحقق من حساب 54,000 كجم تتطلب شاحنتين مسطحة 28 طن بنسبة إشغال 96.43%، وحساب النولون الإجمالي مع غرامة المبيت والكارتات والوقود ($15,700 ج.م)، والتحقق من صحة أرقام CMR.
+  3. **استفسار شحن بري:** إنشاء الاستفسار `INQ-YYMMDD-XXXX` لنقل 54 طن قطع غيار ومعدات من ميناء 6 أكتوبر الجاف للعاشر من رمضان.
+  4. **مناقصة شركات النقل:** إنشاء طلب التسعير `RFQ-YYMMDD-XXXX` وتوجيهه لشركة النيل للنقل البري.
+  5. **عرض شركة النقل:** تقديم عرض شركة النيل (شاحنتان تريلا مسطحة بإجمالي 12,000 ج.م).
+  6. **ترسية وتسعير العميل:** ترسية العرض وتوليد عرض سعر العميل `QUO-YYMMDD-XXXX` بهامش ربح وربط النمط البري.
+  7. **تحويل لأمر تشغيل بري:** إنشاء `JOB-YYMMDD-XXXX`، إثبات صفر حاويات بحرية، بدء المعلم تلقائياً بـ `TRK_ASSIGN`، وفتح مركز تكلفة تحليلي تلقائياً.
+  8. **تسيير رحلة النقل البري:** إنشاء الرحلة `TRIP-YYMMDD-XXXX` ببيانات السائق والشاحنة والمقطورة.
+  9. **مزامنة الحالات الحية:** تحديث الرحلة إلى `loading` (تسجيل `TRK_LOADED`)، ثم `in_transit` (تسجيل `TRK_DISPATCH`)، ثم `delivered` (تسجيل `TRK_POD`).
+  10. **إثراء تفاصيل الشحنة:** التحقق من استرجاع `truckingTrips` و `roadFreightDefinitions` من `getJobById`.
+  11. **إذن التسليم والواتساب:** التحقق من تسجيل `TRK_POD` في `releaseDeliveryOrder` وتوليد قوالب الواتساب البرية بنجاح 100%.
+
+---
+
+## 43. تكامل روابط التنقل المباشر لمود الشحن واللوجستيات في القائمة الجانبية (Maritime Freight Sidebar Navigation Integration)
+- **الحالة:** مكتملة بنسبة 100% ومختبرة آلياً (AppShell & Vertical Scope Unit Tests).
+- **التفاصيل التشغيلية:**
+  - تم إبراز بندين تشغيليين محوريين كروابط وصول مباشر في السايدبار تحت قسم «الشحن واللوجستيات»:
+    1. **مقاصة الوكلاء (SOA) (`maritime-agents`):** مسار `/maritime/agents` لإدارة حسابات ومقاصة الوكلاء الدوليين (Statement of Account) وإشعارات الخصم والإضافة Debit/Credit Notes.
+    2. **النقل البري والترحيل (`maritime-trucking`):** مسار `/maritime/trucking` لإدارة رحلات النقل البري وأساطيل الشاحنات وترحيل الحاويات والبضائع بين الموانئ والمستودعات.
+  - تم تخصيص أيقونات SVG تشغيلية دقيقة في `iconPathMap` (`maritime-agents`, `maritime-trucking`, `maritime-radar`, `maritime-audit`, `maritime-portal`).
+  - تم تحديث مصفوفة الترتيب `maritimeOrder` ومصفوفة المجموعات `sidebarGroups` في `app-shell.tsx` ومصفوفة التنقل `navigation` في `routes.tsx`.
+- **الملفات المعدلة:**
+  - `frontend/src/features/maritime-freight/routes.tsx`
+  - `frontend/src/shared/layout/app-shell.tsx`
+- **الاختبارات:**
+  - `frontend/src/shared/layout/app-shell.spec.tsx` (4/4 passed).
+  - `frontend/src/shared/verticals/vertical-scope.spec.ts` (4/4 passed).
+
+---
+
+## 166. ترقية أداء الملاحة والتنقل اللحظي بين التابات ومساحات العمل (Instant Navigation & Keep-Alive Zero-Re-render Architecture - 8 October 2026)
+- **الحالة:** مكتملة بنسبة 100% ومطبقة عبر كامل منظومة الشحن والمقاولات وشل النظام.
+- **التفاصيل التشغيلية:**
+  1. **معمارية تجميد التابات الخاملة (Keep-Alive Zero-Re-render Invariant):**
+     - تم استحداث مكون `KeepAliveTabPane` المعتمد على المقارنة المخصصة بـ `React.memo`.
+     - التابات الخاملة (`!prev.isActive && !next.isActive`) يتم تجميدها بالكامل في الذاكرة دون تنفيذ أي دورة إعادة رسم أو معالجة Virtual DOM عند تنقل المستخدم بين باقي التابات.
+     - تم القضاء على استهلاك 200ms - 500ms من خيط المعالجة الرئيسي، وأصبح التنقل بين التابات لحظياً (0ms - 15ms).
+  2. **التحميل الكسول الصارم للتابات (Strict Lazy Tab Mounting via `visitedTabs`):**
+     - تم منع إنشاء مكونات التابات غير المزارة في الـ DOM؛ لا يتم استدعاء التاب أو إطلاق استعلاماته الشبكية إلا عند النقر عليه أو الاقتراب منه لأول مرة.
+     - بمجرد زيارته، يُحفظ في الذاكرة بأسلوب Keep-Alive لمنع إعادة التحميل أو الهدم الفجائي.
+  3. **نقطة نهاية العدادات المجمعة الخفيفة (Fast Aggregated Counts Endpoint):**
+     - تم إنشاء مسار `/api/maritime-freight/counts` في الباك إند يقوم بحساب كافة أعداد واستفسارات وعروض وأوامر الشحن والحاويات والبيانات المرجعية في استعلامات SQL تجميعية فائقة السرعة تُنفذ في ~2ms.
+     - تم استبدال سحب 7 جداول كاملة عبر الشبكة بطلب JSON واحد خفيف الحجم (~50 بايت)، مما حرر مسبح اتصالات المتصفح (Connection Pool) من طوابير الانتظار الشبكية.
+  4. **التحميل المسبق عند تحويم المؤشر (Hover Pre-fetching):**
+     - تم تزويد أزرار التابات وأشرطة مراحل العمل (`onMouseEnter` / `onFocus`) بدوال التحميل المسبق التلقائي، لتجهيز المكون في أجزاء من الثانية قبل اكتمال نقرة الفأرة.
+     - تم إضافة مسارات الشحن والمقاولات (`maritime`, `maritime-freight`, `contracting`) إلى خوارزمية التحميل المسبق الخامل `route-prefetch.ts`.
+- **الملفات المعدلة:**
+  - `backend/src/modules/maritime-freight/maritime-freight.controller.ts`
+  - `backend/src/modules/maritime-freight/maritime-freight.service.ts`
+  - `frontend/src/features/maritime-freight/api/maritime-freight.api.ts`
+  - `frontend/src/features/maritime-freight/context/MaritimeContext.tsx`
+  - `frontend/src/features/maritime-freight/pages/MaritimeLayout.tsx`
+  - `frontend/src/features/contracting/pages/ContractingLayout.tsx`
+  - `frontend/src/features/contracting/components/ProjectLifecycleStepper.tsx`
+  - `frontend/src/app/router/route-prefetch.ts`
+
+---
+
+## 167. العزل والتخصيص القطاعي الشامل لتبويبات وشاشات الإعدادات (Vertical-Scoped Enterprise Settings Isolation & Specialization Suite - 8 October 2026)
+- **الحالة:** مكتملة بنسبة 100% ومطبقة عبر الباك إند والفرونت إند.
+- **التفاصيل التشغيلية:**
+  1. **عزل وتخصيص الإعدادات العامة (`settings/core`):**
+     - إخفاء قسم "مصدر مخزون البيع للفرع" التابع لنقاط البيع والتجزئة في أنشطة الشحن والمقاولات.
+     - تعديل الترويسات والمسميات ديناميكياً: "المكتب الملاحي والمقر التشغيلي الافتراضي" في الشحن، و"المقر وموقع العمل التشغيلي الافتراضي" في المقاولات، مع الحفاظ على مسميات الفروع للتجزئة.
+  2. **عزل وتخصيص البيانات المرجعية (`settings/reference`):**
+     - فلترة وحجب سيارات التوزيع والفان (`VAN_*` / "سيارة مندوب") من الظهور في مواقع التخزين لأنشطة الشحن والمقاولات.
+     - تخصيص ترويسات ومسميات البطاقات: "المقرات والمكاتب الملاحية" و"الموانئ ومحطات ومستودعات الحاويات" في الشحن، و"المقرات ومواقع العمل" و"مخازن التشوين الميدانية" في المقاولات.
+  3. **عزل وإعادة هيكلة إدارة المستخدمين والأدوار (`settings/users`):**
+     - تخصيص الدور التشغيلي بدلاً من كاشير: "مسؤول عمليات شحن وتتبع ملاحي (Operations Specialist)" في الشحن، و"مهندس موقع / مسؤول مشاريع ومستخلصات" في المقاولات.
+     - تخصيص أمثلة الحقول والـ Placeholders (`ahmed_ops` للشحن و`eng_ahmed` للمقاولات بدلاً من `ahmed_pos`).
+     - إعادة هيكلة مجموعات الصلاحيات ديناميكياً حسب النشاط: إبراز مجموعات الشحن (Jobs, Containers, RFQs, Inquiries, Quotations, Policies) والمقاولات (Projects, IPC, BOQ, Daily Logs) مع حجب صلاحيات التجزئة ونقاط البيع (وردية الكاشير، فتح الدرج، البيع بالجملة، المرتجع المباشر).
+     - تحديث قوالب الصلاحيات السريعة وإحصائيات المستخدمين لتطابق مسميات القطاع.
+  4. **حجب المتجر الإلكتروني والربط الخارجي (`settings/storefront` & `settings/marketplaces`):**
+     - حظر ظهور تبويبات المتجر والمنصات الخارجية في شريط الإعدادات للقطاعات غير التجارية، وحمايتها في `vertical-scope.ts`.
+  5. **محاذاة كتالوج الاشتراكات والباقات السحابية (`settings/subscription`):**
+     - ترقية محرك الباقات بالباك إند (`pricing-catalog.service.ts`) لمطابقة مسميات الأنشطة القياسية (`maritime_freight` -> `maritime`, `construction` -> `contracting`) وعرض الباقات السنوية المتخصصة لكل قطاع بدلاً من باقات محلات التجزئة العامة.
+     - تخصيص شارات وبطاقات الاستهلاك للحدود القياسية لكل قطاع (المكاتب والمقرات، المشاريع النشطة، الحاويات الشهرية).
+- **الملفات المعدلة:**
+  - `backend/src/modules/tenant-subscription/pricing/pricing-catalog.service.ts`
+  - `backend/src/modules/tenant-subscription/tenant-subscription.service.ts`
+  - `frontend/src/shared/verticals/vertical-scope.ts`
+  - `frontend/src/features/settings/pages/SettingsSectionTabs.tsx`
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`
+  - `frontend/src/features/settings/hooks/useSettingsReferenceFilters.ts`
+  - `frontend/src/features/settings/components/workspace-sections/reference-section/cards.tsx`
+  - `frontend/src/features/settings/components/user-management.shared.ts`
+  - `frontend/src/features/settings/components/user-management/UserManagementPermissionGroups.tsx`
+  - `frontend/src/features/settings/components/user-management-panels/UserManagementEditorCard.tsx`
+  - `frontend/src/features/settings/components/user-management/UserManagementListControls.tsx`
+  - `frontend/src/features/settings/components/UserManagementPanels.tsx`
+  - `frontend/src/features/settings/components/UserManagementSection.tsx`
+  - `frontend/src/features/settings/hooks/useUserManagement.helpers.ts`
+  - `frontend/src/features/settings/hooks/useUserManagement.helpers.spec.ts`
+  - `frontend/src/features/settings/hooks/useUserManagementController.ts`
+  - `frontend/src/features/settings/components/subscription/CurrentSubscriptionHeroCard.tsx`
+  - `frontend/src/shared/components/dialog-shell.tsx`
+
+---
+
+## 204. دستور عزل الإعدادات حسب النشاط (Vertical Isolation) وضغط نافذة المستخدمين بدون سكرول (Universal Zero-Scroll User Modal)
+
+- **الحالة:** مكتمل ومعتمد 100% (Completed & Verified).
+- **نسبة الإنجاز:** 100%.
+- **الوصف التشغيلي:**
+  1. **حل مشكلة سكرول الماوس بالكامل في النوافذ المنبثقة (`dialog-shell.tsx`):**
+     - إصلاح اعتراض أحداث عجلة الفأرة (`preventBackgroundWheel`) بالسماح بالتمرير الداخلي السلس عند وجود مساحة تمرير فعلية في النافذة وحظر تسريب التمرير إلى خلفية الشاشة عند بلوغ الحدود فقط.
+  2. **دستور العرض الكامل والضغط الفائق بدون سكرول (Universal Zero-Scroll Standard):**
+     - توسيع النافذة إلى `width="min(1280px, 97vw)"`، هيدر مدمج بسطر واحد، وتوزيع بيانات المستخدم في صفين فقط (4 أعمدة متوازنة).
+     - القضاء التام على قطع وبتر النصوص (`textOverflow: 'ellipsis'`) وإظهار أسماء الصلاحيات كاملة مع الالتفاف الطبيعي (`whiteSpace: 'normal'`) وتوسيع خانات البنود إلى أعمدة رحبة (`minmax(210px, 1fr)` للعمليات و `minmax(160px, 1fr)` للبيانات).
+     - توزيع مجموعات الصلاحيات في شبكة متوازنة ثلاثية الأعمدة (البطاقة الرئيسية تمتد على خانتين وبجوارها الموارد البشرية، والصف الثاني يضم البطاقات الثلاث المتبقية)، مما يحقق امتلاءً بنسبة 100% بدون أي خانات فارغة.
+  3. **الاختيار التلقائي والإلزامي للمقرات والفروع:**
+     - عند وجود فرع/مقر ملاحي واحد فقط يتم اختياره وتعيينه كمقر افتراضي تلقائياً عند فتح إضافة مستخدم جديد.
+     - عند وجود أكثر من فرع لا يتم تحديد أي منها تلقائياً، ويتم إلزام المدير باختيار فرع واحد على الأقل مع منع الحفظ وإظهار رسالة تحقق مخصصة حسب النشاط.
+  4. **العزل والتطهير التام لمود الشحن الملاحي (Maritime Freight Isolation):**
+     - تطهير مصفوفة صلاحيات الشحن من بنود التجزئة البحتة: حذف `canDiscount` (تعديل الخصم)، و `canEditPrice` (تعديل السعر)، و `services` (الخدمات).
+     - تخصيص مسميات الصلاحيات لتناسب التوكيلات الملاحية: «الخطوط الملاحية والناقلون»، «كشوف حسابات العملاء والخطوط»، «طباعة بوالص الشحن والفواتير»، و«تعديل فواتير ومطالبات الشحن».
+     - حجب تبويب `مناديب التوصيل والفان (Drivers)` من شاشة المستخدمين عند تفعيل مود الشحن أو المقاولات.
+     - حجب تبويب `التجارة الإلكترونية والمنصات` (Amazon / Noon / Storefront) من شريط الإعدادات الرئيسي عند تفعيل مود الشحن أو المقاولات.
+- **الاختبارات:** اجتياز 100% لكافة الاختبارات في `useUserManagement.helpers.spec.ts` و `vertical-scope.spec.ts`.
+
+---
+
+## 205. دستور العزل التام لباقات وأسعار الاشتراكات السحابية حسب النشاط (Subscription Vertical Scope & Dynamic Catalog Resolution)
+
+- **الحالة:** مكتمل ومعتمد 100% (Completed & Verified).
+- **نسبة الإنجاز:** 100%.
+- **الوصف التشغيلي:**
+  1. **التوافق التام بين نشاط المنشأة وكتالوج الأسعار (PRICE-S1 / PRICE-S3):**
+     - القضاء التام على السقوط على أسعار محلات التجزئة العامة (`retail`) عند تشغيل المنظومة في قطاع الشحن واللوجستيات (`maritime`) أو المقاولات (`contracting`).
+     - تحديث محرك حل التسعير `readPricingScope` في `tenant-subscription.service.ts` لفحص الأعلام التشغيلية المباشرة في جدول الإعدادات (`maritimeFreightModuleEnabled`, `contractingModuleEnabled`, إلخ) كأولوية قصوى حاكمة تعكس الواقع الفعلي للمنشأة، بدلاً من الاقتصار على قراءة حقل `businessIndustry` العام أو الاعتماد على القيمة الافتراضية لقاعدة البيانات `retail_general`.
+  2. **دعم تلميح النطاق والربط اللحظي بين الواجهة والخادم:**
+     - دعم تمرير تلميح النطاق `?vertical=` من واجهة المستخدم في مسار `GET /api/tenant-subscription/pricing`.
+     - تحديث `resolveCurrentVertical` في الواجهة لتقديم فحص الأعلام التشغيلية المفعلة للموديولات المؤسسية الكبرى (`maritimeFreightModuleEnabled`, `contractingModuleEnabled`) قبل السقوط في القيمة الافتراضية `retail_general`.
+     - تمرير إعدادات المنشأة الحية `settings` إلى مكون `CurrentSubscriptionHeroCard` لضمان مطابقة بطاقة الاشتراك وعرض «المكاتب والمقرات» في الشحن بدلاً من «الفروع».
+  3. **عرض باقات الشحن واللوجستيات الحقيقية حصرياً:**
+     - عند فتح صفحة الاشتراك في مود الشحن يتم عرض: **«نظام الشحن والتخليص والخدمات اللوجستية»** بمستوياته الثلاثة المعتمدة:
+       - **مكتب (L1):** 45,000 ج.م/سنة (5 مستخدمين، 60 حاوية/شهر، أساس الشحن وأوامر التشغيل وبوالص B/L وغرامات الدموراج).
+       - **شركة (L2):** 95,000 ج.م/سنة (12 مستخدم، حاويات غير محدودة، مصفوفة مقارنة الخطوط والترسية وتدقيق فواتير الناقل).
+       - **مؤسسة (L3):** 180,000 ج.م/سنة (35 مستخدم، تعدد الشركات، الموارد البشرية، الفاتورة الإلكترونية والمحاسبة المالية).
+     - منع ظهور أي ميزات كاشير، باركود، أو نقاط بيع في مود الشحن.
+- **الملفات المعدلة:**
+  - `backend/src/modules/tenant-subscription/tenant-subscription.service.ts`
+  - `backend/src/modules/tenant-subscription/tenant-subscription.controller.ts`
+  - `backend/src/modules/settings/settings.service.ts`
+  - `backend/test/critical/subscription-read-only.spec.ts`
+  - `frontend/src/shared/verticals/vertical-scope.ts`
+  - `frontend/src/shared/verticals/vertical-scope.spec.ts`
+  - `frontend/src/features/settings/api/tenant-subscription.api.ts`
+  - `frontend/src/features/settings/pages/TenantSubscriptionPage.tsx`
+  - `frontend/src/features/settings/pages/SettingsSectionContent.tsx`
+  - `frontend/src/features/settings/components/subscription/CurrentSubscriptionHeroCard.tsx`
+- **الاختبارات:** اجتياز 100% لكافة الاختبارات في `subscription-read-only.spec.ts` و `vertical-scope.spec.ts`.
+
+---
+
+## 206. تطهير واجهات التدقيق والاشتراكات وإلغاء تكييف الفروع في قطاع الشحن (Maritime Audit & Settings Purification)
+
+- **الحالة:** مكتمل ومعتمد 100% (Completed & Verified).
+- **نسبة الإنجاز:** 100%.
+- **الوصف التشغيلي:**
+  1. **تطهير صفحة التدقيق والمراجعة (`/audit`):**
+     - إخفاء تبويب ومكون رادار كشف التلاعب ومنع الخسائر المباشر (`fraudRadar` / `CashierFraudRadarSection`) عن قطاعات الشحن والمقاولات والخدمات لعدم وجود نقاط بيع أو كاشيرات.
+     - تصفية قائمة فلاتر نوع النشاط في سجل العمليات لإخفاء الأنشطة غير المعنية (مثل تذاكر صيانة الأجهزة والمحلات) عند تفعيل نمط الشحن أو المقاولات.
+  2. **تطهير كبسولات سعة الباقات (`CapacityPills`):**
+     - عزل مؤشرات السعة في بطاقات الباقات (`SubscriptionPlansCards`)؛ تظهر الحاويات الشهرية للشحن فقط (`containersPerMonth`)، وتظهر المشاريع للمقاولات فقط (`activeProjects`)، مع حجب الفروع وطرفيات الكاشير عن القطاعات المؤسسية.
+  3. **إلغاء التكييف القسري للفروع والمخازن وحجب `settings/reference` للشحن:**
+     - تطبيقاً لقاعدة عدم تكييف ما ليس له استخدام في النشاط: تم حظر مسار `settings/reference` في نمط الشحن الملاحي (`vertical === 'maritime'`) وإخفاء تبويب الفروع والمخازن التجزئية؛ حيث تُدار الموانئ والخطوط الملاحية ومحطات الحاويات عبر شاشاتها المخصصة والمستقلة في موديول الشحن (`/maritime/lines` و `/maritime/containers`).
+  4. **تسجيل باقات المؤسسات الكبرى والشحن في قاعدة البيانات:**
+     - إدراج باقات Band 5 المؤسسية (`BAND5_L1`, `BAND5_L2`, `BAND5_L3`) عبر الهجرة المعتمدة `2040000000202_band5_enterprise_plans.ts` ومطابقة كود الباقة باشتراك المنشأة.
+- **الملفات المعدلة:**
+  - `backend/src/database/migrations/2040000000202_band5_enterprise_plans.ts`
+  - `frontend/src/features/audit/pages/AuditPage.tsx`
+  - `frontend/src/features/settings/components/subscription/SubscriptionPlansCards.tsx`
+  - `frontend/src/features/settings/pages/SettingsSectionTabs.tsx`
+  - `frontend/src/shared/verticals/vertical-scope.ts`
