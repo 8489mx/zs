@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { blankUserDraft } from '@/features/settings/components/user-management.shared';
-import { validateUserDraft } from '@/features/settings/hooks/useUserManagement.helpers';
+import { validateUserDraft, toggleDraftBranch } from '@/features/settings/hooks/useUserManagement.helpers';
 
 describe('validateUserDraft', () => {
   it('requires a non-empty password for new users', () => {
@@ -107,5 +107,63 @@ describe('validateUserDraft', () => {
     };
 
     expect(() => validateUserDraft({ draft: duplicateDraft, managedUsers: existingUsers })).toThrowError('رقم الهاتف المحمول مستخدم بالفعل لمستخدم آخر');
+  });
+
+  it('enforces branch selection when branches exist and none is selected', () => {
+    const branches = [
+      { id: 'branch-1', name: 'فرع 1' },
+      { id: 'branch-2', name: 'فرع 2' },
+    ];
+    const draftWithoutBranches = {
+      ...blankUserDraft('cashier'),
+      username: 'branch_cashier',
+      phone: '01012345678',
+      password: 'password123',
+      branchIds: [],
+    };
+
+    expect(() =>
+      validateUserDraft({
+        draft: draftWithoutBranches,
+        managedUsers: [],
+        branches,
+        vertical: 'maritime',
+      })
+    ).toThrowError('يجب اختيار مقر أو مكتب ملاحي واحد على الأقل لتسري عليه صلاحيات هذا المستخدم');
+  });
+
+  it('automatically sets defaultBranchId when a single branch is selected', () => {
+    const branches = [{ id: 'branch-1', name: 'فرع التعاونيات' }];
+    const draftWithSingleBranch = {
+      ...blankUserDraft('cashier'),
+      username: 'branch_cashier',
+      phone: '01012345678',
+      password: 'password123',
+      branchIds: ['branch-1'],
+      defaultBranchId: '',
+    };
+
+    const normalized = validateUserDraft({
+      draft: draftWithSingleBranch,
+      managedUsers: [],
+      branches,
+    });
+    expect(normalized.defaultBranchId).toBe('branch-1');
+  });
+});
+
+describe('toggleDraftBranch', () => {
+  it('automatically sets defaultBranchId when first branch is toggled on', () => {
+    const initial = { ...blankUserDraft('cashier'), branchIds: [], defaultBranchId: '' };
+    const next = toggleDraftBranch(initial, 'branch-1');
+    expect(next.branchIds).toEqual(['branch-1']);
+    expect(next.defaultBranchId).toBe('branch-1');
+  });
+
+  it('resets defaultBranchId when branch is toggled off', () => {
+    const initial = { ...blankUserDraft('cashier'), branchIds: ['branch-1'], defaultBranchId: 'branch-1' };
+    const next = toggleDraftBranch(initial, 'branch-1');
+    expect(next.branchIds).toEqual([]);
+    expect(next.defaultBranchId).toBe('');
   });
 });

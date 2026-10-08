@@ -20,7 +20,9 @@ import {
   UsersIcon,
   TruckIcon,
   SmartphoneIcon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { useUserManagementController } from '@/features/settings/hooks/useUserManagementController';
 import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -32,7 +34,11 @@ import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlo
 import { useAuthStore } from '@/stores/auth-store';
 
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: SetupStepKey | null; onSetupAdvance?: () => void }) {
-  const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
+  const controller = useUserManagementController({ branches, setupMode, setupStepKey, onSetupAdvance });
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
   const [detailsUserId, setDetailsUserId] = useState('');
   const [userInteracted, setUserInteracted] = useState(false);
   const detailsQuery = useQuery({
@@ -95,16 +101,19 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'erp-users' | 'drivers' | 'employees'>(() => {
-    if (urlTab === 'drivers') return 'drivers';
+    if ((isMaritime || isContracting) && urlTab === 'drivers') return 'erp-users';
+    if (urlTab === 'drivers' && !isMaritime && !isContracting) return 'drivers';
     if (urlTab === 'employees') return 'employees';
     return 'erp-users';
   });
 
   useEffect(() => {
-    if (urlTab === 'drivers' || urlTab === 'employees' || urlTab === 'erp-users') {
+    if ((isMaritime || isContracting) && urlTab === 'drivers') {
+      setActiveTab('erp-users');
+    } else if (urlTab === 'drivers' || urlTab === 'employees' || urlTab === 'erp-users') {
       setActiveTab(urlTab as any);
     }
-  }, [urlTab]);
+  }, [urlTab, isMaritime, isContracting]);
 
   const handleTabChange = (tab: 'erp-users' | 'drivers' | 'employees') => {
     setActiveTab(tab);
@@ -162,7 +171,11 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
           <div>
             <h3 className="document-prototype-section-title">إدارة المستخدمين والهويات والوصول</h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-              التحكم الشامل في حسابات دخول لوحة التحكم، مناديب الدليفري والتوزيع، وموظفي الخدمة الذاتية والبصمة.
+              {isMaritime
+                ? 'التحكم الشامل في حسابات تشغيل وتتبع الشحن الملاحي والتخليص وموظفي المكاتب والموانئ.'
+                : isContracting
+                ? 'التحكم الشامل في حسابات مديري المشاريع ومهندسي المواقع ولوحة الإدارة والموظفين.'
+                : 'التحكم الشامل في حسابات دخول لوحة التحكم، مناديب الدليفري والتوزيع، وموظفي الخدمة الذاتية والبصمة.'}
             </p>
           </div>
           {activeTab === 'erp-users' && (
@@ -278,29 +291,31 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               </span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleTabChange('drivers')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: activeTab === 'drivers' ? '#170e5e' : 'transparent',
-                color: activeTab === 'drivers' ? '#ffffff' : '#475569',
-                fontWeight: 700,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              <TruckIcon size={16} color={activeTab === 'drivers' ? '#ffffff' : '#64748b'} />
-              <span>مناديب التوصيل والفان (Drivers)</span>
-            </button>
+            {!isMaritime && !isContracting && (
+              <button
+                type="button"
+                onClick={() => handleTabChange('drivers')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: activeTab === 'drivers' ? '#170e5e' : 'transparent',
+                  color: activeTab === 'drivers' ? '#ffffff' : '#475569',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <TruckIcon size={16} color={activeTab === 'drivers' ? '#ffffff' : '#64748b'} />
+                <span>مناديب التوصيل والفان (Drivers)</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -409,18 +424,46 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         <DialogShell
           open={isEditorOpen}
           onClose={() => setIsEditorOpen(false)}
-          width="min(940px, 95vw)"
+          width="min(1280px, 97vw)"
           ariaLabel="تعديل المستخدم والصلاحيات"
-          showCloseButton={true}
+          showCloseButton={false}
+          shellClassName="dialog-compact"
         >
-          <div className="dialog-card" style={{ padding: '24px 28px' }}>
-            <div className="border-b pb-3 mb-4" style={{ paddingInlineEnd: '36px' }}>
-              <h3 className="document-prototype-section-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : 'إضافة مستخدم جديد'}
-              </h3>
-              <p className="text-muted-foreground" style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', margin: 0 }}>
-                تحديد الدور، الفروع المتاحة، ومجموعات الصلاحيات التفصيلية.
-              </p>
+          <div className="dialog-card user-management-dialog-card" style={{ padding: '12px 18px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid #e2e8f0',
+              paddingBottom: '8px',
+              marginBottom: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : (isMaritime ? 'إضافة مسؤول عمليات / مستخدم جديد' : isContracting ? 'إضافة مهندس موقع / مستخدم جديد' : 'إضافة مستخدم جديد')}
+                </h3>
+                <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 500 }}>
+                  (تحديد بيانات الحساب، المقرات، ومجموعات الصلاحيات)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditorOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '6px',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="إغلاق"
+              >
+                <XIcon size={18} />
+              </button>
             </div>
             <UserManagementEditorPanel
               branches={branches}

@@ -9,6 +9,7 @@ import { queryKeys } from '@/app/query-keys';
 import { useAuthStore } from '@/stores/auth-store';
 import { canAccessPath, isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
+import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsSectionTabs({ currentSection, currentUserRole }: { currentSection: SettingsSectionKey; currentUserRole: string }) {
   const isPrivilegedUser = currentUserRole === 'super_admin' || currentUserRole === 'admin';
@@ -29,6 +30,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     staleTime: 30_000,
   });
 
+  const currentVertical = resolveCurrentVertical(tenant, settings);
   const hasFeature = (feat: string) => isPlatform || Boolean(tenant?.features?.includes(feat));
 
   const visibleSections = settingsSections.filter((section) => {
@@ -42,9 +44,19 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     if (section.key === 'demo-data' && !isPlatform && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {
       return false;
     }
+    if (!isRouteAllowedInVertical(currentVertical, `settings/${section.key}`, settings)) return false;
     if (!canAccessPath(user, `/settings/${section.key}`)) return false;
     return true;
   });
+
+  const getSectionLabels = (section: any) => {
+    if (section.key === 'reference') {
+      if (currentVertical === 'contracting') {
+        return { label: 'المقرات الإدارية ومواقع العمل والتشوين', shortLabel: 'مواقع العمل والتشوين' };
+      }
+    }
+    return { label: section.label, shortLabel: section.shortLabel || section.label };
+  };
 
   const activeSectionKey =
     currentSection === 'marketplaces' ? 'storefront' :
@@ -66,19 +78,20 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     <div className="filter-chip-row toolbar-chip-row settings-section-tabs">
       {visibleSections.map((section) => {
         const isCurrentActive = activeSectionKey === section.key;
+        const labels = getSectionLabels(section);
         return (
           <NavLink
             key={section.key}
             ref={isCurrentActive ? activeTabRef : undefined}
             to={`/settings/${section.key}`}
             // Both labels are in the DOM (CSS picks one per screen size); the full label is the name.
-            aria-label={section.label}
+            aria-label={labels.label}
             onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
             onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
             className={({ isActive }) => `btn ${isActive || isCurrentActive ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <span className="settings-tab-full-label">{section.label}</span>
-            <span className="settings-tab-short-label">{section.shortLabel || section.label}</span>
+            <span className="settings-tab-full-label">{labels.label}</span>
+            <span className="settings-tab-short-label">{labels.shortLabel}</span>
           </NavLink>
         );
       })}

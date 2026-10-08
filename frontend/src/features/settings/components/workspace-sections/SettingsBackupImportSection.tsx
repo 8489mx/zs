@@ -8,6 +8,7 @@ import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/com
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { TenantTransferCard } from './TenantTransferCard';
 
 
@@ -1208,6 +1209,10 @@ export function SettingsBackupImportSection({
   onExportData,
 }: SettingsBackupImportSectionProps) {
   const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const currentVertical = resolveCurrentVertical(tenant);
+  const isMaritime = currentVertical === 'maritime';
+  const isContracting = currentVertical === 'contracting';
   const isPlatformSuperAdmin = isPlatformAdmin(user);
   const isDesktopOffline = isDesktopOfflineApp();
   const canRestore = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || (user?.role === 'admin' && canManageBackups) || user?.username?.trim().toLowerCase() === 'zs';
@@ -1512,54 +1517,56 @@ export function SettingsBackupImportSection({
       {/* Move this business between the cloud and the desktop app */}
       <TenantTransferCard canManage={canManageBackups || user?.role === 'super_admin'} />
 
-      {/* Inventory Stock Reset & Catalog Wipe for Operational Setup (Admin & Super Admin) */}
-      <InventoryOperationsResetCard canManage={canRestore} />
+      {/* Inventory Stock Reset & Catalog Wipe for Operational Setup (Admin & Super Admin - Retail/Inventory Verticals Only) */}
+      {!isMaritime && <InventoryOperationsResetCard canManage={canRestore} />}
 
-      {/* Import / Export Workbench 2x2 Grid */}
+      {/* Import / Export Workbench */}
       <QueryCard
         className="settings-admin-card settings-import-card"
-        title="استيراد وتصدير البيانات"
+        title={isMaritime ? 'استيراد وتصدير بيانات الشحن والعملاء' : isContracting ? 'استيراد وتصدير بيانات المقاولات' : 'استيراد وتصدير البيانات'}
         actions={<span className="nav-pill">ملفات Excel / CSV</span>}
       >
-        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
+        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: isMaritime ? 'repeat(auto-fit, minmax(320px, 1fr))' : 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
           {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطي والاسترداد غير متاحة لهذا الحساب.</div> : null}
           <ImportWorkbench
-            title="استيراد الأصناف"
-            requiredColumns={['اسم الصنف']}
+            title={isMaritime ? 'استيراد بنود وتعريفات خدمات الشحن والنولون' : isContracting ? 'استيراد بنود المقايسة وتكاليف المشروعات' : 'استيراد الأصناف'}
+            requiredColumns={[isMaritime ? 'اسم الخدمة / البند' : isContracting ? 'اسم البند' : 'اسم الصنف']}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'الاسم', 'name'] },
-              { key: 'categoryName', label: 'الصنف', aliases: ['القسم', 'category'] },
+              { key: 'name', label: isMaritime ? 'اسم الخدمة / البند' : isContracting ? 'اسم البند' : 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الخدمة', 'اسم البند', 'اسم الصنف', 'الاسم', 'name'] },
+              { key: 'categoryName', label: isMaritime ? 'التصنيف اللوجستي' : isContracting ? 'المجموعة / المرحلة' : 'الصنف', aliases: ['القسم', 'category', 'التصنيف'] },
               { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
-              { key: 'barcode', label: 'الباركود', aliases: ['barcode', 'كود'] },
-              { key: 'costPrice', label: 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
-              { key: 'retailPrice', label: 'السعر', aliases: ['سعر البيع', 'price', 'retail_price'] },
-              { key: 'stockQty', label: 'المخزون الافتتاحي', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
+              { key: 'barcode', label: isMaritime ? 'كود التعريفة' : isContracting ? 'كود البند' : 'الباركود', aliases: ['barcode', 'كود', 'code'] },
+              { key: 'costPrice', label: isMaritime ? 'التكلفة المرجعية' : 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
+              { key: 'retailPrice', label: isMaritime ? 'سعر الخدمة / النولون' : isContracting ? 'فئة البند التعاقدية' : 'السعر', aliases: ['سعر البيع', 'price', 'retail_price', 'تعريفة'] },
+              { key: 'stockQty', label: 'الكمية الافتتاحية', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
               { key: 'unitName', label: 'الوحدة', aliases: ['unit', 'القياس'] },
-              { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
+              { key: 'warehouseName', label: isMaritime ? 'الميناء / المحطة' : isContracting ? 'موقع التشوين' : 'المخزن', aliases: ['المخزن', 'warehouse', 'store', 'الميناء'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}
             onExportData={onExportData ? () => onExportData('products') : undefined}
             onImportRows={importProducts}
             isPending={importProductsPending || !canManageBackups}
           />
+          {!isMaritime && (
+            <ImportWorkbench
+              title={isContracting ? 'استيراد رصيد تشوينات الموقع الافتتاحي' : 'استيراد/تعديل المخزون'}
+              requiredColumns={['الكمية']}
+              requiredFieldKeys={['qty']}
+              fieldMappings={[
+                { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode', 'كود'] },
+                { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
+                { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
+                { key: 'warehouseName', label: isContracting ? 'موقع التشوين' : 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
+              ]}
+              onDownloadTemplate={() => downloadTemplate('opening-stock')}
+              onExportData={onExportData ? () => onExportData('opening-stock') : undefined}
+              onImportRows={importOpeningStock}
+              isPending={importOpeningStockPending || !canManageBackups}
+            />
+          )}
           <ImportWorkbench
-            title="استيراد/تعديل المخزون"
-            requiredColumns={['الكمية']}
-            requiredFieldKeys={['qty']}
-            fieldMappings={[
-              { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
-              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
-              { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
-              { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
-            ]}
-            onDownloadTemplate={() => downloadTemplate('opening-stock')}
-            onExportData={onExportData ? () => onExportData('opening-stock') : undefined}
-            onImportRows={importOpeningStock}
-            isPending={importOpeningStockPending || !canManageBackups}
-          />
-          <ImportWorkbench
-            title="استيراد العملاء"
+            title={isMaritime ? 'استيراد العملاء والمشحون إليهم (Shippers & Consignees)' : isContracting ? 'استيراد جهات الإسناد والملاك' : 'استيراد العملاء'}
             requiredColumns={['اسم العميل']}
             requiredFieldKeys={['name']}
             fieldMappings={[
@@ -1579,11 +1586,11 @@ export function SettingsBackupImportSection({
             isPending={importCustomersPending || !canManageBackups}
           />
           <ImportWorkbench
-            title="استيراد الموردين"
+            title={isMaritime ? 'استيراد الخطوط الملاحية والوكلاء والناقلين' : isContracting ? 'استيراد الموردين ومقاولي الباطن' : 'استيراد الموردين'}
             requiredColumns={['اسم المورد']}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'اسم المورد', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'الاسم', 'name'] },
+              { key: 'name', label: isMaritime ? 'اسم الخط الملاحي / المورد' : isContracting ? 'اسم المورد / مقاول الباطن' : 'اسم المورد', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'الاسم', 'name'] },
               { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
               { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
               { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },

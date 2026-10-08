@@ -12,7 +12,15 @@ import {
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
+
 export const SettingsDailyDigestSection: React.FC = () => {
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
+
   const [config, setConfig] = useState<DailyDigestConfig>({
     enabled: true,
     phone: '',
@@ -146,7 +154,11 @@ export const SettingsDailyDigestSection: React.FC = () => {
                 </span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#64748b', margin: '4px 0 0 0' }}>
-                إرسال تقرير ليلي تلقائي يجمع بين مبيعات اليوم، تفاصيل أذون الصرف المنقولة للمحل، ونواقص المستودع الرئيسي
+                {isMaritime
+                  ? 'إرسال تقرير ليلي تلقائي يجمع بين إيرادات ونولون الشحن، حركة دخول وخروج الحاويات، وبوالص التخليص المنجزة.'
+                  : isContracting
+                  ? 'إرسال تقرير ليلي تلقائي يجمع بين مستخلصات الأعمال المعتمدة، تشوينات وتوريدات المواد للمواقع، وحالات الدفع.'
+                  : 'إرسال تقرير ليلي تلقائي يجمع بين مبيعات اليوم، تفاصيل أذون الصرف المنقولة للمحل، ونواقص المستودع الرئيسي.'}
               </p>
             </div>
           </div>
@@ -431,16 +443,24 @@ export const SettingsDailyDigestSection: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <TrendingUpIcon size={16} color="#2563eb" />
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                      بلوك المبيعات والنشاط اليومي
+                      {isMaritime
+                        ? 'بلوك إيرادات ونولون الشحن والخدمات الملاحية'
+                        : isContracting
+                        ? 'بلوك المستخلصات وإيرادات الأعمال المعتمدة'
+                        : 'بلوك المبيعات والنشاط اليومي'}
                     </span>
                   </div>
                   <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                    إجمالي المبيعات، عدد الفواتير، السيولة النقدية والشبكة، والأصناف الأكثر رواجاً.
+                    {isMaritime
+                      ? 'إجمالي إيرادات النولون، بوالص الشحن المصدرة، تحصيلات الخطوط الملاحية، ومبالغ التحصيل بالعملات.'
+                      : isContracting
+                      ? 'إجمالي المستخلصات المعتمدة، الدفعات المستلمة، والاستقطاعات التعاقدية المنفذة اليوم.'
+                      : 'إجمالي المبيعات، عدد الفواتير، السيولة النقدية والشبكة، والأصناف الأكثر رواجاً.'}
                   </span>
                 </div>
               </label>
 
-              {/* Option 2: Transfers */}
+              {/* Option 2: Transfers / Operations */}
               <label
                 style={{
                   display: 'flex',
@@ -470,16 +490,24 @@ export const SettingsDailyDigestSection: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <TruckIcon size={16} color="#7c3aed" />
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                      بلوك أذون الصرف والإمداد التفصيلية للمحل
+                      {isMaritime
+                        ? 'بلوك حركة تداول الحاويات وأوامر التشغيل الملاحية'
+                        : isContracting
+                        ? 'بلوك أذون تشوين وتوريد المواد للمواقع'
+                        : 'بلوك أذون الصرف والإمداد التفصيلية للمحل'}
                     </span>
                   </div>
                   <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                    كشف تفصيلي بكل صنف تم صرفه ونقله من المستودع للمحل وكميته الدقيقة واسم المشرف المعتمد.
+                    {isMaritime
+                      ? 'كشف تفصيلي بالحاويات المستلمة والمشحونة والمفرغة بالموانئ والمحطات المعتمدة وأذون التسليم.'
+                      : isContracting
+                      ? 'كشف تفصيلي بالمواد الإنشائية الموردة للمشروع (حديد، أسمنت، خرسانة) والمشرف المستلم.'
+                      : 'كشف تفصيلي بكل صنف تم صرفه ونقله من المستودع للمحل وكميته الدقيقة واسم المشرف المعتمد.'}
                   </span>
                 </div>
               </label>
 
-              {/* Option 3: Shortages */}
+              {/* Option 3: Shortages / Demurrage */}
               <label
                 style={{
                   display: 'flex',
@@ -509,11 +537,19 @@ export const SettingsDailyDigestSection: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <AlertTriangleIcon size={16} color="#ea580c" />
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                      بلوك نواقص المستودع الحرج
+                      {isMaritime
+                        ? 'بلوك تنبيهات فترات السماح وغرامات الحاويات (Demurrage)'
+                        : isContracting
+                        ? 'بلوك تنبيهات استحقاقات رد الدفعة المقدمة والضمان'
+                        : 'بلوك نواقص المستودع الحرج'}
                     </span>
                   </div>
                   <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                    قائمة بالأصناف التي نفدت أو أوشكت على النفاد في المستودع لإصدار أمر شراء للموردين.
+                    {isMaritime
+                      ? 'الحاويات التي أوشكت فترات سماحها على النفاد لتفادي احتساب غرامات أرضيات وتأخير الخطوط.'
+                      : isContracting
+                      ? 'مواعيد انتهاء خطابات الضمان البنكية واستحقاق رد محجوزات ضمان الأعمال.'
+                      : 'قائمة بالأصناف التي نفدت أو أوشكت على النفاد في المستودع لإصدار أمر شراء للموردين.'}
                   </span>
                 </div>
               </label>
@@ -656,62 +692,132 @@ export const SettingsDailyDigestSection: React.FC = () => {
                   }}
                 >
                   <span style={{ fontWeight: 800, color: '#075e54', fontSize: '13px' }}>
-                    الملخص التنفيذي واللوجستي اليومي
+                    {isMaritime
+                      ? 'الملخص التنفيذي لشحن البضائع والتوكيلات الملاحية'
+                      : isContracting
+                      ? 'الملخص التنفيذي للمشاريع والمقاولات'
+                      : 'الملخص التنفيذي واللوجستي اليومي'}
                   </span>
                   <span style={{ fontSize: '10.5px', color: '#94a3b8', fontFamily: 'monospace' }}>
                     اليوم
                   </span>
                 </div>
 
-                {/* Sales Section */}
+                {/* Sales / Revenues Section */}
                 {config.includeSales ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
-                      المبيعات والإيرادات:
+                      {isMaritime ? 'إيرادات النولون والخدمات الملاحية:' : isContracting ? 'المستخلصات والدفعات المعتمدة:' : 'المبيعات والإيرادات:'}
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
-                      <div>• إجمالي المبيعات: <b>42,850 ج.م</b> (58 فاتورة)</div>
-                      <div>• نقدية بالصندوق (كاش): <b>28,150 ج.م</b></div>
-                      <div>• شبكة وماكينات دفع: <b>11,500 ج.م</b></div>
-                      <div>• إنستاباي ومحافظ: <b>3,200 ج.م</b></div>
-                      <div style={{ color: '#059669', fontWeight: 600 }}>
-                        الأكثر مبيعاً: زيت عافية (36 ق)، شاي (24 ق)
-                      </div>
+                      {isMaritime ? (
+                        <>
+                          <div>• إجمالي نولون الشحن: <b dir="ltr">$24,500</b> + <b>185,000 ج.م</b> (12 بوليصة)</div>
+                          <div>• تحصيلات خطوط ملاحية: <b dir="ltr">$18,200</b></div>
+                          <div>• رسوم تفريغ وتخليص: <b>42,000 ج.م</b></div>
+                          <div style={{ color: '#059669', fontWeight: 600 }}>
+                            الأكثر نشاطاً: خط الشرق الأقصى (CMA CGM)، ميناء دمياط
+                          </div>
+                        </>
+                      ) : isContracting ? (
+                        <>
+                          <div>• إجمالي المستخلصات المعتمدة: <b>1,450,000 ج.م</b></div>
+                          <div>• دفعات محصلة بالحساب البنكي: <b>980,000 ج.م</b></div>
+                          <div>• استقطاعات دفعة مقدمة وضمان: <b>217,500 ج.م</b></div>
+                          <div style={{ color: '#059669', fontWeight: 600 }}>
+                            المشروع الأكثر إنجازاً: أبراج العاصمة الإدارية
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>• إجمالي المبيعات: <b>42,850 ج.م</b> (58 فاتورة)</div>
+                          <div>• نقدية بالصندوق (كاش): <b>28,150 ج.م</b></div>
+                          <div>• شبكة وماكينات دفع: <b>11,500 ج.م</b></div>
+                          <div>• إنستاباي ومحافظ: <b>3,200 ج.م</b></div>
+                          <div style={{ color: '#059669', fontWeight: 600 }}>
+                            الأكثر مبيعاً: زيت عافية (36 ق)، شاي (24 ق)
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : null}
 
-                {/* Transfers Section */}
+                {/* Transfers / Logistics Section */}
                 {config.includeTransfers ? (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
-                      أذون الصرف والإمداد للمحل:
+                      {isMaritime ? 'حركة تداول الحاويات وأوامر التشغيل:' : isContracting ? 'أذون توريد وتشوين المواد للمواقع:' : 'أذون الصرف والإمداد للمحل:'}
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
-                      <div style={{ fontWeight: 700, color: '#4338ca' }}>
-                        إذن رقم #TR-882 إلى صالة المحل:
-                      </div>
-                      <div style={{ paddingRight: '6px' }}>
-                        <div>• زيت عافية ذرة: <b>24 قطعة</b> (2 كرتونة)</div>
-                        <div>• شاي العروسة 250جم: <b>15 قطعة</b></div>
-                        <div>• سكر الأسرة: <b>25 قطعة</b></div>
-                        <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
-                          (إجمالي إذن الصرف: 64 قطعة - المشرف: أحمد فتحي)
-                        </div>
-                      </div>
+                      {isMaritime ? (
+                        <>
+                          <div style={{ fontWeight: 700, color: '#4338ca' }}>
+                            أمر تشغيل #JOB-260914-0012 بميناء الإسكندرية:
+                          </div>
+                          <div style={{ paddingRight: '6px' }}>
+                            <div>• حاويات 40HQ مفرغة بالمحطة: <b>14 حاوية</b></div>
+                            <div>• حاويات 20FT مشحونة بورسعيد: <b>22 حاوية</b></div>
+                            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                              (إجمالي الحاويات: 36 حاوية TEU - المشرف: م/ طارق كمال)
+                            </div>
+                          </div>
+                        </>
+                      ) : isContracting ? (
+                        <>
+                          <div style={{ fontWeight: 700, color: '#4338ca' }}>
+                            إذن تشوين #MAT-260914-004 بموقع البرج A:
+                          </div>
+                          <div style={{ paddingRight: '6px' }}>
+                            <div>• حديد تسليح عز 16مم: <b>35 طن</b></div>
+                            <div>• أسمنت بورتلاندي فائق: <b>50 طن</b></div>
+                            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                              (المشرف المستلم: مهندس التنفيذ / حسام علي)
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontWeight: 700, color: '#4338ca' }}>
+                            إذن رقم #TR-882 إلى صالة المحل:
+                          </div>
+                          <div style={{ paddingRight: '6px' }}>
+                            <div>• زيت عافية ذرة: <b>24 قطعة</b> (2 كرتونة)</div>
+                            <div>• شاي العروسة 250جم: <b>15 قطعة</b></div>
+                            <div>• سكر الأسرة: <b>25 قطعة</b></div>
+                            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                              (إجمالي إذن الصرف: 64 قطعة - المشرف: أحمد فتحي)
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : null}
 
-                {/* Shortages Section */}
+                {/* Shortages / Demurrage Section */}
                 {config.includeShortages ? (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
-                      نواقص المستودع التي تحتاج شراء:
+                      {isMaritime ? 'تنبيهات فترات السماح وغرامات الحاويات (Demurrage):' : isContracting ? 'تنبيهات خطابات الضمان واستحقاقات الرد:' : 'نواقص المستودع التي تحتاج شراء:'}
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
-                      <div>• سكر الأسرة: <span style={{ color: '#dc2626', fontWeight: 800 }}>نفد تماماً (0)</span></div>
-                      <div>• أرز الضحى: <span style={{ color: '#d97706', fontWeight: 800 }}>متبقي 5 أكياس</span></div>
+                      {isMaritime ? (
+                        <>
+                          <div>• حاوية CMAU9283719: <span style={{ color: '#dc2626', fontWeight: 800 }}>باقي 2 يوم سماح (ميناء السخنة)</span></div>
+                          <div>• حاوية MSCU4829104: <span style={{ color: '#d97706', fontWeight: 800 }}>باقي 1 يوم سماح (ميناء دمياط)</span></div>
+                        </>
+                      ) : isContracting ? (
+                        <>
+                          <div>• ضمان بنكي نهائي: <span style={{ color: '#dc2626', fontWeight: 800 }}>يستحق التجديد خلال 5 أيام</span></div>
+                          <div>• رد محجوز ضمان أعمال: <span style={{ color: '#059669', fontWeight: 800 }}>مستحق للصرف (مستخلص 4)</span></div>
+                        </>
+                      ) : (
+                        <>
+                          <div>• سكر الأسرة: <span style={{ color: '#dc2626', fontWeight: 800 }}>نفد تماماً (0)</span></div>
+                          <div>• أرز الضحى: <span style={{ color: '#d97706', fontWeight: 800 }}>متبقي 5 أكياس</span></div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : null}

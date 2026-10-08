@@ -65,4 +65,21 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
     expect(isRouteAllowedInVertical(vertical, '/van-sales/admin')).toBe(true);
   });
+
+  it('resolves maritime when settings.maritimeFreightModuleEnabled is true even if tenant.activityType is retail_general', () => {
+    const tenant = {
+      id: 'default',
+      slug: 'almhnds',
+      businessName: 'النظام الأساسي',
+      activityType: 'retail_general',
+    };
+    const settings = {
+      maritimeFreightModuleEnabled: true,
+      businessIndustry: 'general',
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('maritime');
+    expect(isRouteAllowedInVertical(vertical, '/maritime/jobs')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+  });
 });

@@ -13,6 +13,7 @@ import type { BackupSnapshotRecord } from '@/features/settings/components/Settin
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 import { demoDataApi } from '@/features/settings/api/demo-data.api';
+import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsPage() {
   const { section } = useParams<{ section?: string }>();
@@ -47,14 +48,15 @@ export function SettingsPage() {
   if (sectionConfig?.cloudOnly && isDesktopOfflineApp()) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.requiredFeature && !hasFeature(sectionConfig.requiredFeature)) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.requiredModule && !isPlatform && page.settings && !sectionConfig.requiredModule(page.settings)) return <Navigate to="/settings/core" replace />;
-  if (resolvedSection === 'demo-data' && !isPlatform && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {
+  const currentVertical = resolveCurrentVertical(tenant, page.settings);
+  if (!isRouteAllowedInVertical(currentVertical, `settings/${resolvedSection}`, page.settings)) {
     return <Navigate to="/settings/core" replace />;
   }
 
   return (
     <SettingsPageShell
       title={page.setupMode ? 'تهيئة البرنامج' : 'إعدادات النشاط'}
-      description={page.setupMode ? 'اتبع الخطوات بالترتيب حتى يصبح التشغيل الأول واضحًا وآمنًا.' : getSettingsSectionDescription(resolvedSection)}
+      description={page.setupMode ? 'اتبع الخطوات بالترتيب حتى يصبح التشغيل الأول واضحًا وآمنًا.' : getSettingsSectionDescription(resolvedSection, currentVertical)}
       badgeLabel={page.setupMode ? 'تجهيز البداية' : page.sectionMeta.label}
       setupMode={page.setupMode}
       currentSection={resolvedSection}

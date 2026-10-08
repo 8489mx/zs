@@ -42,6 +42,36 @@ function PresetIcon({ id, size = 20 }: { id: IndustryPresetId; size?: number }) 
       </svg>
     );
   }
+  // 3. الشحن واللوجستيات والملاحة - سفينة وبوالص بحرية
+  if (id === 'maritime') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
+        <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+        <path d="M12 10V2" />
+        <path d="M12 2l3 3" />
+      </svg>
+    );
+  }
+  // 4. شركات المقاولات والإنشاءات والمشاريع - مبنى وتشييد
+  if (id === 'contracting') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
+        <path d="M9 22v-4h6v4" />
+        <path d="M8 6h.01" />
+        <path d="M16 6h.01" />
+        <path d="M12 6h.01" />
+        <path d="M12 10h.01" />
+        <path d="M12 14h.01" />
+        <path d="M16 10h.01" />
+        <path d="M16 14h.01" />
+        <path d="M8 10h.01" />
+        <path d="M8 14h.01" />
+      </svg>
+    );
+  }
   // 3. المطاعم والكافيهات والأغذية - شوكة وسكين ضيافة
   if (id === 'restaurant') {
     return (

@@ -4,6 +4,8 @@ import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { MessageSquareIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -40,6 +42,11 @@ interface SimChatMessage {
 
 export function SettingsWhatsAppGatewaySection() {
   const queryClient = useQueryClient();
+  const tenant = useAuthStore((s) => s.tenant);
+  const currentVertical = resolveCurrentVertical(tenant);
+  const isMaritime = currentVertical === 'maritime';
+  const isContracting = currentVertical === 'contracting';
+
   const [testPhone, setTestPhone] = useState('');
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
@@ -51,6 +58,12 @@ export function SettingsWhatsAppGatewaySection() {
 
   const [form, setForm] = useState<Partial<WhatsAppGatewayConfig>>({});
 
+  const defaultInvoiceTemplate = isMaritime
+    ? 'مرحباً بكم بشركة {businessName}، مرفق تفاصيل فاتورة ومستندات الشحن رقم #{invoiceNo} بقيمة {totalAmount} عبر الرابط التالي: {invoiceLink}'
+    : isContracting
+    ? 'مرحباً بكم بشركة {businessName}، مرفق تفاصيل مستخلص / فاتورة الأعمال رقم #{invoiceNo} بقيمة {totalAmount} عبر الرابط التالي: {invoiceLink}'
+    : 'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} <CurrencySymbol /> عبر الرابط التالي: {invoiceLink}';
+
   const currentConfig: WhatsAppGatewayConfig = {
     enabled: form.enabled ?? data?.enabled ?? false,
     provider: form.provider ?? data?.provider ?? 'ultramsg',
@@ -59,8 +72,7 @@ export function SettingsWhatsAppGatewaySection() {
     token: form.token ?? data?.token ?? '',
     autoSendInvoice: form.autoSendInvoice ?? data?.autoSendInvoice ?? false,
     autoSendOnlineOrder: form.autoSendOnlineOrder ?? data?.autoSendOnlineOrder ?? false,
-    invoiceTemplate: form.invoiceTemplate ?? data?.invoiceTemplate ??
-      'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} <CurrencySymbol /> عبر الرابط التالي: {invoiceLink}',
+    invoiceTemplate: form.invoiceTemplate ?? data?.invoiceTemplate ?? defaultInvoiceTemplate,
     aiBotEnabled: form.aiBotEnabled ?? data?.aiBotEnabled ?? false,
     aiBotPrompt: form.aiBotPrompt ?? data?.aiBotPrompt ?? '',
     aiBotWelcomeMessage: form.aiBotWelcomeMessage ?? data?.aiBotWelcomeMessage ?? '',
@@ -260,7 +272,11 @@ export function SettingsWhatsAppGatewaySection() {
     {
       id: 'welcome',
       sender: 'bot',
-      text: 'أهلاً بك يا فندم! مرحباً بك في المتجر، اكتب أي استفسار عن المنتجات أو الأسعار لتجربة الرد الفوري المولد بالذكاء الاصطناعي.',
+      text: isMaritime
+        ? 'أهلاً بك يا فندم! مرحباً بك في قسم الشحن والملاحة البحرية، اكتب أي استفسار حول نولون الشحن، تتبع الحاويات أو الموانئ لتجربة الرد الذكي.'
+        : isContracting
+        ? 'أهلاً بك يا فندم! مرحباً بك في الإدارة الهندسية، اكتب أي استفسار حول المستخلصات والمشاريع لتجربة الرد الذكي.'
+        : 'أهلاً بك يا فندم! مرحباً بك في المتجر، اكتب أي استفسار عن المنتجات أو الأسعار لتجربة الرد الفوري المولد بالذكاء الاصطناعي.',
       time: 'الآن',
       engine: 'gemini_llm',
     },
@@ -711,7 +727,11 @@ export function SettingsWhatsAppGatewaySection() {
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              يقوم البوت بالرد التلقائي الذكي على استفسارات الزبائن حول أسعار المنتجات وتوفر المقاسات والألوان في المخزن لحظياً، مع إرسال روابط الشراء المباشرة.
+              {isMaritime
+                ? 'يقوم البوت بالرد التلقائي الذكي على استفسارات العملاء حول مواعيد وصول السفن، تتبع الحاويات، رسوم النولون وخدمات التخليص الملاحي.'
+                : isContracting
+                ? 'يقوم البوت بالرد التلقائي الذكي على استفسارات الملاك والاستشاريين ومقاولي الباطن حول بنود المقايسات وحالات المستخلصات.'
+                : 'يقوم البوت بالرد التلقائي الذكي على استفسارات الزبائن حول أسعار المنتجات وتوفر المقاسات والألوان في المخزن لحظياً، مع إرسال روابط الشراء المباشرة.'}
             </p>
           </div>
 
@@ -1108,18 +1128,26 @@ export function SettingsWhatsAppGatewaySection() {
                 onChange={(e) => setForm({ ...currentConfig, autoSendInvoice: e.target.checked })}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span>إرسال رابط الفاتورة الإلكترونية للعميل تلقائياً فور حفظ الفاتورة بالكاشير.</span>
+              <span>
+                {isMaritime
+                  ? 'إرسال رابط الفاتورة والمستندات للعميل تلقائياً فور إصدار واعتماد فاتورة الشحن.'
+                  : isContracting
+                  ? 'إرسال رابط المستخلص للجهة المالكة تلقائياً فور اعتماده.'
+                  : 'إرسال رابط الفاتورة الإلكترونية للعميل تلقائياً فور حفظ الفاتورة بالكاشير.'}
+              </span>
             </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#1e293b' }}>
-              <input
-                type="checkbox"
-                checked={currentConfig.autoSendOnlineOrder}
-                onChange={(e) => setForm({ ...currentConfig, autoSendOnlineOrder: e.target.checked })}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <span>إرسال رسالة تأكيد للعميل فور وصول طلب من المتجر الإلكتروني.</span>
-            </label>
+            {!isMaritime && !isContracting && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#1e293b' }}>
+                <input
+                  type="checkbox"
+                  checked={currentConfig.autoSendOnlineOrder}
+                  onChange={(e) => setForm({ ...currentConfig, autoSendOnlineOrder: e.target.checked })}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span>إرسال رسالة تأكيد للعميل فور وصول طلب من المتجر الإلكتروني.</span>
+              </label>
+            )}
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>

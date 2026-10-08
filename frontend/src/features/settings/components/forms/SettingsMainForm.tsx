@@ -719,7 +719,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       values.currentLocationId = locationIdToUse;
 
       const isBranchMissing = !String(values.currentBranchId || '').trim();
-      const isLocationMissing = !String(values.currentLocationId || '').trim();
+      const isLocationMissing = !isMaritimeVertical && !String(values.currentLocationId || '').trim();
 
       if (isBranchMissing) {
         form.setError('currentBranchId', { type: 'manual', message: 'يجب اختيار الفرع الرئيسي قبل حفظ الإعدادات.' });

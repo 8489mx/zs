@@ -4,6 +4,7 @@ import { USER_ROLE_TEMPLATES } from '@/features/settings/components/user-managem
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
 import { isPlatformAdmin } from '@/app/router/access';
 import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 export function UserManagementQuickActions({
   setupMode,
@@ -21,6 +22,11 @@ export function UserManagementQuickActions({
   onCopyPermissions: () => void;
 }) {
   if (setupMode) return null;
+
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
 
   return (
     <div
@@ -60,7 +66,7 @@ export function UserManagementQuickActions({
         }}
         onClick={() => onApplyTemplate('cashier')}
       >
-        قالب كاشير
+        {isMaritime ? 'قالب عمليات' : isContracting ? 'قالب مشاريع' : 'قالب كاشير'}
       </Button>
       <Button
         type="button"
@@ -74,7 +80,7 @@ export function UserManagementQuickActions({
         }}
         onClick={() => onApplyTemplate('owner')}
       >
-        قالب مالك
+        {isMaritime ? 'قالب مدير ملاحي' : isContracting ? 'قالب مدير عام' : 'قالب مالك'}
       </Button>
       <Button
         type="button"
@@ -88,7 +94,7 @@ export function UserManagementQuickActions({
         }}
         onClick={() => onApplyTemplate('inventory')}
       >
-        قالب مخزن
+        {isMaritime ? 'قالب حاويات ومستودعات' : isContracting ? 'قالب تشوين ومهمات' : 'قالب مخزن'}
       </Button>
       <Button
         type="button"
@@ -102,7 +108,7 @@ export function UserManagementQuickActions({
         }}
         onClick={() => onApplyTemplate('accountant')}
       >
-        قالب محاسب
+        {isMaritime ? 'قالب محاسب نولون' : isContracting ? 'قالب محاسب مشاريع' : 'قالب محاسب'}
       </Button>
       <Button
         type="button"
@@ -130,14 +136,21 @@ export function UserManagementStatsFilters({
   onUserFilterChange: (value: 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked') => void;
 }) {
   const isPlatform = isPlatformAdmin(useAuthStore.getState().user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
+
+  const adminsStatLabel = isMaritime ? 'مديرو العمليات' : isContracting ? 'مديرو المشاريع' : 'مديرو النظام';
+  const cashiersStatLabel = isMaritime ? 'مسؤولو العمليات والتتبع' : isContracting ? 'مهندسو الموقع' : 'الكاشير';
 
   return (
     <>
       <div className="stats-grid settings-users-stats-grid" style={{ marginBottom: 8 }}>
         <div className="stat-card"><span>الإجمالي</span><strong>{summary.totalItems}</strong></div>
         {isPlatform ? <div className="stat-card"><span>السوبر أدمن</span><strong>{summary.superAdmins}</strong></div> : null}
-        <div className="stat-card"><span>مديرو النظام</span><strong>{summary.admins}</strong></div>
-        <div className="stat-card"><span>الكاشير</span><strong>{summary.cashiers}</strong></div>
+        <div className="stat-card"><span>{adminsStatLabel}</span><strong>{summary.admins}</strong></div>
+        <div className="stat-card"><span>{cashiersStatLabel}</span><strong>{summary.cashiers}</strong></div>
         <div className="stat-card"><span>الموقوفون</span><strong>{summary.inactive}</strong></div>
       </div>
       <div className="page-stack settings-users-filters" style={{ gap: 8, marginBottom: 8 }}>
@@ -148,8 +161,8 @@ export function UserManagementStatsFilters({
           {[
             ['all', 'الكل'],
             ...(isPlatform ? [['super-admins', 'السوبر أدمن']] : []),
-            ['admins', 'مديرو النظام'],
-            ['cashiers', 'الكاشير'],
+            ['admins', adminsStatLabel],
+            ['cashiers', cashiersStatLabel],
             ['inactive', 'الموقوفون'],
             ['locked', 'المقفلون']
           ].map(([value, label]) => (

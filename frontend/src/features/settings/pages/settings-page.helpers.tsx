@@ -24,10 +24,22 @@ interface SettingsGuidanceInput {
   snapshotsCount: number;
 }
 
-export function getSettingsSectionDescription(section: string) {
-  if (section === 'core') return 'بيانات المنشأة، سياسات البيع والمخزون، موديولات النظام، والطباعة والإيصالات.';
-  if (section === 'reference') return 'إدارة الفروع، نقاط الاستلام، والمستودعات التشغيلية ومخازن البضاعة.';
-  if (section === 'users') return 'إدارة حسابات الموظفين، الأدوار الوظيفية، ومصفوفة الصلاحيات.';
+export function getSettingsSectionDescription(section: string, vertical?: string) {
+  if (section === 'core') {
+    if (vertical === 'maritime') return 'بيانات شركة التوكيلات والشحن الملاحي، ضوابط النولون وغرامات الحاويات، وترويسة الفواتير والمطبوعات.';
+    if (vertical === 'contracting') return 'بيانات شركة المقاولات، نسب ضمان الأعمال والدفعة المقدمة، وهوامش تسعير العطاءات والمقايسات.';
+    return 'بيانات المنشأة، سياسات البيع والمخزون، موديولات النظام، والطباعة والإيصالات.';
+  }
+  if (section === 'reference') {
+    if (vertical === 'maritime') return 'إدارة المقرات والمكاتب الملاحية، الموانئ ومحطات ومستودعات الحاويات (Yards & Terminals).';
+    if (vertical === 'contracting') return 'إدارة المقرات الإدارية، مواقع العمل والمشاريع، ومخازن التشوين الميدانية.';
+    return 'إدارة الفروع، نقاط الاستلام، والمستودعات التشغيلية ومخازن البضاعة.';
+  }
+  if (section === 'users') {
+    if (vertical === 'maritime') return 'إدارة حسابات منسقي الشحن، موظفي الموانئ والمكتب الملاحي، ومصفوفة الصلاحيات.';
+    if (vertical === 'contracting') return 'إدارة حسابات مهندسي المواقع، مديري المشاريع، ومصفوفة الصلاحيات الميدانية.';
+    return 'إدارة حسابات الموظفين، الأدوار الوظيفية، ومصفوفة الصلاحيات.';
+  }
   if (section === 'tax-integration') return 'الربط المباشر مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA).';
   if (section === 'storefront' || section === 'marketplaces') return 'إدارة المتجر الإلكتروني الخارجي، بوابات الدفع والشحن، والربط مع أمازون ونون.';
   if (section === 'whatsapp' || section === 'daily-digest') return 'بوابة رسائل الواتساب السحابية، روبوت الرد الذكي، وإرسال الملخص اليومي للمدير.';
@@ -40,13 +52,17 @@ export function getSettingsSectionDescription(section: string) {
   return 'إعدادات وضوابط تشغيل المنظومة.';
 }
 
-export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
+export function buildSettingsGuidanceCards(input: SettingsGuidanceInput, vertical?: string) {
   const nextAction = input.setupMode
     ? (input.setupStepTitle || 'أكمل خطوة التهيئة الحالية أولًا')
     : input.section === 'core'
       ? 'عدّل بيانات النشاط ثم اضغط حفظ قبل الانتقال.'
       : input.section === 'reference'
-        ? 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.'
+        ? (vertical === 'maritime'
+            ? 'ابحث عن المقر الملاحي أو الميناء المطلوب ثم عدّل أو احذف من نفس الجدول.'
+            : vertical === 'contracting'
+            ? 'ابحث عن الموقع أو مخزن التشوين المطلوب ثم عدّل أو احذف من نفس الجدول.'
+            : 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.')
         : input.section === 'users'
           ? 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.'
           : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.';
@@ -54,7 +70,11 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
   const focusValue = input.section === 'core'
       ? (input.storeName || 'بيانات النشاط الأساسية')
       : input.section === 'reference'
-        ? `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`
+        ? (vertical === 'maritime'
+            ? `${input.filteredBranchesCount} مقر ملاحي / ${input.filteredLocationsCount} ميناء ومحطة حاويات`
+            : vertical === 'contracting'
+            ? `${input.filteredBranchesCount} موقع عمل / ${input.filteredLocationsCount} مخزن تشوين`
+            : `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`)
         : input.section === 'users'
           ? (input.currentUserRole === 'super_admin' ? 'إدارة المستخدمين متاحة' : 'هذه الشاشة مخصصة للمشرف العام')
           : `${input.snapshotsCount} نسخة تلقائية متاحة`;
@@ -64,7 +84,11 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
     : input.section === 'users'
       ? 'استخدم أقل صلاحية ممكنة لكل حساب.'
       : input.section === 'reference'
-        ? 'احرص أن يكون كل مخزن مرتبطًا بفرع واضح.'
+        ? (vertical === 'maritime'
+            ? 'احرص أن يكون كل ميناء أو محطة مرتبطة بمقر ملاحي واضح.'
+            : vertical === 'contracting'
+            ? 'احرص أن يكون كل مخزن تشوين مرتبطاً بموقع أو مقر إدارة واضح.'
+            : 'احرص أن يكون كل مخزن مرتبطًا بفرع واضح.')
         : 'غيّر ما تحتاجه فقط ثم احفظ.';
 
   return [

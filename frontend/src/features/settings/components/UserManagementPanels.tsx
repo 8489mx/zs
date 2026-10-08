@@ -19,6 +19,8 @@ import {
 import { UserManagementEditorCard } from '@/features/settings/components/user-management-panels/UserManagementEditorCard';
 import { UserBulkActionDialog, UserDeleteDialog } from '@/features/settings/components/user-management-panels/UserManagementDialogs';
 import { UserManagementSetupHeader } from '@/features/settings/components/user-management-panels/UserManagementSetupHeader';
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 const roleLabel: Record<ManagedUserRecord['role'], string> = {
   super_admin: 'سوبر أدمن',
@@ -84,6 +86,17 @@ export function UserManagementListPanel({
   setupMode?: boolean;
   activeTemplate?: string | null;
 }) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
+
+  const currentRoleLabel: Record<ManagedUserRecord['role'], string> = {
+    super_admin: 'سوبر أدمن',
+    admin: isMaritime ? 'مدير ملاحي' : isContracting ? 'مدير مشاريع' : 'مدير نظام',
+    cashier: isMaritime ? 'مسؤول عمليات' : isContracting ? 'مهندس موقع' : 'كاشير'
+  };
+
   return (
     <div className="list-stack">
       <UserManagementQuickActions
@@ -137,7 +150,7 @@ export function UserManagementListPanel({
             cell: (user) => (
               <div>
                 <strong>{user.name || user.username}</strong>
-                <div className="muted small">{user.username} · {roleLabel[user.role]} · {user.isActive === false ? 'موقوف' : 'نشط'}</div>
+                <div className="muted small">{user.username} · {currentRoleLabel[user.role]} · {user.isActive === false ? 'موقوف' : 'نشط'}</div>
               </div>
             )
           },
@@ -153,10 +166,10 @@ export function UserManagementListPanel({
           },
           {
             key: 'branches',
-            header: SINGLE_STORE_MODE ? 'الدور / الصلاحيات' : 'الفروع / الصلاحيات',
+            header: SINGLE_STORE_MODE ? 'الدور / الصلاحيات' : isMaritime ? 'المكاتب / الصلاحيات' : isContracting ? 'المواقع / الصلاحيات' : 'الفروع / الصلاحيات',
             cell: (user) => (
               <div>
-                {!SINGLE_STORE_MODE ? <div className="muted small">الفروع: {(user.branchIds || []).length || 0} · افتراضي: {user.defaultBranchId || '—'}</div> : null}
+                {!SINGLE_STORE_MODE ? <div className="muted small">{isMaritime ? 'المكاتب' : isContracting ? 'المواقع' : 'الفروع'}: {(user.branchIds || []).length || 0} · افتراضي: {user.defaultBranchId || '—'}</div> : null}
                 <div className="muted small">الصلاحيات: {(user.permissions || []).length}</div>
               </div>
             )
@@ -231,7 +244,7 @@ export function UserManagementEditorPanel({
   const feedbackError = isError ? error : (showInlineValidationError ? statusMessage : null);
 
   return (
-    <div className="page-stack">
+    <div className="page-stack" style={{ gap: '8px' }}>
       {setupMode
         ? <UserManagementSetupHeader draft={draft} setupMode={setupMode} setupStepKey={setupStepKey} isCurrentUserSelected={isCurrentUserSelected} />
         : <UserManagementEditorCard
@@ -269,11 +282,24 @@ export function UserManagementEditorPanel({
         successText={statusMessage || 'تم تحديث بيانات المستخدم.'}
       />
 
-      <div className="actions" style={{ flexWrap: 'wrap' }}>
-        <Button type="button" variant="secondary" onClick={onReset} disabled={isPending}>إعادة القيم</Button>
-        {canUnlockSelected ? <Button type="button" variant="secondary" onClick={onUnlock} disabled={isPending}>فتح القفل</Button> : null}
-        {canDeleteSelected ? <Button type="button" variant="danger" onClick={onDelete} disabled={isPending}>حذف المستخدم</Button> : null}
-        <Button type="button" onClick={onSave} disabled={isPending}>{isPending ? 'جاري الحفظ...' : 'حفظ المستخدم'}</Button>
+      <div className="actions" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '8px',
+        marginTop: '4px',
+        paddingTop: '6px',
+        borderTop: '1px solid #e2e8f0',
+      }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <Button type="button" variant="secondary" onClick={onReset} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>إعادة القيم</Button>
+          {canUnlockSelected ? <Button type="button" variant="secondary" onClick={onUnlock} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>فتح القفل</Button> : null}
+          {canDeleteSelected ? <Button type="button" variant="danger" onClick={onDelete} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>حذف المستخدم</Button> : null}
+        </div>
+        <Button type="button" onClick={onSave} disabled={isPending} style={{ height: '32px', padding: '0 18px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#170e5e', color: '#fff' }}>
+          {isPending ? 'جاري الحفظ...' : 'حفظ المستخدم'}
+        </Button>
       </div>
     </div>
   );

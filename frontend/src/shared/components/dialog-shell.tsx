@@ -187,10 +187,10 @@ export function DialogShell({
         return;
       }
 
-      // If inside the modal, check if the targeted container has reached its scroll boundary
+      // If inside the modal, check if the targeted container or shell has scroll room
       let el = e.target as HTMLElement | null;
       let hasScrollRoom = false;
-      while (el && el !== shell && el !== document.body) {
+      while (el && el !== document.body) {
         const style = window.getComputedStyle(el);
         const overflowY = style.overflowY;
         if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
@@ -201,7 +201,22 @@ export function DialogShell({
           }
           break;
         }
+        if (el === shell) break;
         el = el.parentElement;
+      }
+
+      // Also check overlay if shell itself doesn't scroll but overlay does
+      if (!hasScrollRoom && overlayRef.current) {
+        const overlay = overlayRef.current;
+        const style = window.getComputedStyle(overlay);
+        const overflowY = style.overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && overlay.scrollHeight > overlay.clientHeight) {
+          const atTop = overlay.scrollTop <= 0 && e.deltaY < 0;
+          const atBottom = overlay.scrollTop + overlay.clientHeight >= overlay.scrollHeight - 1 && e.deltaY > 0;
+          if (!atTop && !atBottom) {
+            hasScrollRoom = true;
+          }
+        }
       }
 
       // If no scroll room or reached top/bottom boundary, prevent scroll chaining to the background

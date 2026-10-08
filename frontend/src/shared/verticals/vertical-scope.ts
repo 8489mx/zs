@@ -60,14 +60,28 @@ export interface MobileQuickActionItem {
  * Single source of truth to resolve the tenant's primary business vertical.
  */
 export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVertical {
-  // 1. Explicit configured vertical indicator (highest authority)
-  const explicit = String(
-    tenant?.activityType ||
-    settings?.businessIndustry ||
-    settings?.activityType ||
-    tenant?.pillar ||
-    ''
-  ).trim().toLowerCase();
+  const isFlagActive = (val: any) => val === true || val === 'true' || val === 1 || val === '1';
+
+  // 0. Active dedicated enterprise module flags (operational reality overrides generic defaults)
+  if (isFlagActive(settings?.maritimeFreightModuleEnabled) || tenant?.features?.includes('maritime_freight')) return 'maritime';
+  if (isFlagActive(settings?.contractingModuleEnabled) || tenant?.features?.includes('contracting')) return 'contracting';
+  if (isFlagActive(settings?.manufacturingModuleEnabled) || tenant?.features?.includes('manufacturing')) return 'manufacturing';
+  if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
+  if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
+  if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
+  if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
+  if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
+
+  // 1. Explicit configured vertical indicator: filter out generic fallbacks ('general', 'retail', 'retail_general', 'store')
+  const candidates = [
+    settings?.businessIndustry,
+    settings?.activityType,
+    tenant?.pillar,
+    tenant?.activityType,
+  ].map((s) => String(s ?? '').trim().toLowerCase().replace(/^"|"$/g, ''))
+   .filter((s) => s && s !== 'general' && s !== 'retail_general' && s !== 'retail' && s !== 'store');
+
+  const explicit = candidates[0] || String(settings?.businessIndustry || tenant?.activityType || '').trim().toLowerCase();
 
   if (explicit) {
     if (
@@ -221,6 +235,32 @@ function normalizeKey(target: string): string {
  */
 export function isRouteAllowedInVertical(vertical: BusinessVertical, target: string, settings?: any): boolean {
   const key = normalizeKey(target);
+
+  // Specific settings routes that belong exclusively to retail e-commerce or retail warehouse management
+  if (
+    key === 'settings/storefront' ||
+    key === 'settings/marketplaces' ||
+    key === 'settings/locations' ||
+    key === 'settings/reference' ||
+    key === 'settings/demo-data' ||
+    key.startsWith('settings/storefront/') ||
+    key.startsWith('settings/marketplaces/') ||
+    key.startsWith('settings/locations/') ||
+    key.startsWith('settings/reference/') ||
+    key.startsWith('settings/demo-data/')
+  ) {
+    if (vertical === 'maritime') {
+      return false;
+    }
+    if (vertical === 'contracting' && key !== 'settings/reference' && !key.startsWith('settings/reference/')) {
+      return false;
+    }
+    if (key.includes('storefront') || key.includes('marketplaces')) {
+      if (vertical !== 'retail_general' && vertical !== 'wholesale_van') {
+        return settings?.storefrontModuleEnabled === true;
+      }
+    }
+  }
 
   // Common universal infrastructure routes (always permitted for all verticals)
   if (

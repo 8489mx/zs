@@ -56,7 +56,7 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
     return <SettingsDemoDataWizardSection />;
   }
   if (section === 'subscription') {
-    return <TenantSubscriptionPage />;
+    return <TenantSubscriptionPage settings={props.settings} />;
   }
   if (section === 'storefront' || section === 'marketplaces') {
     return (

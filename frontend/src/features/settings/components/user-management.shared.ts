@@ -2,13 +2,23 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','crm','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canDelete','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','crm','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canDelete','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps',
+  'maritimeJobs','maritimeContainers','maritimeInquiries','maritimeQuotations','maritimeRfqs','maritimePolicies',
+  'contractingProjects','contractingInvoices','contractingBoq','contractingDailyLogs','contractingChangeOrders','contractingSubcontractors'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','crm','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canEditInvoices','canDirectReturn','canAdjustInventory','canManageBranchStock','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = [
   'sales', 'cashDrawer', 'customers', 'suppliers', 'accounts', 'purchases', 'products', 'returns', 'deliveryReps', 'hr', 'hrAttendance', 'canPrint', 'services', 'treasury'
+];
+
+export const DEFAULT_MARITIME_OPS_PERMS = [
+  'dashboard', 'maritimeJobs', 'maritimeContainers', 'maritimeInquiries', 'maritimeQuotations', 'maritimeRfqs', 'customers', 'suppliers', 'accounts', 'reports', 'canPrint'
+];
+
+export const DEFAULT_CONTRACTING_OPS_PERMS = [
+  'dashboard', 'contractingProjects', 'contractingInvoices', 'contractingBoq', 'contractingDailyLogs', 'contractingChangeOrders', 'contractingSubcontractors', 'suppliers', 'accounts', 'reports', 'canPrint'
 ];
 
 export const PERMISSION_LABELS: Record<string, string> = {
@@ -59,9 +69,37 @@ export const PERMISSION_LABELS: Record<string, string> = {
   hrSalaryManage: 'إدارة بيانات الراتب',
   canDelete: 'الحذف',
   deliveryReps: 'إدارة المناديب',
+
+  // Maritime Freight
+  maritimeJobs: 'أوامر تشغيل الشحن (Jobs)',
+  maritimeContainers: 'تتبع وإدارة الحاويات',
+  maritimeInquiries: 'استفسارات الشحن',
+  maritimeQuotations: 'عروض أسعار النولون',
+  maritimeRfqs: 'مقارنة أسعار الخطوط (RFQ)',
+  maritimePolicies: 'سياسات الشحن والخطوط',
+
+  // Contracting & Construction
+  contractingProjects: 'المشاريع الإنشائية',
+  contractingInvoices: 'المستخلصات الجارية والختامية (IPC)',
+  contractingBoq: 'المقايسات وجداول الكميات (BOQ)',
+  contractingDailyLogs: 'يوميات وتقارير الموقع',
+  contractingChangeOrders: 'أوامر التغيير والمطالبات',
+  contractingSubcontractors: 'مقاولو الباطن',
 };
 
-export function getPermissionLabel(permission: string) {
+export function getPermissionLabel(permission: string, vertical?: string) {
+  if (vertical === 'maritime') {
+    if (permission === 'canPrint') return 'طباعة بوالص الشحن والفواتير';
+    if (permission === 'canEditInvoices') return 'تعديل فواتير ومطالبات الشحن';
+    if (permission === 'suppliers') return 'الخطوط الملاحية والناقلون';
+    if (permission === 'accounts') return 'كشوف حسابات العملاء والخطوط';
+  }
+  if (vertical === 'contracting') {
+    if (permission === 'canPrint') return 'طباعة المستخلصات والمقايسات';
+    if (permission === 'canEditInvoices') return 'تعديل المستخلصات والمطالبات';
+    if (permission === 'suppliers') return 'موردو المواد والمعدات';
+    if (permission === 'accounts') return 'كشوف حسابات الموردين ومقاولي الباطن';
+  }
   return PERMISSION_LABELS[permission] || permission;
 }
 
@@ -81,6 +119,22 @@ export const PERMISSION_FEATURE_MAP: Record<string, string> = {
   canSellWholesale: 'sales',
   canEditInvoices: 'sales',
   canDirectReturn: 'sales',
+
+  // Maritime Freight
+  maritimeJobs: 'maritime',
+  maritimeContainers: 'maritime',
+  maritimeInquiries: 'maritime',
+  maritimeQuotations: 'maritime',
+  maritimeRfqs: 'maritime',
+  maritimePolicies: 'maritime',
+
+  // Contracting & Construction
+  contractingProjects: 'contracting',
+  contractingInvoices: 'contracting',
+  contractingBoq: 'contracting',
+  contractingDailyLogs: 'contracting',
+  contractingChangeOrders: 'contracting',
+  contractingSubcontractors: 'contracting',
 
   // Sessions & Cash Drawer
   cashDrawer: 'cashDrawer',
@@ -147,12 +201,91 @@ export const USER_PERMISSION_GROUPS: PermissionGroup[] = [
   { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
 ];
 
-export function getFilteredPermissionGroups(tenantFeatures?: string[] | null): PermissionGroup[] {
+export const MARITIME_PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    title: 'عمليات وتشغيل الشحن الملاحي',
+    items: [
+      'dashboard',
+      'maritimeJobs',
+      'maritimeContainers',
+      'maritimeInquiries',
+      'maritimeQuotations',
+      'maritimeRfqs',
+      'maritimePolicies',
+      'customers',
+      'suppliers',
+      'accounts',
+      'accounting',
+      'reports'
+    ]
+  },
+  {
+    title: 'الموارد البشرية',
+    items: ['hr', 'hrEmployees', 'hrAttendance', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']
+  },
+  {
+    title: 'تنفيذ الإجراءات والمستندات',
+    items: ['canPrint', 'canEditInvoices']
+  },
+  {
+    title: 'إدارة النظام',
+    items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups']
+  },
+  {
+    title: 'بيانات حساسة',
+    items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'canDelete']
+  }
+];
+
+export const CONTRACTING_PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    title: 'إدارة المشاريع والعمليات الميدانية',
+    items: [
+      'dashboard',
+      'contractingProjects',
+      'contractingInvoices',
+      'contractingBoq',
+      'contractingDailyLogs',
+      'contractingChangeOrders',
+      'contractingSubcontractors',
+      'suppliers',
+      'accounts',
+      'accounting',
+      'reports'
+    ]
+  },
+  {
+    title: 'الموارد البشرية',
+    items: ['hr', 'hrEmployees', 'hrAttendance', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']
+  },
+  {
+    title: 'تنفيذ الإجراءات والاعتمادات',
+    items: ['canPrint', 'canEditInvoices']
+  },
+  {
+    title: 'إدارة النظام',
+    items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups']
+  },
+  {
+    title: 'بيانات حساسة',
+    items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'canDelete']
+  }
+];
+
+export function getFilteredPermissionGroups(tenantFeatures?: string[] | null, vertical?: string): PermissionGroup[] {
+  const baseGroups = vertical === 'maritime'
+    ? MARITIME_PERMISSION_GROUPS
+    : vertical === 'contracting'
+    ? CONTRACTING_PERMISSION_GROUPS
+    : USER_PERMISSION_GROUPS;
+
   if (!tenantFeatures || !Array.isArray(tenantFeatures) || tenantFeatures.length === 0) {
-    return USER_PERMISSION_GROUPS;
+    return baseGroups;
   }
 
   const enabledSet = new Set<string>([...tenantFeatures, 'core', 'sessions']);
+  if (vertical === 'maritime') enabledSet.add('maritime');
+  if (vertical === 'contracting') enabledSet.add('contracting');
   if (enabledSet.has('sessions')) enabledSet.add('cashDrawer');
   if (enabledSet.has('cashDrawer')) enabledSet.add('sessions');
   // If sales or catalog is enabled, allow customers if not strictly accounting
@@ -160,13 +293,14 @@ export function getFilteredPermissionGroups(tenantFeatures?: string[] | null): P
     enabledSet.add('sales_basic');
   }
 
-  return USER_PERMISSION_GROUPS.map((group) => {
+  return baseGroups.map((group) => {
     const filteredItems = group.items.filter((itemKey) => {
       const requiredFeature = PERMISSION_FEATURE_MAP[itemKey];
       if (!requiredFeature || requiredFeature === 'core') return true;
-      if (itemKey === 'customers' && (enabledSet.has('sales') || enabledSet.has('accounting'))) {
+      if (itemKey === 'customers' && (enabledSet.has('sales') || enabledSet.has('accounting') || enabledSet.has('maritime') || enabledSet.has('contracting'))) {
         return true;
       }
+      if (itemKey === 'canPrint') return true;
       return enabledSet.has(requiredFeature);
     });
 
@@ -184,14 +318,44 @@ export const USER_ROLE_TEMPLATES = {
   accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','accounting','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
 
-export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cashier'): ManagedUserRecord {
+export function getUserRoleTemplates(vertical?: string) {
+  if (vertical === 'maritime') {
+    return {
+      cashier: { label: 'مسؤول عمليات وتتبع ملاحي', role: 'cashier' as const, permissions: [...DEFAULT_MARITIME_OPS_PERMS] },
+      owner: { label: 'مدير / مالك المكتب الملاحي', role: 'admin' as const, permissions: [...DEFAULT_ADMIN_PERMS] },
+      inventory: { label: 'مسؤول حاويات ومستودعات', role: 'admin' as const, permissions: ['dashboard', 'maritimeContainers', 'maritimeJobs', 'suppliers', 'reports', 'canPrint'] },
+      accountant: { label: 'محاسب نولون وتخليص', role: 'admin' as const, permissions: ['dashboard', 'maritimeJobs', 'maritimeQuotations', 'accounts', 'accounting', 'reports', 'customers', 'suppliers', 'treasury', 'canPrint', 'canViewProfit'] }
+    };
+  }
+  if (vertical === 'contracting') {
+    return {
+      cashier: { label: 'مهندس موقع / مسؤول مشاريع ومستخلصات', role: 'cashier' as const, permissions: [...DEFAULT_CONTRACTING_OPS_PERMS] },
+      owner: { label: 'مدير عام / مالك شركة المقاولات', role: 'admin' as const, permissions: [...DEFAULT_ADMIN_PERMS] },
+      inventory: { label: 'مسؤول تشوين ومهمات', role: 'admin' as const, permissions: ['dashboard', 'contractingProjects', 'contractingBoq', 'suppliers', 'reports', 'canPrint'] },
+      accountant: { label: 'محاسب مشاريع ومستخلصات', role: 'admin' as const, permissions: ['dashboard', 'contractingProjects', 'contractingInvoices', 'contractingSubcontractors', 'accounts', 'accounting', 'reports', 'customers', 'suppliers', 'treasury', 'canPrint', 'canViewProfit'] }
+    };
+  }
+  return USER_ROLE_TEMPLATES;
+}
+
+export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cashier', vertical?: string): ManagedUserRecord {
+  let perms: string[];
+  if (role === 'super_admin' || role === 'admin') {
+    perms = [...DEFAULT_ADMIN_PERMS];
+  } else if (vertical === 'maritime') {
+    perms = [...DEFAULT_MARITIME_OPS_PERMS];
+  } else if (vertical === 'contracting') {
+    perms = [...DEFAULT_CONTRACTING_OPS_PERMS];
+  } else {
+    perms = [...DEFAULT_CASHIER_PERMS];
+  }
   return {
     id: null,
     username: '',
     phone: '',
     password: '',
     role,
-    permissions: role === 'super_admin' ? [...DEFAULT_ADMIN_PERMS] : role === 'admin' ? [...DEFAULT_ADMIN_PERMS] : [...DEFAULT_CASHIER_PERMS],
+    permissions: perms,
     name: '',
     branchIds: [],
     defaultBranchId: '',
@@ -203,9 +367,9 @@ export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cash
   };
 }
 
-export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | undefined): ManagedUserRecord {
+export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | undefined, vertical?: string): ManagedUserRecord {
   const role = user?.role === 'super_admin' ? 'super_admin' : user?.role === 'admin' ? 'admin' : 'cashier';
-  const fallback = blankUserDraft(role);
+  const fallback = blankUserDraft(role, vertical);
   return {
     ...fallback,
     ...user,
@@ -216,11 +380,7 @@ export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | un
     role,
     permissions: Array.isArray(user?.permissions) && (user?.id || user.permissions.length > 0)
       ? Array.from(new Set((user.permissions || []).map((permission) => String(permission)).filter(Boolean)))
-      : role === 'super_admin'
-        ? [...DEFAULT_ADMIN_PERMS]
-        : role === 'admin'
-          ? [...DEFAULT_ADMIN_PERMS]
-          : [...DEFAULT_CASHIER_PERMS],
+      : fallback.permissions,
     name: String(user?.name || user?.username || ''),
     branchIds: Array.isArray(user?.branchIds) ? (user.branchIds || []).map((branchId) => String(branchId)).filter(Boolean) : [],
     defaultBranchId: String(user?.defaultBranchId || ''),

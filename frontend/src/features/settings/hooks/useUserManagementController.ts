@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsApi, type ManagedUserRecord, type PlanLimitInfo } from '@/features/settings/api/settings.api';
 import { blankUserDraft, normalizeUserRecord } from '@/features/settings/components/user-management.shared';
 import {
@@ -15,22 +15,36 @@ import { useUserManagementMutation } from '@/features/settings/hooks/user-manage
 import type { UserBulkAction } from '@/features/settings/hooks/user-management/user-management.types';
 import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
+import type { Branch } from '@/types/domain';
+import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
 export type { UserBulkAction } from '@/features/settings/hooks/user-management/user-management.types';
 
 export function useUserManagementController({
+  branches = [],
   setupMode = false,
   setupStepKey = null,
   onSetupAdvance,
 }: {
+  branches?: Branch[];
   setupMode?: boolean;
   setupStepKey?: SetupStepKey | null;
   onSetupAdvance?: () => void;
 }) {
   const currentUserId = useAuthStore((state) => state.user?.id || '');
   const currentUserRole = useAuthStore((state) => state.user?.role || 'cashier');
+  const tenant = useAuthStore((state) => state.tenant);
+  const vertical = resolveCurrentVertical(tenant);
   const [selectedUserKey, setSelectedUserKey] = useState('');
-  const [draft, setDraft] = useState<ManagedUserRecord>(() => blankUserDraft('cashier'));
+  const [draft, setDraft] = useState<ManagedUserRecord>(() => {
+    const initial = blankUserDraft('cashier', vertical);
+    if (!SINGLE_STORE_MODE && branches && branches.length === 1) {
+      initial.branchIds = [branches[0].id];
+      initial.defaultBranchId = branches[0].id;
+    }
+    return initial;
+  });
   const [statusMessage, setStatusMessage] = useState('');
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
@@ -131,20 +145,43 @@ export function useUserManagementController({
   const loadUser = useCallback((user?: ManagedUserRecord | null) => {
     if (!user) return;
     setSelectedUserKey(user.id ? String(user.id) : '__new__');
-    setDraft(normalizeUserRecord(user));
+    setDraft(normalizeUserRecord(user, vertical));
     setActiveTemplate(null);
     setStatusMessage('');
-  }, []);
+  }, [vertical]);
 
   const startNewUser = useCallback((role: 'super_admin' | 'admin' | 'cashier' = 'cashier') => {
     setSelectedUserKey('__new__');
-    setDraft(blankUserDraft(role));
+    const newDraft = blankUserDraft(role, vertical);
+    if (!SINGLE_STORE_MODE && branches && branches.length === 1) {
+      newDraft.branchIds = [branches[0].id];
+      newDraft.defaultBranchId = branches[0].id;
+    } else {
+      newDraft.branchIds = [];
+      newDraft.defaultBranchId = '';
+    }
+    setDraft(newDraft);
     setActiveTemplate(null);
     setStatusMessage('');
-  }, []);
+  }, [vertical, branches]);
+
+  useEffect(() => {
+    if (selectedUserKey === '__new__' && !SINGLE_STORE_MODE && branches && branches.length === 1) {
+      setDraft((current) => {
+        if (!current.id && (!current.branchIds || current.branchIds.length === 0)) {
+          return {
+            ...current,
+            branchIds: [branches[0].id],
+            defaultBranchId: branches[0].id,
+          };
+        }
+        return current;
+      });
+    }
+  }, [selectedUserKey, branches]);
 
   function applyTemplate(templateKey: 'cashier' | 'owner' | 'inventory' | 'accountant') {
-    const template = buildTemplateDraft(draft, templateKey);
+    const template = buildTemplateDraft(draft, templateKey, vertical);
     setDraft(template.nextDraft);
     setActiveTemplate(templateKey);
     setStatusMessage(`تم تطبيق ${template.label}.`);
@@ -198,7 +235,7 @@ export function useUserManagementController({
   const canDirectlyDisableSelected = !selectedDraftDisableProtection;
 
   function applyDefaultPermissions(role: 'super_admin' | 'admin' | 'cashier') {
-    setDraft((current) => ({ ...current, role, permissions: applyRolePermissions(role) }));
+    setDraft((current) => ({ ...current, role, permissions: applyRolePermissions(role, vertical) }));
   }
 
   function togglePermission(permission: string) {
@@ -220,7 +257,7 @@ export function useUserManagementController({
   async function saveCurrentDraft() {
     try {
       setStatusMessage('');
-      const normalizedDraft = validateUserDraft({ draft, managedUsers });
+      const normalizedDraft = validateUserDraft({ draft, managedUsers, branches, vertical });
       await actionMutation.mutateAsync(normalizedDraft.id ? { type: 'update', id: String(normalizedDraft.id), payload: normalizedDraft } : { type: 'create', payload: normalizedDraft });
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'تعذر حفظ المستخدم');

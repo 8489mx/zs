@@ -1,13 +1,15 @@
-import { blankUserDraft, normalizeUserRecord, USER_ROLE_TEMPLATES } from '@/features/settings/components/user-management.shared';
+import { blankUserDraft, normalizeUserRecord, USER_ROLE_TEMPLATES, getUserRoleTemplates } from '@/features/settings/components/user-management.shared';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { validateAndNormalizePhone } from '@/shared/utils/phone-utils';
+import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
-export function applyRolePermissions(role: 'super_admin' | 'admin' | 'cashier') {
-  return [...blankUserDraft(role).permissions];
+export function applyRolePermissions(role: 'super_admin' | 'admin' | 'cashier', vertical?: string) {
+  return [...blankUserDraft(role, vertical).permissions];
 }
 
-export function buildTemplateDraft(current: ManagedUserRecord, templateKey: keyof typeof USER_ROLE_TEMPLATES) {
-  const template = USER_ROLE_TEMPLATES[templateKey];
+export function buildTemplateDraft(current: ManagedUserRecord, templateKey: keyof typeof USER_ROLE_TEMPLATES, vertical?: string) {
+  const templates = getUserRoleTemplates(vertical);
+  const template = templates[templateKey] || USER_ROLE_TEMPLATES[templateKey];
   return {
     nextDraft: { ...current, role: template.role, permissions: [...template.permissions], mustChangePassword: current.mustChangePassword ?? true },
     label: template.label,
@@ -23,11 +25,24 @@ export function toggleDraftPermission(current: ManagedUserRecord, permission: st
 
 export function toggleDraftBranch(current: ManagedUserRecord, branchId: string) {
   const branchIds = current.branchIds.includes(branchId) ? current.branchIds.filter((entry) => entry !== branchId) : [...current.branchIds, branchId];
-  const defaultBranchId = branchIds.includes(current.defaultBranchId) ? current.defaultBranchId : '';
+  let defaultBranchId = branchIds.includes(current.defaultBranchId) ? current.defaultBranchId : '';
+  if (branchIds.length === 1 && !defaultBranchId) {
+    defaultBranchId = branchIds[0];
+  }
   return { ...current, branchIds, defaultBranchId };
 }
 
-export function validateUserDraft({ draft, managedUsers }: { draft: ManagedUserRecord; managedUsers: ManagedUserRecord[] }) {
+export function validateUserDraft({
+  draft,
+  managedUsers,
+  branches = [],
+  vertical,
+}: {
+  draft: ManagedUserRecord;
+  managedUsers: ManagedUserRecord[];
+  branches?: Array<{ id: string; name: string }>;
+  vertical?: string;
+}) {
   const normalizedDraft = normalizeUserRecord(draft);
   if (!normalizedDraft.username.trim()) throw new Error('اسم المستخدم مطلوب');
   if (!normalizedDraft.name.trim()) normalizedDraft.name = normalizedDraft.username.trim();
@@ -47,7 +62,24 @@ export function validateUserDraft({ draft, managedUsers }: { draft: ManagedUserR
     throw new Error('كلمة المرور مطلوبة.');
   }
 
-  if (normalizedDraft.defaultBranchId && !normalizedDraft.branchIds.includes(normalizedDraft.defaultBranchId)) normalizedDraft.branchIds = [...normalizedDraft.branchIds, normalizedDraft.defaultBranchId];
+  if (!SINGLE_STORE_MODE && branches.length > 0) {
+    if (!normalizedDraft.branchIds || normalizedDraft.branchIds.length === 0) {
+      const branchTerm = vertical === 'maritime'
+        ? 'مقر أو مكتب ملاحي واحد على الأقل'
+        : vertical === 'contracting'
+        ? 'موقع عمل أو مقر واحد على الأقل'
+        : 'فرع واحد على الأقل';
+      throw new Error(`يجب اختيار ${branchTerm} لتسري عليه صلاحيات هذا المستخدم`);
+    }
+  }
+
+  if (normalizedDraft.branchIds.length === 1 && !normalizedDraft.defaultBranchId) {
+    normalizedDraft.defaultBranchId = normalizedDraft.branchIds[0];
+  }
+
+  if (normalizedDraft.defaultBranchId && !normalizedDraft.branchIds.includes(normalizedDraft.defaultBranchId)) {
+    normalizedDraft.branchIds = [...normalizedDraft.branchIds, normalizedDraft.defaultBranchId];
+  }
   const duplicateUser = managedUsers.find((user) => user.username.trim().toLowerCase() === normalizedDraft.username.trim().toLowerCase() && String(user.id || '') !== String(normalizedDraft.id || ''));
   if (duplicateUser) throw new Error('اسم المستخدم مستخدم بالفعل');
 

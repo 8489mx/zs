@@ -488,9 +488,22 @@ export function PrintingSettingsTab({
       )}
 
       {/* ===== 4. مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Designer & Live Mockup) ===== */}
+      {/* ===== 4. مصمم ومعاين الفاتورة البصري التفاعلي (Visual Document Preview & Mockup) ===== */}
       <FormSection
-        title="مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Preview)"
-        description="معاينة حية ومباشرة لشكل الإيصال المطبوع مع إمكانية تجربة الطباعة الحية على طابعتك."
+        title={
+          isMaritimeVertical
+            ? 'معاين ومصمم وثائق وفواتير الشحن الملاحي (Maritime Freight Invoice Preview)'
+            : isContractingVertical
+            ? 'معاين ومصمم مستخلصات المشروعات الهندسية (Contracting IPC Preview)'
+            : 'مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Preview)'
+        }
+        description={
+          isMaritimeVertical
+            ? 'معاينة حية ومباشرة لشكل فاتورة الشحن والنولون الرسمية بمقاس A4 وتذييل البوالص الملاحية.'
+            : isContractingVertical
+            ? 'معاينة حية ومباشرة لشكل مستخلص الأعمال الدوري بمقاس A4 وتذييل الاستشاري والمالك.'
+            : 'معاينة حية ومباشرة لشكل الإيصال المطبوع مع إمكانية تجربة الطباعة الحية على طابعتك.'
+        }
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', alignItems: 'start' }}>
           {/* Mockup Card */}
@@ -503,85 +516,235 @@ export function PrintingSettingsTab({
             flexDirection: 'column',
             alignItems: 'center',
           }}>
-            <div style={{
-              width: (form.watch('paperSize') || 'receipt') === 'a4' ? '100%' : '300px',
-              maxWidth: '320px',
-              background: '#ffffff',
-              border: '1px dashed #94a3b8',
-              borderRadius: '4px',
-              padding: '16px 14px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-              fontFamily: 'monospace, sans-serif',
-              fontSize: '11px',
-              color: '#0f172a',
-              lineHeight: 1.4,
-              boxSizing: 'border-box',
-            }}>
-              {/* Header */}
-              <div style={{ textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '10px', marginBottom: '10px' }}>
-                <div style={{ fontSize: '15px', fontWeight: 900 }}>{settings?.storeName || 'متجر Z-Systems التجريبي'}</div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الرئيسي • القاهرة</div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 123456 • ت.ض: 987654321</div>
-                <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700 }}>فاتورة ضريبية مبسطة</div>
-                <div style={{ fontSize: '10px', color: '#475569' }}>رقم: #Z-260818-0001 • {new Date().toLocaleDateString('ar-EG')}</div>
-              </div>
+            {isMaritimeVertical ? (
+              /* A4 Freight Invoice Mockup */
+              <div style={{
+                width: '100%',
+                maxWidth: '460px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '20px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                fontSize: '11px',
+                color: '#0f172a',
+                lineHeight: 1.5,
+                boxSizing: 'border-box',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #170e5e', paddingBottom: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>{settings?.companyName || settings?.storeName || 'شركة الملاحة والشحن الدولي'}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الملاحي الرئيسي • ميناء الإسكندرية</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 894120 • ت.ض: 456-789-012</div>
+                  </div>
+                  <div style={{ textAlign: 'left', direction: 'ltr' }}>
+                    <span style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>A4 OFFICIAL INVOICE</span>
+                    <div style={{ fontSize: '10px', color: '#475569', marginTop: '4px' }}>INV-260818-0001</div>
+                  </div>
+                </div>
 
-              {/* Items Table */}
-              <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
-                  <span>الصنف</span>
-                  <span>الكمية × السعر</span>
-                  <span>الإجمالي</span>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10px' }}>
+                  <div><span>بوليصة الشحن (B/L):</span> <strong>BL-EGY-99412</strong></div>
+                  <div><span>السفينة / الرحلة:</span> <strong>CMA CGM JULES - V.12</strong></div>
+                  <div><span>ميناء الشحن (POL):</span> <strong>Alexandria Port (EGALY)</strong></div>
+                  <div><span>ميناء التفريغ (POD):</span> <strong>Rotterdam (NLRTM)</strong></div>
+                  <div><span>عدد الحاويات:</span> <strong>2 × 40HQ (FCL)</strong></div>
+                  <div><span>فترة السماح (Demurrage):</span> <strong>14 يوم مجاني</strong></div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
-                  <span>صنف تجريبي 1</span>
-                  <span>2 × 50.00</span>
-                  <span>100.00</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
-                  <span>صنف تجريبي 2</span>
-                  <span>1 × 150.00</span>
-                  <span>150.00</span>
-                </div>
-              </div>
 
-              {/* Totals */}
-              <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>المجموع الفرعي:</span>
-                  <span>250.00 <CurrencySymbol /></span>
+                {/* Items */}
+                <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '6px', color: '#334155' }}>
+                    <span>الخدمة / البند اللوجستي</span>
+                    <span>العملة والفئة</span>
+                    <span>الإجمالي</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>نولون شحن بحري (Ocean Freight - 40HQ)</span>
+                    <span dir="ltr">2 × $1,200.00</span>
+                    <span dir="ltr" style={{ fontWeight: 700 }}>$2,400.00</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>رسوم تفريغ ومناولة محطة الحاويات (THC)</span>
+                    <span>2 × 2,100 ج.م</span>
+                    <span style={{ fontWeight: 700 }}>4,200.00 ج.م</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>إذن تسليم وإجراءات ملاحية (Delivery Order)</span>
+                    <span>مقطوع</span>
+                    <span style={{ fontWeight: 700 }}>1,500.00 ج.م</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>ضريبة القيمة المضافة (14%):</span>
-                  <span>35.00 <CurrencySymbol /></span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
-                  <span>خصم نقاط الولاء:</span>
-                  <span>-20.00 <CurrencySymbol /></span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
-                  <span>الصافي النهائي:</span>
-                  <span>265.00 <CurrencySymbol /></span>
-                </div>
-              </div>
 
-              {/* QR & Footer */}
-              <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                <div style={{
-                  display: 'inline-block',
-                  padding: '6px',
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '4px',
-                  marginBottom: '8px'
-                }}>
-                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569' }}>[ رمز QR المشفر ]</span>
+                {/* Totals */}
+                <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>إجمالي النولون الأجنبي:</span>
+                    <strong dir="ltr">$2,400.00</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>إجمالي الخدمات المحلية:</span>
+                    <strong>5,700.00 ج.م</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>ضريبة القيمة المضافة (14% على الخدمات):</span>
+                    <strong>798.00 ج.م</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 900, color: '#170e5e', marginTop: '4px', borderTop: '1px dashed #cbd5e1', paddingTop: '4px' }}>
+                    <span>الصافي الإجمالي المستحق:</span>
+                    <span dir="ltr">$2,400.00 + 6,498.00 ج.م</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>
-                  {form.watch('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً'}
+
+                {/* Footer Stamp */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                  <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+                    {form.watch('invoiceFooter') || 'شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.'}
+                  </div>
+                  <div style={{ border: '1px dashed #94a3b8', borderRadius: '4px', padding: '4px 10px', fontSize: '9px', color: '#475569', fontWeight: 700 }}>
+                    ختم التوكيل الملاحي
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : isContractingVertical ? (
+              /* A4 Contracting IPC Mockup */
+              <div style={{
+                width: '100%',
+                maxWidth: '460px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '20px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                fontSize: '11px',
+                color: '#0f172a',
+                lineHeight: 1.5,
+                boxSizing: 'border-box',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0369a1', paddingBottom: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>{settings?.companyName || settings?.storeName || 'شركة المقاولات العامة والإنشاءات'}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>مشروع: أبراج العاصمة الإدارية • مقاولة عامة</div>
+                  </div>
+                  <div style={{ textAlign: 'left', direction: 'ltr' }}>
+                    <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>IPC PROGRESS INVOICE</span>
+                    <div style={{ fontSize: '10px', color: '#475569', marginTop: '4px' }}>IPC-260818-0004</div>
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10px' }}>
+                  <div><span>رقم العقد:</span> <strong>CTR-2026-091</strong></div>
+                  <div><span>شهادة الدفع:</span> <strong>AIA G702 / G703</strong></div>
+                  <div><span>جهة الإسناد:</span> <strong>الهيئة الهندسية للتطوير</strong></div>
+                  <div><span>نسبة الإنجاز الإجمالية:</span> <strong>64.5%</strong></div>
+                </div>
+
+                <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>إجمالي الأعمال المنجزة (GWD):</span>
+                    <strong>1,450,000.00 ج.م</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c' }}>
+                    <span>استقطاع الدفعة المقدمة (10%):</span>
+                    <span>-145,000.00 ج.م</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c' }}>
+                    <span>ضمان الأعمال المحتجز (Retention 5%):</span>
+                    <span>-72,500.00 ج.م</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 900, color: '#0369a1', marginTop: '4px', borderTop: '1px dashed #cbd5e1', paddingTop: '4px' }}>
+                    <span>الصافي المستحق للصرف:</span>
+                    <span>1,232,500.00 ج.م</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                  <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+                    {form.watch('invoiceFooter') || 'المستخلص معتمد ومطابق للمواصفات الهندسية وجداول الكميات.'}
+                  </div>
+                  <div style={{ border: '1px dashed #94a3b8', borderRadius: '4px', padding: '4px 10px', fontSize: '9px', color: '#475569', fontWeight: 700 }}>
+                    اعتماد الاستشاري
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* POS / Retail Receipt Mockup */
+              <div style={{
+                width: (form.watch('paperSize') || 'receipt') === 'a4' ? '100%' : '300px',
+                maxWidth: '320px',
+                background: '#ffffff',
+                border: '1px dashed #94a3b8',
+                borderRadius: '4px',
+                padding: '16px 14px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                fontFamily: 'monospace, sans-serif',
+                fontSize: '11px',
+                color: '#0f172a',
+                lineHeight: 1.4,
+                boxSizing: 'border-box',
+              }}>
+                <div style={{ textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '10px', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 900 }}>{settings?.storeName || 'متجر Z-Systems التجريبي'}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الرئيسي • القاهرة</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 123456 • ت.ض: 987654321</div>
+                  <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700 }}>فاتورة ضريبية مبسطة</div>
+                  <div style={{ fontSize: '10px', color: '#475569' }}>رقم: #Z-260818-0001 • {new Date().toLocaleDateString('ar-EG')}</div>
+                </div>
+
+                <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
+                    <span>الصنف</span>
+                    <span>الكمية × السعر</span>
+                    <span>الإجمالي</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+                    <span>صنف تجريبي 1</span>
+                    <span>2 × 50.00</span>
+                    <span>100.00</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+                    <span>صنف تجريبي 2</span>
+                    <span>1 × 150.00</span>
+                    <span>150.00</span>
+                  </div>
+                </div>
+
+                <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>المجموع الفرعي:</span>
+                    <span>250.00 <CurrencySymbol /></span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>ضريبة القيمة المضافة (14%):</span>
+                    <span>35.00 <CurrencySymbol /></span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
+                    <span>خصم نقاط الولاء:</span>
+                    <span>-20.00 <CurrencySymbol /></span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
+                    <span>الصافي النهائي:</span>
+                    <span>265.00 <CurrencySymbol /></span>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '6px',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569' }}>[ رمز QR المشفر ]</span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>
+                    {form.watch('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً'}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Test Print Action */}
             <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
@@ -589,7 +752,11 @@ export function PrintingSettingsTab({
                 type="button"
                 variant="primary"
                 onClick={() => {
-                  const footerText = form.getValues('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً';
+                  const footerText = form.getValues('invoiceFooter') || (isMaritimeVertical ? 'شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.' : 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً');
+                  if (isMaritimeVertical || isContractingVertical) {
+                    window.print();
+                    return;
+                  }
                   const testHtml = `
                     <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
                       <h2 style="margin: 0; font-size: 14px;">${settings?.storeName || 'Z-Systems Store'}</h2>
@@ -620,7 +787,7 @@ export function PrintingSettingsTab({
                   cursor: 'pointer'
                 }}
               >
-                طباعة تجريبية حية (Test Print)
+                {isNonPosVertical ? 'معاينة وطباعة تجريبية A4' : 'طباعة تجريبية حية (Test Print)'}
               </Button>
             </div>
           </div>
@@ -629,14 +796,34 @@ export function PrintingSettingsTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                نصائح لضبط مقاس الطابعات الحرارية
+                {isMaritimeVertical
+                  ? 'إرشادات طباعة وثائق ومستندات الشحن والنولون (A4)'
+                  : isContractingVertical
+                  ? 'إرشادات طباعة مستخلصات المشروعات الهندسية (A4)'
+                  : 'نصائح لضبط مقاس الطابعات الحرارية'}
               </strong>
-              <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                <li>مقاس <b>80mm</b> هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).</li>
-                <li>مقاس <b>58mm</b> مناسب للطابعات المحمولة عبر البلوتوث وطابعات مناديب التوصيل.</li>
-                <li>تأكد من ضبط هوامش الورق في المتصفح على <b>"None" (بلا هوامش)</b> للحصول على أفضل محاذاة.</li>
-                <li>يمكنك معاينة التغييرات فورياً في النموذج المقابل وتجربة الطباعة المباشرة بضغطة زر.</li>
-              </ul>
+              {isMaritimeVertical ? (
+                <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                  <li>مقاس <b>A4</b> هو المقاس القياسي الدولي لكافة فواتير النولون وبوالص الشحن (B/L) وأذون التسليم.</li>
+                  <li>تدعم المنظومة التصدير الفوري بصيغة <b>PDF رسمية</b> أو الطباعة على كافة طابعات الليزر المكتبية (HP, Canon, Xerox).</li>
+                  <li>تتضمن الفاتورة تلقائياً أرقام الحاويات، السفينة، الرحلة، وميناءي الشحن والتفريغ.</li>
+                  <li>يمكنك تخصيص الشعار وتذييل المطبوعات الرسمية من تبويب الهوية والمؤسسة.</li>
+                </ul>
+              ) : isContractingVertical ? (
+                <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                  <li>مقاس <b>A4</b> هو المقاس الهندسي المعتمد لجداول الكميات وشهادات الدفع والمستخلصات (AIA G702).</li>
+                  <li>تتضمن الوثيقة تفصيل الأعمال المنجزة والاستقطاعات التعاقدية (الدفعة المقدمة وضمان الأعمال).</li>
+                  <li>تجهيز خانات مخصصة لختم وتوقيع مهندس الموقع، الاستشاري، والجهة المالكة.</li>
+                  <li>تصدير فوري بصيغة PDF وتجهيز ملفات الأرشفة الهندسية.</li>
+                </ul>
+              ) : (
+                <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                  <li>مقاس <b>80mm</b> هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).</li>
+                  <li>مقاس <b>58mm</b> مناسب للطابعات المحمولة عبر البلوتوث وطابعات مناديب التوصيل.</li>
+                  <li>تأكد من ضبط هوامش الورق في المتصفح على <b>"None" (بلا هوامش)</b> للحصول على أفضل محاذاة.</li>
+                  <li>يمكنك معاينة التغييرات فورياً في النموذج المقابل وتجربة الطباعة المباشرة بضغطة زر.</li>
+                </ul>
+              )}
             </div>
           </div>
         </div>

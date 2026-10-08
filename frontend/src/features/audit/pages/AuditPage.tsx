@@ -24,6 +24,10 @@ import {
 import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
 import { FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
+import { useAuthStore } from '@/stores/auth-store';
+import { settingsApi } from '@/features/settings/api/settings.api';
+import { queryKeys } from '@/app/query-keys';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { CashierFraudRadarSection } from '../components/CashierFraudRadarSection';
 import { TamperAuditTrailTab } from '../components/TamperAuditTrailTab';
 
@@ -55,6 +59,31 @@ export function AuditPage() {
   const [activityTypeFilter, setActivityTypeFilter] = useState<'all' | Exclude<AuditActivityType, 'general'>>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
+  const authTenant = useAuthStore((state) => state.tenant);
+  const { data: settings } = useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: () => settingsApi.settings(),
+  });
+  const currentVertical = resolveCurrentVertical(authTenant, settings);
+  const showCashierFraudRadar =
+    settings?.posModuleEnabled !== false &&
+    currentVertical !== 'maritime' &&
+    currentVertical !== 'contracting' &&
+    currentVertical !== 'services';
+
+  useEffect(() => {
+    if (!showCashierFraudRadar && activeTab === 'fraudRadar') {
+      setActiveTab('trail');
+    }
+  }, [showCashierFraudRadar, activeTab]);
+
+  const filteredActivityTypeOptions = useMemo(() => {
+    return auditTypeFilterOptions.filter((opt) => {
+      if (opt.value === 'maintenance' && (currentVertical === 'maritime' || currentVertical === 'contracting')) return false;
+      return true;
+    });
+  }, [currentVertical]);
 
   const usersQuery = useQuery({ queryKey: ['audit-users-filter'], queryFn: userDirectoryApi.users });
   const query = useAuditLogs({ page, pageSize, search, mode: filterMode, userId: selectedUserId });
@@ -177,44 +206,46 @@ export function AuditPage() {
             <span>سجل العمليات والأنشطة العام</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('fraudRadar')}
-            style={{
-              border: 'none',
-              padding: '8px 18px',
-              borderRadius: '8px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              background: activeTab === 'fraudRadar' ? '#170e5e' : '#f1f5f9',
-              color: activeTab === 'fraudRadar' ? '#ffffff' : '#475569',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: activeTab === 'fraudRadar' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
-              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            <ShieldAlertIcon size={16} />
-            <span>رادار كشف التلاعب ومنع الخسائر</span>
-            <span
+          {showCashierFraudRadar && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('fraudRadar')}
               style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                background: activeTab === 'fraudRadar' ? '#ef4444' : '#fee2e2',
-                color: activeTab === 'fraudRadar' ? '#ffffff' : '#991b1b',
+                border: 'none',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                fontSize: '13.5px',
                 fontWeight: 700,
+                background: activeTab === 'fraudRadar' ? '#170e5e' : '#f1f5f9',
+                color: activeTab === 'fraudRadar' ? '#ffffff' : '#475569',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: activeTab === 'fraudRadar' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
               }}
             >
-              Radar Live
-            </span>
-          </button>
+              <ShieldAlertIcon size={16} />
+              <span>رادار كشف التلاعب ومنع الخسائر</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  background: activeTab === 'fraudRadar' ? '#ef4444' : '#fee2e2',
+                  color: activeTab === 'fraudRadar' ? '#ffffff' : '#991b1b',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                Radar Live
+              </span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -256,7 +287,7 @@ export function AuditPage() {
           </button>
         </div>
 
-        {activeTab === 'fraudRadar' ? (
+        {activeTab === 'fraudRadar' && showCashierFraudRadar ? (
           <CashierFraudRadarSection />
         ) : activeTab === 'tamperTrail' ? (
           <TamperAuditTrailTab />
@@ -274,7 +305,7 @@ export function AuditPage() {
               <CustomSelect
                 value={activityTypeFilter}
                 onChange={(val) => setActivityTypeFilter(val as typeof activityTypeFilter)}
-                options={auditTypeFilterOptions}
+                options={filteredActivityTypeOptions}
               />
             </Field>
             <Field label="الموظف / المنفذ">

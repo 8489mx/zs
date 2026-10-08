@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 export function SettingsLanModesSection() {
   const [mode, setMode] = useState<string>('standalone');
@@ -29,13 +30,25 @@ export function SettingsLanModesSection() {
   }
 
   const handleSwitchToServer = async () => {
-    if (confirm('هل أنت متأكد من تحويل هذا الجهاز ليكون الجهاز الرئيسي؟ سيتم إعادة تشغيل البرنامج.')) {
+    const ok = await systemConfirm({
+      title: 'تحويل الجهاز إلى رئيسي',
+      message: 'هل أنت متأكد من تحويل هذا الجهاز ليكون الجهاز الرئيسي؟ سيتم إعادة تشغيل البرنامج.',
+      variant: 'primary',
+      confirmLabel: 'تحويل وإعادة التشغيل',
+    });
+    if (ok) {
       await electronRuntime.switchToLanServer();
     }
   };
 
   const handleSwitchToStandalone = async () => {
-    if (confirm('سيتم فصل الجهاز عن الشبكة والعودة لاستخدام قاعدة البيانات المحلية الخاصة به. هل أنت متأكد؟')) {
+    const ok = await systemConfirm({
+      title: 'العودة لجهاز مستقل',
+      message: 'سيتم فصل الجهاز عن الشبكة والعودة لاستخدام قاعدة البيانات المحلية الخاصة به. هل أنت متأكد؟',
+      variant: 'warning',
+      confirmLabel: 'تأكيد الفصل',
+    });
+    if (ok) {
       await electronRuntime.switchToStandalone();
     }
   };
@@ -68,7 +81,13 @@ export function SettingsLanModesSection() {
 
   const handleSwitchToClient = async () => {
     if (testResult?.ok) {
-      if (confirm('بيانات هذا الجهاز المحلية لن تُحذف، لكنها لن تُستخدم أثناء الاتصال بالجهاز الرئيسي. هل أنت متأكد؟')) {
+      const ok = await systemConfirm({
+        title: 'التحويل إلى جهاز ثانوي',
+        message: 'بيانات هذا الجهاز المحلية لن تُحذف، لكنها لن تُستخدم أثناء الاتصال بالجهاز الرئيسي. هل أنت متأكد؟',
+        variant: 'warning',
+        confirmLabel: 'تأكيد الاتصال',
+      });
+      if (ok) {
         const url = serverUrl.replace(/\/$/, '');
         await electronRuntime.switchToLanClient({ serverUrl: url, port: 3001 });
       }

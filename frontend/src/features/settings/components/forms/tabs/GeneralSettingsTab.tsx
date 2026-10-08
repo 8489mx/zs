@@ -306,6 +306,12 @@ export function GeneralSettingsTab({
     ? 'مخزن الموقع / التشوين الافتراضي'
     : 'مكان الاستلام الافتراضي';
 
+  const branchFieldLabel = isContractingVertical
+    ? 'مقر الإدارة / الفرع الرئيسي'
+    : isMaritimeVertical
+    ? 'المكتب / الفرع الملاحي الرئيسي'
+    : 'الفرع الرئيسي';
+
   const info = getPillarBadgeInfo(rawAct, tenant?.pillar);
 
   return (
@@ -572,16 +578,18 @@ export function GeneralSettingsTab({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                إعدادات التشغيل والمخزون
+                {isContractingVertical ? 'المقر الإداري ومواقع العمل' : isMaritimeVertical ? 'المكتب والمقر الملاحي الرئيسي' : 'إعدادات التشغيل والمخزون'}
               </strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>الفرع الرئيسي ومخازن ونمط الكاشير</span>
+              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                {isContractingVertical ? 'مقر الإدارة ومخزن التشوين الميداني الافتراضي' : isMaritimeVertical ? 'المكتب المعتمد كمركز إدارة وتنسيق العمليات والتوكيلات الملاحية' : 'الفرع الرئيسي ومخازن ونمط الكاشير'}
+              </span>
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Branch Selector */}
             {SINGLE_STORE_MODE ? (
-              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+              <RequiredField label={branchFieldLabel} error={form.formState.errors.currentBranchId?.message}>
                 <input
                   className="purchase-prototype-field-input"
                   value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'}
@@ -591,7 +599,7 @@ export function GeneralSettingsTab({
                 />
               </RequiredField>
             ) : (
-              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+              <RequiredField label={branchFieldLabel} error={form.formState.errors.currentBranchId?.message}>
                 <div style={{ position: 'relative' }}>
                   <input
                     className="purchase-prototype-field-input"
@@ -654,44 +662,79 @@ export function GeneralSettingsTab({
               </RequiredField>
             )}
 
-            {/* Receiving Location & Cashier Mode Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: isNonPosVertical ? '1fr' : '1fr 1fr', gap: '10px' }}>
-              <RequiredField label={locationFieldLabel} error={form.formState.errors.currentLocationId?.message}>
-                {visibleLocations.length === 0 ? (
-                  <div style={{ padding: '6px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.78rem' }}>
-                    لا توجد أماكن مخزون.
-                  </div>
-                ) : (
-                  <CustomSelect
-                    value={form.watch('currentLocationId') || ''}
-                    onChange={(val) => form.setValue('currentLocationId', val, { shouldDirty: true, shouldValidate: true })}
-                    options={[
-                      { value: '', label: '-- اختر المخزن --' },
-                      ...visibleLocations.map((loc) => ({ value: String(loc.id), label: loc.name })),
-                    ]}
-                    disabled={disabled}
-                  />
-                )}
-              </RequiredField>
-
-              {!isNonPosVertical && (
+            {/* Maritime Operations Settings OR Receiving Location & Cashier Mode Grid */}
+            {isMaritimeVertical ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div className="field">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    عملة تسعير النولون الافتراضية
+                  </label>
                   <CustomSelect
-                    value={form.watch('defaultPosMode') || 'scanner'}
-                    onChange={(val) => form.setValue('defaultPosMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                    value={form.watch('maritimeDefaultCurrency') || 'USD'}
+                    onChange={(val) => form.setValue('maritimeDefaultCurrency', val as any, { shouldDirty: true, shouldValidate: true })}
                     options={[
-                      { value: 'scanner', label: 'سكانر باركود' },
-                      { value: 'touch', label: 'لمس (تاتش)' },
+                      { value: 'USD', label: 'دولار أمريكي (USD)' },
+                      { value: 'EUR', label: 'يورو (EUR)' },
+                      { value: 'EGP', label: 'جنيه مصري (EGP)' },
                     ]}
                     disabled={disabled}
                   />
                 </div>
-              )}
-            </div>
+                <div className="field">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    أيام السماح المجانية للحاويات (Demurrage)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="90"
+                    className="purchase-prototype-field-input"
+                    value={form.watch('maritimeDemurrageFreeDays') ?? 14}
+                    onChange={(e) => form.setValue('maritimeDemurrageFreeDays', Math.max(1, parseInt(e.target.value) || 14), { shouldDirty: true, shouldValidate: true })}
+                    disabled={disabled}
+                    style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isNonPosVertical ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                <RequiredField label={locationFieldLabel} error={form.formState.errors.currentLocationId?.message}>
+                  {visibleLocations.length === 0 ? (
+                    <div style={{ padding: '6px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.78rem' }}>
+                      لا توجد أماكن مخزون.
+                    </div>
+                  ) : (
+                    <CustomSelect
+                      value={form.watch('currentLocationId') || ''}
+                      onChange={(val) => form.setValue('currentLocationId', val, { shouldDirty: true, shouldValidate: true })}
+                      options={[
+                        { value: '', label: '-- اختر المخزن --' },
+                        ...visibleLocations.map((loc) => ({ value: String(loc.id), label: loc.name })),
+                      ]}
+                      disabled={disabled}
+                    />
+                  )}
+                </RequiredField>
+
+                {!isNonPosVertical && (
+                  <div className="field">
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
+                    <CustomSelect
+                      value={form.watch('defaultPosMode') || 'scanner'}
+                      onChange={(val) => form.setValue('defaultPosMode', val as any, { shouldDirty: true, shouldValidate: true })}
+                      options={[
+                        { value: 'scanner', label: 'سكانر باركود' },
+                        { value: 'touch', label: 'لمس (تاتش)' },
+                      ]}
+                      disabled={disabled}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Sales Stock Source (Branch-level stock settings) */}
-            {selectedBranch && onUpdateBranch && (
+            {!isNonPosVertical && selectedBranch && onUpdateBranch && (
               <div style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',

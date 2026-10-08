@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import {
   COUNTRY_BY_CODE,
   detectCountryFromPhone,
@@ -16,24 +17,24 @@ import {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  height: '38px',
-  minHeight: '38px',
-  padding: '0 12px',
-  fontSize: '0.86rem',
+  height: '32px',
+  minHeight: '32px',
+  padding: '0 8px',
+  fontSize: '0.82rem',
   fontWeight: 600,
   color: '#0f172a',
   background: '#ffffff',
   border: '1px solid #cbd5e1',
-  borderRadius: '8px',
+  borderRadius: '6px',
   boxSizing: 'border-box',
 };
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '0.78rem',
+  fontSize: '0.74rem',
   fontWeight: 700,
   color: '#334155',
-  marginBottom: '4px',
+  marginBottom: '2px',
 };
 
 export function UserManagementEditorCard({
@@ -64,6 +65,10 @@ export function UserManagementEditorCard({
         : '';
 
   const currentUser = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
   const isPlatformUser = isPlatformAdmin(currentUser);
 
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
@@ -149,51 +154,47 @@ export function UserManagementEditorCard({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* Sleek Identity Strip */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '10px 16px',
-        background: '#f8fafc',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0',
-        flexWrap: 'wrap',
-        gap: '8px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '6px',
-            background: '#0f172a',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.9rem',
-          }}>
-            {(draft.name || draft.username || 'U')[0].toUpperCase()}
-          </div>
-          <div>
-            <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>
-              {draft.name || draft.username || 'مستخدم جديد'}
-            </strong>
-            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              {draft.id ? `آخر دخول: ${formatDateTime(draft.lastLoginAt)}` : 'جاري إنشاء حساب جديد'}
-              {isCurrentUserSelected ? ' · (حسابك الحالي)' : ''}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* Sleek Identity Strip (Rendered only when editing an existing user) */}
+      {draft.id ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '4px 10px',
+          background: '#f8fafc',
+          borderRadius: '6px',
+          border: '1px solid #e2e8f0',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              background: '#0f172a',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+            }}>
+              {(draft.name || draft.username || 'U')[0].toUpperCase()}
             </div>
+            <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>
+              {draft.name || draft.username}
+            </strong>
+            <span style={{ fontSize: '0.70rem', color: '#64748b' }}>
+              (آخر دخول: {formatDateTime(draft.lastLoginAt)})
+              {isCurrentUserSelected ? ' · حسابك الحالي' : ''}
+            </span>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{
-            fontSize: '0.74rem',
+            fontSize: '0.70rem',
             fontWeight: 700,
-            padding: '3px 10px',
-            borderRadius: '12px',
+            padding: '2px 8px',
+            borderRadius: '10px',
             background: draft.isActive !== false ? '#dcfce7' : '#fee2e2',
             color: draft.isActive !== false ? '#166534' : '#991b1b',
             border: `1px solid ${draft.isActive !== false ? '#bbf7d0' : '#fecaca'}`,
@@ -201,10 +202,10 @@ export function UserManagementEditorCard({
             {draft.isActive !== false ? 'نشط ومفعّل' : 'حساب موقوف'}
           </span>
         </div>
-      </div>
+      ) : null}
 
-      {/* Main 3-Column Compact Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+      {/* Main 4-Column Compact Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
         {/* 1. Username */}
         <div>
           <label style={labelStyle}>اسم المستخدم (Login ID)</label>
@@ -212,24 +213,41 @@ export function UserManagementEditorCard({
             style={inputStyle}
             value={draft.username}
             onChange={(e) => onDraftChange((current) => ({ ...current, username: e.target.value }))}
-            placeholder="مثال: ahmed_pos"
+            placeholder={isMaritime ? 'مثال: ahmed_ops' : isContracting ? 'مثال: eng_ahmed' : 'مثال: ahmed_pos'}
           />
         </div>
 
-        {/* 2. Unified Mobile Phone Input with Custom Floating Combobox on the LEFT */}
+        {/* 2. Display Name */}
+        <div>
+          <label style={labelStyle}>الاسم المعروض (Display Name)</label>
+          <input
+            style={inputStyle}
+            value={draft.name}
+            onChange={(e) => onDraftChange((current) => ({ ...current, name: e.target.value }))}
+            placeholder={
+              isMaritime
+                ? 'مثال: أحمد محمد (عمليات شحن)'
+                : isContracting
+                ? 'مثال: م. أحمد محمد (مدير مشروع)'
+                : 'مثال: أحمد محمد (كاشير)'
+            }
+          />
+        </div>
+
+        {/* 3. Unified Mobile Phone Input with Custom Floating Combobox on the LEFT */}
         <div ref={countryDropdownRef} style={{ position: 'relative' }}>
           <label style={labelStyle} dir="rtl">
             <span>رقم الهاتف المحمول</span>
-            <span style={{ color: '#dc2626', marginInlineStart: '3px' }}>*</span>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginInlineStart: '6px' }} dir="ltr">(Mobile Phone)</span>
+            <span style={{ color: '#dc2626', marginInlineStart: '2px' }}>*</span>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, marginInlineStart: '4px' }} dir="ltr">(Mobile)</span>
           </label>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               width: '100%',
-              height: '38px',
-              minHeight: '38px',
+              height: '32px',
+              minHeight: '32px',
               background: '#ffffff',
               border: `1px solid ${
                 !draft.phone
@@ -238,7 +256,7 @@ export function UserManagementEditorCard({
                   ? '#16a34a'
                   : '#ef4444'
               }`,
-              borderRadius: '8px',
+              borderRadius: '6px',
               boxSizing: 'border-box',
               overflow: 'hidden',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
@@ -259,28 +277,27 @@ export function UserManagementEditorCard({
                 background: '#f8fafc',
                 border: 'none',
                 borderRight: '1px solid #cbd5e1',
-                padding: '0 10px',
-                gap: '6px',
+                padding: '0 6px',
+                gap: '4px',
                 cursor: 'pointer',
                 flexShrink: 0,
                 outline: 'none',
-                transition: 'background 0.15s ease',
               }}
               title="اختر الدولة"
             >
-              <span style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0f172a' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a' }}>
                 {currentCountryDef.code === 'OTHER' ? 'INTL' : currentCountryDef.code}
               </span>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }} dir="ltr">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }} dir="ltr">
                 {currentCountryDef.dialCode}
               </span>
               <svg
-                width="8"
-                height="5"
+                width="7"
+                height="4"
                 viewBox="0 0 8 5"
                 fill="none"
                 style={{
-                  marginInlineStart: '2px',
+                  marginInlineStart: '1px',
                   transition: 'transform 0.18s ease',
                   transform: isCountryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                 }}
@@ -294,8 +311,8 @@ export function UserManagementEditorCard({
               style={{
                 flex: 1,
                 height: '100%',
-                padding: '0 10px',
-                fontSize: '0.88rem',
+                padding: '0 8px',
+                fontSize: '0.82rem',
                 fontWeight: 600,
                 color: '#0f172a',
                 background: 'transparent',
@@ -326,8 +343,8 @@ export function UserManagementEditorCard({
               style={{
                 top: 'calc(100% + 4px)',
                 left: 0,
-                width: 'max(100%, 250px)',
-                maxHeight: '230px',
+                width: 'max(100%, 230px)',
+                maxHeight: '200px',
                 overflowY: 'auto',
                 background: '#ffffff',
                 border: '1px solid #cbd5e1',
@@ -353,23 +370,23 @@ export function UserManagementEditorCard({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '7px 10px',
-                      borderRadius: '6px',
+                      padding: '5px 8px',
+                      borderRadius: '5px',
                       cursor: 'pointer',
                       background: isSelected ? '#f8fafc' : isHighlighted ? '#f1f5f9' : 'transparent',
                       color: '#0f172a',
                       fontWeight: isSelected ? 700 : 500,
-                      fontSize: '0.84rem',
-                      gap: '8px',
+                      fontSize: '0.80rem',
+                      gap: '6px',
                       border: isSelected ? '1px solid #e2e8f0' : '1px solid transparent',
                       boxSizing: 'border-box',
                       transition: 'background 0.12s ease',
                       direction: 'rtl',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {isSelected && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#170e5e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#170e5e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}
@@ -378,11 +395,11 @@ export function UserManagementEditorCard({
 
                     <span
                       style={{
-                        fontSize: '0.74rem',
+                        fontSize: '0.70rem',
                         fontWeight: 700,
                         color: isSelected ? '#170e5e' : '#64748b',
                         background: isSelected ? '#eff6ff' : '#f1f5f9',
-                        padding: '2px 6px',
+                        padding: '1px 5px',
                         borderRadius: '4px',
                         border: `1px solid ${isSelected ? '#bfdbfe' : '#e2e8f0'}`,
                       }}
@@ -397,33 +414,34 @@ export function UserManagementEditorCard({
           )}
         </div>
 
-        {/* 3. Display Name */}
-        <div>
-          <label style={labelStyle}>الاسم المعروض (Display Name)</label>
-          <input
-            style={inputStyle}
-            value={draft.name}
-            onChange={(e) => onDraftChange((current) => ({ ...current, name: e.target.value }))}
-            placeholder="مثال: أحمد محمد (كاشير)"
-          />
-        </div>
-
         {/* 4. Role */}
         <div>
           <label style={labelStyle}>مستوى النظام الأساسي (Role)</label>
           <select
-            style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
+            style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '20px' }}
             value={draft.role}
             onChange={(e) => onApplyRolePermissions(e.target.value as 'super_admin' | 'admin' | 'cashier')}
             disabled={draft.role === 'super_admin' && !isPlatformUser}
           >
-            <option value="cashier">كاشير (مستخدم مبيعات وتشغيل)</option>
-            <option value="admin">مدير / مالك المنشأة (كامل صلاحيات المنشأة)</option>
+            <option value="cashier">
+              {isMaritime
+                ? 'مسؤول عمليات شحن وتتبع (Ops)'
+                : isContracting
+                ? 'مهندس موقع / مسؤول مشاريع'
+                : 'كاشير (مبيعات وتشغيل)'}
+            </option>
+            <option value="admin">
+              {isMaritime
+                ? 'مدير / مالك المكتب الملاحي'
+                : isContracting
+                ? 'مدير مشاريع / مالك المنشأة'
+                : 'مدير / مالك المنشأة'}
+            </option>
             {isPlatformUser ? (
-              <option value="super_admin">سوبر أدمن (إدارة المنصة المركزية)</option>
+              <option value="super_admin">سوبر أدمن (إدارة المنصة)</option>
             ) : draft.role === 'super_admin' ? (
               <option value="super_admin" disabled>
-                سوبر أدمن (إدارة المنصة المركزية)
+                سوبر أدمن (إدارة المنصة)
               </option>
             ) : null}
           </select>
@@ -431,14 +449,14 @@ export function UserManagementEditorCard({
 
         {/* 5. Password */}
         <div>
-          <label style={labelStyle}>كلمة المرور الجديدة / الأولى</label>
+          <label style={labelStyle}>كلمة المرور</label>
           <input
             type="text"
             className="secure-password-field"
             style={inputStyle}
             value={draft.password || ''}
             onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))}
-            placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'}
+            placeholder={draft.id ? 'اتركها فارغة للتخطي' : 'مطلوبة للمستخدم الجديد'}
             autoComplete="new-password"
             data-lpignore="true"
             data-1p-ignore="true"
@@ -446,22 +464,24 @@ export function UserManagementEditorCard({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
+            title={PASSWORD_MIN_LENGTH_HINT}
           />
-          <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
-            {PASSWORD_MIN_LENGTH_HINT}
-          </span>
         </div>
 
         {/* 6. Default Branch */}
         {!SINGLE_STORE_MODE ? (
           <div>
-            <label style={labelStyle}>الفرع الافتراضي</label>
+            <label style={labelStyle}>
+              {isMaritime ? 'المكتب الملاحي الافتراضي' : isContracting ? 'المقر / موقع العمل الافتراضي' : 'الفرع الافتراضي'}
+            </label>
             <select
-              style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
+              style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '20px' }}
               value={draft.defaultBranchId}
               onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}
             >
-              <option value="">بدون افتراضي</option>
+              <option value="">
+                {isMaritime ? 'بدون مقر افتراضي' : isContracting ? 'بدون موقع افتراضي' : 'بدون افتراضي'}
+              </option>
               {branches.filter((branch) => draft.branchIds.includes(branch.id)).map((branch) => (
                 <option key={branch.id} value={branch.id}>{branch.name}</option>
               ))}
@@ -471,46 +491,46 @@ export function UserManagementEditorCard({
           <div />
         )}
 
-        {/* 7. Account Status & Security */}
-        <div style={{ gridColumn: 'span 3' }}>
+        {/* 7. Account Status & Security (Spans 2 columns) */}
+        <div style={{ gridColumn: 'span 2' }}>
           <label style={labelStyle}>حالة الحساب والأمان</label>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '14px',
-            height: '38px',
-            padding: '0 10px',
+            gap: '12px',
+            height: '32px',
+            padding: '0 8px',
             background: '#ffffff',
             border: '1px solid #cbd5e1',
-            borderRadius: '8px',
+            borderRadius: '6px',
             boxSizing: 'border-box',
           }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
               <input
                 type="checkbox"
                 checked={draft.isActive !== false}
                 disabled={!canDirectlyDisableSelected && draft.isActive !== false}
                 onChange={(e) => onDraftChange((current) => ({ ...current, isActive: e.target.checked }))}
-                style={{ accentColor: '#0f172a', width: '16px', height: '16px', margin: 0 }}
+                style={{ accentColor: '#0f172a', width: '14px', height: '14px', margin: 0 }}
               />
-              <span>نشط</span>
+              <span>نشط ومفعّل</span>
             </label>
 
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
               <input
                 type="checkbox"
                 checked={draft.mustChangePassword === true}
                 onChange={(e) => onDraftChange((current) => ({ ...current, mustChangePassword: e.target.checked }))}
-                style={{ accentColor: '#0f172a', width: '16px', height: '16px', margin: 0 }}
+                style={{ accentColor: '#0f172a', width: '14px', height: '14px', margin: 0 }}
               />
-              <span>تغيير كلمة المرور</span>
+              <span>إلزام تغيير كلمة المرور</span>
             </label>
+            {!canDirectlyDisableSelected ? (
+              <span style={{ fontSize: '0.68rem', color: '#dc2626', marginInlineStart: 'auto' }}>
+                محمي: {disableReasonLabel}
+              </span>
+            ) : null}
           </div>
-          {!canDirectlyDisableSelected ? (
-            <span style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '2px', display: 'block' }}>
-              لا يمكن إيقافه: {disableReasonLabel}
-            </span>
-          ) : null}
         </div>
       </div>
     </div>

@@ -11,7 +11,15 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { LocationFormProps } from '@/features/settings/components/forms/settings-forms.shared';
 
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
+
 export function LocationForm({ branches, canManageSettings, setupMode = false, onSetupAdvance, initialValues, onCreated }: LocationFormProps) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
+
   const form = useForm<LocationFormInput, undefined, LocationFormOutput>({
     resolver: zodResolver(locationFormSchema),
     defaultValues: { name: initialValues?.name || '', code: initialValues?.code || '', branchId: initialValues?.branchId || '', locationType: initialValues?.locationType || 'internal_warehouse' },
@@ -35,16 +43,52 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
     mutation.mutate(({ ...values, branchId: SINGLE_STORE_MODE ? (values.branchId || branches[0]?.id || '') : values.branchId }) as LocationFormValues)
   );
 
+  const nameLabel = isMaritime
+    ? 'اسم الميناء / محطة الحاويات'
+    : isContracting
+    ? 'اسم موقع التشوين الميداني'
+    : SINGLE_STORE_MODE
+    ? 'اسم المخزن الأساسي'
+    : 'اسم المخزن';
+
+  const codeLabel = isMaritime
+    ? 'كود الميناء الدولي (UN/LOCODE)'
+    : isContracting
+    ? 'كود موقع التشوين'
+    : 'كود المخزن';
+
+  const branchLabel = isMaritime
+    ? 'المكتب الملاحي المشرف'
+    : isContracting
+    ? 'المقر الإداري / المشروع التابع له'
+    : 'الفرع المرتبط';
+
+  const idleButtonText = isMaritime
+    ? 'حفظ الميناء / المحطة'
+    : isContracting
+    ? 'حفظ موقع التشوين'
+    : SINGLE_STORE_MODE
+    ? 'حفظ بيانات المخزن الأساسي'
+    : 'حفظ المخزن';
+
+  const successMessage = isMaritime
+    ? 'تمت إضافة الميناء / المحطة بنجاح.'
+    : isContracting
+    ? 'تمت إضافة موقع التشوين بنجاح.'
+    : SINGLE_STORE_MODE
+    ? 'تم حفظ بيانات المخزن الأساسي بنجاح.'
+    : 'تمت إضافة المخزن بنجاح.';
+
   return (
     <div className="form-grid">
-      <Field label={SINGLE_STORE_MODE ? 'اسم المخزن الأساسي' : 'اسم المخزن'} error={form.formState.errors.name?.message}>
+      <Field label={nameLabel} error={form.formState.errors.name?.message}>
         <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
       </Field>
-      <Field label="كود المخزن">
-        <input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} />
+      <Field label={codeLabel}>
+        <input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} placeholder={isMaritime ? 'مثال: EGALY, EGPSD' : ''} />
       </Field>
       {!SINGLE_STORE_MODE ? (
-        <Field label="الفرع المرتبط">
+        <Field label={branchLabel}>
           <select {...form.register('branchId')} disabled={mutation.isPending || !canManageSettings}>
             <option value="">بدون ربط</option>
             {branches.map((branch) => (
@@ -55,17 +99,31 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           </select>
         </Field>
       ) : null}
-      <Field label="نوع المخزن">
+      <Field label={isMaritime ? 'طبيعة الموقع الملاحي' : isContracting ? 'نوع موقع التشوين' : 'نوع المخزن'}>
         <select {...form.register('locationType')} disabled={mutation.isPending || !canManageSettings}>
-          <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
-          <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
+          {isMaritime ? (
+            <>
+              <option value="internal_warehouse">محطة / ساحة تخزين حاويات ومستودع لوجستي</option>
+              <option value="branch_stock">ميناء بحري / رصيف شحن وتفريغ</option>
+            </>
+          ) : isContracting ? (
+            <>
+              <option value="internal_warehouse">موقع تشوين رئيسي</option>
+              <option value="branch_stock">تشوين فرعي للمشروع</option>
+            </>
+          ) : (
+            <>
+              <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
+              <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
+            </>
+          )}
         </select>
       </Field>
 
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title={SINGLE_STORE_MODE ? 'بيانات المخزن الأساسي غير محفوظة' : 'بيانات المخزن الجديد غير محفوظة'}
-        hint={SINGLE_STORE_MODE ? 'احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.' : 'احفظ المخزن أو أعد ضبط الحقول قبل مغادرة هذا النموذج.'}
+        title={isMaritime ? 'بيانات الموقع الملاحي غير محفوظة' : SINGLE_STORE_MODE ? 'بيانات المخزن الأساسي غير محفوظة' : 'بيانات المخزن الجديد غير محفوظة'}
+        hint={isMaritime ? 'احفظ بيانات الموقع الملاحي أو أعد ضبط الحقول.' : SINGLE_STORE_MODE ? 'احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.' : 'احفظ المخزن أو أعد ضبط الحقول قبل مغادرة هذا النموذج.'}
       />
 
       <div className="actions compact-actions sticky-form-actions">
@@ -86,7 +144,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
         isSuccess={mutation.isSuccess}
         error={mutation.error}
         errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
-        successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المخزن الأساسي بنجاح.' : 'تمت إضافة المخزن بنجاح.'}
+        successText={successMessage}
       />
 
       <SubmitButton
@@ -98,7 +156,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           event.stopPropagation();
           void handleSaveWarehouse();
         }}
-        idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المخزن الأساسي' : 'حفظ المخزن'}
+        idleText={idleButtonText}
         pendingText="جارٍ الحفظ..."
       />
     </div>

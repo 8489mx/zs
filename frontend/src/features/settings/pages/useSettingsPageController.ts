@@ -9,8 +9,8 @@ import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetup
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { useSettingsReferenceFilters } from '@/features/settings/hooks/useSettingsReferenceFilters';
 import { activationApi } from '@/shared/api/activation';
-import { getPostLoginRoute } from '@/app/router/post-login-route';
 import { isPlatformAdmin } from '@/app/router/access';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import {
   type SettingsConfirmAction,
   buildSettingsGuidanceCards,
@@ -23,7 +23,9 @@ export function useSettingsPageController(section: SettingsSectionKey) {
   const queryClient = useQueryClient();
   const workspace = useSettingsAdminWorkspace(section as never);
   const currentUser = useAuthStore((state) => state.user);
+  const tenant = useAuthStore((state) => state.tenant);
   const currentUserRole = useAuthStore((state) => state.user?.role || 'cashier');
+  const currentVertical = resolveCurrentVertical(tenant, workspace.settings);
   const setAppGate = useAuthStore((state) => state.setAppGate);
   const canManageSettings = useHasAnyPermission(['settings', 'canManageSettings']);
   const canManageBackups = useHasAnyPermission('canManageBackups');

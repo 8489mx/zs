@@ -1,5 +1,7 @@
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSettings, isBusy, setupMode }: {
   branch: Branch;
@@ -81,6 +83,21 @@ export function LocationRowActions({ location, onStartEdit, onDelete, canManageS
   isBusy: boolean;
   mutationError?: unknown;
 }) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const vertical = resolveCurrentVertical(tenant);
+  const isMaritime = vertical === 'maritime';
+  const isContracting = vertical === 'contracting';
+
+  const badgeText = location.locationType === 'branch_stock'
+    ? (isMaritime ? 'رصيف ميناء وتشغيل' : isContracting ? 'تشوين ميداني نشط' : 'رصيد فرع')
+    : (isMaritime ? 'محطة / مستودع جمركي' : isContracting ? 'مخزن تشوين رئيسي' : 'مخزن داخلي');
+
+  const branchPrefix = isMaritime
+    ? (location.branchName ? `المكتب الملاحي: ${location.branchName}` : 'بدون مكتب ملاحي')
+    : isContracting
+    ? (location.branchName ? `المشروع / المقر: ${location.branchName}` : 'بدون مشروع مرتبط')
+    : (location.branchName ? `الفرع: ${location.branchName}` : 'بدون فرع');
+
   return (
     <div style={{
       display: 'flex',
@@ -97,16 +114,16 @@ export function LocationRowActions({ location, onStartEdit, onDelete, canManageS
           <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{location.name}</strong>
           {location.locationType === 'branch_stock' ? (
             <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '4px' }}>
-              رصيد فرع
+              {badgeText}
             </span>
           ) : (
             <span style={{ fontSize: '0.7rem', fontWeight: 600, backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>
-              مخزن داخلي
+              {badgeText}
             </span>
           )}
         </div>
         <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-          {location.branchName ? `الفرع: ${location.branchName}` : 'بدون فرع'}
+          {branchPrefix}
           {location.code ? ` · الكود: ${location.code}` : ''}
         </div>
       </div>

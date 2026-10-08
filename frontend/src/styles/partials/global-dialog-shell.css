@@ -86,8 +86,10 @@ body.dialog-shell-open #root {
 .dialog-shell.dialog-compact > form,
 .dialog-shell.dialog-compact > .dialog-content,
 .dialog-shell.dialog-compact > .dialog-body,
-.dialog-shell.dialog-compact > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
-  padding: 14px 18px !important;
+.dialog-shell.dialog-compact > .dialog-card,
+.dialog-shell.dialog-compact .user-management-dialog-card,
+.dialog-shell.dialog-compact > div:not(.pos-workspace):not(.full-bleed):not(.page-stack) {
+  padding: 12px 18px !important;
 }
 
 .dialog-shell.dialog-compact .standard-dialog-header {
