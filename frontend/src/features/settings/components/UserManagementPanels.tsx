@@ -22,11 +22,6 @@ import { UserManagementSetupHeader } from '@/features/settings/components/user-m
 import { useAuthStore } from '@/stores/auth-store';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
-const roleLabel: Record<ManagedUserRecord['role'], string> = {
-  super_admin: 'سوبر أدمن',
-  admin: 'مدير نظام',
-  cashier: 'كاشير'
-};
 
 export function UserManagementListPanel({
   managedUsers,

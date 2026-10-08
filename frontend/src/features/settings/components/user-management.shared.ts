@@ -367,7 +367,8 @@ export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cash
   };
 }
 
-export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | undefined, vertical?: string): ManagedUserRecord {
+export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | undefined, verticalOrIndex?: string | number): ManagedUserRecord {
+  const vertical = typeof verticalOrIndex === 'string' ? verticalOrIndex : undefined;
   const role = user?.role === 'super_admin' ? 'super_admin' : user?.role === 'admin' ? 'admin' : 'cashier';
   const fallback = blankUserDraft(role, vertical);
   return {

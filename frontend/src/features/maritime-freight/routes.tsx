@@ -32,8 +32,8 @@ export const maritimeFreightRouteModule: FeatureRouteModule = {
     },
   ],
   navigation: [
-    { key: 'maritime-dashboard', label: 'لوحة المؤشرات والتحليلات', to: '/maritime/dashboard' },
     { key: 'maritime-inquiries', label: 'استفسارات شحن العملاء', to: '/maritime/inquiries' },
+    { key: 'maritime-dashboard', label: 'لوحة المؤشرات والتحليلات', to: '/maritime/dashboard' },
     { key: 'maritime-rfqs', label: 'عروض تسعير الخطوط (RFQ)', to: '/maritime/rfqs' },
     { key: 'maritime-matrix', label: 'مقارنة عروض الخطوط', to: '/maritime/matrix' },
     { key: 'maritime-quotations', label: 'عروض أسعار العملاء', to: '/maritime/quotations' },

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { SettingsSectionContent } from '@/features/settings/pages/SettingsSectionContent';
 import { isSettingsSection, settingsSections, settingsStandaloneLinks, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
@@ -12,7 +11,6 @@ import { useSettingsPageController } from '@/features/settings/pages/useSettings
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
-import { demoDataApi } from '@/features/settings/api/demo-data.api';
 import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsPage() {
@@ -33,13 +31,6 @@ export function SettingsPage() {
   const isPlatform = isPlatformAdmin(currentUser);
 
   const hasFeature = (feat: string) => isPlatform || Boolean(tenant?.features?.includes(feat));
-
-  const demoStatusQuery = useQuery({
-    queryKey: ['demo-data', 'status'],
-    queryFn: () => demoDataApi.getStatus(),
-    staleTime: 30_000,
-    enabled: section === 'demo-data' && !isPlatform,
-  });
   
   if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.superAdminOnly && !isPlatform) return <Navigate to="/settings/core" replace />;

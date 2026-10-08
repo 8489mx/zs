@@ -1,28 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { getFilteredPermissionGroups, getPermissionLabel } from '@/features/settings/components/user-management.shared';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
-
-const optionStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '8px 12px',
-  border: '1px solid #e2e8f0',
-  borderRadius: '8px',
-  background: '#ffffff',
-  transition: 'all 0.15s ease',
-};
-
-const checkboxStyle: React.CSSProperties = {
-  width: 16,
-  height: 16,
-  margin: 0,
-  accentColor: '#0f172a',
-  cursor: 'pointer',
-  flexShrink: 0,
-};
 
 export function UserManagementBranchAccess({
   branches,

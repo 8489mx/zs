@@ -25,7 +25,7 @@ import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
 import { FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useAuthStore } from '@/stores/auth-store';
-import { settingsApi } from '@/features/settings/api/settings.api';
+import { settingsApi } from '@/features/settings';
 import { queryKeys } from '@/app/query-keys';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { CashierFraudRadarSection } from '../components/CashierFraudRadarSection';

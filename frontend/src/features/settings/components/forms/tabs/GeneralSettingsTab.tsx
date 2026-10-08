@@ -689,7 +689,7 @@ export function GeneralSettingsTab({
                     min="1"
                     max="90"
                     className="purchase-prototype-field-input"
-                    value={form.watch('maritimeDemurrageFreeDays') ?? 14}
+                    value={Number(form.watch('maritimeDemurrageFreeDays') || 14)}
                     onChange={(e) => form.setValue('maritimeDemurrageFreeDays', Math.max(1, parseInt(e.target.value) || 14), { shouldDirty: true, shouldValidate: true })}
                     disabled={disabled}
                     style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box' }}

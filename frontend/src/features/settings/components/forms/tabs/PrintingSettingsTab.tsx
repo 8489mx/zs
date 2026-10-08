@@ -533,7 +533,7 @@ export function PrintingSettingsTab({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #170e5e', paddingBottom: '12px', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>{settings?.companyName || settings?.storeName || 'شركة الملاحة والشحن الدولي'}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>{(settings as any)?.companyName || settings?.storeName || 'شركة الملاحة والشحن الدولي'}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الملاحي الرئيسي • ميناء الإسكندرية</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 894120 • ت.ض: 456-789-012</div>
                   </div>
@@ -623,7 +623,7 @@ export function PrintingSettingsTab({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0369a1', paddingBottom: '12px', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>{settings?.companyName || settings?.storeName || 'شركة المقاولات العامة والإنشاءات'}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>{(settings as any)?.companyName || settings?.storeName || 'شركة المقاولات العامة والإنشاءات'}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>مشروع: أبراج العاصمة الإدارية • مقاولة عامة</div>
                   </div>
                   <div style={{ textAlign: 'left', direction: 'ltr' }}>

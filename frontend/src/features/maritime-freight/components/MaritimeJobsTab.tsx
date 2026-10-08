@@ -125,7 +125,7 @@ export function MaritimeJobsTab({
 
   const oceanJobsCount = jobs.filter((j) => (j.transport_mode || 'sea') === 'sea').length;
   const airRoadJobsCount = jobs.filter((j) => j.transport_mode === 'air' || j.transport_mode === 'road').length;
-  const completedCount = jobs.filter((j) => j.stage === 'customs_cleared' || j.stage === 'delivered' || j.stage === 'completed').length;
+  const completedCount = jobs.filter((j) => j.status === 'completed' || j.milestone_status === 'DLVR' || j.milestone_status === 'DLV').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

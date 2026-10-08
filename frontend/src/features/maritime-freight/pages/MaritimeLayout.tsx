@@ -137,7 +137,6 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
 
   const {
     counts,
-    refreshCounts,
     refreshAll,
     isRefreshing,
     isCreateRfqOpen,

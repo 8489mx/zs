@@ -34,7 +34,7 @@ export function SettingsLanModesSection() {
       title: 'تحويل الجهاز إلى رئيسي',
       message: 'هل أنت متأكد من تحويل هذا الجهاز ليكون الجهاز الرئيسي؟ سيتم إعادة تشغيل البرنامج.',
       variant: 'primary',
-      confirmLabel: 'تحويل وإعادة التشغيل',
+      confirmText: 'تحويل وإعادة التشغيل',
     });
     if (ok) {
       await electronRuntime.switchToLanServer();
@@ -46,7 +46,7 @@ export function SettingsLanModesSection() {
       title: 'العودة لجهاز مستقل',
       message: 'سيتم فصل الجهاز عن الشبكة والعودة لاستخدام قاعدة البيانات المحلية الخاصة به. هل أنت متأكد؟',
       variant: 'warning',
-      confirmLabel: 'تأكيد الفصل',
+      confirmText: 'تأكيد الفصل',
     });
     if (ok) {
       await electronRuntime.switchToStandalone();
@@ -85,7 +85,7 @@ export function SettingsLanModesSection() {
         title: 'التحويل إلى جهاز ثانوي',
         message: 'بيانات هذا الجهاز المحلية لن تُحذف، لكنها لن تُستخدم أثناء الاتصال بالجهاز الرئيسي. هل أنت متأكد؟',
         variant: 'warning',
-        confirmLabel: 'تأكيد الاتصال',
+        confirmText: 'تأكيد الاتصال',
       });
       if (ok) {
         const url = serverUrl.replace(/\/$/, '');

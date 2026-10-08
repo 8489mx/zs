@@ -715,6 +715,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         }
       }
 
+      const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || tenant?.businessName || settings?.storeName || 'retail_general').trim().toLowerCase();
+      const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
+      const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
+      const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
+      const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
+      const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
+
       values.currentBranchId = branchIdToUse;
       values.currentLocationId = locationIdToUse;
 
@@ -750,13 +757,6 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       }
 
       form.clearErrors('root.serverError');
-
-      const rawActivity = String(values.businessIndustry || tenant?.activityType || tenant?.pillar || settings?.activityType || tenant?.businessName || settings?.storeName || 'retail_general').trim().toLowerCase();
-      const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
-      const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
-      const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-      const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
-      const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
 
       if (isContractingVertical) {
         values.contractingModuleEnabled = true;
