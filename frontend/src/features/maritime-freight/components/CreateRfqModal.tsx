@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
@@ -24,6 +24,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
   const [ports, setPorts] = useState<ShippingPort[]>([]);
   const [carriers, setCarriers] = useState<ShippingLine[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -161,6 +162,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
   const [sendImmediately, setSendImmediately] = useState(true);
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!formData.polCode || !formData.podCode) {
       setErrorMsg(formData.transportMode === 'air' ? 'يرجى تحديد مطار الإقلاع ومطار المقصد' : 'يرجى تحديد ميناء الشحن وميناء التفريغ');
       return;
@@ -171,6 +173,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     }
 
     try {
+      submittingRef.current = true;
       setIsSubmitting(true);
       setErrorMsg(null);
       const gross = parseFloat(formData.grossWeightKg) || 0;
@@ -200,6 +203,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     } catch (err: any) {
       setErrorMsg(err?.message || 'فشل إرسال طلب التسعير');
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };

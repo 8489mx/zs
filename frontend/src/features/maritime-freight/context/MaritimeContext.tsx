@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { maritimeApi, MaritimePipelineConfig } from '../api/maritime-freight.api';
 
 interface MaritimeCounts {
@@ -82,6 +82,7 @@ export function MaritimeProvider({ children }: { children: React.ReactNode }) {
   const [isCreateInquiryOpen, setIsCreateInquiryOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const pendingConfigSave = useRef<Promise<void> | null>(null);
 
   const loadPipelineConfig = useCallback(async () => {
     try {
@@ -94,9 +95,13 @@ export function MaritimeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updatePipelineConfig = useCallback(async (newConfig: Partial<MaritimePipelineConfig>) => {
-    const updated = await maritimeApi.savePipelineSettings(newConfig);
-    setPipelineConfig(updated);
+  const updatePipelineConfig = useCallback((newConfig: Partial<MaritimePipelineConfig>) => {
+    if (pendingConfigSave.current) return pendingConfigSave.current;
+    const request = maritimeApi.savePipelineSettings(newConfig)
+      .then((updated) => { setPipelineConfig(updated); })
+      .finally(() => { pendingConfigSave.current = null; });
+    pendingConfigSave.current = request;
+    return request;
   }, []);
 
   const refreshCounts = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -27,7 +27,17 @@ interface JobDetailsModalProps {
 
 export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsModalProps) {
   const { user } = useAuthStore();
-  const { currencySymbol } = useSystemCurrency();
+  const { currencyCode, currencySymbol } = useSystemCurrency();
+  const pendingSubmissions = useRef(new Set<string>());
+  const submitOnce = async (key: string, action: () => Promise<void>) => {
+    if (pendingSubmissions.current.has(key)) return;
+    pendingSubmissions.current.add(key);
+    try {
+      await action();
+    } finally {
+      pendingSubmissions.current.delete(key);
+    }
+  };
   const [currentJobId, setCurrentJobId] = useState<string | null>(jobId);
   const [job, setJob] = useState<MaritimeJob | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'charges' | 'containers' | 'milestones' | 'consolidation' | 'trucking' | 'documents' | 'finance'>('overview');
@@ -374,6 +384,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             const preview = await maritimeApi.previewCarrierInvoiceAudit(job.id, {
               invoicedTotal: amount,
               shippingLineId: job.shipping_line_id,
+              currency: currencyCode,
             });
             setCarrierAuditPreview(preview);
           } catch {
@@ -387,7 +398,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     } else {
       setCarrierAuditPreview(null);
     }
-  }, [showExpenseDialog, expenseTypeInput, expenseAmountInput, job?.id]);
+  }, [showExpenseDialog, expenseTypeInput, expenseAmountInput, job?.id, currencyCode]);
 
   // Populate Edit Voyage form when opening
   const handleOpenEditVoyage = () => {
@@ -430,6 +441,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       toast.warning('يرجى إدخال رقم الحاوية (مثال: MSCU1234567)');
       return;
     }
+    if (!addContainerForm.freeDays.trim() || !addContainerForm.demurrageRatePerDay.trim() || !Number.isInteger(Number(addContainerForm.freeDays)) || Number(addContainerForm.freeDays) < 0 || !Number.isFinite(Number(addContainerForm.demurrageRatePerDay)) || Number(addContainerForm.demurrageRatePerDay) < 0) {
+      toast.warning('يرجى إدخال فترة سماح وغرامة يومية صالحتين');
+      return;
+    }
     try {
       await maritimeApi.createContainer({
         jobId: job.id,
@@ -438,9 +453,9 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         sealNumber: addContainerForm.sealNumber || undefined,
         grossWeightKg: Number(addContainerForm.grossWeightKg) || 0,
         cbm: Number(addContainerForm.cbm) || 0,
-        freeDays: Number(addContainerForm.freeDays) || 14,
+        freeDays: Number(addContainerForm.freeDays),
         returnDeadline: addContainerForm.returnDeadline || undefined,
-        demurrageRatePerDay: Number(addContainerForm.demurrageRatePerDay) || 50,
+        demurrageRatePerDay: Number(addContainerForm.demurrageRatePerDay),
         depositAmount: Number(addContainerForm.depositAmount) || 0,
         depositCurrency: addContainerForm.depositCurrency || 'USD',
         notes: addContainerForm.notes || undefined,
@@ -472,9 +487,9 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     setEditingContainer(c);
     setEditContainerForm({
       sealNumber: c.seal_number || '',
-      freeDays: String(c.free_days || 14),
+      freeDays: String(c.free_days ?? 14),
       returnDeadline: c.return_deadline ? c.return_deadline.split('T')[0] : '',
-      demurrageRatePerDay: String(c.demurrage_rate_per_day || 50),
+      demurrageRatePerDay: String(c.demurrage_rate_per_day ?? 50),
       depositAmount: String(c.deposit_amount || 0),
       depositCurrency: c.deposit_currency || 'USD',
       depositStatus: c.deposit_status || 'not_required',
@@ -484,12 +499,18 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
 
   const handleSaveEditContainer = async () => {
     if (!editingContainer) return;
+    if (!editContainerForm.freeDays.trim() || !editContainerForm.demurrageRatePerDay.trim() || !Number.isInteger(Number(editContainerForm.freeDays)) || Number(editContainerForm.freeDays) < 0 || !Number.isFinite(Number(editContainerForm.demurrageRatePerDay)) || Number(editContainerForm.demurrageRatePerDay) < 0) {
+      toast.warning('يرجى إدخال فترة سماح وغرامة يومية صالحتين');
+      return;
+    }
     try {
       await maritimeApi.updateContainer(editingContainer.id, {
         sealNumber: editContainerForm.sealNumber || undefined,
-        freeDays: Number(editContainerForm.freeDays) || 14,
-        returnDeadline: editContainerForm.returnDeadline || undefined,
-        demurrageRatePerDay: Number(editContainerForm.demurrageRatePerDay) || 50,
+        freeDays: Number(editContainerForm.freeDays),
+        returnDeadline: editContainerForm.returnDeadline === (editingContainer.return_deadline?.split('T')[0] || '')
+          ? undefined
+          : editContainerForm.returnDeadline,
+        demurrageRatePerDay: Number(editContainerForm.demurrageRatePerDay),
         depositAmount: Number(editContainerForm.depositAmount) || 0,
         depositCurrency: editContainerForm.depositCurrency,
         depositStatus: editContainerForm.depositStatus,
@@ -509,7 +530,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
     const confirmed = await systemConfirm({
       title: 'تسجيل تفريغ الحاوية بميناء الوصول (Discharged)',
       badge: c.container_number,
-      message: `هل تريد تسجيل تفريغ الحاوية ${c.container_number} وبدء سريان فترة السماح (${c.free_days || 14} يوم)؟`,
+      message: `هل تريد تسجيل تفريغ الحاوية ${c.container_number} وبدء سريان فترة السماح (${c.free_days ?? 14} يوم)؟`,
       confirmText: 'تأكيد التفريغ',
       cancelText: 'تراجع',
       variant: 'primary',
@@ -634,6 +655,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         const res = await maritimeApi.createCarrierInvoice(job.id, {
           invoiceNumber: carrierInvoiceNumber.trim(),
           totalInvoicedAmount: amount,
+          currency: currencyCode,
           shippingLineId: job.shipping_line_id,
           carrierName: job.shipping_line_name,
           notes: expenseNotesInput,
@@ -1170,7 +1192,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     {Number(job.customerAvailableCredit || 0) > 0 && job.payment_status !== 'paid' && (
                       <button
                         type="button"
-                        onClick={handleSettleFromBalance}
+                        onClick={() => submitOnce('settle', handleSettleFromBalance)}
                         disabled={isSettlingFromBalance}
                         style={{
                           padding: '4px 12px',
@@ -1756,7 +1778,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                             {!c.discharged_at && (
                               <button
                                 type="button"
-                                onClick={() => handleContainerDischarge(c)}
+                                onClick={() => submitOnce(`discharge-${c.id}`, () => handleContainerDischarge(c))}
                                 style={{
                                   padding: '4px 10px',
                                   background: '#eff6ff',
@@ -1774,7 +1796,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                             {c.discharged_at && !c.gated_out_at && (
                               <button
                                 type="button"
-                                onClick={() => handleContainerGateOut(c)}
+                                onClick={() => submitOnce(`gate-out-${c.id}`, () => handleContainerGateOut(c))}
                                 style={{
                                   padding: '4px 10px',
                                   background: '#fffbeb',
@@ -1792,7 +1814,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                             {!c.empty_returned_at && (
                               <button
                                 type="button"
-                                onClick={() => handleContainerEmptyReturned(c)}
+                                onClick={() => submitOnce(`return-${c.id}`, () => handleContainerEmptyReturned(c))}
                                 style={{
                                   padding: '4px 10px',
                                   background: '#f0fdf4',
@@ -1975,7 +1997,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   </div>
                   <button
                     type="button"
-                    onClick={handleAdvanceMilestone}
+                    onClick={() => submitOnce('milestone', handleAdvanceMilestone)}
                     style={{
                       height: '36px',
                       marginTop: '18px',
@@ -2002,7 +2024,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     </div>
                     <button
                       type="button"
-                      onClick={handleReleaseDo}
+                      onClick={() => submitOnce('release-do', handleReleaseDo)}
                       style={{
                         padding: '6px 14px',
                         background: '#d97706',
@@ -2268,7 +2290,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       ) : (
                         <button
                           type="button"
-                          onClick={handleSettleFromBalance}
+                          onClick={() => submitOnce('settle', handleSettleFromBalance)}
                           disabled={isSettlingFromBalance}
                           style={{
                             padding: '7px 16px',
@@ -2981,7 +3003,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleSaveVoyage}
+              onSubmit={() => submitOnce('voyage', handleSaveVoyage)}
               submitText="حفظ التعديلات"
               onCancel={() => setShowEditVoyage(false)}
               cancelText="إلغاء"
@@ -3160,7 +3182,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(480px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleSaveAddContainer}
+              onSubmit={() => submitOnce('add-container', handleSaveAddContainer)}
               submitText="إضافة الحاوية"
               onCancel={() => setShowAddContainer(false)}
               cancelText="إلغاء"
@@ -3261,7 +3283,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(480px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleSaveEditContainer}
+              onSubmit={() => submitOnce('edit-container', handleSaveEditContainer)}
               submitText="حفظ التعديلات"
               onCancel={() => setEditingContainer(null)}
               cancelText="إلغاء"
@@ -3350,7 +3372,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleConfirmIssueInvoice}
+              onSubmit={() => submitOnce('issue-invoice', handleConfirmIssueInvoice)}
               submitText={isSubmittingInvoice ? 'جاري الترحيل...' : 'ترحيل الفاتورة للدفاتر'}
               isSubmitting={isSubmittingInvoice}
               onCancel={() => setShowInvoiceDialog(false)}
@@ -3398,7 +3420,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleConfirmRecordExpense}
+              onSubmit={() => submitOnce('record-expense', handleConfirmRecordExpense)}
               submitText={isSubmittingExpense ? 'جاري الترحيل...' : 'ترحيل سند المصروفات'}
               isSubmitting={isSubmittingExpense}
               onCancel={() => setShowExpenseDialog(false)}
@@ -3561,7 +3583,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           footerActions={
             parsedBookingData ? (
               <StandardDialogFooter
-                onSubmit={handleApplyParsedBooking}
+                onSubmit={() => submitOnce('apply-booking', handleApplyParsedBooking)}
                 submitText={isApplyingParsedData ? 'جاري الاعتماد...' : 'اعتماد وملء بيانات الحجز بالشحنة'}
                 isSubmitting={isApplyingParsedData}
                 onCancel={() => {
@@ -3723,7 +3745,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleConfirmDispute}
+              onSubmit={() => submitOnce('dispute', handleConfirmDispute)}
               submitText={isSubmittingDispute ? 'جاري الإصدار...' : 'إصدار مذكرة النزاع وحجز الفاتورة'}
               isSubmitting={isSubmittingDispute}
               onCancel={() => setShowDisputeDialog(false)}
@@ -3773,7 +3795,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleConfirmOverride}
+              onSubmit={() => submitOnce('override', handleConfirmOverride)}
               submitText={isSubmittingOverride ? 'جاري الاعتماد...' : 'اعتماد التجاوز وترحيل القيد'}
               isSubmitting={isSubmittingOverride}
               disabled={Boolean(user?.id && overrideInvoice.createdBy && String(user.id) === String(overrideInvoice.createdBy))}
@@ -3847,7 +3869,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(480px, 85vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleSaveAddInsurance}
+              onSubmit={() => submitOnce('insurance', handleSaveAddInsurance)}
               submitText={isSubmittingInsurance ? 'جاري الإصدار...' : 'إصدار وتأكيد الوثيقة'}
               isSubmitting={isSubmittingInsurance}
               onCancel={() => setShowAddInsuranceDialog(false)}
@@ -3978,7 +4000,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleConfirmClaim}
+              onSubmit={() => submitOnce('claim', handleConfirmClaim)}
               submitText={isSubmittingClaim ? 'جاري التسجيل...' : 'تسجيل المطالبة رسميًا'}
               isSubmitting={isSubmittingClaim}
               onCancel={() => {
@@ -4041,7 +4063,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           minHeight="min(480px, 85vh)"
           footerActions={(
             <StandardDialogFooter
-              onSubmit={handleSaveAddWarehouseReceipt}
+              onSubmit={() => submitOnce('warehouse-receipt', handleSaveAddWarehouseReceipt)}
               submitText={isSubmittingWarehouseReceipt ? 'جاري الإصدار...' : 'إصدار إذن الإيداع'}
               isSubmitting={isSubmittingWarehouseReceipt}
               onCancel={() => setShowAddWarehouseReceiptDialog(false)}

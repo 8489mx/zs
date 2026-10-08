@@ -969,7 +969,8 @@ export class MaritimeFreightService {
 
     return rfqs.map((rfq) => {
       const relatedBids = bids.filter((b) => b.rfq_id === String(rfq.id));
-      const minBid = relatedBids.length > 0
+      const comparable = new Set(relatedBids.map((b) => String(b.currency).toUpperCase())).size <= 1;
+      const minBid = relatedBids.length > 0 && comparable
         ? relatedBids.reduce((prev, curr) => Number(curr.total_freight_cost) < Number(prev.total_freight_cost) ? curr : prev)
         : null;
 
@@ -1004,7 +1005,7 @@ export class MaritimeFreightService {
 
     // Highlight "Best Value": balanced by lowest cost and highest free days
     let bestValueBidId: string | null = null;
-    if (bids.length > 0) {
+    if (bids.length > 0 && new Set(bids.map((b) => String(b.currency).toUpperCase())).size === 1) {
       // Score: lower cost is better, higher free days is better
       const scoredBids = bids.map((b) => {
         const cost = Number(b.total_freight_cost) || 1;
@@ -1547,7 +1548,23 @@ export class MaritimeFreightService {
     const baseCost = Number(dto.baseCost || 0);
     const marginType = dto.marginType || 'fixed';
     const marginValue = Number(dto.marginValue || 0);
-    const exchangeRate = Number(dto.exchangeRate || 1);
+    const currencySetting = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'currency')
+      .executeTakeFirst();
+    let systemCurrency = 'EGP';
+    if (currencySetting) {
+      try { systemCurrency = String(JSON.parse(currencySetting.value)); }
+      catch { systemCurrency = String(currencySetting.value); }
+    }
+    const exchangeRate = (dto.currency || 'USD').trim().toUpperCase() === systemCurrency.trim().toUpperCase()
+      ? 1
+      : Number(dto.exchangeRate);
+    if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+      throw new BadRequestException('سعر الصرف يجب أن يكون أكبر من صفر');
+    }
 
     let finalTotal = baseCost;
     if (marginType === 'percentage') {
@@ -1555,7 +1572,8 @@ export class MaritimeFreightService {
     } else {
       finalTotal = baseCost + marginValue;
     }
-    const finalTotalLocal = finalTotal * exchangeRate;
+    finalTotal = Math.round(finalTotal * 10_000) / 10_000;
+    const finalTotalLocal = Math.round(finalTotal * exchangeRate * 10_000) / 10_000;
 
     const transportMode = dto.transportMode || 'sea';
     let grossWeightKg = Number(dto.grossWeightKg || 0);
@@ -1929,7 +1947,7 @@ export class MaritimeFreightService {
               seal_number: c.sealNumber || null,
               gross_weight_kg: Number(c.grossWeightKg || 0),
               cbm: Number(c.cbm || 0),
-              free_days: Number(c.freeDays || 14),
+              free_days: Number(c.freeDays ?? 14),
               deposit_amount: Number(c.depositAmount || 0),
               deposit_currency: c.depositCurrency || 'EGP',
               deposit_status: Number(c.depositAmount || 0) > 0 ? 'held_by_line' : 'not_required',
@@ -2003,7 +2021,7 @@ export class MaritimeFreightService {
     const transportMode = quote.transport_mode || rfq?.transport_mode || 'sea';
     const containerCount = rfq?.container_count || 1;
     const containerType = rfq?.container_type || '40HC';
-    const freeDays = bid?.free_days || rfq?.target_free_days || 14;
+    const freeDays = bid?.free_days ?? rfq?.target_free_days ?? 14;
 
     const containersPayload: any[] = [];
     if (transportMode === 'sea') {
@@ -2298,7 +2316,7 @@ export class MaritimeFreightService {
       const now = new Date();
       for (const c of containers) {
         if (!c.discharged_at) {
-          const freeDays = Number(c.free_days) || 14;
+          const freeDays = Number(c.free_days ?? 14);
           const deadline = new Date(now);
           deadline.setDate(deadline.getDate() + freeDays);
           await this.db
@@ -2630,6 +2648,13 @@ export class MaritimeFreightService {
 
     if (!container) throw new NotFoundException('Container not found');
 
+    if (dto.freeDays !== undefined && (!Number.isInteger(dto.freeDays) || dto.freeDays < 0)) {
+      throw new BadRequestException('فترة السماح يجب أن تكون عدداً صحيحاً غير سالب');
+    }
+    if (dto.demurrageRatePerDay !== undefined && (!Number.isFinite(dto.demurrageRatePerDay) || dto.demurrageRatePerDay < 0)) {
+      throw new BadRequestException('الغرامة اليومية يجب أن تكون غير سالبة');
+    }
+
     const updatePayload: any = {
       updated_at: sql`NOW()`,
     };
@@ -2648,44 +2673,29 @@ export class MaritimeFreightService {
     if (dto.emptyReturnProofUrl !== undefined) updatePayload.empty_return_proof_url = dto.emptyReturnProofUrl;
     if (dto.notes !== undefined) updatePayload.notes = dto.notes;
 
-    // Compute return deadline if discharged or gated out
-    if (dto.dischargedAt || container.discharged_at) {
-      const baseDate = new Date(dto.dischargedAt || container.discharged_at!);
-      const freeDays = dto.freeDays || container.free_days || 14;
-      const deadline = new Date(baseDate);
-      deadline.setDate(deadline.getDate() + freeDays);
-      updatePayload.return_deadline = deadline.toISOString().split('T')[0];
-
-      const rate = Number(dto.demurrageRatePerDay || container.demurrage_rate_per_day || 50);
-      const returnedDateVal = dto.emptyReturnedAt !== undefined ? dto.emptyReturnedAt : container.empty_returned_at;
-
-      if (returnedDateVal) {
-        // Container returned: compute final demurrage if returned past deadline, freeze amount
-        const returnDate = new Date(returnedDateVal);
-        if (returnDate > deadline) {
-          const diffDays = Math.ceil((returnDate.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
-          updatePayload.is_overdue = false; // Returned, no longer accruing
-          updatePayload.overdue_days = diffDays;
-          updatePayload.demurrage_amount = diffDays * rate;
-        } else {
-          updatePayload.is_overdue = false;
-          updatePayload.overdue_days = 0;
-          updatePayload.demurrage_amount = 0;
-        }
-      } else {
-        // Container still with client
-        const now = new Date();
-        if (now > deadline) {
-          updatePayload.is_overdue = true;
-          const diffDays = Math.ceil((now.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
-          updatePayload.overdue_days = diffDays;
-          updatePayload.demurrage_amount = diffDays * rate;
-        } else {
-          updatePayload.is_overdue = false;
-          updatePayload.overdue_days = 0;
-          updatePayload.demurrage_amount = 0;
-        }
-      }
+    // An explicit return date takes precedence; otherwise free time starts at discharge.
+    const dischargedAt = dto.dischargedAt !== undefined ? dto.dischargedAt : container.discharged_at;
+    let deadlineDate = dto.returnDeadline !== undefined ? dto.returnDeadline : container.return_deadline;
+    if (dto.returnDeadline === undefined && dischargedAt && (dto.dischargedAt !== undefined || dto.freeDays !== undefined || !deadlineDate)) {
+      const baseDate = new Date(dischargedAt);
+      baseDate.setUTCDate(baseDate.getUTCDate() + Number(dto.freeDays ?? container.free_days ?? 14));
+      deadlineDate = baseDate.toISOString().slice(0, 10);
+    }
+    if (dto.returnDeadline !== undefined || deadlineDate !== container.return_deadline) {
+      updatePayload.return_deadline = deadlineDate || null;
+    }
+    if (deadlineDate) {
+      const returnedAt = dto.emptyReturnedAt !== undefined ? dto.emptyReturnedAt : container.empty_returned_at;
+      const endDay = new Date(returnedAt || Date.now()).toISOString().slice(0, 10);
+      const deadlineDay = new Date(deadlineDate).toISOString().slice(0, 10);
+      const overdueDays = Math.max(0, Math.round((Date.parse(endDay) - Date.parse(deadlineDay)) / 86_400_000));
+      updatePayload.is_overdue = !returnedAt && overdueDays > 0;
+      updatePayload.overdue_days = overdueDays;
+      updatePayload.demurrage_amount = overdueDays * Number(dto.demurrageRatePerDay ?? container.demurrage_rate_per_day ?? 0);
+    } else {
+      updatePayload.is_overdue = false;
+      updatePayload.overdue_days = 0;
+      updatePayload.demurrage_amount = 0;
     }
 
     const [updated] = await this.db
@@ -2702,6 +2712,16 @@ export class MaritimeFreightService {
   async createContainer(auth: AuthContext, dto: any) {
     const { tenantId } = requireTenantScope(auth);
 
+    const freeDays = Number(dto.freeDays ?? 14);
+    const demurrageRate = Number(dto.demurrageRatePerDay ?? 0);
+    if (!Number.isInteger(freeDays) || freeDays < 0 || !Number.isFinite(demurrageRate) || demurrageRate < 0) {
+      throw new BadRequestException('فترة السماح أو الغرامة اليومية غير صالحة');
+    }
+    const deadlineDate = dto.returnDeadline ? new Date(dto.returnDeadline).toISOString().slice(0, 10) : null;
+    const overdueDays = deadlineDate
+      ? Math.max(0, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(deadlineDate)) / 86_400_000))
+      : 0;
+
     let depositStatus: 'not_required' | 'held_by_line' = 'not_required';
     if (dto.depositAmount && Number(dto.depositAmount) > 0) {
       depositStatus = 'held_by_line';
@@ -2717,9 +2737,12 @@ export class MaritimeFreightService {
         seal_number: dto.sealNumber || null,
         gross_weight_kg: Number(dto.grossWeightKg) || 0,
         cbm: Number(dto.cbm) || 0,
-        free_days: Number(dto.freeDays) || 14,
-        return_deadline: dto.returnDeadline || null,
-        demurrage_rate_per_day: Number(dto.demurrageRatePerDay) || 0,
+        free_days: freeDays,
+        return_deadline: deadlineDate,
+        is_overdue: overdueDays > 0,
+        overdue_days: overdueDays,
+        demurrage_rate_per_day: demurrageRate,
+        demurrage_amount: overdueDays * demurrageRate,
         deposit_amount: Number(dto.depositAmount) || 0,
         deposit_currency: dto.depositCurrency || 'USD',
         deposit_status: depositStatus,
@@ -3691,6 +3714,19 @@ export class MaritimeFreightService {
       return { processedRfqs: 0, awardedCount: 0, quotesGenerated: 0, details: [] };
     }
 
+    const currencySetting = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'currency')
+      .executeTakeFirst();
+    let systemCurrency = 'EGP';
+    if (currencySetting) {
+      try { systemCurrency = String(JSON.parse(currencySetting.value)); }
+      catch { systemCurrency = String(currencySetting.value); }
+    }
+    systemCurrency = systemCurrency.trim().toUpperCase();
+
     let awardedCount = 0;
     let quotesGenerated = 0;
     const details: string[] = [];
@@ -3705,6 +3741,13 @@ export class MaritimeFreightService {
         .execute();
 
       if (bids.length === 0) continue;
+
+      const bidCurrencies = new Set(bids.map((b) => String(b.currency).toUpperCase()));
+      const bidCurrency = String(bids[0].currency).toUpperCase();
+      if (bidCurrencies.size !== 1 || (bidCurrency !== systemCurrency && bidCurrency !== 'USD')) {
+        details.push(`طلب ${rfq.rfq_number}: يلزم مراجعة عملات العروض وسعر الصرف قبل الترسية`);
+        continue;
+      }
 
       const isDeadlineReached = rfq.cut_off_deadline ? now >= new Date(rfq.cut_off_deadline) : false;
       const minFreeDays = config.earlyAwardingMinFreeDays || 14;
@@ -3759,11 +3802,15 @@ export class MaritimeFreightService {
         if (config.defaultMarginType === 'percentage') {
           profit = baseCost * (config.defaultMarginValue / 100);
         } else {
-          profit = Number(config.defaultMarginValue || 200);
+          profit = Number(config.defaultMarginValue ?? 200);
         }
-        if (profit < Number(config.marginFloor || 150)) {
-          profit = Number(config.marginFloor || 150);
+        const marginFloor = Number(config.marginFloor ?? 150);
+        if (profit < marginFloor) {
+          profit = marginFloor;
         }
+        const marginType = config.defaultMarginType === 'percentage' && baseCost > 0 && profit === baseCost * (config.defaultMarginValue / 100)
+          ? 'percentage'
+          : 'fixed';
 
         // 3. Issue quotation
         const quote = await this.createQuotation(auth, {
@@ -3776,9 +3823,9 @@ export class MaritimeFreightService {
           paymentTerm: rfq.payment_term || 'prepaid',
           baseCost,
           currency: bestBid.currency || 'USD',
-          marginType: config.defaultMarginType,
-          marginValue: config.defaultMarginValue,
-          exchangeRate: Number(config.defaultExchangeRate || 48.5),
+          marginType,
+          marginValue: marginType === 'percentage' ? config.defaultMarginValue : profit,
+          exchangeRate: bidCurrency === systemCurrency ? 1 : Number(config.defaultExchangeRate || 48.5),
           notes: `عرض صادر آلياً وفقاً لمسار الأتمتة (${config.automationMode === 'full_autonomous' ? 'أتمتة كاملة' : 'هجين ذكي'}). العرض الفائز من ${bestBid.shipping_line_name}`,
         });
         quotesGenerated++;
@@ -4400,6 +4447,7 @@ export class MaritimeFreightService {
       otherCharges?: number;
       shippingLineId?: string | number;
       containerType?: string;
+      currency?: string;
     },
   ) {
     const { tenantId } = requireTenantScope(auth);
@@ -4418,6 +4466,7 @@ export class MaritimeFreightService {
       .where('pol_code', '=', polCode)
       .where('pod_code', '=', podCode)
       .where('status', '=', 'active')
+      .where('currency', '=', (dto.currency || 'USD').trim().toUpperCase())
       .where('valid_from', '<=', today)
       .where('valid_until', '>=', today);
 
@@ -4486,6 +4535,21 @@ export class MaritimeFreightService {
     if (!dto.invoiceNumber?.trim()) {
       throw new BadRequestException('يجب إدخال رقم فاتورة الخط الملاحي');
     }
+    const currency = (dto.currency || 'USD').trim().toUpperCase();
+    const currencySetting = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'currency')
+      .executeTakeFirst();
+    let systemCurrency = 'EGP';
+    if (currencySetting) {
+      try { systemCurrency = String(JSON.parse(currencySetting.value)); }
+      catch { systemCurrency = String(currencySetting.value); }
+    }
+    if (currency !== systemCurrency.trim().toUpperCase()) {
+      throw new BadRequestException('عملة فاتورة الناقل تختلف عن عملة الدفاتر؛ يلزم تحويل المبلغ قبل الترحيل');
+    }
 
     // 1. Audit against rate card
     const auditPreview = await this.previewCarrierInvoiceAudit(auth, jobId, {
@@ -4495,6 +4559,7 @@ export class MaritimeFreightService {
       bafCharges: dto.bafCharges,
       otherCharges: dto.otherCharges,
       shippingLineId: dto.shippingLineId,
+      currency,
     });
 
     const audit = auditPreview.audit;
@@ -4540,7 +4605,7 @@ export class MaritimeFreightService {
           carrier_name: dto.carrierName || job.shipping_line_name || 'Carrier',
           invoice_number: dto.invoiceNumber.trim(),
           invoice_date: dto.invoiceDate ? (dto.invoiceDate as any) : (new Date().toISOString().slice(0, 10) as any),
-          currency: dto.currency || 'USD',
+          currency,
           total_invoiced_amount: totalAmount,
           ocean_freight: Number(dto.oceanFreight || 0),
           thc_charges: Number(dto.thcCharges || 0),

@@ -244,6 +244,41 @@ export interface MaritimeContainer {
   delivery_order_released?: boolean;
 }
 
+export interface CreateMaritimeContainerPayload {
+  [key: string]: unknown;
+  jobId: string;
+  containerNumber: string;
+  containerType: string;
+  sealNumber?: string;
+  grossWeightKg?: number;
+  cbm?: number;
+  freeDays: number;
+  returnDeadline?: string;
+  demurrageRatePerDay?: number;
+  depositAmount?: number;
+  depositCurrency?: string;
+  notes?: string;
+}
+
+export interface UpdateMaritimeContainerPayload {
+  [key: string]: unknown;
+  sealNumber?: string;
+  seal_number?: string | null;
+  dischargedAt?: string;
+  discharged_at?: string | null;
+  gatedOutAt?: string;
+  gated_out_at?: string | null;
+  emptyReturnedAt?: string;
+  freeDays?: number;
+  returnDeadline?: string;
+  demurrageRatePerDay?: number;
+  depositAmount?: number;
+  depositCurrency?: string;
+  depositStatus?: MaritimeContainer['deposit_status'];
+  emptyReturnProofUrl?: string;
+  notes?: string | null;
+}
+
 export interface MaritimeMilestone {
   id: string;
   job_id: string;
@@ -595,16 +630,23 @@ export const maritimeApi = {
   // Containers
   getContainers: (params?: { overdueOnly?: boolean; depositHeldOnly?: boolean; search?: string }) =>
     http<MaritimeContainer[]>(`/api/maritime-freight/containers${toQueryString(params)}`),
-  createContainer: (data: any) =>
+  createContainer: (data: CreateMaritimeContainerPayload) =>
     http<MaritimeContainer>('/api/maritime-freight/containers', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateContainer: (id: string, data: any) =>
-    http<MaritimeContainer>(`/api/maritime-freight/containers/${id}`, {
+  updateContainer: (id: string, data: UpdateMaritimeContainerPayload) => {
+    const { seal_number, discharged_at, gated_out_at, ...payload } = data;
+    return http<MaritimeContainer>(`/api/maritime-freight/containers/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+      body: JSON.stringify({
+        ...payload,
+        ...(seal_number !== undefined ? { sealNumber: seal_number } : {}),
+        ...(discharged_at !== undefined ? { dischargedAt: discharged_at } : {}),
+        ...(gated_out_at !== undefined ? { gatedOutAt: gated_out_at } : {}),
+      }),
+    });
+  },
 
   // Tab Badges & Summary Counts
   getCounts: () =>
