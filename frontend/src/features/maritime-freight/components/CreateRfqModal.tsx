@@ -220,8 +220,8 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           <span className="desktop-only-inline"> مع كود تتبع آلي [RFQ-YYMMDD-XXXX]</span>
         </span>
       )}
-      width="min(980px, 96vw)"
-      minHeight="min(560px, 85vh)"
+      width="min(1240px, 96vw)"
+      minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
@@ -346,6 +346,17 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             grid-column: 1 / -1 !important;
           }
         }
+        .rfq-modal-2col {
+          display: grid;
+          grid-template-columns: 1.05fr 0.95fr;
+          gap: 12px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .rfq-modal-2col {
+            grid-template-columns: 1fr !important;
+          }
+        }
       `}</style>
       <div className="rfq-compact-modal" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {errorMsg && (
@@ -434,8 +445,12 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           </div>
         )}
 
-        {/* بيانات العميل أو المستورد */}
-        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        {/* شبكة أفقية متوازنة عمودين لتفادي التمرير الرأسي على شاشات 14 بوصة */}
+        <div className="rfq-modal-2col">
+          {/* العمود الأيمن: بيانات العميل، مسار الرحلة، ومواصفات البضاعة */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+            {/* بيانات العميل أو المستورد */}
+            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
             <span>
@@ -866,9 +881,12 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             </div>
           </div>
         </div>
+      </div>
 
+      {/* العمود الأيسر: اختيار الخطوط الملاحية والوكلاء والإرسال الفوري */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, height: '100%' }}>
         {/* Section 4: اختيار الخطوط الملاحية والوكلاء */}
-        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem', marginBottom: '8px' }}>
             <AppIcons.Users size={15} />
             <span>
@@ -881,7 +899,7 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             carriers={carriers}
             selectedIds={formData.targetLineIds}
             onChangeSelectedIds={(ids) => setFormData((prev) => ({ ...prev, targetLineIds: ids }))}
-            maxHeight="180px"
+            maxHeight="275px"
           />
 
           <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -897,6 +915,8 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
           </div>
         </div>
       </div>
-    </StandardDialog>
-  );
+    </div>
+  </div>
+</StandardDialog>
+);
 }

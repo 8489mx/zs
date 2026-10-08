@@ -59,10 +59,27 @@
   - **الزائد (`+`) يجب أن يكون دائماً على اليمين، والناقص (`-`) دائماً على اليسار!**
   - في بيئات RTL، العنصر الأول في DOM يظهر جهة اليمين، لذا يجب برمجياً كتابة زر الزيادة `+` أولاً، تليه خانة/نص الكمية في المنتصف، ثم زر الإنقاص `-` أخيراً جهة اليسار: `[+] (الكمية) [-]`. يُمنع منعاً باتاً عكس هذا الترتيب.
 
-## 5. Workspace Keep-Alive & Anti-Flicker Architecture
-- Multi-tab workspaces must use single unified routes (`path: 'workspace'` and `path: 'workspace/*'`) to prevent layout and provider unmounting.
-- Keep-Alive tabs pattern via CSS (`display: isTabActive(...) ? 'block' : 'none'`) with 0ms transition.
-- Never reset tab counts/badges to 0 on navigation or re-render; always hydrate from memory (`memoryCachedCounts`) and `sessionStorage`.
+## 5. Workspace Keep-Alive, Zero-Re-render & Data Integrity Architecture (دستور السرعة اللحظية وحماية البيانات في مساحات العمل المتعددة)
+- **Unified Route Single-Mount Boundary:** Multi-tab workspaces must use single unified routes (`path: 'workspace'` and `path: 'workspace/*'`) to prevent layout and provider unmounting.
+- **Strict Lazy Tab Mounting via `visitedTabs` (التحميل الكسول الصارم للتابات ومنع الاختناق الشبكي):**
+  - تمنع منعاً باتاً المعمارية القديمة بتركيب كافة تابات مساحة العمل دفعة واحدة في الـ DOM عند الفتح الأول (حظر Eager Hidden Mounting).
+  - التاب لا يتم إنشاؤه في الـ DOM ولا يُطلق استعلاماته الشبكية إطلاقاً إلا عند نقر المستخدم عليه أو تحويم المؤشر نحوه لأول مرة عبر `visitedTabs` (`new Set([currentSubPath])`).
+  - هذا يحمي مسبح اتصالات المتصفح (Max 6 concurrent TCP connections) من طوابير الانتظار الشبكية (Waterfall / Request Queueing) ويمنع سقوط الطلبات بالـ Timeout.
+- **Inactive Tab Freezing via `KeepAliveTabPane` (دستور تجميد التابات الخاملة ومنع إعادة الرسم):**
+  - كافة التابات داخل حاوية الـ Keep-Alive تُغلف بمكون `KeepAliveTabPane` المحمي بـ `React.memo` مع فاحص مقارنة مخصص:
+    `if (!prev.isActive && !next.isActive && prev.isVisited === next.isVisited && prev.Component === next.Component) return true;`
+  - التاب المخفي بـ `display: none` لا يُستهلك منه أي جزء من دورة معالجة المتصفح (0ms) عند التنقل بين التابات الأخرى، مما يحقق سرعة تبديل لحظية (0ms - 15ms).
+- **Zero Phantom Empty States (دستور ثبات البيانات وحظر الإفراغ الوهمي):**
+  - السرعة لا تعني أبداً تجاوز البيانات أو إظهار شاشات فارغة مضللة.
+  - بمجرد زيارة التاب، يظل المكون محفوظاً في ذاكرة المتصفح بأسلوب Keep-Alive بكامل حالته (`data`, `filters`, `pagination`, `scroll`), فلا يعود المستخدم ليجد الصفحة فارغة أو يُجبر على إعادة التحميل.
+  - الاستماع لـ `refreshKey` يضمن التحديث التلقائي لكافة التابات الحية عند إنشاء أو تعديل أي حركة جديدة.
+- **Light Aggregate Badges Standard (دستور العدادات الخفيفة وحظر سحب الجداول للأعداد):**
+  - يُمنع منعاً باتاً استدعاء مسارات الجداول الكاملة (`getInquiries()`, `getOrders()`, إلخ) لمجرد حساب أطوال المصفوفات (`.length`) لعرض شارات التابات.
+  - يجب دائماً توفير نقطة نهاية مجمعة سريعة في الباك إند (`/counts`) تعتمد على استعلامات SQL تجميعية متوازية `COUNT(*)` تُنفذ في ملليمترات قليلة (~2ms) وتعيد كائناً صغيراً (~50 بايت) لحماية الذاكرة والشبكة.
+- **Hover Pre-fetching Standard (دستور التجهيز اللحظي بالتحويم):**
+  - أزرار التابات ومسارات العمل يجب تزويدها بأحداث `onMouseEnter` و `onFocus` لبدء التحميل في الذاكرة قبل اكتمال نقرة الفأرة بنحو 50-100 ملي ثانية.
+  - مسارات العمل الرئيسية يجب إدراجها في محرك التحميل المسبق الخامل `route-prefetch.ts`.
+- **Memory Hydration Protection:** Never reset tab counts/badges to 0 on navigation or re-render; always hydrate from memory (`memoryCachedCounts`) and `sessionStorage`.
 
 ## 6. Universal 1280px Layout & Zero Width-Jumping Standard
 - Fixed maximum container width: `max-width: 1280px; width: min(100%, 1280px); margin: 0 auto;`.
@@ -278,4 +295,30 @@
   - حظر أسهم العدادات الافتراضية (Number Spinners) لمنع التشويه في بيئات RTL.
   - عزل التسميات الإنجليزية بين قوسين في عناوين الأقسام والمحطات وقنوات الإرسال تحت `.desktop-only-inline` لمنع انكسار الأقواس (BiDi wrap break).
   - تثبيت مربعات الاختيار (Checkboxes) على حافة البطاقة مع `flex-shrink: 0` و `flex: 1; min-width: 0` لكتلة النصوص لمنع تداخل الشيك بوكس مع أسطر الشرح.
+
+## 22. Strict Enterprise High-Density Table & Compact Layout Standard (دستور التنسيق والضغط الجمالي المتزن للجداول والبيانات الكثيفة)
+- **فلسفة الضغط الجمالي المتزن (The Visual Density & Compression Philosophy):**
+  - تحقيق أعلى كثافة معلوماتية تشغيلية (High Information Density) مع الحفاظ التام على المظهر المؤسسي الأنيق والراحة البصرية للعين (`0px Horizontal Scroll`).
+  - حظر التمدد العشوائي للأسطر الذي يولد السكرول الأفقي المشوه، وفي نفس الوقت حظر التكدس القبيح أو التآكل.
+- **التوزيع الهرمي متعدد الأسطر داخل الخلايا (Intelligent 2-to-3 Line Cell Structure):**
+  - بدلاً من تكديس كافة التفاصيل (مثل: الحاوية + الأوزان + الأحجام + أعداد الطرود + بيان الصنف) في سطر أفقي واحد طويل يدفع العمود للتمدد ويجبر الجدول على السكرول:
+  - تُقسّم البيانات داخل الخلية هرمياً إلى 2 أو 3 أسطر متسقة:
+    1. **السطر الأول (البيان الرئيسي):** رمز الحاوية أو الكود الأساسي بخط داكن بارز (`fontWeight: 700`, `fontSize: 0.78rem`).
+    2. **السطر الثاني (الأبعاد والأوزان):** الأرقام والأوزان والطرود بخط ناعم بلون رمادي أردوازي (`#64748b`, `fontSize: 0.70rem`) مفصولة بنقاط فاصلة خفيفة (`•`).
+    3. **السطر الثالث (التوصيف):** بيان الصنف بخط أصغر ملتف طبيعياً (`word-break: break-word; white-space: normal`, `fontSize: 0.70rem`) دون مد عرض الخلية.
+- **التيبوجرافي الدقيق لأسماء الجهات والعملاء (Proportional Entity Typography):**
+  - أسماء الشركات والعملاء الكبرى يجب ألا تلتهم مساحة الجدول بخطوط ضخمة:
+    - **اسم العميل/الجهة:** `fontSize: '0.69rem'` إلى `'0.70rem'` (حوالي 11px) بوزن خط متزن `650` مع `line-height: 1.35` و `word-break: break-word`.
+    - **بيانات التواصل التابعة (هاتف، بريد إلكتروني):** `fontSize: '0.65rem'` بلون رمادي هادئ (`#64748b`).
+- **اختصار الشارات والإجراءات لتحرير مساحات الأعمدة الحيوية (Lean Badges & Action Buttons):**
+  - استبدال العبارات الطويلة المزدحمة في الشارات بكلمات مؤسسية محكمة رشيقة:
+    - `معمد (أمر تشغيل)` بدلاً من `تم التعميد (أمر تشغيل)`.
+    - `تم التسعير` بدلاً من `تم تسعيرها للعميل`.
+    - `طلب جديد` بدلاً من `طلب مستلم جديد`.
+  - أزرار الإجراءات المتسلسلة تكون مقتضبة ومباشرة (مثل: `فتح الـ RFQ ←` بدلاً من `طلب التسعير جاهز`)، بأبعاد رشيقة (`max-width: 96px - 100px`، حشو `4px 6px`، خط `0.70rem`).
+  - تقليص الحصة النسبية لعمودي الحالة والإجراءات إلى الحجم الأدنى (`8% - 10%`)، وإعادة تخصيص المساحة المحررة (4% - 6%) لخدمة أعمدة المحتوى الجوهري (اسم العميل والمسار والبيان).
+- **دستور الجدول الثابت وحظر الـ minWidth العشوائي (`table-layout: fixed`):**
+  - يُحظر نهائياً وضع `min-width` عشوائي ثابت (مثل `1020px` أو `1060px`) على الجداول داخل الحاويات المستقرة.
+  - يُعتمد حصرياً `table-layout: fixed` مع `width: 100%` ونسب `<colgroup>` محكمة مجموعها 100% بالضبط، لضمان ملء عرض الشاشة 100% دون أي سكرول أفقي نهائياً.
+
 

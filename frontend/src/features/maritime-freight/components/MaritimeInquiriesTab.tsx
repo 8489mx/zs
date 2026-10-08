@@ -68,37 +68,37 @@ export function MaritimeInquiriesTab({
     switch (status) {
       case 'received':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#e0e7ff', color: '#3730a3', fontSize: '0.72rem', fontWeight: 700 }}>
-            طلب مستلم جديد
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#e0e7ff', color: '#3730a3', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            طلب جديد
           </span>
         );
       case 'rfq_created':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
             تم إنشاء RFQ
           </span>
         );
       case 'quoted':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dbeafe', color: '#1e40af', fontSize: '0.72rem', fontWeight: 700 }}>
-            تم تسعيرها للعميل
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#dbeafe', color: '#1e40af', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            تم التسعير
           </span>
         );
       case 'converted_to_job':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 700 }}>
-            تم التعميد (أمر تشغيل)
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#dcfce7', color: '#166534', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            معمد (أمر تشغيل)
           </span>
         );
       case 'cancelled':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
             ملغي
           </span>
         );
       default:
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
             {status}
           </span>
         );
@@ -108,13 +108,13 @@ export function MaritimeInquiriesTab({
   const getDirectionBadge = (direction: string) => {
     switch (direction) {
       case 'import':
-        return <span style={{ color: '#0369a1', fontWeight: 700 }}>استيراد (Import)</span>;
+        return <span style={{ color: '#0369a1', fontWeight: 700, fontSize: '0.70rem' }}>وارد (Import)</span>;
       case 'export':
-        return <span style={{ color: '#15803d', fontWeight: 700 }}>تصدير (Export)</span>;
+        return <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.70rem' }}>صادر (Export)</span>;
       case 'cross_trade':
-        return <span style={{ color: '#b45309', fontWeight: 700 }}>تجارة ترانزيت (Cross-Trade)</span>;
+        return <span style={{ color: '#b45309', fontWeight: 700, fontSize: '0.70rem' }}>ترانزيت</span>;
       default:
-        return <span>{direction}</span>;
+        return <span style={{ fontSize: '0.70rem' }}>{direction}</span>;
     }
   };
 
@@ -322,144 +322,186 @@ export function MaritimeInquiriesTab({
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
+        <div style={{ overflowX: 'auto' }} className="thin-scrollbar">
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.80rem' }}>
+            <colgroup>
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '19%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '21%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+            </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '12px 14px' }}>رقم الطلب والوسيلة</th>
-                <th style={{ padding: '12px 14px' }}>العميل وبيانات الاتصال</th>
-                <th style={{ padding: '12px 14px' }}>مسار الشحنة</th>
-                <th style={{ padding: '12px 14px' }}>الشحنة والمعدات / الأوزان</th>
-                <th style={{ padding: '12px 14px' }}>الشرط والسداد</th>
-                <th style={{ padding: '12px 14px' }}>جاهزية البضاعة</th>
-                <th style={{ padding: '12px 14px' }}>الحالة</th>
-                <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراء المتسلسل</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>رقم الطلب والوسيلة</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>العميل والاتصال</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>مسار الشحنة</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشحنة والمعدات / الأوزان</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشرط والسداد</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>جاهزية البضاعة</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الحالة</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الإجراء المتسلسل</th>
               </tr>
             </thead>
             <tbody>
               {filteredInquiries.map((inq) => (
                 <tr key={inq.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 800, color: '#170e5e' }}>{inq.inquiry_number}</span>
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, color: '#170e5e', fontSize: '0.78rem' }}>{inq.inquiry_number}</span>
                       {getModeBadge(inq.transport_mode)}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
                       {new Date(inq.created_at).toLocaleDateString('ar-EG')}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{inq.customer_name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                      {inq.customer_phone ? <span>{inq.customer_phone}</span> : null}
-                      {inq.customer_email ? <span style={{ marginRight: '6px' }}>| {inq.customer_email}</span> : null}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
+                    <div style={{ fontWeight: 650, color: '#0f172a', fontSize: '0.69rem', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                      {inq.customer_name}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px', lineHeight: 1.3 }}>
+                      {inq.customer_phone ? <div style={{ direction: 'ltr', textAlign: 'right' }}>{inq.customer_phone}</div> : null}
+                      {inq.customer_email ? (
+                        <div
+                          style={{ direction: 'ltr', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          title={inq.customer_email}
+                        >
+                          {inq.customer_email}
+                        </div>
+                      ) : null}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       {inq.pol_code} ➔ {inq.pod_code}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
                       {getDirectionBadge(inq.direction)}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
                     {inq.transport_mode === 'air' ? (
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0369a1' }}>
+                        <div style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.78rem' }}>
                           {Number(inq.chargeable_weight_kg || inq.gross_weight_kg || 0).toLocaleString()} كجم (محاسبي)
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                          {inq.cbm ? `${inq.cbm} CBM` : ''} {inq.package_count ? `| ${inq.package_count} طرد` : ''} | {inq.commodity_description || 'بضاعة عامة'}
+                        {(inq.cbm || inq.package_count) && (
+                          <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '1px' }}>
+                            {inq.package_count ? `${inq.package_count} طرد` : ''}{inq.package_count && inq.cbm ? ' • ' : ''}{inq.cbm ? `${inq.cbm} CBM` : ''}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
+                          {inq.commodity_description || 'بضاعة عامة'}
                         </div>
                       </div>
                     ) : inq.transport_mode === 'road' ? (
                       <div>
-                        <div style={{ fontWeight: 700, color: '#c2410c' }}>
+                        <div style={{ fontWeight: 700, color: '#c2410c', fontSize: '0.78rem' }}>
                           {inq.container_type || 'شاحنة'} ({inq.cargo_mode || 'FTL'})
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                          {inq.gross_weight_kg ? `${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''} {inq.cbm ? `| ${inq.cbm} CBM` : ''} | {inq.commodity_description}
+                        {(inq.gross_weight_kg || inq.cbm) && (
+                          <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '1px' }}>
+                            {inq.gross_weight_kg ? `${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''}{inq.gross_weight_kg && inq.cbm ? ' • ' : ''}{inq.cbm ? `${inq.cbm} CBM` : ''}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
+                          {inq.commodity_description || 'بضاعة عامة'}
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <div>
-                          <strong>{inq.container_count}x {inq.container_type}</strong> ({inq.cargo_mode})
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.78rem' }}>
+                          {inq.container_count}x {inq.container_type}{' '}
+                          <span style={{ fontSize: '0.70rem', fontWeight: 500, color: '#64748b' }}>({inq.cargo_mode})</span>
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                          {inq.commodity_description}
-                          {inq.gross_weight_kg ? ` | ${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''}
+                        {(inq.gross_weight_kg || inq.cbm) && (
+                          <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '1px' }}>
+                            {inq.gross_weight_kg ? `${Number(inq.gross_weight_kg).toLocaleString()} كجم` : ''}{inq.gross_weight_kg && inq.cbm ? ' • ' : ''}{inq.cbm ? `${inq.cbm} CBM` : ''}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
+                          {inq.commodity_description || 'بضاعة عامة'}
                         </div>
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div>{inq.incoterm}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      {inq.payment_term === 'prepaid' ? 'مدفوع مقدماً' : 'دفع عند الوصول'}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.78rem' }}>{inq.incoterm}</div>
+                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
+                      {inq.payment_term === 'prepaid' ? 'مدفوع مقدماً' : 'دفع بالوصول'}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 600, color: '#334155' }}>
-                      {inq.cargo_ready_date ? new Date(inq.cargo_ready_date).toLocaleDateString('ar-EG') : 'فوراً'}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
+                    <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.74rem' }}>
+                      {inq.cargo_ready_date ? new Date(inq.cargo_ready_date).toLocaleDateString('ar-EG') : 'جاهز فوراً'}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      سماح مطلوب: {inq.target_free_days || 14} يوم
+                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
+                      سماح: {inq.target_free_days || 14} يوم
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
                     {getStatusBadge(inq.status)}
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
                     {inq.status === 'received' ? (
                       <button
                         type="button"
                         disabled={convertingId === inq.id}
                         onClick={() => handleConvertClick(inq.id)}
                         style={{
-                          padding: '6px 12px',
+                          padding: '4px 6px',
                           background: '#170e5e',
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: '6px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.70rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          width: '100%',
+                          maxWidth: '96px',
                           whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <FileTextIcon size={14} />
-                        <span>{convertingId === inq.id ? 'جاري التحويل...' : 'تحويل لـ RFQ خطوط'}</span>
+                        <FileTextIcon size={12} />
+                        <span>{convertingId === inq.id ? 'تحويل...' : 'تحويل لـ RFQ'}</span>
                       </button>
                     ) : inq.rfq_id ? (
                       <button
                         type="button"
                         onClick={() => onNavigateToRfq && onNavigateToRfq(inq.rfq_id!)}
                         style={{
-                          padding: '5px 10px',
+                          padding: '4px 6px',
                           background: '#f0fdf4',
                           color: '#166534',
                           border: '1px solid #bbf7d0',
                           borderRadius: '6px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.70rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          width: '100%',
+                          maxWidth: '96px',
                           whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <CheckCircleIcon size={14} color="#16a34a" />
-                        <span>طلب التسعير جاهز</span>
-                        <ArrowLeftIcon size={13} />
+                        <CheckCircleIcon size={12} color="#16a34a" />
+                        <span>فتح الـ RFQ</span>
+                        <ArrowLeftIcon size={11} />
                       </button>
                     ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>مكتمل</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>مكتمل</span>
                     )}
                   </td>
                 </tr>

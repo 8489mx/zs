@@ -34,9 +34,52 @@ export function MaritimeJobsTab({
     return list;
   }, [enableSeaFreight, enableAirFreight, enableRoadFreight]);
 
-  const getMilestoneLabel = (key: string) => {
+  const MILESTONE_SHORT_LABELS: Record<string, string> = {
+    BOOK: 'تأكيد الحجز',
+    GTI: 'دخول الميناء',
+    LOAD: 'تم التحميل',
+    DEPT: 'أبحرت السفينة',
+    ARRI: 'وصلت السفينة',
+    DISC: 'تفريغ الحاوية',
+    CUST: 'إنهاء التخليص',
+    GTO: 'خروج الحاوية',
+    DLVR: 'تسليم البضاعة',
+    RETN: 'إعادة الحاوية',
+    BKD: 'حجز مؤكد',
+    RCS: 'استلام المطار',
+    MAN: 'على المانيفست',
+    DEP: 'أقلعت الرحلة',
+    ARR: 'هبطت الرحلة',
+    RCF: 'تفريغ المطار',
+    NFD: 'إشعار العميل',
+    AWD: 'تسليم المستندات',
+    DLV: 'تم التسليم (POD)',
+    TRK_POD: 'تم التسليم برياً',
+    POD: 'تم التسليم (POD)',
+  };
+
+  const getShortShippingLineName = (fullName?: string): string => {
+    if (!fullName) return '';
+    const match = fullName.match(/\((.*?)\)/);
+    if (match && match[1] && match[1].length <= 8) {
+      return match[1].trim();
+    }
+    return fullName.replace(/\s*\(.*?\).*/g, '').trim();
+  };
+
+  const getShortMilestoneLabel = (key?: string): string => {
+    if (!key) return 'قيد المتابعة';
+    if (MILESTONE_SHORT_LABELS[key]) return MILESTONE_SHORT_LABELS[key];
     const found = DCSA_STANDARD_MILESTONES.find((m) => m.key === key);
-    return found ? `${found.key} - ${found.title_ar}` : key;
+    if (found) return found.title_ar.split(' ')[0] + ' ' + (found.title_ar.split(' ')[1] || '');
+    return key;
+  };
+
+  const getFullMilestoneTitle = (key?: string): string => {
+    if (!key) return '';
+    const found = DCSA_STANDARD_MILESTONES.find((m) => m.key === key);
+    if (found) return `${found.key} - ${found.title_ar}`;
+    return key;
   };
 
   const getModeBadge = (mode?: string) => {
@@ -246,18 +289,28 @@ export function MaritimeJobsTab({
         )}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
+      <div style={{ overflowX: 'auto' }} className="thin-scrollbar">
+        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.80rem' }}>
+          <colgroup>
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '12%' }} />
+          </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '12px 14px' }}>كود العملية / الوسيلة</th>
-              <th style={{ padding: '12px 14px' }}>العميل والمسار</th>
-              <th style={{ padding: '12px 14px' }}>الناقل والرحلة</th>
-              <th style={{ padding: '12px 14px' }}>الشحنة والمعدات / الأوزان</th>
-              <th style={{ padding: '12px 14px' }}>المرحلة التشغيلية</th>
-              <th style={{ padding: '12px 14px' }}>إذن التسليم (D/O)</th>
-              <th style={{ padding: '12px 14px' }}>ربحية الشحنة</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>كود العملية / الوسيلة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>العميل والمسار</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الناقل والرحلة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشحنة والمعدات / الأوزان</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>المرحلة التشغيلية</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>إذن التسليم (D/O)</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>ربحية الشحنة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الإجراءات</th>
             </tr>
           </thead>
           <tbody>
@@ -276,72 +329,198 @@ export function MaritimeJobsTab({
             ) : (
               filteredJobs.map((job) => (
                 <tr key={job.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                      <span>{job.job_number}</span>
+                  {/* 1. كود العملية والوسيلة */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                      <span style={{ fontWeight: 800, color: '#170e5e', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
+                        {job.job_number}
+                      </span>
                       {getModeBadge(job.transport_mode)}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{job.customer_name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                      {job.pol_code} ➔ {job.pod_code} ({job.direction === 'import' ? 'وارد' : job.direction === 'export' ? 'صادر' : 'ترانزيت'})
+
+                  {/* 2. العميل والمسار */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        fontWeight: 650,
+                        color: '#0f172a',
+                        fontSize: '0.69rem',
+                        lineHeight: 1.35,
+                        wordBreak: 'break-word',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                      title={job.customer_name}
+                    >
+                      {job.customer_name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.68rem',
+                        color: '#64748b',
+                        marginTop: '2px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={`${job.pol_name || job.pol_code} ➔ ${job.pod_name || job.pod_code} (${job.direction === 'import' ? 'وارد' : job.direction === 'export' ? 'صادر' : 'ترانزيت'})`}
+                    >
+                      {job.pol_code} ➔ {job.pod_code}{' '}
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                        ({job.direction === 'import' ? 'وارد' : job.direction === 'export' ? 'صادر' : 'ترانزيت'})
+                      </span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{job.shipping_line_name || 'غير محدد'}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+
+                  {/* 3. الناقل والرحلة */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        fontSize: '0.74rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={job.shipping_line_name || 'غير محدد'}
+                    >
+                      {getShortShippingLineName(job.shipping_line_name) || 'غير محدد'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.69rem',
+                        color: '#64748b',
+                        marginTop: '2px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={
+                        job.transport_mode === 'air'
+                          ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : 'شحن جوي')
+                          : job.transport_mode === 'road'
+                          ? (job.booking_number ? `بوليصة: ${job.booking_number}` : 'نقل بري')
+                          : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : 'شحن بحري'))
+                      }
+                    >
                       {job.transport_mode === 'air'
-                        ? job.flight_number
-                          ? `رحلة: ${job.flight_number}`
-                          : job.mawb_number
-                          ? `AWB: ${job.mawb_number}`
-                          : 'شحن جوي'
-                        : job.vessel_name
-                        ? `${job.vessel_name} / ${job.voyage_number || '-'}`
-                        : 'حجز: ' + (job.booking_number || '-')}
+                        ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : 'شحن جوي')
+                        : job.transport_mode === 'road'
+                        ? (job.booking_number ? `بوليصة: ${job.booking_number}` : 'نقل بري')
+                        : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : 'شحن بحري'))
+                      }
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+
+                  {/* 4. الشحنة والمعدات / الأوزان */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', overflow: 'hidden' }}>
                     {job.transport_mode === 'air' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ padding: '2px 8px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '8px', fontWeight: 700, fontSize: '0.74rem' }}>
-                          {job.chargeable_weight_kg || job.gross_weight_kg || 0} كجم (خاضع للرسوم)
+                        <span
+                          title={`${job.chargeable_weight_kg || job.gross_weight_kg || 0} كجم خاضع للرسوم`}
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            padding: '2px 6px',
+                            background: '#f0f9ff',
+                            color: '#0369a1',
+                            border: '1px solid #bae6fd',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '0.70rem',
+                          }}
+                        >
+                          {Number(job.chargeable_weight_kg || job.gross_weight_kg || 0).toLocaleString()} كجم
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {job.package_count || 0} طرد • {job.total_cbm || 0} CBM
                         </span>
                       </div>
                     ) : job.transport_mode === 'road' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ padding: '2px 8px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '8px', fontWeight: 700, fontSize: '0.74rem' }}>
-                          {job.gross_weight_kg || 0} كجم
+                        <span
+                          title={`${job.gross_weight_kg || 0} كجم`}
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            padding: '2px 6px',
+                            background: '#fef3c7',
+                            color: '#b45309',
+                            border: '1px solid #fde68a',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '0.70rem',
+                          }}
+                        >
+                          {Number(job.gross_weight_kg || 0).toLocaleString()} كجم
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {job.total_cbm || 0} CBM
                         </span>
                       </div>
                     ) : (
-                      <span style={{ padding: '2px 8px', background: job.hasOverdueContainers ? '#fef2f2' : '#f1f5f9', color: job.hasOverdueContainers ? '#b91c1c' : '#334155', borderRadius: '10px', fontWeight: 700 }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          maxWidth: '100%',
+                          whiteSpace: 'nowrap',
+                          padding: '2px 8px',
+                          background: job.hasOverdueContainers ? '#fef2f2' : '#f1f5f9',
+                          color: job.hasOverdueContainers ? '#b91c1c' : '#334155',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          fontSize: '0.71rem',
+                        }}
+                      >
                         {job.containersCount || 0} حاويات
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ padding: '3px 10px', background: '#eff6ff', color: '#1d4ed8', borderRadius: '14px', fontSize: '0.74rem', fontWeight: 700 }}>
-                      {getMilestoneLabel(job.milestone_status)}
+
+                  {/* 5. المرحلة التشغيلية */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', overflow: 'hidden' }}>
+                    <span
+                      title={getFullMilestoneTitle(job.milestone_status)}
+                      style={{
+                        display: 'inline-block',
+                        maxWidth: '100%',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        padding: '2px 8px',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '12px',
+                        fontSize: '0.70rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {getShortMilestoneLabel(job.milestone_status)}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+
+                  {/* 6. إذن التسليم والسداد */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
                       <span
                         style={{
                           display: 'inline-block',
-                          padding: '2px 8px',
+                          padding: '1px 6px',
                           borderRadius: '4px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.68rem',
                           fontWeight: 700,
-                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
                           background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#f1f5f9',
                           color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
                         }}
@@ -349,33 +528,56 @@ export function MaritimeJobsTab({
                         {job.payment_status === 'paid' ? 'مسدد بالكامل' : job.payment_status === 'partially_paid' ? 'مسدد جزئياً' : 'غير مسدد'}
                       </span>
                       {job.delivery_order_released ? (
-                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.7rem' }}>تم التسليم (D/O)</span>
+                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>تم التسليم (D/O)</span>
                       ) : (
-                        <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.7rem' }}>إذن تسليم معلق</span>
+                        <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>إذن تسليم معلق</span>
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 800, color: '#15803d' }}>
+
+                  {/* 7. ربحية الشحنة */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 800, color: '#15803d', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       +${Number(job.net_profit || 0).toLocaleString()}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+
+                  {/* 8. الإجراءات */}
+                  <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', overflow: 'hidden' }}>
                     <button
                       type="button"
                       onClick={() => onSelectJob(job)}
+                      title="استعراض وتفاصيل ملف أمر التشغيل"
                       style={{
-                        padding: '5px 12px',
+                        padding: '0 8px',
+                        height: '26px',
                         background: '#170e5e',
                         color: '#ffffff',
                         border: 'none',
                         borderRadius: '6px',
-                        fontSize: '0.74rem',
+                        fontSize: '0.70rem',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        whiteSpace: 'nowrap',
+                        width: '100%',
+                        maxWidth: '100px',
+                        boxSizing: 'border-box',
+                        boxShadow: '0 1px 2px rgba(23, 14, 94, 0.2)',
+                        transition: 'all 0.12s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#251785';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#170e5e';
                       }}
                     >
-                      استعراض الملف ←
+                      <AppIcons.FileText size={11} />
+                      <span>استعراض الملف</span>
                     </button>
                   </td>
                 </tr>

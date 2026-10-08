@@ -58,7 +58,7 @@ export function MaritimeQuotationsTab({
       case 'rejected':
         return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>مرفوض</span>;
       case 'converted_to_job':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f3e8ff', color: '#7e22ce', fontSize: '0.72rem', fontWeight: 700 }}>تحول لأمر تشغيل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '0.72rem', fontWeight: 700 }}>تحول لأمر تشغيل</span>;
       default:
         return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>{status}</span>;
     }
@@ -239,20 +239,32 @@ export function MaritimeQuotationsTab({
                             width: '105px',
                             height: '28px',
                             padding: '0 4px',
-                            background: '#f3e8ff',
-                            color: '#7e22ce',
-                            border: '1px solid #d8b4fe',
+                            background: '#ffffff',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
                             borderRadius: '6px',
-                            fontSize: '0.73rem',
+                            fontSize: '0.72rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            gap: '4px',
                             whiteSpace: 'nowrap',
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                            transition: 'all 0.12s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#94a3b8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = '#cbd5e1';
                           }}
                         >
-                          عرض أمر التشغيل
+                          <AppIcons.ArrowLeft size={11} strokeWidth={2.2} />
+                          <span>عرض أمر التشغيل</span>
                         </button>
                       ) : (
                         <button

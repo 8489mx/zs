@@ -147,14 +147,19 @@ export function MaritimeFreightDashboard() {
       <style>{`
         .maritime-dashboard-kpis {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
           width: 100%;
           box-sizing: border-box;
         }
         @media (max-width: 960px) {
           .maritime-dashboard-kpis {
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 600px) {
+          .maritime-dashboard-kpis {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
@@ -300,53 +305,7 @@ export function MaritimeFreightDashboard() {
           </div>
         </div>
 
-        {/* Card 4: حجم الشحن والحاويات TEU */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '12px 14px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            minHeight: '88px',
-            boxSizing: 'border-box',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              حجم الحاويات المشحونة
-            </div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-              {containerMetrics.totalTeu} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>TEU</span>
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              إجمالي {containerMetrics.totalContainers} حاوية مسجلة
-            </div>
-          </div>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: '#eff6ff',
-              border: '1px solid #dbeafe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#0284c7',
-              flexShrink: 0,
-            }}
-          >
-            <AppIcons.Ship size={18} />
-          </div>
-        </div>
-
-        {/* Card 5: مؤشر الحاويات الحرجة ورادار الغرامات */}
+        {/* Card 4: حركة الحاويات ورادار الموانئ */}
         <div
           style={{
             background: '#ffffff',
@@ -365,18 +324,24 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>الحاويات الحرجة</span>
-              {containerMetrics.overdueCount > 0 && (
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                حركة الحاويات والرادار
+              </span>
+              {containerMetrics.overdueCount > 0 ? (
                 <span style={{ padding: '1px 5px', background: '#fee2e2', color: '#b91c1c', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
-                  تحت الغرامة
+                  {containerMetrics.overdueCount} تحت الغرامة
+                </span>
+              ) : (
+                <span style={{ padding: '1px 5px', background: '#eff6ff', color: '#1e40af', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
+                  منضبط
                 </span>
               )}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-              {containerMetrics.overdueCount + containerMetrics.criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>حاوية</span>
+              {containerMetrics.totalTeu} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>TEU</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {containerMetrics.overdueCount} متأخرة | {containerMetrics.criticalCount} متبقي &le; 3 أيام
+              إجمالي {containerMetrics.totalContainers} حاوية | {containerMetrics.overdueCount + containerMetrics.criticalCount} حرجة
             </div>
           </div>
           <div
@@ -384,16 +349,20 @@ export function MaritimeFreightDashboard() {
               width: '38px',
               height: '38px',
               borderRadius: '10px',
-              background: containerMetrics.overdueCount > 0 ? '#fef2f2' : '#fffbeb',
-              border: containerMetrics.overdueCount > 0 ? '1px solid #fecaca' : '1px solid #fde68a',
+              background: containerMetrics.overdueCount > 0 ? '#fef2f2' : '#eff6ff',
+              border: containerMetrics.overdueCount > 0 ? '1px solid #fecaca' : '1px solid #dbeafe',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: containerMetrics.overdueCount > 0 ? '#dc2626' : '#d97706',
+              color: containerMetrics.overdueCount > 0 ? '#dc2626' : '#0284c7',
               flexShrink: 0,
             }}
           >
-            <AppIcons.AlertTriangle size={18} />
+            {containerMetrics.overdueCount > 0 ? (
+              <AppIcons.AlertTriangle size={18} />
+            ) : (
+              <AppIcons.Container size={18} />
+            )}
           </div>
         </div>
       </div>

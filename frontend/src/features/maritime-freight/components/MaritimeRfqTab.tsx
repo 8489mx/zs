@@ -1,4 +1,5 @@
 import { MaritimeRfq } from '../api/maritime-freight.api';
+import { SlidersIcon, PlusIcon, SendIcon, MailIcon } from '@/shared/components/icons/AppIcons';
 
 interface MaritimeRfqTabProps {
   rfqs: MaritimeRfq[];
@@ -97,28 +98,28 @@ export function MaritimeRfqTab({
       </div>
 
       {/* جدول طلبات التسعير */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.80rem' }}>
+      <div style={{ overflowX: 'auto' }} className="thin-scrollbar">
+        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.80rem' }}>
           <colgroup>
             <col style={{ width: '10%' }} />
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '7%' }} />
+            <col style={{ width: '16%' }} />
             <col style={{ width: '14%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '13%' }} />
             <col style={{ width: '8%' }} />
-            <col style={{ width: '23%' }} />
+            <col style={{ width: '25%' }} />
           </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>كود الطلب</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>مسار الشحنة</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الحاويات والبضاعة</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الشرط والسداد</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>العروض المستلمة</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>أفضل عرض</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الحالة</th>
-              <th style={{ padding: '10px 8px', fontSize: '0.76rem', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>كود الطلب</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>مسار الشحنة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الحاويات والبضاعة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الشرط والسداد</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>العروض المستلمة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>أفضل عرض</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الحالة</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
             </tr>
           </thead>
           <tbody>
@@ -216,92 +217,135 @@ export function MaritimeRfqTab({
                   <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     {getStatusBadge(rfq.status)}
                   </td>
-                  <td style={{ padding: '8px 4px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <div
+                  <td style={{ padding: '6px 4px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                      {/* 1. مصفوفة الأسعار */}
+                      <button
+                        type="button"
+                        onClick={() => onSelectRfqForMatrix(rfq)}
+                        title="مصفوفة مقارنة عروض الأسعار"
                         style={{
-                          display: 'grid',
-                          gridTemplateColumns: '96px 74px 92px',
-                          gap: '6px',
+                          height: '26px',
+                          padding: '0 8px',
+                          display: 'inline-flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '6px',
+                          fontSize: '0.70rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                          boxShadow: '0 1px 2px rgba(29, 78, 216, 0.05)',
+                          transition: 'all 0.12s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#dbeafe';
+                          e.currentTarget.style.borderColor = '#93c5fd';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#eff6ff';
+                          e.currentTarget.style.borderColor = '#bfdbfe';
                         }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => onSelectRfqForMatrix(rfq)}
-                          title="مصفوفة مقارنة العروض"
-                          style={{
-                            width: '96px',
-                            height: '28px',
-                            padding: '0 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          مصفوفة الأسعار
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onOpenAddBid(rfq)}
-                          title="تسجيل عرض سعر يدوي"
-                          style={{
-                            width: '74px',
-                            height: '28px',
-                            padding: '0 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#f8fafc',
-                            color: '#334155',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          + عرض سعر
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDispatchEmails(rfq)}
-                          title="تحديد الخطوط وإرسال الإيميلات"
-                          style={{
-                            width: '92px',
-                            height: '28px',
-                            padding: '0 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: rfq.status === 'draft' ? '#170e5e' : '#eff6ff',
-                            color: rfq.status === 'draft' ? '#ffffff' : '#1e40af',
-                            border: rfq.status === 'draft' ? '1px solid #170e5e' : '1px solid #bfdbfe',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          {rfq.status === 'draft' ? 'إرسال' : 'إرسال للخطوط'}
-                        </button>
-                      </div>
+                        <SlidersIcon size={12} strokeWidth={2.2} />
+                        <span>مصفوفة الأسعار</span>
+                      </button>
+
+                      {/* 2. تسجيل عرض سعر */}
+                      <button
+                        type="button"
+                        onClick={() => onOpenAddBid(rfq)}
+                        title="تسجيل عرض سعر يدوي من الخط"
+                        style={{
+                          height: '26px',
+                          padding: '0 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          background: '#ffffff',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          fontSize: '0.70rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                          transition: 'all 0.12s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f8fafc';
+                          e.currentTarget.style.borderColor = '#94a3b8';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = '#cbd5e1';
+                        }}
+                      >
+                        <PlusIcon size={11} strokeWidth={2.5} />
+                        <span>عرض سعر</span>
+                      </button>
+
+                      {/* 3. إرسال للخطوط أو مراسلة */}
+                      <button
+                        type="button"
+                        onClick={() => onDispatchEmails(rfq)}
+                        title={rfq.status === 'draft' ? 'تحديد الخطوط وإرسال طلب التسعير' : 'مراسلة الخطوط وتعديل قائمة الإرسال'}
+                        style={{
+                          height: '26px',
+                          padding: '0 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          background: rfq.status === 'draft' ? '#170e5e' : '#f8fafc',
+                          color: rfq.status === 'draft' ? '#ffffff' : '#475569',
+                          border: rfq.status === 'draft' ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          fontSize: '0.70rem',
+                          fontWeight: rfq.status === 'draft' ? 700 : 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                          boxShadow: rfq.status === 'draft' ? '0 1px 2px rgba(23, 14, 94, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.03)',
+                          transition: 'all 0.12s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (rfq.status === 'draft') {
+                            e.currentTarget.style.background = '#251785';
+                          } else {
+                            e.currentTarget.style.background = '#f1f5f9';
+                            e.currentTarget.style.borderColor = '#94a3b8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (rfq.status === 'draft') {
+                            e.currentTarget.style.background = '#170e5e';
+                          } else {
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#cbd5e1';
+                          }
+                        }}
+                      >
+                        {rfq.status === 'draft' ? (
+                          <>
+                            <SendIcon size={11} strokeWidth={2.2} />
+                            <span>إرسال للخطوط</span>
+                          </>
+                        ) : (
+                          <>
+                            <MailIcon size={12} strokeWidth={2} />
+                            <span>مراسلة</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </td>
                 </tr>
