@@ -62,17 +62,7 @@ export interface MobileQuickActionItem {
 export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVertical {
   const isFlagActive = (val: any) => val === true || val === 'true' || val === 1 || val === '1';
 
-  // 0. Active dedicated enterprise module flags (operational reality overrides generic defaults)
-  if (isFlagActive(settings?.maritimeFreightModuleEnabled) || tenant?.features?.includes('maritime_freight')) return 'maritime';
-  if (isFlagActive(settings?.contractingModuleEnabled) || tenant?.features?.includes('contracting')) return 'contracting';
-  if (isFlagActive(settings?.manufacturingModuleEnabled) || tenant?.features?.includes('manufacturing')) return 'manufacturing';
-  if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
-  if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
-  if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
-  if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
-  if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
-
-  // 1. Explicit configured vertical indicator: filter out generic fallbacks ('general', 'retail', 'retail_general', 'store')
+  // 1. Explicit configured vertical indicator: HIGHEST AUTHORITY (The tenant's chosen business identity)
   const candidates = [
     settings?.businessIndustry,
     settings?.activityType,
@@ -114,7 +104,9 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit.includes('توزيع') ||
       explicit.includes('فان') ||
       explicit.includes('مناديب') ||
-      explicit.includes('جمل')
+      explicit.includes('جمل') ||
+      explicit.includes('موزعون') ||
+      explicit.includes('وكلاء')
     ) {
       return 'wholesale_van';
     }
@@ -124,7 +116,9 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit === 'production' ||
       explicit.includes('تصنيع') ||
       explicit.includes('مصنع') ||
-      explicit.includes('إنتاج')
+      explicit.includes('إنتاج') ||
+      explicit.includes('معامل') ||
+      explicit.includes('ورش')
     ) {
       return 'manufacturing';
     }
@@ -133,7 +127,8 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit === 'restaurant' ||
       explicit === 'cafe' ||
       explicit.includes('مطعم') ||
-      explicit.includes('كافيه')
+      explicit.includes('كافيه') ||
+      explicit.includes('أغذية مجهزة')
     ) {
       return 'restaurant';
     }
@@ -141,7 +136,8 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
     if (
       explicit === 'pharmacy' ||
       explicit.includes('صيدل') ||
-      explicit.includes('أدوية')
+      explicit.includes('أدوية') ||
+      explicit.includes('علاجية')
     ) {
       return 'pharmacy';
     }
@@ -151,7 +147,8 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit === 'maintenance' ||
       explicit === 'repair' ||
       explicit.includes('صيانة') ||
-      explicit.includes('إلكترونيات')
+      explicit.includes('إلكترون') ||
+      explicit.includes('موبايل')
     ) {
       return 'maintenance';
     }
@@ -188,17 +185,31 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit.includes('متاجر') ||
       explicit.includes('سوبرماركت')
     ) {
+      // If explicit is generic retail, but an operational enterprise module switch was turned on, honor it
+      if (isFlagActive(settings?.maritimeFreightModuleEnabled)) return 'maritime';
+      if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
+      if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
+      if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
+      if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
+      if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
+      if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
+      if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
+      if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
+
       return 'retail_general';
     }
   }
 
-  // 2. Active modules fallbacks (only if no explicit activity is specified)
-  if (settings?.maritimeFreightModuleEnabled === true) return 'maritime';
-  if (settings?.contractingModuleEnabled === true) return 'contracting';
-  if (settings?.manufacturingModuleEnabled === true) return 'manufacturing';
-  if (settings?.restaurantModuleEnabled === true) return 'restaurant';
-  if (settings?.enablePharmacyModule === true) return 'pharmacy';
-  if (settings?.enableMobileStoreFeatures === true) return 'maintenance';
+  // 2. Fallback to operational settings flags if no candidate specified
+  if (isFlagActive(settings?.maritimeFreightModuleEnabled)) return 'maritime';
+  if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
+  if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
+  if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
+  if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
+  if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
+  if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
+  if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
+  if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
 
   // 3. Store name / Business name heuristic fallback
   const nameFallback = String(

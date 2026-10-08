@@ -909,6 +909,14 @@ export function AppShell({ children }: PropsWithChildren) {
       labelOverrides['customers'] = 'الشاحنون والمستوردون';
       labelOverrides['suppliers'] = 'النواقل ومقدمو الخدمات';
     }
+    if (isWholesaleVanVertical) {
+      labelOverrides['delivery-reps'] = 'مناديب التوزيع والسيارات';
+      labelOverrides['van-sales-admin'] = 'إدارة أسطول الفان';
+      labelOverrides['sales'] = 'فواتير المبيعات والتوزيع';
+      labelOverrides['returns'] = 'مرتجعات التوزيع';
+      labelOverrides['inventory-warehouses'] = 'المستودعات وسيارات الفان';
+      labelOverrides['inventory-issue-orders'] = 'تحويل وصرف سيارات الفان';
+    }
     const isPlatformAdminUser = isPlatformAdmin(user);
     const isEnterpriseCommerceActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || settings?.enableEnterpriseFeatures === true;
 
@@ -1016,6 +1024,11 @@ export function AppShell({ children }: PropsWithChildren) {
         if (isServicesVertical) {
           if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'products', 'product-categories', 'inventory', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-orders', 'inventory-issue-order-new', 'reports-inventory', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance', 'purchases-reorder'].includes(item.key)) return false;
           if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+
+        if (isWholesaleVanVertical) {
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'trade-in', 'imei-history', 'maintenance', 'clothing'].includes(item.key)) return false;
+          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
         // Feature & Setting gating:
@@ -1440,7 +1453,61 @@ export function AppShell({ children }: PropsWithChildren) {
       ];
     }
 
-    // 5. Multi-Modular & Enterprise Standard Workspace (Supports all modules simultaneously)
+    // 5. Dedicated Wholesale Van & Fleet Distribution Workspace
+    if (isWholesaleVanVertical) {
+      return [
+        {
+          key: 'sales-group',
+          label: 'المبيعات وتوزيع الفان',
+          itemKeys: ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists'],
+          iconKey: 'delivery-reps',
+        },
+        {
+          key: 'purchases-group',
+          label: 'المشتريات والتوريد',
+          itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchases-new', 'purchase-returns', 'suppliers'],
+          iconKey: 'purchases',
+        },
+        {
+          key: 'inventory-group',
+          label: 'المستودعات وسيارات الفان',
+          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center'],
+          iconKey: 'inventory',
+        },
+        {
+          key: 'accounting-group',
+          label: 'المالية ومراكز التكلفة',
+          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          iconKey: 'treasury',
+        },
+        {
+          key: 'hr-group',
+          label: 'الموارد البشرية وفريق العمل',
+          itemKeys: ['hr', 'hr-settlements'],
+          iconKey: 'users',
+        },
+        {
+          key: 'reports-group',
+          label: 'تقارير التوزيع والأسطول',
+          itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'],
+          iconKey: 'reports',
+        },
+        ...(isPlatformAdminUser ? [{
+          key: 'saas-group',
+          label: 'إدارة المنصة والساس',
+          itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
+          iconKey: 'saas-admin-tenants',
+        }] : []),
+        {
+          key: 'admin-group',
+          label: t('sidebar.admin-group', 'الإدارة والنظام'),
+          itemKeys: ['audit', 'settings'],
+          iconKey: 'admin',
+        },
+      ];
+    }
+
+    // 6. Multi-Modular & Enterprise Standard Workspace (Supports all modules simultaneously)
     return [
       ...(!isDedicatedMaritimeOnly && settings?.contractingModuleEnabled && hasContracting ? [{
         key: 'contracting-group',

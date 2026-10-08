@@ -1302,6 +1302,23 @@ export class SaasAdminService {
       if (verticalKey !== 'import_export') {
         modulesToSet['importModuleEnabled'] = false;
       }
+      if (verticalKey !== 'manufacturing') {
+        modulesToSet['manufacturingModuleEnabled'] = false;
+      }
+      if (verticalKey !== 'restaurant') {
+        modulesToSet['restaurantModuleEnabled'] = false;
+      }
+      if (verticalKey !== 'pharmacy') {
+        modulesToSet['enablePharmacyModule'] = false;
+      }
+      if (verticalKey !== 'maintenance' && verticalKey !== 'electronics') {
+        modulesToSet['enableMobileStoreFeatures'] = false;
+      }
+      if (verticalKey === 'wholesale_van') {
+        modulesToSet['deliveryFleetModuleEnabled'] = true;
+        modulesToSet['posModuleEnabled'] = false;
+        modulesToSet['enableEnterpriseFeatures'] = true;
+      }
 
       // Ensure foundational operational defaults
       if (effectiveFeatures.has('purchases')) {

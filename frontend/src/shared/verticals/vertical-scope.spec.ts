@@ -82,4 +82,27 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/maritime/jobs')).toBe(true);
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
   });
+
+  it('resolves wholesale_van even when tenant has omnichannel plan with manufacturing feature', () => {
+    const tenant = {
+      id: 'blue-dolphin',
+      slug: 'blue-dolphin',
+      businessName: 'بلو دولفين',
+      activityType: 'wholesale_van',
+      features: ['manufacturing', 'accounting', 'deliveryReps', 'sales', 'inventory', 'purchases'],
+    };
+    const settings = {
+      businessIndustry: 'wholesale_van',
+      manufacturingModuleEnabled: false,
+      deliveryFleetModuleEnabled: true,
+      posModuleEnabled: false,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('wholesale_van');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/van-sales/admin')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/manufacturing/work-orders')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/contracting/projects')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/maritime/jobs')).toBe(false);
+  });
 });
