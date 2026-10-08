@@ -11,7 +11,10 @@ export function UserDeleteDialog({ open, draft, isBusy, onCancel, onConfirm }: {
       confirmLabel="حذف المستخدم"
       confirmVariant="danger"
       managerPinRequired
-      managerPinHint="هذه العملية تحتاج كلمة مرور حسابك الحالي."
+      managerPinLabel="كلمة مرور حسابك للتأكيد"
+      managerPinPlaceholder="أدخل كلمة المرور الحالية"
+      managerPinInputType="password"
+      managerPinHint="هذه العملية تتطلب كلمة مرور حسابك الحالي للتحقق الأمني."
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}

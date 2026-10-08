@@ -18,6 +18,8 @@ interface ActionConfirmDialogProps {
   managerPinRequired?: boolean;
   managerPinLabel?: string;
   managerPinHint?: ReactNode;
+  managerPinPlaceholder?: string;
+  managerPinInputType?: 'password' | 'text';
   reasonRequired?: boolean;
   reasonLabel?: string;
   reasonHint?: ReactNode;
@@ -43,6 +45,8 @@ export function ActionConfirmDialog({
   managerPinRequired = false,
   managerPinLabel = 'رمز اعتماد المدير',
   managerPinHint,
+  managerPinPlaceholder,
+  managerPinInputType,
   reasonRequired = false,
   reasonLabel = 'سبب التنفيذ',
   reasonHint,
@@ -145,33 +149,48 @@ export function ActionConfirmDialog({
         ) : null}
 
         {managerPinRequired ? (
-          <div className="field" style={{ marginTop: 16 }}>
-            <label>
-              <span>{managerPinLabel}</span>
-              <input
-                value={managerPin}
-                onChange={(event) => {
-                  setManagerPin(event.target.value);
-                  if (submitError) setSubmitError('');
-                }}
-                type="text"
-                className="secure-password-field"
-                id="pin_verification_entry"
-                name="pin_verification_entry"
-                placeholder="أدخل الرمز"
-                inputMode="numeric"
-                autoComplete="off"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                autoFocus={managerPinRequired && !requiresKeyword}
-                disabled={isBusy}
-              />
-            </label>
-            <div className="muted small" style={{ marginTop: 8 }}>
+          <div className="field" style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {managerPinLabel ? (
+              <label htmlFor="pin_verification_entry" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#1e293b' }}>
+                {managerPinLabel}
+              </label>
+            ) : null}
+            <input
+              value={managerPin}
+              onChange={(event) => {
+                setManagerPin(event.target.value);
+                if (submitError) setSubmitError('');
+              }}
+              type={managerPinInputType || (String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? 'password' : 'text')}
+              id="pin_verification_entry"
+              name="pin_verification_entry"
+              placeholder={managerPinPlaceholder || (String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? 'أدخل كلمة المرور الحالية' : 'أدخل الرمز')}
+              inputMode={managerPinInputType === 'password' || String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? undefined : 'numeric'}
+              autoComplete="current-password"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              autoFocus={managerPinRequired && !requiresKeyword}
+              disabled={isBusy}
+              style={{
+                width: '100%',
+                minHeight: 42,
+                padding: '8px 14px',
+                borderRadius: 10,
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0f172a',
+                fontSize: 14,
+                fontWeight: 600,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            <div className="muted small" style={{ marginTop: 4, color: '#64748b', fontSize: 12 }}>
               {managerPinHint || 'أدخل رمز اعتماد المدير لإتمام هذه العملية.'}
             </div>
           </div>
