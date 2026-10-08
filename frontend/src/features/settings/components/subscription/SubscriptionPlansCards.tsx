@@ -26,15 +26,18 @@ interface SubscriptionPlansCardsProps {
   currentLevelId?: string | null;
 }
 
-function CapacityPills({ limits }: { limits: ResolvedPricingLevel['limits'] }) {
+function CapacityPills({ limits, productId }: { limits: ResolvedPricingLevel['limits']; productId?: string }) {
   const describe = (n: number | null | undefined) => (n == null ? 'بلا حد' : String(n));
   const pills: Array<{ icon: 'users' | 'building'; text: string }> = [];
 
+  const isMaritime = productId === 'maritime';
+  const isContracting = productId === 'contracting';
+
   if (limits.users !== undefined) pills.push({ icon: 'users', text: `${describe(limits.users)} مستخدم` });
-  if (limits.branches !== undefined) pills.push({ icon: 'building', text: `${describe(limits.branches)} فرع` });
-  if (limits.posTerminals != null) pills.push({ icon: 'building', text: `${limits.posTerminals} طرفية` });
-  if (limits.activeProjects != null) pills.push({ icon: 'building', text: `${limits.activeProjects} مشروع نشط` });
-  if (limits.containersPerMonth != null) pills.push({ icon: 'building', text: `${limits.containersPerMonth} حاوية/شهر` });
+  if (!isMaritime && limits.branches !== undefined) pills.push({ icon: 'building', text: `${describe(limits.branches)} فرع` });
+  if (!isMaritime && !isContracting && limits.posTerminals != null) pills.push({ icon: 'building', text: `${limits.posTerminals} طرفية` });
+  if (isContracting && limits.activeProjects != null) pills.push({ icon: 'building', text: `${limits.activeProjects} مشروع نشط` });
+  if (isMaritime && limits.containersPerMonth != null) pills.push({ icon: 'building', text: `${limits.containersPerMonth} حاوية/شهر` });
   if (limits.multiCompany) pills.push({ icon: 'building', text: 'تعدد الشركات' });
 
   return (
@@ -134,7 +137,7 @@ export function SubscriptionPlansCards({
                 </span>
               </div>
 
-              <CapacityPills limits={level.limits} />
+              <CapacityPills limits={level.limits} productId={pricing.product.id} />
 
               {level.sectorFeatures.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>

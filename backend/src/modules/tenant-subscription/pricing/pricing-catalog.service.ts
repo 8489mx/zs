@@ -50,7 +50,50 @@ export class PricingCatalogService {
    * لا يرمي: نشاط مجهول يسقط على التجزئة العامة بدل أن يُعطِّل شاشة الفوترة.
    */
   private resolveProduct(industryPresetId?: string | null) {
-    const wanted = String(industryPresetId || '').trim().toLowerCase();
+    let wanted = String(industryPresetId || '').trim().toLowerCase();
+    if (
+      wanted === 'maritime_freight' ||
+      wanted === 'maritime' ||
+      wanted === 'freight' ||
+      wanted === 'shipping' ||
+      wanted.includes('شحن') ||
+      wanted.includes('ملاحة') ||
+      wanted.includes('لوجست')
+    ) {
+      wanted = 'maritime';
+    } else if (
+      wanted === 'contracting' ||
+      wanted === 'construction' ||
+      wanted.includes('مقاول') ||
+      wanted.includes('تشييد') ||
+      wanted.includes('إنشاء')
+    ) {
+      wanted = 'contracting';
+    } else if (
+      wanted === 'wholesale_van' ||
+      wanted === 'wholesale' ||
+      wanted.includes('توزيع') ||
+      wanted.includes('فان') ||
+      wanted.includes('جمل')
+    ) {
+      wanted = 'wholesale';
+    } else if (
+      wanted === 'manufacturing' ||
+      wanted === 'production' ||
+      wanted.includes('تصنيع') ||
+      wanted.includes('إنتاج')
+    ) {
+      wanted = 'manufacturing';
+    } else if (wanted === 'restaurant' || wanted.includes('مطعم') || wanted.includes('كافيه')) {
+      wanted = 'restaurant';
+    } else if (wanted === 'pharmacy' || wanted.includes('صيدل') || wanted.includes('أدوية')) {
+      wanted = 'pharmacy';
+    } else if (wanted === 'electronics' || wanted.includes('صيانة') || wanted.includes('إلكترون')) {
+      wanted = 'electronics';
+    } else if (wanted === 'import_export' || wanted.includes('استيراد') || wanted.includes('تصدير') || wanted.includes('جمارك')) {
+      wanted = 'import_export';
+    }
+
     return (
       this.catalog.products.find((p) => p.presetId.toLowerCase() === wanted) ??
       this.catalog.products.find((p) => p.presetId === PricingCatalogService.FALLBACK_PRESET) ??

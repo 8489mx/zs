@@ -1,15 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
+import { settingsApi } from '../api/settings.api';
+import { queryKeys } from '@/app/query-keys';
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 import { CurrentSubscriptionHeroCard } from '../components/subscription/CurrentSubscriptionHeroCard';
 import { SubscriptionPlansCards } from '../components/subscription/SubscriptionPlansCards';
 import { DetailedPlanFeaturesMatrix } from '../components/subscription/DetailedPlanFeaturesMatrix';
 import { UpgradeRenewalModal } from '../components/subscription/UpgradeRenewalModal';
 import { SubscriptionPaymentsTable } from '../components/subscription/SubscriptionPaymentsTable';
 
-export function TenantSubscriptionPage() {
+interface TenantSubscriptionPageProps {
+  settings?: any;
+}
+
+export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscriptionPageProps = {}) {
   const [isAnnual, setIsAnnual] = useState(true);
   // لا منتقي عملات: البلد يُشتق من سجل المنشأة في الخادم لا من اختيار العميل (البند C8).
   const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: number; name: string; price: number; currency: string; levelId: string } | null>(null);
@@ -17,15 +26,25 @@ export function TenantSubscriptionPage() {
   const [notes, setNotes] = useState('');
   const [requestSuccessMessage, setRequestSuccessMessage] = useState<string | null>(null);
 
-  // التسعير المعتمد: مستويات نطاق المنشأة بأسعار بلدها، من `pricing-catalog.json`.
-  const { data: pricing } = useQuery({
-    queryKey: ['tenant-resolved-pricing'],
-    queryFn: () => tenantSubscriptionApi.getPricing(),
+  const authTenant = useAuthStore((state) => state.tenant);
+  const { data: pageSettings } = useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: () => settingsApi.settings(),
+    enabled: !propSettings,
   });
+  const effectiveSettings = propSettings || pageSettings;
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tenant-my-subscription'],
     queryFn: () => tenantSubscriptionApi.getMySubscription(),
+  });
+
+  const currentVertical = resolveCurrentVertical(data?.tenant || authTenant, effectiveSettings);
+
+  // التسعير المعتمد: مستويات نطاق المنشأة بأسعار بلدها، من `pricing-catalog.json`.
+  const { data: pricing } = useQuery({
+    queryKey: ['tenant-resolved-pricing', currentVertical],
+    queryFn: () => tenantSubscriptionApi.getPricing(currentVertical),
   });
 
   useEffect(() => {
@@ -46,7 +65,7 @@ export function TenantSubscriptionPage() {
       setNotes('');
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل إرسال طلب الترقية');
+      toast.error(err.message || 'فشل إرسال طلب الترقية');
     },
   });
 
@@ -63,7 +82,7 @@ export function TenantSubscriptionPage() {
       }
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل تجهيز بوابة الدفع');
+      toast.error(err.message || 'فشل تجهيز بوابة الدفع');
     },
   });
 
@@ -101,9 +120,9 @@ export function TenantSubscriptionPage() {
    * «تواصل معنا» لا معرّفاً وهمياً كما كان (كانت `{ id: 1, ... }` تُمرَّر للدفع).
    */
   const LEVEL_TO_LEGACY_CODE: Record<string, string[]> = {
-    L1: ['basic'],
-    L2: ['pro'],
-    L3: ['ultimate', 'enterprise', 'omnichannel'],
+    L1: ['basic', 'band1_l1', 'band2_l1', 'band3_l1', 'band4_l1', 'band5_l1'],
+    L2: ['pro', 'band1_l2', 'band2_l2', 'band3_l2', 'band4_l2', 'band5_l2'],
+    L3: ['ultimate', 'enterprise', 'omnichannel', 'band1_l3', 'band2_l3', 'band3_l3', 'band4_l3', 'band5_l3'],
   };
   const planIdForLevel = (levelId: string): number | null => {
     const codes = LEVEL_TO_LEGACY_CODE[levelId] ?? [];
@@ -217,6 +236,7 @@ export function TenantSubscriptionPage() {
       {/* 2. Hero Card: Current Subscription Status */}
       <CurrentSubscriptionHeroCard
         tenant={tenant}
+        settings={effectiveSettings}
         subscription={subscription}
         statusMeta={statusMeta}
         usage={usage}

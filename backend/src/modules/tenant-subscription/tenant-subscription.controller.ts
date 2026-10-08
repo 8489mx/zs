@@ -51,8 +51,8 @@ export class TenantSubscriptionController {
    */
   @Get('pricing')
   @UseGuards(SessionAuthGuard)
-  getPricing(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.service.getResolvedPricing(req.authContext!) as Promise<Record<string, unknown>>;
+  getPricing(@Req() req: RequestWithAuth, @Query('vertical') vertical?: string): Promise<Record<string, unknown>> {
+    return this.service.getResolvedPricing(req.authContext!, vertical) as Promise<Record<string, unknown>>;
   }
 
   @Post('request-renewal')

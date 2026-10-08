@@ -154,14 +154,26 @@ export class SettingsService {
       if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
       if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
 
-      const primaryActivity = tenant.activity_type || settings.businessIndustry || settings.activityType || 'retail_general';
+      let primaryActivity = tenant.activity_type;
+      if (settings.maritimeFreightModuleEnabled === true || settings.maritimeFreightModuleEnabled === 'true') {
+        primaryActivity = 'maritime_freight';
+      } else if (settings.contractingModuleEnabled === true || settings.contractingModuleEnabled === 'true') {
+        primaryActivity = 'contracting';
+      } else if (!primaryActivity || primaryActivity === 'retail_general' || primaryActivity === 'general') {
+        primaryActivity = (settings.activityType || settings.businessIndustry || primaryActivity || 'retail_general') as string;
+      }
       const effectiveType = normalizeIndustryProfileKey(primaryActivity as string);
       const profile = getIndustryProfile(effectiveType);
       settings.activityType = profile.key;
       settings.pillar = profile.pillar;
       settings.industryProfile = profile;
     } else {
-      const primaryActivity = settings.businessIndustry || settings.activityType || 'retail_general';
+      let primaryActivity = settings.businessIndustry || settings.activityType || 'retail_general';
+      if (settings.maritimeFreightModuleEnabled === true || settings.maritimeFreightModuleEnabled === 'true') {
+        primaryActivity = 'maritime_freight';
+      } else if (settings.contractingModuleEnabled === true || settings.contractingModuleEnabled === 'true') {
+        primaryActivity = 'contracting';
+      }
       const effectiveType = normalizeIndustryProfileKey(primaryActivity as string);
       const profile = getIndustryProfile(effectiveType);
       settings.activityType = profile.key;

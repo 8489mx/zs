@@ -1,8 +1,10 @@
 import { Button } from '@/shared/ui/button';
+import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import type { TenantSubscriptionData } from '../../api/tenant-subscription.api';
 
 interface CurrentSubscriptionHeroCardProps {
   tenant: TenantSubscriptionData['tenant'];
+  settings?: any;
   subscription?: TenantSubscriptionData['subscription'];
   statusMeta: TenantSubscriptionData['statusMeta'];
   usage: TenantSubscriptionData['usage'];
@@ -11,11 +13,14 @@ interface CurrentSubscriptionHeroCardProps {
 
 export function CurrentSubscriptionHeroCard({
   tenant,
+  settings,
   subscription,
   statusMeta,
   usage,
   onUpgradeClick,
 }: CurrentSubscriptionHeroCardProps) {
+  const vertical = resolveCurrentVertical(tenant, settings);
+  const branchesUsageLabel = vertical === 'maritime' ? 'المكاتب والمقرات: ' : vertical === 'contracting' ? 'المواقع والمقرات: ' : 'الفروع: ';
   const isTrial = tenant.status === 'trial';
   const planName = subscription?.planName || (isTrial ? 'الفترة التجريبية المجانية' : 'خطة مخصصة');
   const daysLeft = statusMeta.daysRemaining ?? 0;
@@ -90,7 +95,7 @@ export function CurrentSubscriptionHeroCard({
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 10px', fontSize: '11.5px' }}>
-            <span style={{ color: '#64748b' }}>الفروع: </span>
+            <span style={{ color: '#64748b' }}>{branchesUsageLabel}</span>
             <strong style={{ color: '#0f172a' }}>{usage.branches.current}</strong> / {branchesLimit ?? 'غير محدود'}
             {branchesPercent !== null && <span style={{ color: branchesPercent >= 90 ? '#dc2626' : '#64748b', marginInlineStart: '4px' }}>({branchesPercent}%)</span>}
           </div>

@@ -24,19 +24,36 @@ export class TenantSubscriptionService {
   ) {}
 
   /**
-   * نشاط المنشأة وبلدها — **من سجل المنشأة حصراً**، لا من الطلب ولا من إعداد
-   * يملكه مدير المنشأة. `businessIndustry` في `settings` مخزَّن JSON فتُزال أقواسه.
+   * نشاط المنشأة وبلدها — **من سجل المنشأة والوحدات المفعلة حصراً**، مع قبول تلميح النطاق إن وُجد.
+   * `businessIndustry` في `settings` مخزَّن JSON فتُزال أقواسه.
    * المرجع: PRICING_AND_PACKAGING.md §11 البند C8 · هجرة 148.
    */
-  private async readPricingScope(tenantId: string): Promise<{ industryPresetId: string | null; countryCode: string | null }> {
-    const [industryRow, tenantRow] = await Promise.all([
+  private async readPricingScope(
+    tenantId: string,
+    verticalHint?: string | null,
+  ): Promise<{ industryPresetId: string | null; countryCode: string | null }> {
+    const [settingsRows, tenantRow] = await Promise.all([
       this.db
         .selectFrom('settings')
-        .select(['value'])
+        .select(['key', 'value'])
         .where(sql<boolean>`tenant_id = ${tenantId}`)
-        .where('key', '=', 'businessIndustry')
-        .executeTakeFirst()
-        .catch(() => undefined),
+        .where('key', 'in', [
+          'businessIndustry',
+          'activityType',
+          'industryPillar',
+          'pillar',
+          'industryProfile',
+          'maritimeFreightModuleEnabled',
+          'contractingModuleEnabled',
+          'manufacturingModuleEnabled',
+          'restaurantModuleEnabled',
+          'enablePharmacyModule',
+          'enableMobileStoreFeatures',
+          'servicesModuleEnabled',
+          'importModuleEnabled',
+        ])
+        .execute()
+        .catch(() => []),
       this.db
         .selectFrom('tenants')
         .select(['country_code', 'activity_type'])
@@ -45,20 +62,72 @@ export class TenantSubscriptionService {
         .catch(() => undefined),
     ]);
 
-    const rawIndustry = String((industryRow as any)?.value ?? '').trim().replace(/^"|"$/g, '');
+    const settingsMap = new Map<string, any>();
+    for (const row of settingsRows) {
+      try {
+        settingsMap.set(row.key, JSON.parse(row.value));
+      } catch {
+        settingsMap.set(row.key, row.value);
+      }
+    }
+
+    const isTrue = (val: any) => val === true || val === 'true' || val === 1 || val === '1';
+
+    let resolvedIndustry: string | null = null;
+
+    // 1. أولية قطاعات المؤسسات الكبرى المخصصة بحسب الوحدات المفعلة تشغيلياً (Operational Truth)
+    if (isTrue(settingsMap.get('maritimeFreightModuleEnabled'))) {
+      resolvedIndustry = 'maritime';
+    } else if (isTrue(settingsMap.get('contractingModuleEnabled'))) {
+      resolvedIndustry = 'contracting';
+    } else if (isTrue(settingsMap.get('manufacturingModuleEnabled'))) {
+      resolvedIndustry = 'manufacturing';
+    } else if (isTrue(settingsMap.get('restaurantModuleEnabled'))) {
+      resolvedIndustry = 'restaurant';
+    } else if (isTrue(settingsMap.get('enablePharmacyModule'))) {
+      resolvedIndustry = 'pharmacy';
+    } else if (isTrue(settingsMap.get('enableMobileStoreFeatures'))) {
+      resolvedIndustry = 'electronics';
+    }
+
+    // 2. تلميح النطاق النشط من العميل إن وُجد ولم يكن عاماً
+    if (!resolvedIndustry && verticalHint) {
+      const cleanHint = String(verticalHint).trim().toLowerCase();
+      if (cleanHint && cleanHint !== 'general' && cleanHint !== 'retail_general' && cleanHint !== 'null' && cleanHint !== 'undefined') {
+        resolvedIndustry = cleanHint;
+      }
+    }
+
+    // 3. قراءة النطاق المحدد في الإعدادات أو سجل المنشأة مع استبعاد القيم الافتراضية العامة
+    if (!resolvedIndustry) {
+      const rawActivity = String(settingsMap.get('activityType') ?? '').trim().replace(/^"|"$/g, '');
+      const rawIndustry = String(settingsMap.get('businessIndustry') ?? '').trim().replace(/^"|"$/g, '');
+      const rawPillar = String(settingsMap.get('pillar') ?? settingsMap.get('industryPillar') ?? '').trim().replace(/^"|"$/g, '');
+      const tenantActivity = String((tenantRow as any)?.activity_type ?? '').trim();
+
+      const nonGeneric = [rawActivity, rawPillar, rawIndustry, tenantActivity]
+        .filter((s) => s && s !== 'general' && s !== 'retail_general' && s !== 'retail' && s !== 'store');
+
+      if (nonGeneric.length > 0) {
+        resolvedIndustry = nonGeneric[0];
+      } else {
+        resolvedIndustry = rawIndustry || tenantActivity || 'retail';
+      }
+    }
+
     return {
-      industryPresetId: rawIndustry || (tenantRow as any)?.activity_type || null,
+      industryPresetId: resolvedIndustry,
       countryCode: (tenantRow as any)?.country_code || null,
     };
   }
 
   /**
    * التسعير المعتمد للمنشأة — مستويات نطاقها وحدها بأسعار بلدها وحده.
-   * لا يقبل أي معامل من العميل (البند C8)، ولا يخرج منه أي حقل داخلي (PRICE-S3).
+   * لا يقبل أي معامل من العميل لتغيير السعر، ويدعم تمرير تلميح النطاق النشط للتحقق والمطابقة.
    */
-  async getResolvedPricing(auth: AuthContext): Promise<Record<string, unknown>> {
+  async getResolvedPricing(auth: AuthContext, verticalHint?: string | null): Promise<Record<string, unknown>> {
     const tenantId = String(auth.tenantId || '').trim() || 'default';
-    const scope = await this.readPricingScope(tenantId);
+    const scope = await this.readPricingScope(tenantId, verticalHint);
     return this.pricing.resolveForTenant(scope) as unknown as Record<string, unknown>;
   }
 
@@ -392,6 +461,9 @@ export class TenantSubscriptionService {
         ownerName: tenant.owner_name,
         ownerPhone: tenant.owner_phone,
         status: tenant.status,
+        activityType: (tenant as any).activity_type || null,
+        pillar: (tenant as any).pillar || null,
+        features: (tenant as any).features || (tenant as any).extra_features || [],
         trialStartsAt: tenant.trial_starts_at,
         trialEndsAt: tenant.trial_ends_at,
         createdAt: tenant.created_at,

@@ -8,6 +8,9 @@ export type TenantSubscriptionData = {
     ownerName: string;
     ownerPhone: string;
     status: string;
+    activityType?: string | null;
+    pillar?: string | null;
+    features?: string[];
     trialStartsAt: string | null;
     trialEndsAt: string | null;
     createdAt: string;
@@ -117,7 +120,8 @@ export type ResolvedPricing = {
 
 export const tenantSubscriptionApi = {
   getMySubscription: () => http<TenantSubscriptionData>('/api/tenant-subscription/me'),
-  getPricing: () => http<ResolvedPricing>('/api/tenant-subscription/pricing'),
+  getPricing: (vertical?: string) =>
+    http<ResolvedPricing>(`/api/tenant-subscription/pricing${vertical ? `?vertical=${encodeURIComponent(vertical)}` : ''}`),
   requestRenewal: (payload: { planId: number; billingPeriodMonths?: number; paymentMethod?: string; notes?: string }) =>
     http<{ ok: boolean; message: string; plan: { id: number; name: string; price: number; currency: string } }>(
       '/api/tenant-subscription/request-renewal',

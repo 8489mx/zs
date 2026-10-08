@@ -88,9 +88,52 @@ async function testExistingRowsAreReported(): Promise<void> {
   assert.equal(result.statusMeta.isExpired, false);
 }
 
+async function testPricingResolutionForMaritimeAndContracting(): Promise<void> {
+  // Scenario 1: Tenant has maritimeFreightModuleEnabled=true in settings, but legacy activity_type='retail_general'
+  const maritimeService = new TenantSubscriptionService(
+    fakeDb({
+      settings: [
+        { key: 'maritimeFreightModuleEnabled', value: 'true' },
+        { key: 'businessIndustry', value: '"general"' },
+      ],
+      tenants: [
+        { id: 'acme', country_code: 'EG', activity_type: 'retail_general' },
+      ],
+    }),
+    { log: async () => undefined } as any,
+    new PricingCatalogService(),
+  );
+
+  const maritimePricing: any = await maritimeService.getResolvedPricing(auth);
+  assert.equal(maritimePricing.product.id, 'maritime', 'must resolve to maritime product when maritimeFreightModuleEnabled is true');
+  assert.equal(maritimePricing.product.name, 'نظام الشحن والتخليص والخدمات اللوجستية');
+  assert.equal(maritimePricing.levels[0].name, 'مكتب');
+  assert.equal(maritimePricing.levels[1].name, 'شركة');
+  assert.equal(maritimePricing.levels[2].name, 'مؤسسة');
+
+  // Scenario 2: Tenant has contractingModuleEnabled=true in settings
+  const contractingService = new TenantSubscriptionService(
+    fakeDb({
+      settings: [
+        { key: 'contractingModuleEnabled', value: 'true' },
+      ],
+      tenants: [
+        { id: 'acme', country_code: 'EG', activity_type: 'retail_general' },
+      ],
+    }),
+    { log: async () => undefined } as any,
+    new PricingCatalogService(),
+  );
+
+  const contractingPricing: any = await contractingService.getResolvedPricing(auth);
+  assert.equal(contractingPricing.product.id, 'contracting', 'must resolve to contracting product when contractingModuleEnabled is true');
+  assert.equal(contractingPricing.product.name, 'نظام المقاولات وإدارة المشاريع الإنشائية');
+}
+
 (async () => {
   await testReadPathWritesNothing();
   await testExistingRowsAreReported();
+  await testPricingResolutionForMaritimeAndContracting();
   console.log('subscription-read-only.spec: all checks passed');
 })().catch((err) => {
   console.error(err);
