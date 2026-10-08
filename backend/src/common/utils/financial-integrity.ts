@@ -13,11 +13,17 @@ export type PaymentEntry = {
 };
 
 export function roundMoney(value: number): number {
-  return Number(Number(value || 0).toFixed(2));
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 0;
+  const sign = n < 0 ? -1 : 1;
+  return sign * (Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100);
 }
 
 export function roundQty(value: number): number {
-  return Number(Number(value || 0).toFixed(3));
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 0;
+  const sign = n < 0 ? -1 : 1;
+  return sign * (Math.round((Math.abs(n) + Number.EPSILON) * 1000) / 1000);
 }
 
 export function ensureUniqueFlowItems(items: FlowItem[], code: string, message: string): void {

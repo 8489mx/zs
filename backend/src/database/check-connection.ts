@@ -42,10 +42,13 @@ function classifyRootCause(error: unknown): 'network reachability' | 'auth/crede
 }
 
 async function main(): Promise<void> {
+  const base64Cert = process.env.DATABASE_SSL_CA_CERT_B64?.trim();
+  const caCert = base64Cert ? Buffer.from(base64Cert, 'base64').toString('utf8') : (process.env.DATABASE_SSL_CA_CERT ?? '');
+
   const ssl = resolvePgSslConfig({
     enabled: toBoolean(process.env.DATABASE_SSL, true),
     rejectUnauthorized: toBoolean(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED, true),
-    caCert: process.env.DATABASE_SSL_CA_CERT ?? '',
+    caCert,
   });
 
   const connectTimeoutMs = Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? '10000');

@@ -88,13 +88,15 @@ export class SessionAuthGuard implements CanActivate {
     return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
   }
 
-  private clearAuthCookies(response: Response): void {
+  private clearAuthCookies(response: Response, request?: RequestWithAuth): void {
+    const host = String(request?.headers['x-forwarded-host'] || request?.headers?.host || '').split(':')[0].toLowerCase();
+    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
     clearKnownAuthCookies(response, {
       sessionCookieName: this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id',
       csrfCookieName: this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token',
       sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
-      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
-      domain: this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim() || undefined,
+      secure: isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      domain: isLoopback ? undefined : (this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim() || undefined),
     });
   }
 
@@ -107,13 +109,13 @@ export class SessionAuthGuard implements CanActivate {
     const sessionId = readSessionId(request, allowHeaderAuth, sessionCookieName);
 
     if (!sessionId) {
-      this.clearAuthCookies(response);
+      this.clearAuthCookies(response, request);
       throw new UnauthorizedException('Unauthorized');
     }
 
     const auth = await this.sessionService.resolveAuthContext(sessionId);
     if (!auth) {
-      this.clearAuthCookies(response);
+      this.clearAuthCookies(response, request);
       throw new UnauthorizedException('Unauthorized');
     }
 
@@ -127,7 +129,7 @@ export class SessionAuthGuard implements CanActivate {
         || readHeaderValue(request.headers['authorization']).toLowerCase().startsWith('bearer ');
 
       if (!usingHeaderFallback && (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader || !verifyCsrfToken(sessionId, csrfSecret, csrfHeader))) {
-        this.clearAuthCookies(response);
+        this.clearAuthCookies(response, request);
         throw new ForbiddenException('CSRF validation failed');
       }
     }

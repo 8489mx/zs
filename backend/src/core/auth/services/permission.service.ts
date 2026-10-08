@@ -8,6 +8,9 @@ export class PermissionService {
     }
 
     const grantedSet = new Set(granted);
+    if (grantedSet.has('*')) {
+      return true;
+    }
     return required.every((item) => grantedSet.has(item));
   }
 
@@ -17,6 +20,9 @@ export class PermissionService {
     }
 
     const grantedSet = new Set(granted);
+    if (grantedSet.has('*')) {
+      return true;
+    }
     return required.some((item) => grantedSet.has(item));
   }
 }

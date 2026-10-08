@@ -558,6 +558,7 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
   const needed = normalizePermissionList(required);
   if (!needed.length) return true;
   const userPermissions = new Set((user.permissions || []).map((permission) => String(permission || '').trim()).filter(Boolean));
+  if (userPermissions.has('*')) return true;
   return needed.some((permission) => userPermissions.has(permission));
 }
 

@@ -117,13 +117,15 @@ export class SessionsController {
     res.cookie(this.getCsrfCookieName(), csrfToken, this.csrfCookieOptions(expiresAt, req));
   }
 
-  private clearAuthCookies(res: Response): void {
+  private clearAuthCookies(res: Response, req?: RequestWithAuth): void {
+    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
+    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
     clearKnownAuthCookies(res, {
       sessionCookieName: this.getSessionCookieName(),
       csrfCookieName: this.getCsrfCookieName(),
       sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
-      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
-      domain: this.sharedCookieDomain(),
+      secure: isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      domain: isLoopback ? undefined : this.sharedCookieDomain(req),
     });
   }
 
@@ -269,7 +271,7 @@ export class SessionsController {
       await this.sessionService.logout(sessionId, req.authContext);
     }
 
-    this.clearAuthCookies(res);
+    this.clearAuthCookies(res, req);
 
     if (req.authContext) {
       await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext.username}`, req.authContext);

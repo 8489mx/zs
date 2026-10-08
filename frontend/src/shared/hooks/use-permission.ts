@@ -14,6 +14,7 @@ export function userHasAnyPermission(
   if (!needed.length) return true;
   if (String(user?.role || '').trim() === 'super_admin' || String(user?.role || '').trim() === 'platform_admin') return true;
   const permissions = new Set(normalizePermissions(Array.isArray(user?.permissions) ? user.permissions : []));
+  if (permissions.has('*')) return true;
   return needed.some((permission) => permissions.has(permission));
 }
 

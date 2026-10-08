@@ -6,6 +6,8 @@ function run(): void {
 
   assert.equal(service.hasAllPermissions(['sales', 'reports'], ['sales']), true);
   assert.equal(service.hasAllPermissions(['sales'], ['sales', 'reports']), false);
+  assert.equal(service.hasAllPermissions(['*'], ['sales', 'reports', 'dashboard']), true);
+  assert.equal(service.hasAnyPermission(['*'], ['sales']), true);
   assert.equal(service.hasAllPermissions([], []), true);
 }
 
