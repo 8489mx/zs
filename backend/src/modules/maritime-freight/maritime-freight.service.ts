@@ -4513,6 +4513,7 @@ export class MaritimeFreightService {
       invoiceDate?: string;
       totalInvoicedAmount: number;
       currency?: string;
+      exchangeRate?: number;
       oceanFreight?: number;
       thcCharges?: number;
       bafCharges?: number;
@@ -4547,8 +4548,16 @@ export class MaritimeFreightService {
       try { systemCurrency = String(JSON.parse(currencySetting.value)); }
       catch { systemCurrency = String(currencySetting.value); }
     }
-    if (currency !== systemCurrency.trim().toUpperCase()) {
-      throw new BadRequestException('عملة فاتورة الناقل تختلف عن عملة الدفاتر؛ يلزم تحويل المبلغ قبل الترحيل');
+    systemCurrency = systemCurrency.trim().toUpperCase();
+
+    let exchangeRate = Number(dto.exchangeRate || 0);
+    if (exchangeRate <= 0) {
+      if (currency === systemCurrency) {
+        exchangeRate = 1;
+      } else {
+        const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
+        exchangeRate = Number(pipelineConfig.defaultExchangeRate) > 0 ? Number(pipelineConfig.defaultExchangeRate) : 1;
+      }
     }
 
     // 1. Audit against rate card
@@ -4590,6 +4599,8 @@ export class MaritimeFreightService {
           carrierName: dto.carrierName,
           shippingLineId: dto.shippingLineId,
           totalAmount,
+          currency,
+          exchangeRate,
           entryDate,
           userId: auth.userId,
         });
@@ -4694,11 +4705,32 @@ export class MaritimeFreightService {
       // the fiscal period lock — neither of which the previous inline copy of this logic did.
       let entryId = invoice.journal_entry_id ? Number(invoice.journal_entry_id) : null;
       if (!entryId) {
+        const invCurrency = String(invoice.currency || 'USD').trim().toUpperCase();
+        let fxRate = 1;
+        const currencySetting = await trx
+          .selectFrom('settings')
+          .select('value')
+          .where('tenant_id', '=', tenantId)
+          .where('key', '=', 'currency')
+          .executeTakeFirst();
+        let sysCurr = 'EGP';
+        if (currencySetting) {
+          try { sysCurr = String(JSON.parse(currencySetting.value)); }
+          catch { sysCurr = String(currencySetting.value); }
+        }
+        if (invCurrency !== sysCurr.trim().toUpperCase()) {
+          const pipelineConfig = await this.getTenantPipelineConfig(tenantId);
+          fxRate = Number(pipelineConfig.defaultExchangeRate) > 0 ? Number(pipelineConfig.defaultExchangeRate) : 1;
+        }
+
         entryId = await this.postCarrierInvoiceJournal(trx, tenantId, {
           job,
           invoiceNumber: invoice.invoice_number,
+          carrierName: invoice.carrier_name,
           shippingLineId: invoice.shipping_line_id,
           totalAmount: Number(invoice.total_invoiced_amount),
+          currency: invCurrency,
+          exchangeRate: fxRate,
           entryDate: invoice.invoice_date ? new Date(invoice.invoice_date) : new Date(),
           descriptionSuffix: '(معتمدة بتجاوز مالي)',
           userId: auth.userId,
