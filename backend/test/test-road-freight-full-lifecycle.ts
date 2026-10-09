@@ -14,14 +14,14 @@ import {
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
-    console.error(`❌ ASSERTION FAILED: ${message}`);
+    console.error(`[FAIL] ASSERTION FAILED: ${message}`);
     throw new Error(message);
   }
 }
 
 async function runRoadFreightLifecycleTest() {
   console.log('========================================================================');
-  console.log('  🚛 STARTING COMPREHENSIVE END-TO-END ROAD FREIGHT & TRUCKING TEST');
+  console.log('  STARTING COMPREHENSIVE END-TO-END ROAD FREIGHT & TRUCKING TEST');
   console.log('========================================================================\n');
 
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
@@ -82,7 +82,7 @@ async function runRoadFreightLifecycleTest() {
       .executeTakeFirst();
     assert(Boolean(ramadanDryPort), '10th of Ramadan Logistics Depot (EGTRD) must be seeded');
     assert(ramadanDryPort?.port_type === 'land', 'EGTRD port_type must be "land"');
-    console.log('  ✅ STEP 0 PASSED: Trucking carriers & Dry ports master data verified.\n');
+    console.log('  [PASS] STEP 0 PASSED: Trucking carriers & Dry ports master data verified.\n');
 
     // -------------------------------------------------------------------------
     // STEP 1: Pure Road Freight Calculation Engine Verification
@@ -123,7 +123,7 @@ async function runRoadFreightLifecycleTest() {
     assert(domesticWb.valid === true, 'Domestic waybill must be valid');
     assert(domesticWb.isInternationalCmr === false, 'Domestic waybill is not international CMR');
 
-    console.log('  ✅ STEP 1 PASSED: Pure Road Freight Calculation Engine 100% verified.\n');
+    console.log('  [PASS] STEP 1 PASSED: Pure Road Freight Calculation Engine 100% verified.\n');
 
     // -------------------------------------------------------------------------
     // STEP 2: Create Road Freight Inquiry (طلب شحن بري / نقل داخلي)
@@ -154,7 +154,7 @@ async function runRoadFreightLifecycleTest() {
     assert(Boolean(inquiry.id), 'Inquiry ID must exist');
     assert(/^INQ-\d{6}-\d{4}$/.test(inquiry.inquiry_number), `Inquiry number format valid: ${inquiry.inquiry_number}`);
     assert(inquiry.transport_mode === 'road', 'Transport mode must be "road"');
-    console.log('  ✅ STEP 2 PASSED: Road Freight Inquiry created successfully.\n');
+    console.log('  [PASS] STEP 2 PASSED: Road Freight Inquiry created successfully.\n');
 
     // -------------------------------------------------------------------------
     // STEP 3: Convert Inquiry to Road RFQ (طلب تسعير مقطورات / شاحنات نقل)
@@ -165,7 +165,7 @@ async function runRoadFreightLifecycleTest() {
     assert(Boolean(rfq.id), 'RFQ ID must exist');
     assert(/^RFQ-\d{6}-\d{4}$/.test(rfq.rfq_number), `RFQ number format valid: ${rfq.rfq_number}`);
     assert(rfq.transport_mode === 'road', 'RFQ transport mode must be "road"');
-    console.log('  ✅ STEP 3 PASSED: Inquiry converted to Road RFQ.\n');
+    console.log('  [PASS] STEP 3 PASSED: Inquiry converted to Road RFQ.\n');
 
     // -------------------------------------------------------------------------
     // STEP 4: Submit Trucking Carrier Bid (عرض سعر شركة النقل)
@@ -184,7 +184,7 @@ async function runRoadFreightLifecycleTest() {
     });
     console.log(`  -> Submitted Bid ID: ${bid.id} from ${nileTrucking!.name_ar}`);
     assert(Boolean(bid.id), 'Bid ID must exist');
-    console.log('  ✅ STEP 4 PASSED: Trucking carrier bid submitted.\n');
+    console.log('  [PASS] STEP 4 PASSED: Trucking carrier bid submitted.\n');
 
     // -------------------------------------------------------------------------
     // STEP 5: Award Bid & Generate Road Quotation (ترسية وتوليد عرض سعر العميل)
@@ -206,6 +206,7 @@ async function runRoadFreightLifecycleTest() {
       marginType: 'fixed' as const,
       marginValue: 100,
       currency: 'USD',
+      exchangeRate: 48.50,
       polName: inquiry.pol_name,
       podName: inquiry.pod_name,
       grossWeightKg: inquiry.gross_weight_kg,
@@ -218,7 +219,7 @@ async function runRoadFreightLifecycleTest() {
     assert(Boolean(quotation.id), 'Quotation ID must exist');
     assert(/^QUO(T)?-\d{6}-\d{4}$/.test(quotation.quotation_number), `Quotation format valid: ${quotation.quotation_number}`);
     assert(quotation.transport_mode === 'road', 'Quotation transport mode must be "road"');
-    console.log('  ✅ STEP 5 PASSED: Road Quotation generated with profit margin.\n');
+    console.log('  [PASS] STEP 5 PASSED: Road Quotation generated with profit margin.\n');
 
     // -------------------------------------------------------------------------
     // STEP 6: Convert Road Quotation to Operational Job
@@ -249,12 +250,28 @@ async function runRoadFreightLifecycleTest() {
 
     // Cost center created
     assert(Boolean(job.cost_center_id), 'Accounting cost center must be auto-created for road job');
-    console.log('  ✅ STEP 6 PASSED: Road Job created with zero containers & initial TRK_ASSIGN milestone.\n');
+
+    // Attach valid CMR waybill number and signed POD document before delivery gate
+    await freightService.updateJob(auth, String(job.id), {
+      bookingNumber: 'CMR-EG-261009-001',
+    });
+
+    await db.insertInto('maritime_job_documents').values({
+      tenant_id: tenantId,
+      job_id: String(job.id),
+      doc_type: 'other',
+      title: 'إثبات التسليم بوليصة CMR موقعة POD',
+      file_name: 'cmr-signed-001.pdf',
+      mime_type: 'application/pdf',
+      file_url: 'https://storage.z-systems.io/pods/cmr-signed-001.pdf',
+    }).execute();
+
+    console.log('  [PASS] STEP 6 PASSED: Road Job created with zero containers, initial TRK_ASSIGN milestone, and CMR booking number.\n');
 
     // -------------------------------------------------------------------------
-    // STEP 7: Dispatch Inland Trucking Trip (تسيير رحلة النقل البري)
+    // STEP 7: Dispatch Inland Trucking Trips (تسيير رحلات النقل البري للشاحنتين)
     // -------------------------------------------------------------------------
-    console.log('[STEP 7] Dispatching Inland Trucking Trip with Collision-Proof Sequence Numbering...');
+    console.log('[STEP 7] Dispatching Inland Trucking Trips with Collision-Proof Sequence Numbering...');
     const tripDto = {
       jobId: String(job.id),
       truckingCompany: 'شركة النيل للنقل البري',
@@ -272,11 +289,21 @@ async function runRoadFreightLifecycleTest() {
     };
 
     const trip = await freightService.createInlandTruckingTrip(auth, tripDto);
-    console.log(`  -> Created Inland Trucking Trip #${trip.trip_number} (ID: ${trip.id})`);
-    assert(Boolean(trip.id), 'Trip ID must exist');
+    console.log(`  -> Created Inland Trucking Trip 1 #${trip.trip_number} (ID: ${trip.id})`);
+
+    const trip2 = await freightService.createInlandTruckingTrip(auth, {
+      ...tripDto,
+      truckPlate: 'س ص ع 5678',
+      trailerPlate: 'ل م ن 9012',
+      notes: 'تريلا فرش 28 طن - نقل الحمولة الثانية (27 طن)',
+    });
+    console.log(`  -> Created Inland Trucking Trip 2 #${trip2.trip_number} (ID: ${trip2.id})`);
+
+    assert(Boolean(trip.id), 'Trip 1 ID must exist');
+    assert(Boolean(trip2.id), 'Trip 2 ID must exist');
     assert(/^TRIP-\d{6}-\d{4}$/.test(trip.trip_number), `Trip number must follow TRIP-YYMMDD-XXXX format: ${trip.trip_number}`);
     assert(trip.trip_status === 'assigned', 'Trip status must be "assigned"');
-    console.log('  ✅ STEP 7 PASSED: Inland Trucking Trip created with standard sequence numbering.\n');
+    console.log('  [PASS] STEP 7 PASSED: Both required Inland Trucking Trips created with standard sequence numbering.\n');
 
     // -------------------------------------------------------------------------
     // STEP 8: Real-Time Trip Status Progression & Milestone Auto-Sync
@@ -317,7 +344,7 @@ async function runRoadFreightLifecycleTest() {
     const podMilestone = jobAfterDelivered.milestones.find((m: any) => m.milestone_key === 'TRK_POD');
     assert(Boolean(podMilestone), 'TRK_POD milestone record must be logged');
 
-    console.log('  ✅ STEP 8 PASSED: Trip status progression auto-synchronized with shipment milestones.\n');
+    console.log('  [PASS] STEP 8 PASSED: Trip status progression auto-synchronized with shipment milestones.\n');
 
     // -------------------------------------------------------------------------
     // STEP 9: Job Details Hydration Check (getJobById includes truckingTrips)
@@ -326,11 +353,11 @@ async function runRoadFreightLifecycleTest() {
     const finalJobDetails = await freightService.getJobById(auth, String(job.id));
 
     assert(Boolean(finalJobDetails.truckingTrips), 'truckingTrips array must exist on job details');
-    assert(finalJobDetails.truckingTrips.length === 1, `Expected 1 trucking trip, got ${finalJobDetails.truckingTrips.length}`);
-    assert(finalJobDetails.truckingTrips[0].trip_number === trip.trip_number, 'Attached trip number must match');
+    assert(finalJobDetails.truckingTrips.length === 2, `Expected 2 trucking trips, got ${finalJobDetails.truckingTrips.length}`);
+    assert(finalJobDetails.truckingTrips.some(t => t.trip_number === trip.trip_number), 'Attached trip number must match');
     assert(Boolean(finalJobDetails.roadFreightDefinitions), 'roadFreightDefinitions must exist');
     assert(finalJobDetails.roadFreightDefinitions.length >= 8, 'Must have at least 8 road freight definitions');
-    console.log('  ✅ STEP 9 PASSED: Job details includes truckingTrips and roadFreightDefinitions.\n');
+    console.log('  [PASS] STEP 9 PASSED: Job details includes truckingTrips and roadFreightDefinitions.\n');
 
     // -------------------------------------------------------------------------
     // STEP 10: Release Delivery Order / POD for Road Freight
@@ -345,7 +372,7 @@ async function runRoadFreightLifecycleTest() {
       Boolean(dlvMilestone?.milestone_title.includes('بوليصة الشحن البري') || dlvMilestone?.milestone_title.includes('POD')),
       `Milestone title must refer to road waybill / POD: ${dlvMilestone?.milestone_title}`
     );
-    console.log('  ✅ STEP 10 PASSED: releaseDeliveryOrder appropriately registered TRK_POD for road job.\n');
+    console.log('  [PASS] STEP 10 PASSED: releaseDeliveryOrder appropriately registered TRK_POD for road job.\n');
 
     // -------------------------------------------------------------------------
     // STEP 11: Automated WhatsApp Message Templates for Road Freight
@@ -359,13 +386,13 @@ async function runRoadFreightLifecycleTest() {
     const waPod = await freightService.getMilestoneWhatsAppMessage(auth, String(job.id), 'TRK_POD');
     assert(Boolean(waPod.message.includes('بوليصة الاستلام')), `POD message must include proof of delivery context: ${waPod.message}`);
 
-    console.log('  ✅ STEP 11 PASSED: Road Freight WhatsApp notifications generated with road templates.\n');
+    console.log('  [PASS] STEP 11 PASSED: Road Freight WhatsApp notifications generated with road templates.\n');
 
     console.log('========================================================================');
-    console.log('  🎉 ALL 11 ROAD FREIGHT & TRUCKING LIFECYCLE TESTS PASSED CLEANLY (100%)');
+    console.log('  ALL 11 ROAD FREIGHT & TRUCKING LIFECYCLE TESTS PASSED CLEANLY (100%)');
     console.log('========================================================================');
   } catch (err) {
-    console.error('❌ ROAD FREIGHT LIFECYCLE TEST FAILED:', err);
+    console.error('[FAIL] ROAD FREIGHT LIFECYCLE TEST FAILED:', err);
     process.exit(1);
   } finally {
     await app.close();

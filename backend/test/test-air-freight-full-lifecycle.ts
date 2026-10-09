@@ -14,14 +14,14 @@ import {
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
-    console.error(`❌ ASSERTION FAILED: ${message}`);
+    console.error(`[FAIL] ASSERTION FAILED: ${message}`);
     throw new Error(message);
   }
 }
 
 async function runAirFreightLifecycleTest() {
   console.log('========================================================================');
-  console.log('  ✈️ STARTING COMPREHENSIVE END-TO-END INTERNATIONAL AIR FREIGHT TEST');
+  console.log('  STARTING COMPREHENSIVE END-TO-END INTERNATIONAL AIR FREIGHT TEST');
   console.log('========================================================================\n');
 
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
@@ -83,7 +83,7 @@ async function runAirFreightLifecycleTest() {
       .executeTakeFirst();
     assert(Boolean(dxbAirport), 'Dubai Airport (DXB) must be seeded');
     assert(dxbAirport?.port_type === 'air', 'DXB port_type must be "air"');
-    console.log('  ✅ STEP 0 PASSED: Airlines & Airports master data verified.\n');
+    console.log('  [PASS] STEP 0 PASSED: Airlines & Airports master data verified.\n');
 
     // -------------------------------------------------------------------------
     // STEP 1: Pure Calculation Engine Verification (IATA Standard & Modulo-7)
@@ -121,7 +121,7 @@ async function runAirFreightLifecycleTest() {
     const invalidAwb = validateIataAwbNumber('077-12345674');
     assert(invalidAwb.valid === false, 'AWB 077-12345674 must be invalid');
     assert(Boolean(invalidAwb.error?.includes('Modulo-7')), 'Error must mention Modulo-7');
-    console.log('  ✅ STEP 1 PASSED: Pure Air Freight Calculation Engine 100% verified.\n');
+    console.log('  [PASS] STEP 1 PASSED: Pure Air Freight Calculation Engine 100% verified.\n');
 
     // -------------------------------------------------------------------------
     // STEP 2: Create Air Cargo Inquiry (طلب شحن جوي)
@@ -155,7 +155,7 @@ async function runAirFreightLifecycleTest() {
     assert(inquiry.transport_mode === 'air', 'Transport mode must be "air"');
     assert(Number(inquiry.chargeable_weight_kg) === 667, `Chargeable weight auto-derived: ${inquiry.chargeable_weight_kg}`);
     assert(Number(inquiry.volumetric_weight_kg) > 666, `Volumetric weight auto-derived: ${inquiry.volumetric_weight_kg}`);
-    console.log('  ✅ STEP 2 PASSED: Air Inquiry created with auto-derived chargeable weight.\n');
+    console.log('  [PASS] STEP 2 PASSED: Air Inquiry created with auto-derived chargeable weight.\n');
 
     // -------------------------------------------------------------------------
     // STEP 3: Convert Inquiry to Air RFQ (تحويل الاستفسار لطلب تسعير شركات طيران)
@@ -167,7 +167,7 @@ async function runAirFreightLifecycleTest() {
     assert(/^RFQ-\d{6}-\d{4}$/.test(rfq.rfq_number), `RFQ number format valid: ${rfq.rfq_number}`);
     assert(rfq.transport_mode === 'air', 'RFQ transport mode must be "air"');
     assert(Number(rfq.chargeable_weight_kg) === 667, `RFQ preserved chargeable weight: ${rfq.chargeable_weight_kg}`);
-    console.log('  ✅ STEP 3 PASSED: Inquiry converted to Air RFQ.\n');
+    console.log('  [PASS] STEP 3 PASSED: Inquiry converted to Air RFQ.\n');
 
     // -------------------------------------------------------------------------
     // STEP 4: Submit Airline Bids (عروض أسعار شركات الطيران)
@@ -208,7 +208,7 @@ async function runAirFreightLifecycleTest() {
     });
     console.log(`  -> Bid 2 (Emirates SkyCargo): Total ${bid2.total_freight_cost} ${bid2.currency}`);
     assert(Number(bid2.total_freight_cost) === 2317.60, `Bid 2 cost must be 2317.60, got ${bid2.total_freight_cost}`);
-    console.log('  ✅ STEP 4 PASSED: Airline bids submitted.\n');
+    console.log('  [PASS] STEP 4 PASSED: Airline bids submitted.\n');
 
     // -------------------------------------------------------------------------
     // STEP 5: Award EgyptAir Cargo Bid
@@ -219,7 +219,7 @@ async function runAirFreightLifecycleTest() {
 
     const updatedRfq = await freightService.getRfqById(auth, String(rfq.id));
     assert(updatedRfq.status === 'awarded', 'RFQ status must be "awarded"');
-    console.log('  ✅ STEP 5 PASSED: Best airline bid awarded.\n');
+    console.log('  [PASS] STEP 5 PASSED: Best airline bid awarded.\n');
 
     // -------------------------------------------------------------------------
     // STEP 6: Generate Client Air Freight Quotation
@@ -262,7 +262,7 @@ async function runAirFreightLifecycleTest() {
     // Approve quotation
     const approvedQuote = await freightService.updateQuotationStatus(auth, String(quote.id), 'approved');
     assert(approvedQuote.status === 'approved', 'Quotation status must be "approved"');
-    console.log('  ✅ STEP 6 PASSED: Quotation generated and approved.\n');
+    console.log('  [PASS] STEP 6 PASSED: Quotation generated and approved.\n');
 
     // -------------------------------------------------------------------------
     // STEP 7: Auto Convert Quotation to Air Job (Zero Ocean Containers Rule!)
@@ -278,7 +278,7 @@ async function runAirFreightLifecycleTest() {
     // CRITICAL AIR INVARIANT: Zero Ocean Containers!
     const jobDetails = await freightService.getJobById(auth, String(job.id));
     assert(jobDetails.containers.length === 0, `Air Freight shipment must have 0 ocean containers! Found: ${jobDetails.containers.length}`);
-    console.log('  🎯 VERIFIED INVARIANT: Air job has exactly 0 ocean containers (No dummy MSKU containers).');
+    console.log('  VERIFIED INVARIANT: Air job has exactly 0 ocean containers (No dummy MSKU containers).');
 
     // Verify Cost Center was automatically created under 'project'
     assert(Boolean(job.cost_center_id), 'Job must have a cost center allocated');
@@ -296,7 +296,7 @@ async function runAirFreightLifecycleTest() {
 
     // Verify initial milestone is BKD (Cargo iQ Air Booking)
     assert(jobDetails.milestone_status === 'BKD', `Initial air milestone must be "BKD", got: ${jobDetails.milestone_status}`);
-    console.log('  ✅ STEP 7 PASSED: Air job converted with Cost Center, 0 containers, and BKD milestone.\n');
+    console.log('  [PASS] STEP 7 PASSED: Air job converted with Cost Center, 0 containers, and BKD milestone.\n');
 
     // -------------------------------------------------------------------------
     // STEP 8: Flight Booking & IATA Modulo-7 MAWB Validation Gate
@@ -326,7 +326,7 @@ async function runAirFreightLifecycleTest() {
     assert(updatedWithMawb.mawb_number === '077-1234 5675', `Formatted MAWB expected "077-1234 5675", got: ${updatedWithMawb.mawb_number}`);
     assert(updatedWithMawb.hawb_number === 'HAWB-DXB-9901', 'HAWB must be recorded');
     console.log(`  -> Validated & formatted MAWB: ${updatedWithMawb.mawb_number}`);
-    console.log('  ✅ STEP 8 PASSED: IATA Modulo-7 validation gate enforced.\n');
+    console.log('  [PASS] STEP 8 PASSED: IATA Modulo-7 validation gate enforced.\n');
 
     // -------------------------------------------------------------------------
     // STEP 9: Progress Cargo iQ Lifecycle Milestones & Multimodal WhatsApp Alerts
@@ -364,7 +364,7 @@ async function runAirFreightLifecycleTest() {
 
     // 9g: NFD - Consignee Notified
     await freightService.addJobMilestone(auth, String(job.id), 'NFD', 'تم إشعار العميل المستلم بوصول الشحنة وجاهزيتها للتسليم');
-    console.log('  ✅ STEP 9 PASSED: All Cargo iQ milestones progressed with bilingual titles & alerts.\n');
+    console.log('  [PASS] STEP 9 PASSED: All Cargo iQ milestones progressed with bilingual titles & alerts.\n');
 
     // -------------------------------------------------------------------------
     // STEP 10: Air Delivery Order Release (AWD Milestone Verification)
@@ -377,7 +377,7 @@ async function runAirFreightLifecycleTest() {
     assert(Boolean(doMilestone), 'AWD milestone must exist');
     assert(Boolean(doMilestone?.milestone_title.includes('إذن التسليم')), 'AWD title must reflect Air Delivery Order');
     console.log(`  -> Released Air Delivery Order: ${doMilestone?.milestone_title}`);
-    console.log('  ✅ STEP 10 PASSED: Air Delivery Order release verified.\n');
+    console.log('  [PASS] STEP 10 PASSED: Air Delivery Order release verified.\n');
 
     // -------------------------------------------------------------------------
     // STEP 11: Final Delivery POD & Shipment Completion
@@ -391,14 +391,14 @@ async function runAirFreightLifecycleTest() {
     });
     assert(completedJob.status === 'completed', 'Job status must be "completed"');
     assert(completedJob.milestone_status === 'DLV', 'Final milestone status must be "DLV"');
-    console.log('  ✅ STEP 11 PASSED: Air Job delivered & completed.\n');
+    console.log('  [PASS] STEP 11 PASSED: Air Job delivered & completed.\n');
 
     console.log('========================================================================');
-    console.log('  🎉 ALL AIR FREIGHT LIFECYCLE AUDIT & VERIFICATION TESTS PASSED 100%!');
+    console.log('  ALL AIR FREIGHT LIFECYCLE AUDIT & VERIFICATION TESTS PASSED 100%!');
     console.log('========================================================================\n');
 
   } catch (error: any) {
-    console.error('❌ AIR FREIGHT LIFECYCLE TEST FAILED:', error);
+    console.error('[FAIL] AIR FREIGHT LIFECYCLE TEST FAILED:', error);
     process.exit(1);
   } finally {
     await app.close();
