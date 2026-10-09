@@ -14,6 +14,7 @@
     "mobile:build": "npm run build && node ../scripts/sync-capacitor-android.cjs",
     "mobile:sync": "node ../scripts/sync-capacitor-android.cjs",
     "mobile:apk": "node ../scripts/build-apk.cjs",
+    "mobile:aab": "node ../scripts/build-aab.cjs",
     "start:exe": "electron .",
     "preview": "vite preview",
     "qa:routes": "node scripts/route-qa.mjs",
@@ -52,6 +53,13 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/haptics": "^7.0.5",
+    "@capacitor/network": "^7.0.4",
+    "@capacitor/preferences": "^7.0.4",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.6",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/react": "^10.64.0",
     "@tanstack/react-query": "^5.90.5",
@@ -72,6 +80,9 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/ios": "^7.6.9",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",

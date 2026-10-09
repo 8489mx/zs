@@ -6406,3 +6406,49 @@
   - `frontend/src/features/settings/components/subscription/SubscriptionPlansCards.tsx`
   - `frontend/src/features/settings/pages/SettingsSectionTabs.tsx`
   - `frontend/src/shared/verticals/vertical-scope.ts`
+
+---
+
+## 207. البنية التحتية لتطبيقات الموبايل الأصلية والنشر على المتاجر (Store-Ready Native Mobile Architecture - Android & iOS)
+
+- **الحالة:** مكتمل ومعتمد 100% (Completed & Verified).
+- **نسبة الإنجاز:** 100%.
+- **الوصف التشغيلي:**
+  1. **تجهيز وإدماج حزم Capacitor الرسمية (Enterprise Bridge):**
+     - تثبيت وتكامل حزم `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/ios`, `@capacitor/app`, `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/network`, `@capacitor/preferences`, `@capacitor/haptics`.
+     - إنشاء ملف الإعداد القياسي الحديث `capacitor.config.ts` وربطه مع `capacitor.config.json` مع ضبط شاشة البداية (Splash Screen) وشريط الحالة الكحلي الملكي (`#170e5e`).
+  2. **بناء جسر الأجهزة الأصلي الموحد (`mobileBridge.ts`):**
+     - فحص نوع بيئة التشغيل (`android`, `ios`, `web`).
+     - التعامل الذكي مع زر الرجوع الفعلي في أندرويد (Hardware Back Button): إغلاق النوافذ المنبثقة والشيتات التفاعلية أولاً، ثم الرجوع في المسار، ثم تصغير التطبيق بسلاسة.
+     - دعم التغذية الارتجاعية للاهتزاز (Haptic Feedback) عند الضغط على الأزرار وقراءة الباركود، ومراقبة حالة الاتصال بالإنترنت والعمل أوفلاين.
+  3. **بوابة وتطبيقات الموبايل المركزية (`MobileHubPage.tsx` - المسار `/mobile`):**
+     - بناء لوحة انطلاق مركزية للموبايل متطابقة 100% مع دستور الموبايل المؤسسي (`Mobile Application Visual Constitution`): بطاقات بيضاء نقية، أيقونات ناعمة في مربعات مستديرة (Squircles) بألوان هادئة، شبكة ثنائية الأعمدة (2-Column Grid)، وشريط سفلي ثابت.
+     - ربط كافة مساحات العمل الميدانية: لوحة تحكم المالك (`/owner-mobile`)، البيع الميداني والفان سيلز (`/van-sales/mobile`)، سائقي التوصيل (`/driver-mobile`)، بصمة الحضور الذاتية (`/mobile/punch`)، نقطة البيع السريعة (`/pos`)، وجرد المخزون المحمول (`/inventory`).
+  4. **ربط مسارات التوزيع والبصمة المفقودة في الراوتر:**
+     - تسجيل تطبيق الفان سيلز والبيع الميداني (`VanSalesMobilePage`) في راوتر المنظومة بالمسارين `/van-sales/mobile` و `/mobile/van-sales`.
+     - تسجيل تطبيق البصمة والحضور الجغرافي الذاتي (`MobilePunchPage`) في راوتر الموارد البشرية بالمسارين `/hr/mobile-punch` و `/mobile/punch`.
+     - توجيه المستخدم تلقائياً بعد تسجيل الدخول في بيئات الموبايل الأصلية إلى لوحة المالك أو بوابة الموبايل (`getPostLoginRoute`).
+  5. **ترقية حزمة الأندرويد وإعدادات متجر جوجل بلاي:**
+     - تحديث `AndroidManifest.xml` بالصلاحيات اللازمة (الكاميرا، الموقع الجغرافي GPS، الاهتزاز، البلوتوث للطابعات المحمولة) مع إضافة `android:required="false"` للعتاد لضمان ظهور التطبيق على كافة الأجهزة في Google Play.
+     - ترقية `MainActivity.java` بـ `WebChromeClient` لمنح أذونات الكاميرا للويب وموقع الـ GPS تلقائياً، والتعامل مع روابط الاتصال الخارجي (`tel:`, `whatsapp:`, `mailto:`).
+     - إنشاء سكريبت استخراج حزمة المتجر الرسمية الموقعة `scripts/build-aab.cjs` (`npm run mobile:aab`) بصيغة Android App Bundle (`.aab`)، وتحديث سكريبت الـ APK ليقرأ الإصدار ديناميكياً من `package.json`.
+  6. **تجهيز متطلبات متجر آبل (Apple App Store & iOS Ready):**
+     - إنشاء سكريبت التهيئة `scripts/setup-capacitor-ios.cjs`.
+     - توثيق نصوص الخصوصية الملزمة لمراجعة آبل في `Info.plist` (الكاميرا، الباركود، الموقع، البلوتوث) باللغتين العربية والإنجليزية.
+- **الملفات المعدلة والمنشأة:**
+  - `frontend/capacitor.config.ts`
+  - `frontend/capacitor.config.json`
+  - `frontend/src/shared/native/mobile-bridge.ts`
+  - `frontend/src/features/dashboard/pages/MobileHubPage.tsx`
+  - `frontend/src/features/dashboard/routes.tsx`
+  - `frontend/src/features/delivery-reps/routes.tsx`
+  - `frontend/src/features/hr/routes.tsx`
+  - `frontend/src/app/router/post-login-route.ts`
+  - `frontend/src/main.tsx`
+  - `frontend/android/app/src/main/AndroidManifest.xml`
+  - `frontend/android/app/src/main/java/com/zsystems/pos/MainActivity.java`
+  - `scripts/build-aab.cjs`
+  - `scripts/build-apk.cjs`
+  - `scripts/setup-capacitor-ios.cjs`
+  - `package.json`
+  - `frontend/package.json`

@@ -28,6 +28,15 @@ function pickOperationalLandingRoute(user: AuthUser, tenant?: AuthTenant | null)
     if (canAccessPath(user, '/manufacturing/work-orders')) return '/manufacturing/work-orders';
   }
 
+  // Native Mobile Device Landing: Direct native app users to mobile suite
+  const isNative = typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());
+  if (isNative) {
+    if ((user.role === 'admin' || user.role === 'super_admin') && canAccessPath(user, '/owner-mobile')) {
+      return '/owner-mobile';
+    }
+    return '/mobile';
+  }
+
   const preferredRoutes = ROUTE_PREFERENCES[user.role] || ROUTE_PREFERENCES.admin;
   return preferredRoutes.find((route) => canAccessPath(user, route)) || '/';
 }

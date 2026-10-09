@@ -43,6 +43,13 @@ import { initProductIconTheme } from '@/shared/components/icons/product-icon-the
 
 initProductIconTheme();
 
+// Native Mobile Bridge Initialization (Status bar, hardware back button, splash screen)
+if (typeof window !== 'undefined') {
+  import('@/shared/native/mobile-bridge').then(({ mobileBridge }) => {
+    mobileBridge.initNativeApp();
+  }).catch(() => {});
+}
+
 // Progressive Web App (PWA) Service Worker Registration for Offline Operation
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('electron')) {
   if (import.meta.env.DEV) {

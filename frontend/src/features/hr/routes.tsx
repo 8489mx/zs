@@ -31,6 +31,8 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/recruitment', element: createLazyRoute(() => import('@/features/hr/pages/RecruitmentKanbanPage').then((module) => ({ default: withHrGate(module.RecruitmentKanbanPage) }))) },
     { path: 'hr/settlements', element: createLazyRoute(() => import('@/features/hr/pages/HrEndOfServicePage').then((module) => ({ default: withHrGate(module.HrEndOfServicePage) }))) },
     { path: 'hr/reports', element: createLazyRoute(() => import('@/features/hr/pages/HrReportsPage').then((module) => ({ default: withHrGate(module.HrReportsPage) }))) },
+    { path: 'hr/mobile-punch', element: createLazyRoute(() => import('@/features/hr/pages/MobilePunchPage')) },
+    { path: 'mobile/punch', element: createLazyRoute(() => import('@/features/hr/pages/MobilePunchPage')) },
   ],
   navigation: [
     {
