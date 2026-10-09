@@ -278,7 +278,11 @@ async function ensureLocationBalance(
     existing = state.balances.find((row) => 
       (row.branch_id == null ? null : Number(row.branch_id)) === searchBranchId && 
       row.location_id == null
-    );
+    ) || state.balances.find((row) => row.location_id == null);
+  } else {
+    existing = state.balances.find((row) => 
+      row.location_id == null && row.branch_id == null
+    ) || state.balances.find((row) => row.location_id == null);
   }
 
   if (existing) {

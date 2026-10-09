@@ -364,9 +364,20 @@ export class SalesOrdersService {
       }
 
       if (releaseItems.length > 0) {
+        let locationId: number | null = null;
+        if (order.branch_id) {
+          const branchRow = await trx
+            .selectFrom('branches')
+            .select(['default_stock_location_id'])
+            .where('id', '=', order.branch_id)
+            .where('tenant_id', '=', scope.tenantId)
+            .executeTakeFirst();
+          locationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+        }
+
         await releaseLocationStock(trx, {
           branchId: order.branch_id,
-          locationId: null,
+          locationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
           items: releaseItems,
@@ -442,9 +453,17 @@ export class SalesOrdersService {
     }
 
     if (releaseItems.length > 0) {
+      const branchRow = await this.db
+        .selectFrom('branches')
+        .select(['default_stock_location_id'])
+        .where('id', '=', branchId)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      const locationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+
       await releaseLocationStock(this.db, {
         branchId: order.branch_id,
-        locationId: null,
+        locationId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
         items: releaseItems,

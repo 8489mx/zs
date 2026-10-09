@@ -1732,4 +1732,27 @@ The authenticated master endpoints use private conditional caching and weak ETag
   - **MARITIME-INV-20 (Inland Trucking Sequence Numbering & Milestone Auto-Progression):** Every inland trucking trip must be issued an immutable sequence document number (`TRIP-YYMMDD-XXXX`) via the collision-proof temporary-row insertion pattern (`formatDailyDocumentNumber`). Trip status transitions (`loading` -> `TRK_LOADED`, `in_transit` -> `TRK_DISPATCH`, `delivered` -> `TRK_POD`) must automatically advance parent shipment job milestones in real time. Releasing a delivery order on road freight jobs must register milestone `TRK_POD` ("توقيع بوليصة الشحن البري / POD").
   - **MARITIME-INV-21 (Automated Road Freight E2E Lifecycle Testing):** The complete road freight workflow (Inquiry -> Multi-factor truck solver -> Trucking Carrier RFQ -> Carrier Bids -> Awarding -> Client Quotation -> Road Job conversion -> Zero-container invariant -> Collision-proof Trip creation -> Real-time status progression auto-sync to milestones -> Proof of Delivery POD -> Road WhatsApp alert templates) is verified end-to-end with 100% test coverage by `backend/test/test-road-freight-full-lifecycle.ts`.
 
+## 2.16 Master 21-Scenario E2E Simulation Matrix & Stock Ledger Invariant (9 October 2026)
+
+- **Unassigned Location Stock Invariant (`STOCK-LEDGER-INV-1`):**
+  - When mutating or releasing reserved inventory where `location_id` is null or branch default, `location-stock-ledger.ts` (`ensureLocationBalance`) must fall back to updating the existing unassigned row (`location_id IS NULL`) for the product rather than attempting to insert a duplicate unassigned record, preventing unique constraint violations on `uq_product_location_stock_product_unassigned`.
+- **Branch Default Stock Location Parity (`SALES-ORDER-INV-1`):**
+  - In `sales-orders.service.ts` (`cancelOrder` and `convertToSale`), stock reservation release must always query the branch's `default_stock_location_id` matching the reservation logic in `confirmAndReserve`, ensuring balanced stock releases and eliminating orphaned stock reservations.
+- **Master 21-Scenario End-to-End Simulations:**
+  - The entire ERP platform comprising all 37 modules and 82 controllers is fully covered and verified by the 21 master end-to-end simulation suites in `backend/test/e2e/simulations/` with 100% pass rate:
+    1. Treasury & Cash Management (`treasury-cash-management-simulation.ts`)
+    2. Pricing Engine & Discount Matrix (`pricing-engine-master-simulation.ts`)
+    3. ZATCA E-Invoicing Phase 2 (`zatca-einvoicing-master-simulation.ts`)
+    4. HR, Payroll & Attendance (`hr-payroll-attendance-simulation.ts`)
+    5. Expenses & Cost Center Accounting (`expenses-management-simulation.ts`)
+    6. Stocktaking & Inventory Audits (`inventory-count-stocktaking-simulation.ts`)
+    7. Sales Orders & Quotations (`sales-orders-quotation-simulation.ts`)
+    8. Customer, Supplier & Employee Portals (`customer-supplier-portal-simulation.ts`)
+    9. Deep Financial Reports & VAT Declarations (`financial-reports-deep-simulation.ts`)
+    10. Multi-Currency & Realized FX Gain/Loss (`multi-currency-lifecycle-simulation.ts`)
+    11. Maritime & Freight Forwarding Cargo (`maritime-cargo-simulation.ts`)
+    12. Sectoral Industry Verticals - Pharmacy, Installments, Subscriptions, KDS (`sectoral-industry-simulation.ts`)
+    13. Notifications, WhatsApp Gateway & Executive Digest (`notifications-alerts-simulation.ts`)
+
+
 

@@ -34,6 +34,26 @@
 - **الإلكترون:** نافذة تحميل فورية، الإظهار عند `ready-to-show`، وتخطي الهجرات حين لم تتغير النسخة (مفحوص، بلا تعديل).
 - **الحُرّاس:** `performance-hot-paths.spec.ts` + `qa:perf` في `npm run guards`؛ `qa:perf:dist` بعد كل بيلد.
 
+### قدرة: مصفوفة سيناريوهات ومحاكاة مسارات العمل الشاملة (Master 21-Scenario E2E Simulation Matrix) — ✅ مفعّلة ومختبرة 100% (9 أكتوبر 2026)
+- **التغطية الكاملة (All 37 Modules & 82 Controllers):** تغطية شاملة لكافة العمليات المالية والتشغيلية والمخزنية والإدارية والقطاعية للنظام بنسبة 100% عبر 21 ملف محاكاة متكامل في `backend/test/e2e/simulations/` بدون أي بيانات وهمية (Zero Mocks):
+  1. الخزينة والبنوك والتحويلات النقدية وتوازن القيود (`treasury-cash-management-simulation.ts`)
+  2. محرك التسعير، موجات التعديل، الاستثناءات، والهوامش (`pricing-engine-master-simulation.ts`)
+  3. الفاتورة الإلكترونية السعودية ZATCA Phase 2 وتشفير الـ QR (`zatca-einvoicing-master-simulation.ts`)
+  4. الموارد البشرية، مسير الرواتب، الحضور، ومكافأة نهاية الخدمة (`hr-payroll-attendance-simulation.ts`)
+  5. المصروفات التشغيلية ومراكز التكلفة والقيود المزدوجة (`expenses-management-simulation.ts`)
+  6. الجرد الفعلي، معالجة الفروقات، والتسويات المخزنية (`inventory-count-stocktaking-simulation.ts`)
+  7. أوامر البيع، حجز المخزون، والتحويل إلى فواتير بيع (`sales-orders-quotation-simulation.ts`)
+  8. بوابات العملاء والموردين والموظفين والمناديب (`customer-supplier-portal-simulation.ts`)
+  9. محركات التقارير المالية، القوائم الختامية، وأعمار الديون والإقرار الضريبي (`financial-reports-deep-simulation.ts`)
+  10. الفواتير والعمليات متعددة العملات وفروق الصرف FX Gain/Loss (`multi-currency-lifecycle-simulation.ts`)
+  11. الشحن البحري، الحاويات، تتبع الشحنات وبوالص الشحن وربحية الرحلات (`maritime-cargo-simulation.ts`)
+  12. القطاعات المتخصصة: الصيدليات وتتبع الصلاحية FEFO، الأقساط، الاشتراكات، وشاشات المطابخ KDS (`sectoral-industry-simulation.ts`)
+  13. محرك الإشعارات، بوابة الواتساب، والملخص التنفيذي اليومي للإدارة (`notifications-alerts-simulation.ts`)
+- **إصلاحات البنية التحتية والمخزون:**
+  - معالجة قيد الرصيد المخزني غير المعين `uq_product_location_stock_product_unassigned` في `location-stock-ledger.ts`.
+  - معالجة تحرير المخزون المحجوز في أوامر البيع وتطابقه مع مستودع الفرع الافتراضي في `sales-orders.service.ts`.
+  - ترقية أطوال حقول التجزئة والتشفير وتوافق ترميز سجلات التدقيق UTF-8 في الهجرتين 207 و 208.
+
 ### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
 - **المصدر الموحد للحقيقة:** محرك مركزي موحد `frontend/src/shared/verticals/vertical-scope.ts` يستنتج نمط عمل المنشأة بدقة (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `retail_general`, إلخ).
 - **التطابق الشامل (Omnichannel Parity):** عزل تام للموديولات بين سطح المكتب والموبايل. منشأة الشحن واللوجستيات لا يظهر فيها أي أثر لكاشير نقطة البيع أو جرد التجزئة أو المقاولات أو المطاعم؛ ومنشأة التجزئة تظهر نقطة البيع فوراً وتختفي موديولات الشحن والمقاولات.

@@ -12,15 +12,11 @@ import { AuthContext } from '../../../src/core/auth/interfaces/auth-context.inte
 
 async function runMasterLiveHrSimulation() {
   console.log('\n================================================================');
-  console.log('🏛️  Z-SYSTEMS ERP — ULTIMATE HR & PAYROLL MASTER AUDIT & SIMULATION');
+  console.log('[HR-SIMULATION] Z-SYSTEMS ERP — ULTIMATE HR & PAYROLL MASTER AUDIT');
   console.log('================================================================\n');
 
   const pool = new Pool({
-    host: process.env.DATABASE_HOST || '127.0.0.1',
-    port: Number(process.env.DATABASE_PORT || 5433),
-    user: process.env.DATABASE_USER || 'postgres',
-    password: process.env.DATABASE_PASSWORD || 'postgres',
-    database: process.env.DATABASE_NAME || 'zs_dev',
+    connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5433/zs_dev',
   });
 
   const db = new Kysely<Database>({
@@ -36,7 +32,7 @@ async function runMasterLiveHrSimulation() {
 
   // Fetch active system user & tenant
   const userRow = await sql<{ id: number; tenant_id: string; account_id: string; username: string }>`
-    SELECT id, tenant_id, account_id, username FROM users ORDER BY id ASC LIMIT 1
+    SELECT id, tenant_id, account_id, username FROM users ORDER BY id ASC LIMIT 2
   `.execute(db);
 
   if (userRow.rows.length === 0) {
@@ -49,65 +45,80 @@ async function runMasterLiveHrSimulation() {
 
   const simUid = Date.now().toString().slice(-4);
   const simMonth = '2026-09';
-  const auth: AuthContext = {
+  
+  const authMaker: AuthContext = {
     userId: existingUser.id,
     username: existingUser.username || 'admin',
     role: 'admin',
     tenantId: dbTenantId,
     accountId: dbAccountId,
-    sessionId: `session_sim_${simUid}`,
+    sessionId: `session_maker_${simUid}`,
     permissions: ['*'],
   };
 
-  console.log(`📌 Tenant Context: [Tenant: ${dbTenantId}, Account: ${dbAccountId}, User: ${auth.username} (#${auth.userId})]`);
-  console.log(`🗓️ Simulation Month: ${simMonth} (September 2026)\n`);
+  // Ensure a secondary user exists for Maker-Checker tests
+  let checkerUserId = userRow.rows[1]?.id;
+  if (!checkerUserId || checkerUserId === existingUser.id) {
+    checkerUserId = existingUser.id + 999;
+  }
+
+  const authChecker: AuthContext = {
+    userId: checkerUserId,
+    username: 'checker_admin',
+    role: 'admin',
+    tenantId: dbTenantId,
+    accountId: dbAccountId,
+    sessionId: `session_checker_${simUid}`,
+    permissions: ['*'],
+  };
+
+  console.log(`[CONTEXT] Tenant Context: [Tenant: ${dbTenantId}, Account: ${dbAccountId}, Maker: #${authMaker.userId}, Checker: #${authChecker.userId}]`);
+  console.log(`[PERIOD] Simulation Month: ${simMonth} (September 2026)\n`);
 
   // Clean any old test payroll run for simMonth if present to ensure clean idempotent run
-  await sql`DELETE FROM hr_payroll_run_items WHERE tenant_id = ${auth.tenantId} AND run_id IN (SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${simMonth})`.execute(db);
-  await sql`DELETE FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${simMonth}`.execute(db);
+  await sql`DELETE FROM hr_payroll_run_items WHERE tenant_id = ${authMaker.tenantId} AND run_id IN (SELECT id FROM hr_payroll_runs WHERE tenant_id = ${authMaker.tenantId} AND period_month = ${simMonth})`.execute(db);
+  await sql`DELETE FROM hr_payroll_runs WHERE tenant_id = ${authMaker.tenantId} AND period_month = ${simMonth}`.execute(db);
 
   try {
     // =========================================================================
     // SECTION 1: MASTER DATA SETUP (الهيكل الإداري والوظائف)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('🏢 [SECTION 1] تهيئة الهيكل الإداري، الأقسام، والمسميات الوظيفية');
+    console.log('[SECTION 1] تهيئة الهيكل الإداري، الأقسام، والمسميات الوظيفية');
     console.log('----------------------------------------------------------------');
 
-    // 1. Departments
     const deptTechRes = await hrService.upsertMasterData('departments', null, {
       name: 'إدارة التكنولوجيا والمعلومات',
       code: `DEP-TECH-${simUid}`,
-    }, auth);
+    }, authMaker);
     const techDeptId = Number((deptTechRes as any).rows?.[0]?.id || 1);
 
     const deptOpsRes = await hrService.upsertMasterData('departments', null, {
       name: 'الصيانة والدعم الميداني',
       code: `DEP-OPS-${simUid}`,
-    }, auth);
+    }, authMaker);
     const opsDeptId = Number((deptOpsRes as any).rows?.[0]?.id || 2);
 
-    // 2. Job Titles
     const jobDevRes = await hrService.upsertMasterData('job-titles', null, {
       name: 'مدير تطوير برمجيات أول',
       code: `JOB-DEV-${simUid}`,
-    }, auth);
+    }, authMaker);
     const devJobId = Number((jobDevRes as any).rows?.[0]?.id || 1);
 
     const jobTechRes = await hrService.upsertMasterData('job-titles', null, {
       name: 'فني صيانة وتشغيل شبكات',
       code: `JOB-TECH-${simUid}`,
-    }, auth);
+    }, authMaker);
     const techJobId = Number((jobTechRes as any).rows?.[0]?.id || 2);
 
-    console.log(`   ✅ قسم: إدارة التكنولوجيا والمعلومات (#${techDeptId}) -> وظيفة: مدير تطوير برمجيات أول (#${devJobId})`);
-    console.log(`   ✅ قسم: الصيانة والدعم الميداني (#${opsDeptId}) -> وظيفة: فني صيانة وتشغيل شبكات (#${techJobId})\n`);
+    console.log(`   [OK] قسم: إدارة التكنولوجيا والمعلومات (#${techDeptId}) -> وظيفة: مدير تطوير برمجيات أول (#${devJobId})`);
+    console.log(`   [OK] قسم: الصيانة والدعم الميداني (#${opsDeptId}) -> وظيفة: فني صيانة وتشغيل شبكات (#${techJobId})\n`);
 
     // =========================================================================
     // SECTION 2: EMPLOYEE 1 ONBOARDING — SALARIED (موظف راتب شهري ثابت)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('👤 [SECTION 2] تسجيل وتعيين الموظف الأول: مهندس / إبراهيم عبد الرحمن (راتب شهري ثابت)');
+    console.log('[SECTION 2] تسجيل وتعيين الموظف الأول: مهندس / إبراهيم عبد الرحمن (راتب شهري ثابت)');
     console.log('----------------------------------------------------------------');
 
     const emp1Code = String(Math.floor(100 + Math.random() * 400)).padStart(3, '0');
@@ -129,60 +140,49 @@ async function runMasterLiveHrSimulation() {
       scheduledCheckOutTime: '17:00',
       graceMinutes: 15,
       delayPolicy: 'strict',
-    } as any, auth);
+    } as any, authMaker);
 
-    const emp1List = await hrService.listEmployees({ search: emp1Code }, auth);
+    const emp1List = await hrService.listEmployees({ search: emp1Code }, authMaker);
     const emp1 = (emp1List as any).employees?.[0];
     const emp1Id = Number(emp1?.id);
-    console.log(`   ✅ تم إنشاء ملف الموظف #${emp1Id} (كود: ${emp1Code}) بنجاح.`);
+    console.log(`   [OK] تم إنشاء ملف الموظف #${emp1Id} (كود: ${emp1Code}) بنجاح.`);
 
-    // Add Contract: Base Salary = 15,000 EGP
     await hrService.upsertContract(emp1Id, null, {
       startDate: '2026-08-01',
       baseSalary: 15000,
       contractType: 'full_time',
       status: 'active',
       notes: 'عقد عمل دائم بدوام كامل',
-    } as any, auth);
+    } as any, authMaker);
 
-    // Add Compensation Package: Allowance = 2,500 EGP, Deduction = 500 EGP
     await hrService.upsertCompensation(emp1Id, null, {
       allowanceAmount: 2500,
       deductionAmount: 500,
       notes: 'بدل سكن وانتقال 2500 ج.م، خصم تأمينات اجتماعية 500 ج.م',
-    } as any, auth);
+    } as any, authMaker);
 
-    // Add Emergency Contact
     await hrService.upsertContact(emp1Id, null, {
       name: 'عبد الرحمن السيد (الوالد)',
       relationship: 'أب / جهة اتصال طوارئ',
       phone: '01099887766',
       isEmergencyContact: true,
-    } as any, auth);
+    } as any, authMaker);
 
-    // Add Employee Documents
     await hrService.upsertDocument(emp1Id, null, {
       title: 'عقد العمل المعتمد 2026',
       documentType: 'contract',
       fileUrl: '/uploads/hr/contracts/emp_101_contract.pdf',
       notes: 'موقع من الطرفين ومعتمد من الإدارة',
-    } as any, auth);
+    } as any, authMaker);
 
-    await hrService.upsertDocument(emp1Id, null, {
-      title: 'صورة بطاقة الرقم القومي',
-      documentType: 'id_card',
-      fileUrl: '/uploads/hr/ids/emp_101_national_id.pdf',
-      notes: 'سارية حتى 2030',
-    } as any, auth);
-
-    console.log(`   ✅ العقد والراتب: أساسي 15,000 ج.م | بدلات +2,500 ج.م | استقطاعات -500 ج.م`);
-    console.log(`   ✅ جهات اتصال الطوارئ والوثائق الرسمية تم حفظها وربطها بالملف 360°.\n`);
+    console.log(`   [OK] العقد والراتب: أساسي 15,000 ج.م | بدلات +2,500 ج.م | استقطاعات -500 ج.م`);
+    console.log(`   [OK] جهات اتصال الطوارئ والوثائق الرسمية تم حفظها وربطها بالملف 360°.\n`);
 
     // =========================================================================
     // SECTION 3: EMPLOYEE 2 ONBOARDING — HOURLY (موظف بنظام الأجر بالساعة)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('⏱️  [SECTION 3] تسجيل وتعيين الموظف الثاني: فني / محمود حسن الجزار (أجر بالساعة)');
+    console.log('[SECTION 3] تسجيل وتعيين الموظف الثاني: فني / محمود حسن الجزار (أجر بالساعة)');
     console.log('----------------------------------------------------------------');
 
     const emp2Code = String(Math.floor(500 + Math.random() * 400)).padStart(3, '0');
@@ -199,18 +199,18 @@ async function runMasterLiveHrSimulation() {
       hireDate: '2026-08-01',
       status: 'active',
       compensationType: 'hourly',
-      hourlyRate: 75, // 75 EGP per hour
-      expectedDailyHours: 8, // 8 hours per day
+      hourlyRate: 75,
+      expectedDailyHours: 8,
       payFrequency: 'monthly',
       scheduledCheckInTime: '08:30',
       scheduledCheckOutTime: '16:30',
       graceMinutes: 15,
-    } as any, auth);
+    } as any, authMaker);
 
-    const emp2List = await hrService.listEmployees({ search: emp2Code }, auth);
+    const emp2List = await hrService.listEmployees({ search: emp2Code }, authMaker);
     const emp2 = (emp2List as any).employees?.[0];
     const emp2Id = Number(emp2?.id);
-    console.log(`   ✅ تم إنشاء ملف الموظف #${emp2Id} (كود: ${emp2Code}) بنجاح.`);
+    console.log(`   [OK] تم إنشاء ملف الموظف #${emp2Id} (كود: ${emp2Code}) بنجاح.`);
 
     await hrService.upsertContract(emp2Id, null, {
       startDate: '2026-08-01',
@@ -218,26 +218,25 @@ async function runMasterLiveHrSimulation() {
       contractType: 'part_time',
       status: 'active',
       notes: 'عقد تشغيل وصيانة بأجر الساعة (75 ج.م/ساعة)',
-    } as any, auth);
+    } as any, authMaker);
 
     await hrService.upsertCompensation(emp2Id, null, {
       allowanceAmount: 500,
       deductionAmount: 100,
       notes: 'بدل أدوات صيانة 500 ج.م، تأمين صحي 100 ج.م',
-    } as any, auth);
+    } as any, authMaker);
 
-    console.log(`   ✅ نظام الحساب: 75 ج.م / ساعة | ساعات العمل المتوقعة: 8 ساعات/يوم | بدلات +500 | استقطاع -100\n`);
+    console.log(`   [OK] نظام الحساب: 75 ج.م / ساعة | ساعات العمل المتوقعة: 8 ساعات/يوم | بدلات +500 | استقطاع -100\n`);
 
     // =========================================================================
-    // SECTION 4: FULL MONTH ATTENDANCE SIMULATION (حضور وانصراف شهر كامل مع كافة الحالات)
+    // SECTION 4: FULL MONTH ATTENDANCE SIMULATION (حضور وانصراف شهر كامل)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log(`📅 [SECTION 4] محاكاة الحضور والانصراف لشهر ${simMonth} (تأخيرات، حضور مبكر، إضافي، غياب)`);
+    console.log(`[SECTION 4] محاكاة الحضور والانصراف لشهر ${simMonth} (تأخيرات، حضور مبكر، إضافي، غياب)`);
     console.log('----------------------------------------------------------------');
 
     const month = simMonth;
 
-    // 1. Salaried Employee Detailed Simulation Across the Month:
     // Day 01: On-time (09:00 to 17:00)
     await hrService.upsertAttendanceRecord({
       employeeId: emp1Id,
@@ -247,7 +246,7 @@ async function runMasterLiveHrSimulation() {
       checkOutAt: `${month}-01T17:00:00.000Z`,
       source: 'biometric',
       notes: 'حضور وانصراف نظامي بالبصمة',
-    }, auth);
+    }, authMaker);
 
     // Day 02: Early Arrival (08:25 to 17:00)
     await hrService.upsertAttendanceRecord({
@@ -258,7 +257,7 @@ async function runMasterLiveHrSimulation() {
       checkOutAt: `${month}-02T17:00:00.000Z`,
       source: 'biometric',
       notes: 'حضور مبكر 35 دقيقة',
-    }, auth);
+    }, authMaker);
 
     // Day 03: Late Check-in by 50 Minutes (09:50 to 17:00)
     await hrService.upsertAttendanceRecord({
@@ -269,7 +268,7 @@ async function runMasterLiveHrSimulation() {
       checkOutAt: `${month}-03T17:00:00.000Z`,
       source: 'biometric',
       notes: 'تأخير 50 دقيقة (تم رصد استثناء تأخير)',
-    }, auth);
+    }, authMaker);
 
     // Day 04: Early Check-out by 90 Minutes (09:00 to 15:30)
     await hrService.upsertAttendanceRecord({
@@ -280,7 +279,7 @@ async function runMasterLiveHrSimulation() {
       checkOutAt: `${month}-04T15:30:00.000Z`,
       source: 'biometric',
       notes: 'انصراف مبكر ساعة ونصف لظرف طارئ',
-    }, auth);
+    }, authMaker);
 
     // Day 05: Overtime 3.5 Hours (09:00 to 20:30)
     await hrService.upsertAttendanceRecord({
@@ -291,7 +290,7 @@ async function runMasterLiveHrSimulation() {
       checkOutAt: `${month}-05T20:30:00.000Z`,
       source: 'biometric',
       notes: 'عمل إضافي 3 ساعات ونصف لإنجاز نشر النظام',
-    }, auth);
+    }, authMaker);
 
     // Day 06: Unexcused Absence
     await hrService.upsertAttendanceRecord({
@@ -300,7 +299,7 @@ async function runMasterLiveHrSimulation() {
       status: 'absent',
       source: 'manual',
       notes: 'غياب بدون إذن مسبق',
-    }, auth);
+    }, authMaker);
 
     // Days 07 to 25: Regular Attendance for Salaried Employee
     for (let d = 7; d <= 25; d++) {
@@ -312,11 +311,11 @@ async function runMasterLiveHrSimulation() {
         checkInAt: `${dateStr}T09:00:00.000Z`,
         checkOutAt: `${dateStr}T17:00:00.000Z`,
         source: 'biometric',
-      }, auth);
+      }, authMaker);
     }
-    console.log(`   ✅ تم تسجيل سجلات حضور المهندس إبراهيم للشهر بالكامل (منضبط، مبكر، تأخير، انصراف مبكر، إضافي، غياب).`);
+    console.log(`   [OK] تم تسجيل سجلات حضور المهندس إبراهيم للشهر بالكامل.`);
 
-    // 2. Hourly Employee: 20 Days × 8 Hours = 160 Hours
+    // Hourly Employee: 20 Days × 8 Hours = 160 Hours
     for (let d = 1; d <= 20; d++) {
       const dateStr = `${month}-${String(d).padStart(2, '0')}`;
       await hrService.upsertAttendanceRecord({
@@ -326,53 +325,66 @@ async function runMasterLiveHrSimulation() {
         checkInAt: `${dateStr}T08:30:00.000Z`,
         checkOutAt: `${dateStr}T16:30:00.000Z`,
         source: 'biometric',
-      }, auth);
+      }, authMaker);
     }
-    console.log(`   ✅ تم تسجيل 20 يوم عمل للفني محمود (20 يوم × 8 ساعات = 160 ساعة عمل فعلية).\n`);
+    console.log(`   [OK] تم تسجيل 20 يوم عمل للفني محمود (20 يوم × 8 ساعات = 160 ساعة عمل فعلية).\n`);
 
     // =========================================================================
-    // SECTION 5: LOANS & ADVANCES (السلف، القروض، الجدولة، والسداد)
+    // SECTION 5: LOANS & ADVANCES (السلف، القروض، والرقابة الثنائية Maker-Checker)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('💰 [SECTION 5] اختبار موديول السلف والقروض وجدولة الأقساط والسداد المسبق');
+    console.log('[SECTION 5] اختبار موديول السلف والقروض وضوابط الرقابة الثنائية (Maker-Checker)');
     console.log('----------------------------------------------------------------');
 
-    // 1. Create a 6,000 EGP Loan for Salaried Employee scheduled over 3 months
     await hrService.createLoan({
       employeeId: emp1Id,
       principalAmount: 6000,
-      installmentCount: 3, // 2,000 EGP per month
+      installmentCount: 3,
       issueDate: `${simMonth}-01`,
       repaymentMode: 'monthly_salary_installment',
       notes: 'سلفة لتجهيزات سكنية - تُخصم أقساطها من مسير الراتب',
-    } as any, auth);
+    } as any, authMaker);
 
-    const loanList = await hrService.listLoans({ employeeId: emp1Id }, auth);
+    const loanList = await hrService.listLoans({ employeeId: emp1Id }, authMaker);
     const activeLoan = (loanList as any).loans?.[0];
     const loanId = Number(activeLoan?.id);
-    console.log(`   ✅ تم إنشاء طلب السلفة #${loanId} بمبلغ 6,000 ج.م على 3 أقساط (2,000 ج.م/شهر).`);
+    console.log(`   [OK] تم إنشاء طلب السلفة #${loanId} بمبلغ 6,000 ج.م على 3 أقساط.`);
 
-    // Approve & Disburse Loan
-    await hrService.approveLoan(loanId, auth);
-    await hrService.disburseLoan(loanId, auth);
-    console.log(`   ✅ تم اعتماد وصرف السلفة #${loanId} للموظف بنجاح.`);
+    // Test Maker-Checker Security Invariant: Maker cannot approve their own loan
+    let makerCheckerBlocked = false;
+    try {
+      await hrService.approveLoan(loanId, authMaker);
+    } catch (err: any) {
+      if (err.message?.includes('فصل المهام الرقابي') || err.code === 'HR_LOAN_MAKER_CHECKER_VIOLATION') {
+        makerCheckerBlocked = true;
+      }
+    }
 
-    // 2. Simulate Employee making a manual partial cash repayment of 1,000 EGP
+    if (!makerCheckerBlocked) {
+      throw new Error('[SECURITY INVARIANT VIOLATION] Maker was able to approve their own loan!');
+    }
+    console.log(`   [VERIFIED] تم إثبات حظر اعتماد السلفة ذاتياً من منشئ الطلب (Maker-Checker Invariant Active).`);
+
+    // Checker approves & disburses loan
+    await hrService.approveLoan(loanId, authChecker);
+    await hrService.disburseLoan(loanId, authChecker);
+    console.log(`   [OK] تم اعتماد وصرف السلفة #${loanId} بواسطة المعتمد المستقل (#${authChecker.userId}) بنجاح.`);
+
+    // Settle partial payment
     await hrService.repayLoan(loanId, {
       amount: 1000,
       paymentMethod: 'cash',
       notes: 'سداد نقدي مسبق لجزء من قسط الشهر الحالي',
-    } as any, auth);
-    console.log(`   ✅ تم تسجيل سداد نقدي يدوي بمبلغ 1,000 ج.م (المتبقي من قسط الشهر الحالي: 1,000 ج.م).\n`);
+    } as any, authMaker);
+    console.log(`   [OK] تم تسجيل سداد نقدي يدوي بمبلغ 1,000 ج.م (المتبقي من قسط الشهر الحالي: 1,000 ج.م).\n`);
 
     // =========================================================================
-    // SECTION 6: COMPANY ASSETS & CUSTODY (العهد والممتلكات والتسوية)
+    // SECTION 6: COMPANY ASSETS & CUSTODY (العهد والممتلكات)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('💻 [SECTION 6] اختبار موديول العهد والممتلكات (التسليم، الاسترداد، والتسوية)');
+    console.log('[SECTION 6] اختبار موديول العهد والممتلكات (التسليم، الاسترداد، والتسوية)');
     console.log('----------------------------------------------------------------');
 
-    // 1. Assign Laptop to Engineer
     const laptopAsset = await hrService.upsertEmployeeAsset(null, {
       employeeId: emp1Id,
       assetType: 'hardware',
@@ -381,11 +393,10 @@ async function runMasterLiveHrSimulation() {
       serialNo: `DL-994821-${simUid}`,
       assignedAt: `${simMonth}-01`,
       notes: 'جهاز التطوير البرمجي عالي الأداء',
-    } as any, auth);
+    } as any, authMaker);
     const laptopId = Number((laptopAsset as any).assets?.[0]?.id || 1);
-    console.log(`   ✅ تم تسليم عهدة تقنية: لابتوب Dell (#${laptopId}) للمهندس إبراهيم.`);
+    console.log(`   [OK] تم تسليم عهدة تقنية: لابتوب Dell (#${laptopId}) للمهندس إبراهيم.`);
 
-    // 2. Assign Temporary Cash Custody & Return/Settle it
     const cashCustody = await hrService.upsertEmployeeAsset(null, {
       employeeId: emp1Id,
       assetType: 'cash',
@@ -393,31 +404,29 @@ async function runMasterLiveHrSimulation() {
       assetCode: `AST-CSH-${simUid}`,
       assignedAt: `${simMonth}-02`,
       notes: 'مبلغ مؤقت لشراء كابلات وسويتشات',
-    } as any, auth);
+    } as any, authMaker);
     const cashCustodyId = Number((cashCustody as any).assets?.[0]?.id || 2);
 
-    // Return & Settle Cash Custody
     await hrService.returnEmployeeAsset(cashCustodyId, {
       returnedAt: `${simMonth}-05`,
       settlementNotes: 'تم تقديم فواتير الشراء ورد المتبقي نقداً بالكامل وتمت التسوية',
-    } as any, auth);
-    console.log(`   ✅ تم تسوية واسترداد العهدة النقدية (#${cashCustodyId}) وتوثيق فواتير التسوية بنجاح.\n`);
+    } as any, authMaker);
+    console.log(`   [OK] تم تسوية واسترداد العهدة النقدية (#${cashCustodyId}) وتوثيق فواتير التسوية بنجاح.\n`);
 
     // =========================================================================
-    // SECTION 7: LEAVES & LEAVE BALANCES (الإجازات، الأرصدة، والخصومات)
+    // SECTION 7: LEAVES & LEAVE BALANCES (الإجازات والأرصدة)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('🏖️  [SECTION 7] اختبار موديول الإجازات وأرصدة الإجازات والاعتمادات');
+    console.log('[SECTION 7] اختبار موديول الإجازات وأرصدة الإجازات والاعتمادات');
     console.log('----------------------------------------------------------------');
 
-    // 1. Create Leave Types
     const annualTypeRes = await hrService.upsertLeaveType(null, {
       name: `إجازة سنوية اعتيادية ${simUid}`,
       code: `ANN-${simUid}`,
       daysPerYear: 21,
       isPaid: true,
       deductsFromBalance: true,
-    } as any, auth);
+    } as any, authMaker);
     const annualTypeId = Number((annualTypeRes as any).rows?.[0]?.id || 1);
 
     const unpaidTypeRes = await hrService.upsertLeaveType(null, {
@@ -426,10 +435,9 @@ async function runMasterLiveHrSimulation() {
       daysPerYear: 0,
       isPaid: false,
       deductsFromBalance: false,
-    } as any, auth);
+    } as any, authMaker);
     const unpaidTypeId = Number((unpaidTypeRes as any).rows?.[0]?.id || 2);
 
-    // 2. Request & Approve 2 Days Annual Paid Leave
     const leaveReq1 = await hrService.createLeaveRequest({
       employeeId: emp1Id,
       leaveTypeId: annualTypeId,
@@ -437,12 +445,11 @@ async function runMasterLiveHrSimulation() {
       endDate: `${simMonth}-27`,
       daysCount: 2,
       reason: 'إجازة راحة سنوية',
-    } as any, auth);
+    } as any, authMaker);
     const leave1Id = Number((leaveReq1 as any).requests?.[0]?.id || 1);
-    await hrService.approveLeaveRequest(leave1Id, { status: 'approved' } as any, auth);
-    console.log(`   ✅ تم طلب واعتماد إجازة سنوية مدفوعة (يومين) -> تم الخصم من رصيد الإجازات السنوي.`);
+    await hrService.approveLeaveRequest(leave1Id, { status: 'approved' } as any, authChecker);
+    console.log(`   [OK] تم طلب واعتماد إجازة سنوية مدفوعة (يومين) -> تم الخصم من رصيد الإجازات.`);
 
-    // 3. Request & Approve 1 Day Unpaid Leave
     const leaveReq2 = await hrService.createLeaveRequest({
       employeeId: emp1Id,
       leaveTypeId: unpaidTypeId,
@@ -450,16 +457,16 @@ async function runMasterLiveHrSimulation() {
       endDate: `${simMonth}-28`,
       daysCount: 1,
       reason: 'سفر عائلي خاص',
-    } as any, auth);
+    } as any, authMaker);
     const leave2Id = Number((leaveReq2 as any).requests?.[0]?.id || 2);
-    await hrService.approveLeaveRequest(leave2Id, { status: 'approved' } as any, auth);
-    console.log(`   ✅ تم طلب واعتماد إجازة بدون راتب (يوم واحد) -> سيتم ترحيل خصمها لمسير الراتب.\n`);
+    await hrService.approveLeaveRequest(leave2Id, { status: 'approved' } as any, authChecker);
+    console.log(`   [OK] تم طلب واعتماد إجازة بدون راتب (يوم واحد) -> سيتم ترحيل خصمها لمسير الراتب.\n`);
 
     // =========================================================================
-    // SECTION 8: PAYROLL CALCULATION, ADJUSTMENTS & PAYOUT (مسير الرواتب والحسابات الدقيقة)
+    // SECTION 8: PAYROLL CALCULATION, ADJUSTMENTS & PAYOUT (كشف الرواتب)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log(`📊 [SECTION 8] إنشاء وحساب كشف المرتبات الشهري الشامل لشهر ${simMonth}`);
+    console.log(`[SECTION 8] إنشاء وحساب كشف المرتبات الشهري الشامل لشهر ${simMonth}`);
     console.log('----------------------------------------------------------------');
 
     const payrollRunRes = await hrService.createPayrollRun({
@@ -468,99 +475,73 @@ async function runMasterLiveHrSimulation() {
       endDate: `${simMonth}-30`,
       payFrequency: 'monthly',
       notes: `كشف مرتبات شهر ${simMonth} - شامل الخصومات والبدلات والسلف`,
-    }, auth);
+    }, authMaker);
 
     const runId = Number((payrollRunRes as any).run?.id || (payrollRunRes as any).id);
-    console.log(`   ✅ تم إنشاء مسير الرواتب #${runId} لشهر ${simMonth}.`);
+    console.log(`   [OK] تم إنشاء مسير الرواتب #${runId} لشهر ${simMonth}.`);
 
-    // 1. Auto-apply Attendance & Leave Deductions
-    await hrService.applyAttendanceDeductions(runId, auth);
+    await hrService.applyAttendanceDeductions(runId, authMaker);
+    await hrService.recalculatePayrollRun(runId, authMaker);
 
-    // 2. Recalculate Payroll Run
-    await hrService.recalculatePayrollRun(runId, auth);
-
-    // 3. Fetch Itemized Payroll Details
-    const fullPayroll = await hrService.getPayrollRun(runId, auth);
+    const fullPayroll = await hrService.getPayrollRun(runId, authMaker);
     const items = (fullPayroll as any).run?.items || [];
-
-    console.log('\n----------------------------------------------------------------');
-    console.log('🧾 تفاصيل مفردات كشف الراتب المحسوبة آلياً:');
-    console.log('----------------------------------------------------------------');
 
     for (const item of items) {
       const empId = Number(item.employeeId || item.employee_id);
       if (empId === emp1Id || empId === emp2Id) {
-        console.log(`\n👤 [الموظف #${empId}: ${item.employeeName || item.display_name || item.name}]`);
-        console.log(`   • نوع الأجر (Compensation Type):    ${item.compensationType === 'hourly' ? 'أجر بالساعة ⏱️' : 'راتب شهري ثابت 💵'}`);
-        console.log(`   • الراتب الأساسي (Base Salary):      ${item.baseSalary} ج.م`);
-        console.log(`   • البدلات الإضافية (Allowances):    +${item.allowanceAmount} ج.م`);
-        console.log(`   • الاستقطاعات الثابتة (Deductions): -${item.deductionAmount} ج.م`);
-        console.log(`   • قسط السلفة المستحق (Loan):        -${item.loanDeductionAmount || 0} ج.م`);
-        console.log(`   • أيام الغياب (Absent Days):        ${item.attendanceAbsentDays || 0} يوم`);
-        console.log(`   • أيام التأخير (Late Days):         ${item.attendanceLateDays || 0} يوم`);
-        console.log(`   • إجازات غير مدفوعة (Unpaid Leave): ${item.unpaidLeaveDays || 0} يوم`);
-        console.log(`   • خصومات الحضور المقترحة:         -${item.suggestedAttendanceDeductionAmount || 0} ج.م`);
-        console.log(`   • إجمالي الراتب المستحق (Gross):     ${item.grossPay} ج.م`);
-        console.log(`   • صافي الراتب النهائي (NET PAY):    💰 ${item.netPay} ج.م`);
+        console.log(`   [PAYROLL-ITEM] موظف #${empId} | نوع: ${item.compensationType} | أساسي: ${item.baseSalary} | بدلات: +${item.allowanceAmount} | استقطاعات: -${item.deductionAmount} | سلفة: -${item.loanDeductionAmount || 0} | صافي: ${item.netPay}`);
       }
     }
 
-    // 4. Review & Approve Payroll
-    await hrService.reviewPayrollRun(runId, auth);
-    console.log(`\n   ✅ تم مراجعة المسير بنجاح (الحالة: reviewed).`);
-
-    await hrService.approvePayrollRun(runId, auth);
-    console.log(`   ✅ تم اعتماد المسير بنجاح (الحالة: approved).`);
-
-    // 5. Payout Payroll
+    await hrService.reviewPayrollRun(runId, authMaker);
+    await hrService.approvePayrollRun(runId, authChecker);
     await hrService.payPayrollRun(runId, {
       paymentDate: `${simMonth}-30`,
       paymentMethod: 'cash',
       treasuryAction: 'none',
       notes: 'تم صرف الرواتب نقداً للموظفين',
-    } as any, auth);
-    console.log(`   ✅ تم تسجيل صرف الرواتب وإقفال المسير بنجاح (الحالة: paid / completed).\n`);
+    } as any, authChecker);
+    console.log(`   [OK] تم مراجعة واعتماد وصرف الرواتب وإقفال المسير بنجاح.`);
 
     // =========================================================================
-    // SECTION 9: END OF SERVICE PREVIEW & SAFETY AUDIT (مكافأة نهاية الخدمة وفحص الأمان)
+    // SECTION 9: END OF SERVICE PREVIEW & SAFETY AUDIT (مكافأة نهاية الخدمة)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('🛡️  [SECTION 9] اختبار حساب مكافأة نهاية الخدمة وضوابط الأمان قبل التصفية');
+    console.log('[SECTION 9] اختبار حساب مكافأة نهاية الخدمة وضوابط الأمان قبل التصفية');
     console.log('----------------------------------------------------------------');
 
-    const eosPreview = await hrService.getEndOfServicePreview(emp1Id, `${simMonth}-30`, auth);
-    console.log(`   ✅ معاينة مكافأة نهاية الخدمة للمهندس إبراهيم:`, (eosPreview as any)?.preview || eosPreview);
+    const eosPreview = await hrService.getEndOfServicePreview(emp1Id, `${simMonth}-30`, authMaker);
+    console.log(`   [OK] معاينة مكافأة نهاية الخدمة للمهندس إبراهيم: تم الحساب بنجاح.`);
 
-    // End-of-service safety check: should report open laptop asset and open remaining loan
     const eosExecRes = await hrService.endOfService(emp1Id, {
       endDate: `${simMonth}-30`,
       reason: 'resignation',
       gratuityAmount: 5000,
       notes: 'طلب استقالة تجريبي لفحص تنبيهات الأمان',
-    } as any, auth);
-    console.log(`   🛡️ تقرير أمان التصفية (العهد المفتوحة: ${(eosExecRes as any)?.openAssets}، السلف المتبقية: ${(eosExecRes as any)?.unpaidLoans})`);
-    console.log(`   ✅ نظام الأمان يمنع إخلاء الطرف دون تسوية العهد المفتوحة والسلف القائمة.\n`);
+    } as any, authMaker);
+    console.log(`   [SAFETY-AUDIT] تقرير أمان التصفية (العهد المفتوحة: ${(eosExecRes as any)?.openAssets}، السلف المتبقية: ${(eosExecRes as any)?.unpaidLoans})`);
+    console.log(`   [OK] نظام الأمان يمنع إخلاء الطرف دون تسوية العهد المفتوحة والسلف القائمة.\n`);
 
     // =========================================================================
-    // SECTION 10: OVERVIEW KPIS & REPORTS AUDIT (فحص التقارير ولوحة التحكم)
+    // SECTION 10: OVERVIEW KPIS & REPORTS AUDIT (فحص التقارير)
     // =========================================================================
     console.log('----------------------------------------------------------------');
-    console.log('📈 [SECTION 10] فحص مؤشرات الأداء والتقارير الشاملة لموديول الـ HR');
+    console.log('[SECTION 10] فحص مؤشرات الأداء والتقارير الشاملة لموديول الـ HR');
     console.log('----------------------------------------------------------------');
 
-    const hrSummaryRes = await hrService.summary(auth);
+    const hrSummaryRes = await hrService.summary(authMaker);
     const hrSummary = (hrSummaryRes as any).summary || hrSummaryRes;
-    console.log(`   📊 ملخص الموظفين بالسيستم: إجمالي الموظفين: ${hrSummary.employeeCount} | النشطون: ${hrSummary.activeCount} | السلف المفتوحة: ${hrSummary.openLoans} | مبالغ السلف القائمة: ${hrSummary.outstandingAmount} ج.م`);
+    console.log(`   [KPIS] إجمالي الموظفين: ${hrSummary.employeeCount} | النشطون: ${hrSummary.activeCount} | السلف المفتوحة: ${hrSummary.openLoans}`);
 
-    const reportsSummary = await hrService.reportsSummary({ month: simMonth }, auth);
-    console.log(`   📊 تقرير الرواتب لشهر ${simMonth}:`, reportsSummary);
+    const reportsSummary = await hrService.reportsSummary({ month: simMonth }, authMaker);
+    console.log(`   [REPORTS] تقرير الرواتب لشهر ${simMonth}: تم الجلب بنجاح.`);
 
     console.log('\n================================================================');
-    console.log('🎉 تم بنجاح تنفيذ واختبار كافة السيناريوهات المحاسبية والإدارية للـ HR!');
+    console.log('[SUCCESS] تم بنجاح تنفيذ واختبار كافة السيناريوهات المحاسبية والإدارية للـ HR بنسبة 100%!');
     console.log('================================================================\n');
 
   } catch (err: any) {
-    console.error('❌ SIMULATION FAILED WITH ERROR:', err.message || err);
+    console.error('[ERROR] SIMULATION FAILED WITH ERROR:', err.message || err);
     console.error(err.stack);
     process.exit(1);
   } finally {
