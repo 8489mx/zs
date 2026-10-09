@@ -1481,7 +1481,13 @@ export class ContractingService {
     const currentWorkAndStored = Number(invoice.current_amount || 0) + Number(invoice.stored_materials_amount || 0);
     const advanceRecovery = Number(invoice.advance_recovery_amount || 0);
     const retentionHeld = Number(invoice.retention_held_amount || 0);
-    const otherDeductions = Number(invoice.other_deductions || 0);
+    const otherDeductions =
+      Number(invoice.other_deductions || 0) +
+      Number(invoice.ld_amount || 0) +
+      Number(invoice.backcharge_amount || 0) +
+      Number(invoice.material_excess_amount || 0) +
+      Number(invoice.shared_resource_amount || 0) +
+      Number(invoice.direct_payment_amount || 0);
     const netPayable = Number(invoice.net_payable || 0);
 
     if (currentWorkAndStored <= 0 && netPayable <= 0) {
@@ -1799,12 +1805,25 @@ export class ContractingService {
 
         // Line 4: Debit Other Deductions
         if (otherDeductions > 0) {
+          let deductionAccId = contraAccountId;
+          const expAccount = await (this.db as any)
+            .selectFrom('accounting_accounts')
+            .select('id')
+            .where('tenant_id', '=', tenantId)
+            .where('code', 'in', ['5290', '5200', '5100', '5000'])
+            .where('is_active', '=', true)
+            .orderBy('code', 'desc')
+            .executeTakeFirst();
+          if (expAccount?.id) {
+            deductionAccId = Number(expAccount.id);
+          }
+
           lines.push({
-            accountId: contraAccountId,
+            accountId: deductionAccId,
             costCenterId: project.cost_center_id ? Number(project.cost_center_id) : null,
             branchId: null,
             locationId: null,
-            description: `استقطاعات وجزاءات مستخلص ${invoice.ipc_number}`,
+            description: `استقطاعات وجزاءات وغرامات تأخير مستخلص ${invoice.ipc_number}`,
             debit: otherDeductions,
             credit: 0,
             partnerType: 'customer',
@@ -7200,7 +7219,7 @@ export class ContractingService {
         'p.code as project_code',
         'g.subcontract_id',
         's.contract_number as subcontract_number',
-        's.title as subcontract_title',
+        's.scope_of_work as subcontract_title',
         'g.subcontractor_id',
         'sub.name as subcontractor_name',
         'g.guarantee_number',
