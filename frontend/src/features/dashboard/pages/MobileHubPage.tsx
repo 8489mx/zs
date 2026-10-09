@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
-import { authApi } from '@/shared/api/auth';
 import { mobileBridge } from '@/shared/native/mobile-bridge';
 import {
   SmartphoneIcon,
@@ -177,13 +176,9 @@ export function MobileHubPage() {
           </div>
 
           <button
-            onClick={async () => {
-              try {
-                await authApi.logout();
-              } finally {
-                clearSession();
-                window.location.href = '/login';
-              }
+            onClick={() => {
+              clearSession();
+              window.location.href = '/login';
             }}
             title="تسجيل الخروج"
             style={{
