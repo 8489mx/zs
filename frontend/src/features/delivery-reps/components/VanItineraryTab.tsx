@@ -575,17 +575,28 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
     try {
       const districtVal = newCustDistrict.trim() || undefined;
       const routeVal = newCustRoute.trim() || undefined;
-      await catalogApi.createCustomer({
-        name: newCustName.trim(),
-        phone: newCustPhone.trim() || undefined,
-        type: 'cash',
-        creditLimit: 0,
-        balance: 0,
-        metadata: {
+      try {
+        await vanSalesApi.createCustomer({
+          name: newCustName.trim(),
+          phone: newCustPhone.trim() || undefined,
           district: districtVal,
           route: routeVal,
-        },
-      });
+          address: districtVal,
+        });
+      } catch (vanErr: any) {
+        // Fallback to standard catalog API if in web session
+        await catalogApi.createCustomer({
+          name: newCustName.trim(),
+          phone: newCustPhone.trim() || undefined,
+          type: 'cash',
+          creditLimit: 0,
+          balance: 0,
+          metadata: {
+            district: districtVal,
+            route: routeVal,
+          },
+        });
+      }
 
       if (districtVal && typeof window !== 'undefined') {
         try {

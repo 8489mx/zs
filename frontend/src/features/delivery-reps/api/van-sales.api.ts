@@ -54,6 +54,10 @@ export interface PreSalesCatalogItem {
   name: string;
   barcode: string;
   categoryName?: string;
+  categoryId?: number | null;
+  supplierId?: number | null;
+  supplierName?: string | null;
+  packagingUnit?: { name: string; multiplier: number } | null;
   costPrice: number;
   retailPrice: number;
   creditPrice?: number | null;
@@ -1510,6 +1514,22 @@ export const vanSalesApi = {
 
   getAdminCustomerPackaging: async (customerId: number): Promise<CustomerPackagingBalance[]> => {
     return http(`/api/van-sales/admin/customers/${customerId}/packaging`);
+  },
+
+  createCustomer: async (payload: {
+    name: string;
+    phone?: string;
+    address?: string;
+    district?: string;
+    route?: string;
+    notes?: string;
+    metadata?: any;
+  }): Promise<{ ok: boolean; customer: any }> => {
+    return http('/api/driver-portal/van-sales/customers', {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
   },
 };
 

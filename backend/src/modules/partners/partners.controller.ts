@@ -21,7 +21,7 @@ export class PartnersController {
   }
 
   @Post('customers')
-  @RequirePermissions('customers')
+  @RequireAnyPermission('customers', 'deliveryReps', 'delivery_reps', 'sales', 'pos')
   createCustomer(@Body() payload: UpsertCustomerDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.createCustomer(payload, req.authContext!);
   }

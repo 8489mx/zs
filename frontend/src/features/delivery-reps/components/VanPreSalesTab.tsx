@@ -10,6 +10,9 @@ import {
   ClockIcon,
   RefreshCwIcon,
   XIcon,
+  BuildingIcon,
+  ArrowRightIcon,
+  BriefcaseIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   vanSalesApi,
@@ -30,7 +33,13 @@ interface PreSalesCartLine {
   productName: string;
   unitName: string;
   unitMultiplier: number;
-  quantity: number;
+  quantity: number; // Total base pieces
+  cartons: number;
+  pieces: number;
+  packagingUnitName?: string;
+  cartonMultiplier: number;
+  pieceUnitPrice: number;
+  cartonUnitPrice: number;
   unitPrice: number;
   consumerPrice?: number | null;
   pricingTierType: 'cash' | 'credit' | 'offer';
@@ -46,6 +55,139 @@ interface VanPreSalesTabProps {
   repName?: string;
 }
 
+interface CompactStepperProps {
+  value: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  unitLabel: string;
+  onIncrement: () => void;
+  onDecrement: () => void;
+  onChange: (val: number) => void;
+  disabledIncrement?: boolean;
+  disabledDecrement?: boolean;
+  inputWidth?: string;
+  height?: string;
+}
+
+/**
+ * Strict RTL Stepper: [+] first in DOM (physically on the RIGHT), [-] last in DOM (physically on the LEFT).
+ */
+const CompactStepper: React.FC<CompactStepperProps> = ({
+  value,
+  min = 0,
+  max = 999999,
+  step = 1,
+  unitLabel,
+  onIncrement,
+  onDecrement,
+  onChange,
+  disabledIncrement = false,
+  disabledDecrement = false,
+  inputWidth = '36px',
+  height = '30px',
+}) => {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          border: '1px solid #cbd5e1',
+          borderRadius: '7px',
+          backgroundColor: '#ffffff',
+          overflow: 'hidden',
+          height,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        }}
+      >
+        {/* STRICT RTL STEPPER: + is FIRST in DOM (Renders on the RIGHT) */}
+        <button
+          type="button"
+          onClick={onIncrement}
+          disabled={disabledIncrement}
+          style={{
+            width: '26px',
+            height: '100%',
+            border: 'none',
+            backgroundColor: '#f8fafc',
+            color: '#170e5e',
+            cursor: disabledIncrement ? 'not-allowed' : 'pointer',
+            opacity: disabledIncrement ? 0.35 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderInlineEnd: '1px solid #e2e8f0',
+            fontWeight: 800,
+            fontSize: '13px',
+            padding: 0,
+          }}
+          title={`زيادة ${unitLabel}`}
+        >
+          +
+        </button>
+
+        <input
+          type="number"
+          step={step}
+          className="no-spin-arrows"
+          min={min}
+          max={max}
+          value={isNaN(value) ? '' : value}
+          onChange={(e) => {
+            const parsed = parseInt(e.target.value, 10);
+            if (!isNaN(parsed)) onChange(Math.max(0, parsed));
+            else if (e.target.value === '') onChange(0);
+          }}
+          onFocus={(e) => e.target.select()}
+          style={{
+            width: inputWidth,
+            height: '100%',
+            border: 'none',
+            textAlign: 'center',
+            fontSize: '12px',
+            fontWeight: 800,
+            color: '#0f172a',
+            outline: 'none',
+            MozAppearance: 'textfield',
+            appearance: 'textfield',
+            padding: '0 2px',
+          }}
+        />
+
+        {/* STRICT RTL STEPPER: - is LAST in DOM (Renders on the LEFT) */}
+        <button
+          type="button"
+          onClick={onDecrement}
+          disabled={disabledDecrement}
+          style={{
+            width: '26px',
+            height: '100%',
+            border: 'none',
+            backgroundColor: '#f8fafc',
+            color: '#334155',
+            cursor: disabledDecrement ? 'not-allowed' : 'pointer',
+            opacity: disabledDecrement ? 0.35 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderInlineStart: '1px solid #e2e8f0',
+            fontWeight: 800,
+            fontSize: '14px',
+            padding: 0,
+          }}
+          title={`إنقاص ${unitLabel}`}
+        >
+          -
+        </button>
+      </div>
+      <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
+        {unitLabel}
+      </span>
+    </div>
+  );
+};
+
 export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   customers,
   selectedCustomerId,
@@ -60,6 +202,11 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   const [searchCatalogQuery, setSearchCatalogQuery] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
+
+  // Browsing by company and category
+  const [isBrowsingCompanies, setIsBrowsingCompanies] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Cart
   const [cart, setCart] = useState<PreSalesCartLine[]>([]);
@@ -88,19 +235,86 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
 
   const [showOutOfStock, setShowOutOfStock] = useState(false);
 
-  // Filter Catalog (Hide out-of-stock items by default for cleaner pre-sales workflow)
-  const filteredCatalog = useMemo(() => {
+  // Group products by Company (Supplier)
+  const companies = useMemo(() => {
+    const map = new Map<string, {
+      name: string;
+      totalProducts: number;
+      availableProducts: number;
+      categoryMap: Map<string, { id: number | null; name: string; count: number }>;
+    }>();
+
+    for (const prod of catalogProducts) {
+      const compName = (prod.supplierName || '').trim() || 'الشركة العامة';
+      if (!map.has(compName)) {
+        map.set(compName, {
+          name: compName,
+          totalProducts: 0,
+          availableProducts: 0,
+          categoryMap: new Map(),
+        });
+      }
+      const c = map.get(compName)!;
+      c.totalProducts += 1;
+      if (prod.warehouseAvailable > 0) {
+        c.availableProducts += 1;
+      }
+
+      const catName = (prod.categoryName || '').trim() || 'عام';
+      const catId = prod.categoryId ?? null;
+      if (!c.categoryMap.has(catName)) {
+        c.categoryMap.set(catName, { id: catId, name: catName, count: 0 });
+      }
+      c.categoryMap.get(catName)!.count += 1;
+    }
+
+    return Array.from(map.values())
+      .map((c) => ({
+        name: c.name,
+        totalProducts: c.totalProducts,
+        availableProducts: c.availableProducts,
+        categories: Array.from(c.categoryMap.values()),
+      }))
+      .sort((a, b) => b.availableProducts - a.availableProducts);
+  }, [catalogProducts]);
+
+  // Categories for currently selected company
+  const companyCategories = useMemo(() => {
+    if (!selectedCompany) return [];
+    const found = companies.find((c) => c.name === selectedCompany);
+    return found ? found.categories : [];
+  }, [companies, selectedCompany]);
+
+  // Filter Catalog
+  const displayedProducts = useMemo(() => {
     return catalogProducts.filter((p) => {
-      // By default, exclude products with 0 or negative available stock
+      // Out of stock filter
       if (!showOutOfStock && p.warehouseAvailable <= 0) return false;
 
-      if (!searchCatalogQuery.trim()) return true;
-      const q = searchCatalogQuery.toLowerCase().trim();
-      const matchName = (p.name || '').toLowerCase().includes(q);
-      const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
-      return matchName || matchBarcode;
+      // If user typed in search bar: search takes priority
+      if (searchCatalogQuery.trim()) {
+        const q = searchCatalogQuery.toLowerCase().trim();
+        const matchName = (p.name || '').toLowerCase().includes(q);
+        const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
+        const matchCompany = (p.supplierName || '').toLowerCase().includes(q);
+        return matchName || matchBarcode || matchCompany;
+      }
+
+      // If user is inside a company: filter by company & category
+      if (selectedCompany) {
+        const compName = (p.supplierName || '').trim() || 'الشركة العامة';
+        if (compName !== selectedCompany) return false;
+
+        if (selectedCategory !== 'all') {
+          const catName = (p.categoryName || '').trim() || 'عام';
+          if (catName !== selectedCategory) return false;
+        }
+        return true;
+      }
+
+      return true;
     });
-  }, [catalogProducts, searchCatalogQuery, showOutOfStock]);
+  }, [catalogProducts, searchCatalogQuery, selectedCompany, selectedCategory, showOutOfStock]);
 
   const availableItemsCount = useMemo(() => {
     return catalogProducts.filter((p) => p.warehouseAvailable > 0).length;
@@ -163,95 +377,77 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
     return { effectivePrice, tierType, savings, consumerPrice };
   };
 
-  // Add item to cart
-  const handleAddToCart = (product: PreSalesCatalogItem, selectedUnitMultiplier = 1, unitName = 'قطعة') => {
-    if (product.warehouseAvailable <= 0) {
-      toast.warning(`الرصيد المتاح من الصنف "${product.name}" بالمخزن الرئيسي هو صفر`);
+  // Update Carton and Piece Quantities for an item
+  const handleUpdateProductUnits = (
+    product: PreSalesCatalogItem,
+    targetCartons: number,
+    targetPieces: number,
+  ) => {
+    const mult = product.packagingUnit?.multiplier || 1;
+    const isCartonItem = Boolean(product.packagingUnit && mult > 1);
+    const safeCartons = isCartonItem ? Math.max(0, targetCartons) : 0;
+    const safePieces = Math.max(0, targetPieces);
+    const totalBaseQty = safeCartons * mult + safePieces;
+
+    if (totalBaseQty > product.warehouseAvailable) {
+      toast.warning(`أقصى رصيد متاح للحجز من "${product.name}" بالمخزن هو ${product.warehouseAvailable} قطعة`);
       return;
     }
 
-    const existingIdx = cart.findIndex((line) => line.productId === product.id);
-    if (existingIdx >= 0) {
-      const existing = cart[existingIdx];
-      const nextQty = existing.quantity + 1;
-      const nextTotalBase = nextQty * existing.unitMultiplier;
-
-      if (nextTotalBase > product.warehouseAvailable) {
-        toast.warning(`أقصى رصيد متاح للحجز هو ${product.warehouseAvailable} قطعة`);
-        return;
-      }
-
-      const pricing = calculateItemPrice(product, paymentTerms, nextTotalBase, existing.unitMultiplier);
-      const updated = [...cart];
-      updated[existingIdx] = {
-        ...existing,
-        quantity: nextQty,
-        unitPrice: pricing.effectivePrice,
-        pricingTierType: pricing.tierType,
-        unitOfferSavings: pricing.savings,
-      };
-      setCart(updated);
-    } else {
-      const nextTotalBase = 1 * selectedUnitMultiplier;
-      if (nextTotalBase > product.warehouseAvailable) {
-        toast.warning(`أقصى رصيد متاح للحجز هو ${product.warehouseAvailable} قطعة`);
-        return;
-      }
-
-      const pricing = calculateItemPrice(product, paymentTerms, nextTotalBase, selectedUnitMultiplier);
-      setCart((prev) => [
-        ...prev,
-        {
-          productId: product.id,
-          productName: product.name,
-          unitName,
-          unitMultiplier: selectedUnitMultiplier,
-          quantity: 1,
-          unitPrice: pricing.effectivePrice,
-          consumerPrice: pricing.consumerPrice,
-          pricingTierType: pricing.tierType,
-          unitOfferSavings: pricing.savings,
-          warehouseAvailable: product.warehouseAvailable,
-        },
-      ]);
-    }
-    toast.success(`تمت إضافة "${product.name}" لسلة الحجز`);
-  };
-
-  // Stepper update quantity (Strict RTL: + then qty then -)
-  const handleUpdateQty = (productId: number, delta: number) => {
     setCart((prev) => {
-      const target = prev.find((line) => line.productId === productId);
-      if (!target) return prev;
-      const nextQty = target.quantity + delta;
-      if (nextQty <= 0) {
-        return prev.filter((line) => line.productId !== productId);
-      }
+      const existingIdx = prev.findIndex((l) => l.productId === product.id);
 
-      const nextTotalBase = nextQty * target.unitMultiplier;
-      if (nextTotalBase > target.warehouseAvailable) {
-        toast.warning(`أقصى رصيد متاح للحجز هو ${target.warehouseAvailable} قطعة`);
+      if (totalBaseQty <= 0) {
+        if (existingIdx >= 0) {
+          return prev.filter((l) => l.productId !== product.id);
+        }
         return prev;
       }
 
-      // Re-lookup catalog item for pricing
-      const catItem = catalogProducts.find((p) => p.id === productId);
-      const pricing = catItem
-        ? calculateItemPrice(catItem, paymentTerms, nextTotalBase, target.unitMultiplier)
-        : { effectivePrice: target.unitPrice, tierType: target.pricingTierType, savings: target.unitOfferSavings };
+      const piecePricing = calculateItemPrice(product, paymentTerms, totalBaseQty, 1);
+      const cartonPricing = isCartonItem ? calculateItemPrice(product, paymentTerms, totalBaseQty, mult) : null;
 
-      return prev.map((line) =>
-        line.productId === productId
-          ? {
-              ...line,
-              quantity: nextQty,
-              unitPrice: pricing.effectivePrice,
-              pricingTierType: pricing.tierType,
-              unitOfferSavings: pricing.savings,
-            }
-          : line,
-      );
+      const newCartLine: PreSalesCartLine = {
+        productId: product.id,
+        productName: product.name,
+        unitName: isCartonItem ? (safeCartons > 0 ? (product.packagingUnit?.name || 'كرتونة') : 'قطعة') : 'قطعة',
+        unitMultiplier: mult,
+        quantity: totalBaseQty,
+        cartons: safeCartons,
+        pieces: safePieces,
+        packagingUnitName: product.packagingUnit?.name || 'كرتونة',
+        cartonMultiplier: mult,
+        pieceUnitPrice: piecePricing.effectivePrice,
+        cartonUnitPrice: cartonPricing ? cartonPricing.effectivePrice : piecePricing.effectivePrice * mult,
+        unitPrice: piecePricing.effectivePrice,
+        consumerPrice: piecePricing.consumerPrice,
+        pricingTierType: piecePricing.tierType,
+        unitOfferSavings: piecePricing.savings,
+        warehouseAvailable: product.warehouseAvailable,
+      };
+
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx] = newCartLine;
+        return next;
+      } else {
+        return [...prev, newCartLine];
+      }
     });
+  };
+
+  // Quick increment/decrement from Cart
+  const handleCartDelta = (productId: number, unitType: 'carton' | 'piece', delta: number) => {
+    const line = cart.find((l) => l.productId === productId);
+    if (!line) return;
+    const prod = catalogProducts.find((p) => p.id === productId);
+    if (!prod) return;
+
+    if (unitType === 'carton') {
+      handleUpdateProductUnits(prod, line.cartons + delta, line.pieces);
+    } else {
+      handleUpdateProductUnits(prod, line.cartons, line.pieces + delta);
+    }
   };
 
   // Change payment terms (Cash / Credit) & refresh cart prices
@@ -261,13 +457,16 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
       prev.map((line) => {
         const catItem = catalogProducts.find((p) => p.id === line.productId);
         if (!catItem) return line;
-        const totalBase = line.quantity * line.unitMultiplier;
-        const pricing = calculateItemPrice(catItem, newTerms, totalBase, line.unitMultiplier);
+        const totalBase = line.quantity;
+        const piecePricing = calculateItemPrice(catItem, newTerms, totalBase, 1);
+        const cartonPricing = line.cartonMultiplier > 1 ? calculateItemPrice(catItem, newTerms, totalBase, line.cartonMultiplier) : null;
         return {
           ...line,
-          unitPrice: pricing.effectivePrice,
-          pricingTierType: pricing.tierType,
-          unitOfferSavings: pricing.savings,
+          pieceUnitPrice: piecePricing.effectivePrice,
+          cartonUnitPrice: cartonPricing ? cartonPricing.effectivePrice : piecePricing.effectivePrice * line.cartonMultiplier,
+          unitPrice: piecePricing.effectivePrice,
+          pricingTierType: piecePricing.tierType,
+          unitOfferSavings: piecePricing.savings,
         };
       }),
     );
@@ -275,11 +474,16 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
 
   // Cart totals
   const cartTotalAmount = useMemo(() => {
-    return cart.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+    return cart.reduce((sum, line) => {
+      if (line.cartonMultiplier > 1 && (line.cartons > 0 || line.pieces > 0)) {
+        return sum + (line.cartons * line.cartonUnitPrice + line.pieces * line.pieceUnitPrice);
+      }
+      return sum + line.quantity * line.pieceUnitPrice;
+    }, 0);
   }, [cart]);
 
   const totalPieces = useMemo(() => {
-    return cart.reduce((sum, line) => sum + line.quantity * line.unitMultiplier, 0);
+    return cart.reduce((sum, line) => sum + line.quantity, 0);
   }, [cart]);
 
   // Submit Pre-Sales Booking Mutation
@@ -292,18 +496,55 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
         throw new Error('سلة الحجز فارغة. أضف أصنافاً أولاً');
       }
 
+      const itemsPayload: Array<{
+        productId: number;
+        qty: number;
+        quantity: number;
+        unitName: string;
+        unitMultiplier: number;
+        unitPrice: number;
+      }> = [];
+
+      for (const line of cart) {
+        if (line.cartonMultiplier > 1) {
+          if (line.cartons > 0) {
+            itemsPayload.push({
+              productId: line.productId,
+              qty: line.cartons,
+              quantity: line.cartons,
+              unitName: line.packagingUnitName || 'كرتونة',
+              unitMultiplier: line.cartonMultiplier,
+              unitPrice: line.cartonUnitPrice,
+            });
+          }
+          if (line.pieces > 0) {
+            itemsPayload.push({
+              productId: line.productId,
+              qty: line.pieces,
+              quantity: line.pieces,
+              unitName: 'قطعة',
+              unitMultiplier: 1,
+              unitPrice: line.pieceUnitPrice,
+            });
+          }
+        } else {
+          itemsPayload.push({
+            productId: line.productId,
+            qty: line.quantity,
+            quantity: line.quantity,
+            unitName: line.unitName || 'قطعة',
+            unitMultiplier: 1,
+            unitPrice: line.pieceUnitPrice,
+          });
+        }
+      }
+
       return vanSalesApi.createPreSalesOrder({
         customerId: Number(selectedCustomerId),
         paymentMethod: paymentTerms,
         notes: bookingNotes.trim() || undefined,
         deliveryDate: deliveryDate || undefined,
-        items: cart.map((line) => ({
-          productId: line.productId,
-          unitName: line.unitName,
-          quantity: line.quantity,
-          unitMultiplier: line.unitMultiplier,
-          unitPrice: line.unitPrice,
-        })),
+        items: itemsPayload,
       });
     },
     onSuccess: (res) => {
@@ -330,9 +571,10 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
           </span>
         );
       case 'approved':
+      case 'confirmed':
         return (
           <span style={{ padding: '2px 7px', borderRadius: '5px', fontSize: '11px', fontWeight: 700, backgroundColor: '#dcfce7', color: '#15803d' }}>
-            معتمدة وجاهزة للتجهيز
+            معتمدة وجاهزة للتحميل
           </span>
         );
       case 'rejected':
@@ -351,16 +593,15 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '96px' }}>
-      {/* SUB-TAB NAVIGATOR */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '24px' }}>
+      {/* SUB-TABS SELECTOR */}
       <div
         style={{
           display: 'flex',
-          gap: '6px',
-          background: '#ffffff',
-          padding: '5px',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: '#f1f5f9',
+          padding: '3px',
+          borderRadius: '10px',
+          gap: '4px',
         }}
       >
         <button
@@ -564,182 +805,349 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
             )}
           </div>
 
-          {/* CATALOG FILTER & COUNT HEADER */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '0 4px',
-              fontSize: '11.5px',
-            }}
-          >
-            <span style={{ color: '#475569', fontWeight: 700 }}>
-              الأصناف المتوفرة للحجز: ({filteredCatalog.length})
-            </span>
-            {outOfStockCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowOutOfStock((prev) => !prev)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: showOutOfStock ? '#170e5e' : '#64748b',
-                  fontWeight: 700,
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  padding: 0,
-                }}
-              >
-                {showOutOfStock
-                  ? 'إخفاء غير المتوفر'
-                  : `إظهار غير المتوفر بالمخزن (${outOfStockCount})`}
-              </button>
-            )}
-          </div>
+          {/* COMPANY / CATALOG WORKFLOW */}
+          {searchCatalogQuery.trim() ? (
+            /* SEARCH RESULTS VIEW */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', fontSize: '11.5px' }}>
+                <span style={{ color: '#475569', fontWeight: 700 }}>
+                  نتائج البحث: ({displayedProducts.length} صنف)
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {outOfStockCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowOutOfStock((prev) => !prev)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: showOutOfStock ? '#170e5e' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0,
+                      }}
+                    >
+                      {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSearchCatalogQuery('')}
+                    style={{ background: 'none', border: 'none', color: '#170e5e', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                  >
+                    العودة لتصفح الشركات
+                  </button>
+                </div>
+              </div>
 
-          {/* WAREHOUSE CATALOG LIST */}
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              padding: '10px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            {isCatalogLoading ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>
-                جاري جلب رصيد المخزن الرئيسي والأسعار...
-              </div>
-            ) : filteredCatalog.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>
-                لا توجد أصناف مطابقة في المخزن الرئيسي
-              </div>
-            ) : (
-              filteredCatalog.map((prod) => {
-                const isOutOfStock = prod.warehouseAvailable <= 0;
-                const pricing = calculateItemPrice(prod, paymentTerms, 1, 1);
-                return (
+              {renderProductsList(displayedProducts)}
+            </div>
+          ) : !selectedCompany ? (
+            /* BROWSE COMPANIES TRIGGER / GRID */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {!isBrowsingCompanies ? (
+                /* INITIAL SCREEN: BUTTON TO BROWSE COMPANIES (Products hidden) */
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    padding: '20px 16px',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
                   <div
-                    key={prod.id}
                     style={{
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '10px',
-                      padding: '10px 12px',
-                      backgroundColor: isOutOfStock ? '#f8fafc' : '#ffffff',
-                      opacity: isOutOfStock ? 0.65 : 1,
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '14px',
+                      backgroundColor: '#eef2ff',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#170e5e',
                     }}
                   >
-                    {/* Row 1: Product Name & Barcode */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '13px', color: '#0f172a', lineHeight: 1.35, flex: 1 }}>
-                        {prod.name}
-                      </span>
-                      {prod.barcode ? (
-                        <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace', flexShrink: 0 }}>
-                          {prod.barcode}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {/* Row 2: Pricing Badges & Expected Profit */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#170e5e', fontWeight: 900, fontSize: '14px' }}>
-                        {pricing.effectivePrice.toFixed(2)} <CurrencySymbol />
-                        {pricing.tierType === 'credit' ? (
-                          <span style={{ color: '#b45309', fontSize: '10.5px', fontWeight: 700, marginRight: '3px' }}> (آجل)</span>
-                        ) : null}
-                      </span>
-
-                      {pricing.consumerPrice ? (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            color: '#475569',
-                            backgroundColor: '#f1f5f9',
-                            padding: '2px 7px',
-                            borderRadius: '5px',
-                            border: '1px solid #e2e8f0',
-                          }}
-                        >
-                          سعر المستهلك: {pricing.consumerPrice.toFixed(2)} <CurrencySymbol />
-                        </span>
-                      ) : null}
-
-                      {pricing.consumerPrice && pricing.consumerPrice > pricing.effectivePrice ? (
-                        <span
-                          style={{
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            color: '#059669',
-                            backgroundColor: '#ecfdf5',
-                            padding: '2px 7px',
-                            borderRadius: '5px',
-                            border: '1px solid #a7f3d0',
-                          }}
-                        >
-                          ربح: +{(pricing.consumerPrice - pricing.effectivePrice).toFixed(2)}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {/* Row 3: Warehouse Stock & Add Button */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: isOutOfStock ? '#b91c1c' : '#047857',
-                          backgroundColor: isOutOfStock ? '#fee2e2' : '#f0fdf4',
-                          border: `1px solid ${isOutOfStock ? '#fca5a5' : '#bbf7d0'}`,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isOutOfStock ? '#ef4444' : '#10b981', display: 'inline-block' }} />
-                        {isOutOfStock ? 'نفد من المخزن' : `متاح بالمخزن: ${prod.warehouseAvailable} قطعة`}
-                      </span>
-
-                      <Button
-                        variant="primary"
-                        onClick={() => handleAddToCart(prod, 1, 'قطعة')}
-                        disabled={isOutOfStock}
-                        style={{
-                          height: '32px',
-                          padding: '0 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          backgroundColor: '#170e5e',
-                          color: '#ffffff',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          borderRadius: '7px',
-                        }}
-                      >
-                        <PlusIcon size={14} />
-                        <span>إضافة</span>
-                      </Button>
-                    </div>
+                    <BuildingIcon size={24} />
                   </div>
-                );
-              })
-            )}
-          </div>
 
-          {/* BOOKING CART & STEPPERS */}
+                  <div>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
+                      تصفح المنتجات حسب الشركات والأقسام
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
+                      اختر الشركة الموردة لعرض أقسامها ومنتجاتها وحجز الكميات بالكرتونة والقطعة ({companies.length} شركة مسجلة)
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsBrowsingCompanies(true)}
+                    style={{
+                      height: '40px',
+                      padding: '0 24px',
+                      backgroundColor: '#170e5e',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 2px 4px rgba(23,14,94,0.15)',
+                    }}
+                  >
+                    <BriefcaseIcon size={16} />
+                    <span>تصفح الشركات ({companies.length})</span>
+                  </button>
+                </div>
+              ) : (
+                /* COMPANIES GRID VIEW */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                        شركات وموردي البضاعة ({companies.length})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsBrowsingCompanies(false)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#64748b',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      إخفاء القائمة
+                    </button>
+                  </div>
+
+                  {companies.length === 0 ? (
+                    <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+                      لا توجد شركات أو أصناف مسجلة بالمخزن حالياً
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                        gap: '10px',
+                      }}
+                    >
+                      {companies.map((comp) => (
+                        <div
+                          key={comp.name}
+                          onClick={() => {
+                            setSelectedCompany(comp.name);
+                            setSelectedCategory('all');
+                          }}
+                          style={{
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '14px',
+                            padding: '14px 10px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                            transition: 'border-color 0.15s ease',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '12px',
+                              backgroundColor: '#eef2ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#170e5e',
+                            }}
+                          >
+                            <BuildingIcon size={20} />
+                          </div>
+
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: '12.5px',
+                              color: '#0f172a',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={comp.name}
+                          >
+                            {comp.name}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              color: comp.availableProducts > 0 ? '#047857' : '#94a3b8',
+                              backgroundColor: comp.availableProducts > 0 ? '#f0fdf4' : '#f1f5f9',
+                              border: `1px solid ${comp.availableProducts > 0 ? '#bbf7d0' : '#e2e8f0'}`,
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                            }}
+                          >
+                            {comp.availableProducts > 0 ? `${comp.availableProducts} صنف متاح` : 'نفد الرصيد'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* SELECTED COMPANY VIEW: HORIZONTAL CATEGORIES BAR & PRODUCTS */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* COMPANY HEADER WITH BACK BUTTON */}
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCompany(null);
+                      setSelectedCategory('all');
+                    }}
+                    style={{
+                      height: '28px',
+                      padding: '0 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      color: '#170e5e',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <ArrowRightIcon size={14} />
+                    <span>تصفح الشركات</span>
+                  </button>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                    {selectedCompany}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    ({displayedProducts.length} صنف)
+                  </span>
+                  {outOfStockCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowOutOfStock((prev) => !prev)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: showOutOfStock ? '#170e5e' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '10.5px',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0,
+                      }}
+                    >
+                      {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* HORIZONTAL CATEGORIES BAR (DEFAULT IS 'all') */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  padding: '2px 0 6px',
+                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('all')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    border: selectedCategory === 'all' ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                    backgroundColor: selectedCategory === 'all' ? '#170e5e' : '#ffffff',
+                    color: selectedCategory === 'all' ? '#ffffff' : '#475569',
+                  }}
+                >
+                  الكل ({catalogProducts.filter((p) => ((p.supplierName || '').trim() || 'الشركة العامة') === selectedCompany).length})
+                </button>
+
+                {companyCategories.map((cat) => (
+                  <button
+                    key={cat.name}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.name)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      border: selectedCategory === cat.name ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                      backgroundColor: selectedCategory === cat.name ? '#170e5e' : '#ffffff',
+                      color: selectedCategory === cat.name ? '#ffffff' : '#475569',
+                    }}
+                  >
+                    {cat.name} ({cat.count})
+                  </button>
+                ))}
+              </div>
+
+              {/* PRODUCTS LIST */}
+              {renderProductsList(displayedProducts)}
+            </div>
+          )}
+
+          {/* BOOKING CART & STEPPERS (Visible when cart has items) */}
           {cart.length > 0 && (
             <div
               style={{
@@ -750,6 +1158,7 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -761,72 +1170,95 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {cart.map((line) => (
-                  <div
-                    key={line.productId}
-                    style={{
-                      borderBottom: '1px solid #f1f5f9',
-                      paddingBottom: '6px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '12px', color: '#0f172a' }}>{line.productName}</div>
-                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>
-                        {line.unitPrice.toFixed(2)} × {line.quantity} = <strong>{(line.quantity * line.unitPrice).toFixed(2)}</strong> <CurrencySymbol />
-                        {line.consumerPrice ? (
-                          <span style={{ color: '#2563eb', marginRight: '6px' }}>
-                            (مستهلك: {line.consumerPrice.toFixed(2)})
-                          </span>
-                        ) : null}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {cart.map((line) => {
+                  const lineTotal = line.cartonMultiplier > 1 && (line.cartons > 0 || line.pieces > 0)
+                    ? line.cartons * line.cartonUnitPrice + line.pieces * line.pieceUnitPrice
+                    : line.quantity * line.pieceUnitPrice;
+
+                  return (
+                    <div
+                      key={line.productId}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        paddingBottom: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '12.5px', color: '#0f172a' }}>{line.productName}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                            {line.cartonMultiplier > 1 ? (
+                              <span>
+                                {line.cartons > 0 ? `${line.cartons} ${line.packagingUnitName || 'كرتونة'}` : ''}
+                                {line.cartons > 0 && line.pieces > 0 ? ' + ' : ''}
+                                {line.pieces > 0 ? `${line.pieces} قطعة` : ''}
+                                {' '}(إجمالي: {line.quantity} قطعة)
+                              </span>
+                            ) : (
+                              <span>{line.quantity} قطعة</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <span style={{ fontWeight: 800, fontSize: '12.5px', color: '#170e5e' }}>
+                          {lineTotal.toFixed(2)} <CurrencySymbol />
+                        </span>
+                      </div>
+
+                      {/* QUICK CONTROLS IN CART */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', alignItems: 'center' }}>
+                        {line.cartonMultiplier > 1 ? (
+                          <>
+                            <CompactStepper
+                              value={line.cartons}
+                              unitLabel={line.packagingUnitName || 'كرتونة'}
+                              onIncrement={() => handleCartDelta(line.productId, 'carton', 1)}
+                              onDecrement={() => handleCartDelta(line.productId, 'carton', -1)}
+                              onChange={(val) => {
+                                const prod = catalogProducts.find((p) => p.id === line.productId);
+                                if (prod) handleUpdateProductUnits(prod, val, line.pieces);
+                              }}
+                              disabledDecrement={line.cartons <= 0}
+                              height="28px"
+                              inputWidth="32px"
+                            />
+                            <CompactStepper
+                              value={line.pieces}
+                              unitLabel="قطع"
+                              onIncrement={() => handleCartDelta(line.productId, 'piece', 1)}
+                              onDecrement={() => handleCartDelta(line.productId, 'piece', -1)}
+                              onChange={(val) => {
+                                const prod = catalogProducts.find((p) => p.id === line.productId);
+                                if (prod) handleUpdateProductUnits(prod, line.cartons, val);
+                              }}
+                              disabledDecrement={line.pieces <= 0}
+                              height="28px"
+                              inputWidth="32px"
+                            />
+                          </>
+                        ) : (
+                          <CompactStepper
+                            value={line.quantity}
+                            unitLabel="قطع"
+                            onIncrement={() => handleCartDelta(line.productId, 'piece', 1)}
+                            onDecrement={() => handleCartDelta(line.productId, 'piece', -1)}
+                            onChange={(val) => {
+                              const prod = catalogProducts.find((p) => p.id === line.productId);
+                              if (prod) handleUpdateProductUnits(prod, 0, val);
+                            }}
+                            disabledDecrement={line.quantity <= 0}
+                            height="28px"
+                            inputWidth="34px"
+                          />
+                        )}
                       </div>
                     </div>
-
-                    {/* STRICT RTL STEPPER: [+] (QTY) [-] */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateQty(line.productId, 1)}
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          backgroundColor: '#170e5e',
-                          color: '#ffffff',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                        title="زيادة الكمية"
-                      >
-                        +
-                      </button>
-                      <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 800, fontSize: '12px', color: '#170e5e' }}>
-                        {line.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateQty(line.productId, -1)}
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: '#ffffff',
-                          color: '#0f172a',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                        title="إنقاص الكمية"
-                      >
-                        -
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* DETAILS & SUBMIT */}
@@ -971,4 +1403,280 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
       )}
     </div>
   );
+
+  /**
+   * Helper function to render a list of products with dual Carton & Piece steppers.
+   */
+  function renderProductsList(products: PreSalesCatalogItem[]) {
+    if (isCatalogLoading) {
+      return (
+        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          جاري جلب رصيد المخزن الرئيسي والأسعار...
+        </div>
+      );
+    }
+
+    if (products.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          لا توجد أصناف مطابقة في هذا القسم بالمخزن الرئيسي
+        </div>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+      >
+        {products.map((prod) => {
+          const isOutOfStock = prod.warehouseAvailable <= 0;
+          const pricing = calculateItemPrice(prod, paymentTerms, 1, 1);
+          const mult = prod.packagingUnit?.multiplier || 1;
+          const isCartonItem = Boolean(prod.packagingUnit && mult > 1);
+
+          // Get current selected quantities from cart
+          const cartItem = cart.find((l) => l.productId === prod.id);
+          const currentCartons = cartItem?.cartons || 0;
+          const currentPieces = isCartonItem ? (cartItem?.pieces || 0) : (cartItem?.quantity || 0);
+          const totalChosen = cartItem?.quantity || 0;
+
+          // Available in cartons breakdown
+          const availCartons = isCartonItem ? Math.floor(prod.warehouseAvailable / mult) : 0;
+          const availPieces = isCartonItem ? prod.warehouseAvailable % mult : prod.warehouseAvailable;
+
+          return (
+            <div
+              key={prod.id}
+              style={{
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '10px 12px',
+                backgroundColor: isOutOfStock ? '#f8fafc' : '#ffffff',
+                opacity: isOutOfStock ? 0.65 : 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              }}
+            >
+              {/* Row 1: Product Name, Category & Barcode */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                  <span style={{ fontWeight: 800, fontSize: '13px', color: '#0f172a', lineHeight: 1.35 }}>
+                    {prod.name}
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {prod.supplierName && (
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                        {prod.supplierName}
+                      </span>
+                    )}
+                    {prod.categoryName && (
+                      <span style={{ fontSize: '10px', backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px' }}>
+                        {prod.categoryName}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {prod.barcode ? (
+                  <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace', flexShrink: 0 }}>
+                    {prod.barcode}
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Row 2: Pricing Badges & Expected Profit */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ color: '#170e5e', fontWeight: 900, fontSize: '13.5px' }}>
+                  {pricing.effectivePrice.toFixed(2)} <CurrencySymbol />
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}> / قطعة</span>
+                  {pricing.tierType === 'credit' ? (
+                    <span style={{ color: '#b45309', fontSize: '10.5px', fontWeight: 700, marginRight: '3px' }}> (آجل)</span>
+                  ) : null}
+                </span>
+
+                {isCartonItem && (
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4338ca', backgroundColor: '#eef2ff', padding: '2px 7px', borderRadius: '5px' }}>
+                    {(pricing.effectivePrice * mult).toFixed(2)} <CurrencySymbol /> / {prod.packagingUnit?.name || 'كرتونة'} ({mult}ق)
+                  </span>
+                )}
+
+                {pricing.consumerPrice ? (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#475569',
+                      backgroundColor: '#f1f5f9',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                    }}
+                  >
+                    مستهلك: {pricing.consumerPrice.toFixed(2)}
+                  </span>
+                ) : null}
+
+                {pricing.consumerPrice && pricing.consumerPrice > pricing.effectivePrice ? (
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      color: '#059669',
+                      backgroundColor: '#ecfdf5',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      border: '1px solid #a7f3d0',
+                    }}
+                  >
+                    ربح: +{(pricing.consumerPrice - pricing.effectivePrice).toFixed(2)}
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Row 3: Warehouse Stock & Available Units */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: isOutOfStock ? '#b91c1c' : '#047857',
+                    backgroundColor: isOutOfStock ? '#fee2e2' : '#f0fdf4',
+                    border: `1px solid ${isOutOfStock ? '#fca5a5' : '#bbf7d0'}`,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isOutOfStock ? '#ef4444' : '#10b981', display: 'inline-block' }} />
+                  {isOutOfStock ? (
+                    'نفد من المخزن'
+                  ) : isCartonItem ? (
+                    `متاح: ${prod.warehouseAvailable} ق (${availCartons} ك + ${availPieces} ق)`
+                  ) : (
+                    `متاح بالمخزن: ${prod.warehouseAvailable} قطعة`
+                  )}
+                </span>
+
+                {totalChosen > 0 && (
+                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', backgroundColor: '#ede9fe', padding: '2px 8px', borderRadius: '6px' }}>
+                    المطلوب: {totalChosen} قطعة
+                  </span>
+                )}
+              </div>
+
+              {/* Row 4: CARTON & PIECE STEPPERS (Strict RTL: [+] on right, [-] on left) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '4px',
+                  borderTop: '1px dashed #f1f5f9',
+                  gap: '6px',
+                }}
+              >
+                {isOutOfStock ? (
+                  <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>الصنف غير متاح للحجز</span>
+                ) : isCartonItem ? (
+                  /* Dual Steppers for Cartons and Pieces */
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CompactStepper
+                        value={currentCartons}
+                        unitLabel={prod.packagingUnit?.name || 'كرتونة'}
+                        onIncrement={() => handleUpdateProductUnits(prod, currentCartons + 1, currentPieces)}
+                        onDecrement={() => handleUpdateProductUnits(prod, Math.max(0, currentCartons - 1), currentPieces)}
+                        onChange={(val) => handleUpdateProductUnits(prod, val, currentPieces)}
+                        disabledDecrement={currentCartons <= 0}
+                        height="30px"
+                        inputWidth="36px"
+                      />
+                      <CompactStepper
+                        value={currentPieces}
+                        unitLabel="قطع"
+                        onIncrement={() => handleUpdateProductUnits(prod, currentCartons, currentPieces + 1)}
+                        onDecrement={() => handleUpdateProductUnits(prod, currentCartons, Math.max(0, currentPieces - 1))}
+                        onChange={(val) => handleUpdateProductUnits(prod, currentCartons, val)}
+                        disabledDecrement={currentPieces <= 0}
+                        height="30px"
+                        inputWidth="36px"
+                      />
+                    </div>
+
+                    {totalChosen === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateProductUnits(prod, 1, 0)}
+                        style={{
+                          height: '30px',
+                          padding: '0 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <PlusIcon size={13} />
+                        <span>حجز كرتونة</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  /* Single Stepper for Pieces */
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <CompactStepper
+                      value={currentPieces}
+                      unitLabel="قطع"
+                      onIncrement={() => handleUpdateProductUnits(prod, 0, currentPieces + 1)}
+                      onDecrement={() => handleUpdateProductUnits(prod, 0, Math.max(0, currentPieces - 1))}
+                      onChange={(val) => handleUpdateProductUnits(prod, 0, val)}
+                      disabledDecrement={currentPieces <= 0}
+                      height="30px"
+                      inputWidth="38px"
+                    />
+
+                    {totalChosen === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateProductUnits(prod, 0, 1)}
+                        style={{
+                          height: '30px',
+                          padding: '0 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <PlusIcon size={13} />
+                        <span>إضافة قطعة</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 };

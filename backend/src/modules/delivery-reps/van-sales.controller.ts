@@ -249,6 +249,15 @@ export class VanSalesController {
     return { ok: true, itinerary };
   }
 
+  @Post('customers')
+  async createDriverCustomer(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.createDriverCustomer(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
   @Post('field-visits')
   async recordFieldVisit(
     @Headers('authorization') authHeader: string,

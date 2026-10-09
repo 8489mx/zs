@@ -22,6 +22,11 @@ export interface PreSalesCatalogItem {
   creditPrice: number;
   consumerPrice: number;
   wholesalePrice: number;
+  supplierId?: number | null;
+  supplierName?: string | null;
+  categoryId?: number | null;
+  categoryName?: string | null;
+  packagingUnit?: { name: string; multiplier: number } | null;
   units: Array<{
     id: number;
     name: string;
@@ -165,6 +170,8 @@ export class VanPreSalesService {
   ): Promise<{ ok?: boolean; items: PreSalesCatalogItem[]; products?: PreSalesCatalogItem[]; total: number; targetWarehouseId?: number | null }> {
     let qb = this.anyDb
       .selectFrom('products as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_categories as pc', 'pc.id', 'p.category_id')
       .select([
         'p.id',
         'p.name',
@@ -177,6 +184,9 @@ export class VanPreSalesService {
         'p.credit_price',
         'p.consumer_price',
         'p.category_id',
+        'p.supplier_id',
+        's.name as supplier_name',
+        'pc.name as category_name',
       ])
       .where('p.tenant_id', '=', tenantId)
       .where('p.is_active', '=', true);
@@ -195,7 +205,7 @@ export class VanPreSalesService {
       qb = qb.where('p.category_id', '=', Number(query.categoryId));
     }
 
-    const limit = query?.limit ? Math.min(Number(query.limit), 200) : 100;
+    const limit = query?.limit ? Math.min(Number(query.limit), 1000) : 500;
     const offset = query?.offset ? Number(query.offset) : 0;
 
     const rawProducts = await qb.orderBy('p.name', 'asc').limit(limit).offset(offset).execute();
@@ -340,6 +350,8 @@ export class VanPreSalesService {
         isSaleDefault: u.isSaleUnitDefault,
       }));
       const activeOffers = offersByProduct.get(pid) || [];
+      const packUnit = productUnits.find((u) => Number(u.multiplier) > 1);
+      const packagingUnit = packUnit ? { name: packUnit.name, multiplier: Number(packUnit.multiplier) } : null;
 
       return {
         id: pid,
@@ -356,6 +368,11 @@ export class VanPreSalesService {
         creditPrice: credit,
         consumerPrice: consumer,
         wholesalePrice: Number(p.wholesale_price || retail),
+        supplierId: p.supplier_id ? Number(p.supplier_id) : null,
+        supplierName: (p.supplier_name || '').trim() || 'الشركة العامة',
+        categoryId: p.category_id ? Number(p.category_id) : null,
+        categoryName: (p.category_name || '').trim() || 'عام',
+        packagingUnit,
         units: productUnits,
         activeOffers,
         offers: activeOffers,
@@ -832,12 +849,12 @@ export class VanPreSalesService {
     if (order.payment_terms === 'credit' && order.customer_id) {
       const cust = await this.anyDb
         .selectFrom('customers')
-        .select(['id', 'name', 'credit_limit', 'balance', 'is_blocked'])
+        .select(['id', 'name', 'credit_limit', 'balance', 'is_credit_blocked'])
         .where('id', '=', order.customer_id)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
 
-      if (cust?.is_blocked) {
+      if (cust?.is_credit_blocked) {
         throw new AppError(`العميل "${cust.name}" محظور من التعاملات الآجلة`, 'CUSTOMER_BLOCKED', 400);
       }
 

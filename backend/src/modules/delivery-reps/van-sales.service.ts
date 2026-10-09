@@ -3146,4 +3146,70 @@ export class VanSalesService {
       netOwedToCompany: Number(r.totalDelivered || 0) - Number(r.totalReturned || 0),
     }));
   }
+
+  /**
+   * Driver creates a new field customer directly into their itinerary and customer database.
+   */
+  async createDriverCustomer(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    body: {
+      name: string;
+      phone?: string;
+      address?: string;
+      district?: string;
+      route?: string;
+      notes?: string;
+      metadata?: any;
+    },
+  ) {
+    const name = String(body.name || '').trim();
+    if (!name) {
+      throw new AppError('اسم المحل أو العميل مطلوب', 'CUSTOMER_NAME_REQUIRED', 400);
+    }
+
+    const district = (body.district || body.metadata?.district || '').trim();
+    const route = (body.route || body.metadata?.route || '').trim();
+    const phone = (body.phone || '').trim();
+    const address = (body.address || district || '').trim();
+
+    const metadata = {
+      district: district || undefined,
+      route: route || undefined,
+      assigned_rep_id: repId,
+      created_by_rep_id: repId,
+      visit_days: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+    };
+
+    const inserted = await this.anyDb
+      .insertInto('customers')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        name,
+        phone,
+        address,
+        balance: 0,
+        customer_type: 'cash',
+        credit_limit: 0,
+        store_credit_balance: 0,
+        metadata: JSON.stringify(metadata),
+        is_active: true,
+      })
+      .returning(['id', 'name', 'phone', 'address', 'balance'])
+      .executeTakeFirstOrThrow();
+
+    return {
+      ok: true,
+      customer: {
+        id: Number(inserted.id),
+        name: inserted.name,
+        phone: inserted.phone,
+        address: inserted.address,
+        balance: 0,
+        metadata,
+      },
+    };
+  }
 }
