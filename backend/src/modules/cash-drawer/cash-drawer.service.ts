@@ -368,7 +368,7 @@ export class CashDrawerService {
           and rd.settlement_mode = 'refund'
       ), 0) as sale_return_cash_refund_total,
       coalesce(sum(case when rd.refund_allocations is not null then (
-        select coalesce(sum((allocation->>'amount')::numeric), 0)
+        select coalesce(sum((alloc.value->>'amount')::numeric), 0)
         from jsonb_array_elements(rd.refund_allocations) as alloc(value)
         where alloc.value->>'tender' = 'card'
       ) when rd.settlement_mode = 'refund' and rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total,
