@@ -686,7 +686,7 @@ export function getMobileBottomNavConfig(vertical: BusinessVertical, settings?: 
         primary: {
           to: '/services',
           label: 'الخدمات',
-          iconType: 'services',
+          iconType: 'quotations',
           activeMatchPrefixes: ['/services'],
         },
       };
