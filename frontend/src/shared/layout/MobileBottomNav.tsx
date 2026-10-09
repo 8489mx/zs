@@ -140,12 +140,15 @@ export function MobileBottomNav() {
     };
 
     updateWidth();
-    const ro = new ResizeObserver(updateWidth);
-    ro.observe(el);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(updateWidth);
+      ro.observe(el);
+    }
     window.addEventListener('resize', updateWidth);
 
     return () => {
-      ro.disconnect();
+      ro?.disconnect();
       window.removeEventListener('resize', updateWidth);
     };
   }, []);
