@@ -1,23 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
+import { authApi } from '@/shared/api/auth';
 import { mobileBridge } from '@/shared/native/mobile-bridge';
 import {
   SmartphoneIcon,
   TruckIcon,
   ShoppingCartIcon,
-  CheckShieldIcon,
   PackageIcon,
-  RefreshCwIcon,
-  WifiIcon,
-  SlidersIcon,
-  LogOutIcon,
   ClockIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
   MapPinIcon,
   BuildingIcon,
-  UserCheckIcon,
+  UserIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface MobileModuleTile {
@@ -34,7 +28,7 @@ interface MobileModuleTile {
 export function MobileHubPage() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const logout = useAuthStore((s) => s.logout);
+  const clearSession = useAuthStore((s) => s.clearSession);
 
   const [isOnline, setIsOnline] = useState(true);
   const [platform, setPlatform] = useState<'android' | 'ios' | 'web'>('web');
@@ -90,7 +84,7 @@ export function MobileHubPage() {
       path: '/mobile/punch',
       badgeBg: '#dcfce7',
       iconColor: '#15803d',
-      IconComponent: UserCheckIcon,
+      IconComponent: UserIcon,
     },
     {
       id: 'pos-cashier',
@@ -175,17 +169,20 @@ export function MobileHubPage() {
               </span>
             </div>
             <h1 style={{ fontSize: '18px', fontWeight: 800, margin: '8px 0 2px', color: '#ffffff' }}>
-              {tenant?.name || 'منظومة Z-Systems ERP'}
+              {tenant?.businessName || 'منظومة Z-Systems ERP'}
             </h1>
             <p style={{ fontSize: '11.5px', margin: 0, opacity: 0.85 }}>
-              مرحباً، {user?.name || user?.username || 'المستخدم'} • {user?.role === 'admin' || user?.role === 'super_admin' ? 'مدير المنشأة' : 'مستخدم مصرح'}
+              مرحباً، {user?.displayName || user?.username || 'المستخدم'} • {user?.role === 'admin' || user?.role === 'super_admin' ? 'مدير المنشأة' : 'مستخدم مصرح'}
             </p>
           </div>
 
           <button
-            onClick={() => {
-              if (window.confirm('هل ترغب في تسجيل الخروج من التطبيق؟')) {
-                logout();
+            onClick={async () => {
+              try {
+                await authApi.logout();
+              } finally {
+                clearSession();
+                window.location.href = '/login';
               }
             }}
             title="تسجيل الخروج"
@@ -202,7 +199,11 @@ export function MobileHubPage() {
               cursor: 'pointer',
             }}
           >
-            <LogOutIcon size={18} color="#ffffff" />
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
         </div>
       </header>
