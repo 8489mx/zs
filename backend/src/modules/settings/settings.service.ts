@@ -147,6 +147,11 @@ export class SettingsService {
 
     // Ensure core business details and activity profile are strictly synced with tenant
     const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', scope.tenantId).executeTakeFirst();
+    const planFeatures = await this.getPlanFeatures(scope.tenantId, tenant?.plan_id);
+    const hasPosEntitlement = planFeatures.includes('pos') || planFeatures.includes('cashDrawer') || planFeatures.includes('sales');
+    const isRetailCommercePlan = tenant?.plan_id === 'plan_ultimate' || tenant?.plan_id === 'plan_omnichannel' || hasPosEntitlement;
+    const isAlmhnds = tenant?.slug === 'almhnds';
+
     if (tenant) {
       if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
       if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
@@ -155,12 +160,21 @@ export class SettingsService {
       if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
 
       let primaryActivity = tenant.activity_type;
-      if (settings.maritimeFreightModuleEnabled === true || settings.maritimeFreightModuleEnabled === 'true') {
+      if (isAlmhnds) {
+        primaryActivity = 'retail_general';
+      } else if (settings.maritimeFreightModuleEnabled === true || settings.maritimeFreightModuleEnabled === 'true') {
         primaryActivity = 'maritime_freight';
       } else if (settings.contractingModuleEnabled === true || settings.contractingModuleEnabled === 'true') {
         primaryActivity = 'contracting';
       } else if (!primaryActivity || primaryActivity === 'retail_general' || primaryActivity === 'general') {
-        primaryActivity = (settings.activityType || settings.businessIndustry || primaryActivity || 'retail_general') as string;
+        const candidate = (settings.activityType || settings.businessIndustry || primaryActivity || 'retail_general') as string;
+        if ((candidate === 'services' || candidate.includes('خدمات') || candidate.includes('استشار')) && isRetailCommercePlan) {
+          primaryActivity = 'retail_general';
+        } else {
+          primaryActivity = candidate;
+        }
+      } else if ((primaryActivity === 'services' || primaryActivity.includes('خدمات') || primaryActivity.includes('استشار')) && isRetailCommercePlan) {
+        primaryActivity = 'retail_general';
       }
       const effectiveType = normalizeIndustryProfileKey(primaryActivity as string);
       const profile = getIndustryProfile(effectiveType);
@@ -232,11 +246,23 @@ export class SettingsService {
 
       // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van and services
       if (isWholesaleVan || isServiceVertical) {
-        settings.posModuleEnabled = false;
-        settings.requireCashierShiftForSales = false;
+        if (isAlmhnds || isRetailCommercePlan || hasPosEntitlement) {
+          settings.posModuleEnabled = true;
+          settings.requireCashierShiftForSales = true;
+        } else {
+          settings.posModuleEnabled = false;
+          settings.requireCashierShiftForSales = false;
+        }
       } else {
         // If the profile has 'sales' in defaultFeatures, POS must be enabled (self-heal from corrupted false)
         settings.posModuleEnabled = profileDefaults.includes('sales') ? true : (settings.posModuleEnabled !== false);
+      }
+
+      if (isAlmhnds) {
+        settings.posModuleEnabled = true;
+        settings.requireCashierShiftForSales = true;
+        settings.inventoryModuleEnabled = true;
+        settings.servicesModuleEnabled = false;
       }
 
       // Wholesale van: force delivery fleet and enterprise features

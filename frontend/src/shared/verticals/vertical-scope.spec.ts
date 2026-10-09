@@ -130,7 +130,7 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/products')).toBe(true);
   });
 
-  it('resolves services only when activityType is explicitly services or consulting', () => {
+  it('resolves services only when activityType is explicitly services or consulting and no POS entitlement exists', () => {
     const tenant = {
       id: 'consulting-pro',
       slug: 'consulting-pro',
@@ -148,5 +148,41 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(vertical).toBe('services');
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
     expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
+  });
+
+  it('guarantees tenant almhnds always resolves to retail_general even if settings have services', () => {
+    const tenant = {
+      id: 'almhnds',
+      slug: 'almhnds',
+      businessName: 'المهندس',
+      activityType: 'services',
+      features: ['sales', 'pos', 'cashDrawer'],
+    };
+    const settings = {
+      businessIndustry: 'services',
+      activityType: 'services',
+      servicesModuleEnabled: true,
+      posModuleEnabled: false,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('retail_general');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
+  });
+
+  it('guarantees any tenant with POS feature never resolves to services', () => {
+    const tenant = {
+      id: 'retail-shop-1',
+      slug: 'retail-shop-1',
+      businessName: 'محل تجزئة',
+      activityType: 'services',
+      features: ['pos', 'sales'],
+    };
+    const settings = {
+      businessIndustry: 'services',
+      activityType: 'services',
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('retail_general');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
   });
 });

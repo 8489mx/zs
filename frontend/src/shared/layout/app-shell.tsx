@@ -1125,7 +1125,8 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     if (currentVertical === 'services') {
-      return [...dashKeys, 'services', 'sales', 'customers'];
+      const hasPos = settings?.posModuleEnabled !== false || Boolean(tenant?.features?.includes('pos'));
+      return [...dashKeys, 'services', ...(hasPos ? ['pos', 'cash-drawer'] : []), 'sales', 'customers'];
     }
 
     if (settings?.posModuleEnabled === false) {
@@ -1413,7 +1414,14 @@ export function AppShell({ children }: PropsWithChildren) {
 
     // 4. Dedicated Services & Consulting Workspace
     if (isDedicatedServicesOnly) {
+      const hasPos = settings?.posModuleEnabled !== false || Boolean(tenant?.features?.includes('pos'));
       return [
+        ...(hasPos ? [{
+          key: 'pos-group',
+          label: 'نقطة البيع والوردية',
+          itemKeys: ['pos', 'cash-drawer'],
+          iconKey: 'pos',
+        }] : []),
         {
           key: 'services-group',
           label: 'الخدمات والعقود',

@@ -70,7 +70,10 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     if (tenant) {
       setPlanId(tenant.planId || '');
       const raw = String(tenant.activityType || '').toLowerCase();
-      const norm = normalizeVerticalKey(raw);
+      let norm = normalizeVerticalKey(raw);
+      if (tenant.slug === 'almhnds' && norm === 'services') {
+        norm = 'retail';
+      }
       setActivityType(norm);
       setExtraFeatures(tenant.extraFeatures || []);
       setError('');

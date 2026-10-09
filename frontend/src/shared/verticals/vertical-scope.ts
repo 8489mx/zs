@@ -62,6 +62,24 @@ export interface MobileQuickActionItem {
 export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVertical {
   const isFlagActive = (val: any) => val === true || val === 'true' || val === 1 || val === '1';
 
+  // 0. Enterprise operational module switches take precedence over generic retail
+  if (isFlagActive(settings?.maritimeFreightModuleEnabled)) return 'maritime';
+  if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
+  if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
+
+  // Strict tenant protection for 'almhnds' ("المهندس"): retail_general with POS & cashier
+  if (tenant?.slug === 'almhnds' || tenant?.id === 'almhnds') {
+    return 'retail_general';
+  }
+
+  const hasPosEntitlement = Boolean(
+    tenant?.features?.includes('pos') ||
+    tenant?.features?.includes('cashDrawer') ||
+    tenant?.plan_id === 'plan_ultimate' ||
+    tenant?.plan_id === 'plan_omnichannel' ||
+    (isFlagActive(settings?.posModuleEnabled) && !isFlagActive(settings?.contractingModuleEnabled) && !isFlagActive(settings?.maritimeFreightModuleEnabled) && !isFlagActive(settings?.manufacturingModuleEnabled))
+  );
+
   // 1. Explicit configured vertical indicator: HIGHEST AUTHORITY (The tenant's chosen business identity)
   const candidates = [
     settings?.businessIndustry,
@@ -158,6 +176,9 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit.includes('خدمات') ||
       explicit.includes('استشار')
     ) {
+      if (hasPosEntitlement) {
+        return 'retail_general';
+      }
       return 'services';
     }
 
