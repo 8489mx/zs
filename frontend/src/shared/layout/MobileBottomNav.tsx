@@ -97,7 +97,30 @@ function renderBottomNavIcon(iconType: MobileNavItemConfig['iconType']) {
   }
 }
 
+function getCurvedNotchPath(W: number, H = 54, R = 20): string {
+  if (W <= 0) return '';
+  const cx = W / 2;
+  // Button diameter 44px (radius 22px). Center of button at y=0.
+  // Notch cradle: width 52px (cx - 26 to cx + 26), depth 28px.
+  // Smooth continuous flair transitions from cx - 48 to cx - 26 and cx + 26 to cx + 48.
+  return `M ${R} 0 ` +
+    `L ${cx - 48} 0 ` +
+    `C ${cx - 36} 0, ${cx - 32} 8, ${cx - 26} 18 ` +
+    `C ${cx - 18} 28, ${cx + 18} 28, ${cx + 26} 18 ` +
+    `C ${cx + 32} 8, ${cx + 36} 0, ${cx + 48} 0 ` +
+    `L ${W - R} 0 ` +
+    `A ${R} ${R} 0 0 1 ${W} ${R} ` +
+    `L ${W} ${H - R} ` +
+    `A ${R} ${R} 0 0 1 ${W - R} ${H} ` +
+    `L ${R} ${H} ` +
+    `A ${R} ${R} 0 0 1 0 ${H - R} ` +
+    `L 0 ${R} ` +
+    `A ${R} ${R} 0 0 1 ${R} 0 Z`;
+}
+
 export function MobileBottomNav() {
+  const navRef = useRef<HTMLElement>(null);
+  const [navWidth, setNavWidth] = useState(0);
   const location = useLocation();
   const { toggleMobileSidebar, isMobileSidebarOpen } = useToolbarStore();
   const tenant = useAuthStore((state) => state.tenant);
@@ -105,6 +128,27 @@ export function MobileBottomNav() {
   const [quickActionOpen, setQuickActionOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
+
+  // Measure container width for responsive pixel-perfect curved notch path
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setNavWidth(Math.round(w));
+    };
+
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(el);
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   // Dynamic Vertical Resolution & Configuration
   const currentVertical = resolveCurrentVertical(tenant, settings);
@@ -172,12 +216,32 @@ export function MobileBottomNav() {
     p === '/' ? location.pathname === '/' : location.pathname.startsWith(p)
   );
 
+  const effectiveWidth = navWidth || (typeof window !== 'undefined' ? Math.min(window.innerWidth - 24, 440) : 400);
+  const notchPath = getCurvedNotchPath(effectiveWidth, 54, 20);
+
   return (
     <>
       <nav 
+        ref={navRef}
         className={`mobile-bottom-nav ${isHidden ? 'is-hidden' : ''}`} 
         aria-label="شريط التنقل السفلي"
       >
+        {/* Fixed Center Curved Notch Background (SVG Cradle) */}
+        <svg 
+          className="mobile-bottom-nav-bg"
+          width="100%"
+          height="54"
+          viewBox={`0 0 ${effectiveWidth} 54`}
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d={notchPath}
+            className="mobile-bottom-nav-bg-path"
+          />
+        </svg>
+
         {/* 1. Home */}
         <NavLink
           to={navConfig.home.to}
@@ -201,7 +265,7 @@ export function MobileBottomNav() {
           <span className="mobile-bottom-nav-label">{navConfig.secondary.label}</span>
         </NavLink>
 
-        {/* 3. Center Prominent Quick Action Button */}
+        {/* 3. Center Prominent Quick Action Button (Hero FAB) */}
         <button
           type="button"
           className="mobile-bottom-nav-action-btn"
@@ -209,12 +273,11 @@ export function MobileBottomNav() {
           aria-label={navConfig.centerActionLabel}
         >
           <div className="mobile-bottom-nav-action-icon">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
           </div>
-          <span className="mobile-bottom-nav-label-center">{navConfig.centerActionLabel}</span>
         </button>
 
         {/* 4. Primary Vertical Highlight Tab (e.g. Jobs/Shipments, Invoices/IPCs, POS, Van Sales) */}
