@@ -105,4 +105,48 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/contracting/projects')).toBe(false);
     expect(isRouteAllowedInVertical(vertical, '/maritime/jobs')).toBe(false);
   });
+
+  it('strictly resolves retail_general and enables POS for retail tenant even if servicesModuleEnabled is true', () => {
+    const tenant = {
+      id: 'almhnds',
+      slug: 'almhnds',
+      businessName: 'المهندس',
+      activityType: 'retail',
+      features: ['sales', 'purchases', 'inventory', 'pos', 'accounting'],
+    };
+    const settings = {
+      businessIndustry: 'retail',
+      servicesModuleEnabled: true, // simulated legacy plan leak
+      posModuleEnabled: true,
+      inventoryModuleEnabled: true,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('retail_general');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, 'pos')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/cash-drawer')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/inventory')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/products')).toBe(true);
+  });
+
+  it('resolves services only when activityType is explicitly services or consulting', () => {
+    const tenant = {
+      id: 'consulting-pro',
+      slug: 'consulting-pro',
+      businessName: 'استشارات هندسية وإدارية',
+      activityType: 'services',
+      features: ['services', 'accounting', 'crm'],
+    };
+    const settings = {
+      businessIndustry: 'services',
+      servicesModuleEnabled: true,
+      posModuleEnabled: false,
+      inventoryModuleEnabled: false,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('services');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
+  });
 });

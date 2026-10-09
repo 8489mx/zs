@@ -192,7 +192,6 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
       if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
       if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
-      if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
       if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
       if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
 
@@ -207,7 +206,7 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
   if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
   if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
   if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
-  if (isFlagActive(settings?.servicesModuleEnabled)) return 'services';
+  if (isFlagActive(settings?.servicesModuleEnabled) && settings?.posModuleEnabled === false && settings?.inventoryModuleEnabled === false) return 'services';
   if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
   if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
 
@@ -489,6 +488,44 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
       return true;
     }
 
+    case 'services': {
+      const blockedKeys = [
+        'pos',
+        'cash-drawer',
+        'online-orders',
+        'kds',
+        'displays',
+        'signage',
+        'product-modifiers',
+        'delivery-reps',
+        'van-sales-admin',
+        'van-sales',
+        'trade-in',
+        'imei-history',
+        'maintenance',
+        'clothing',
+        'maritime',
+        'contracting',
+        'pharmacy',
+        'manufacturing',
+        'pricing-center',
+        'inventory-tree',
+        'inventory-bins',
+        'inventory-issue-orders',
+        'inventory-issue-order-new',
+      ];
+
+      if (blockedKeys.some((b) => key === b || key.startsWith(`${b}/`))) {
+        return false;
+      }
+      if (key.startsWith('maritime-') || key.startsWith('maritime/')) return false;
+      if (key.startsWith('contracting-') || key.startsWith('contracting/')) return false;
+      if (key.startsWith('pharmacy-') || key.startsWith('pharmacy/')) return false;
+      if (key.startsWith('manufacturing-') || key.startsWith('manufacturing/')) return false;
+
+      return true;
+    }
+
     case 'retail_general':
     default: {
       // General retail blocks deep vertical suites unless explicitly activated
@@ -628,6 +665,29 @@ export function getMobileBottomNavConfig(vertical: BusinessVertical, settings?: 
           label: 'الشحنات',
           iconType: 'inventory',
           activeMatchPrefixes: ['/import'],
+        },
+      };
+
+    case 'services':
+      return {
+        home: {
+          to: '/',
+          label: 'الرئيسية',
+          iconType: 'home',
+          activeMatchPrefixes: ['/'],
+        },
+        secondary: {
+          to: '/sales',
+          label: 'الفواتير',
+          iconType: 'sales',
+          activeMatchPrefixes: ['/sales', '/quotations'],
+        },
+        centerActionLabel: 'إجراء سريع',
+        primary: {
+          to: '/services',
+          label: 'الخدمات',
+          iconType: 'services',
+          activeMatchPrefixes: ['/services'],
         },
       };
 

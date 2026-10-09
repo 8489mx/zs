@@ -1258,12 +1258,14 @@ export class SaasAdminService {
 
       const FEATURE_TO_MODULE_MAP: Record<string, string[]> = {
         sales: ['posModuleEnabled'],
+        pos: ['posModuleEnabled'],
         purchases: ['purchasesModuleEnabled'],
         inventory: ['inventoryModuleEnabled'],
         hr: ['hrModuleEnabled'],
         deliveryReps: ['deliveryFleetModuleEnabled'],
         loyalty: ['loyaltyEnabled'],
-        maintenance: ['enableMobileStoreFeatures', 'servicesModuleEnabled'],
+        maintenance: ['enableMobileStoreFeatures'],
+        services: ['servicesModuleEnabled'],
         clothing: ['clothingModuleEnabled'],
         restaurant: ['restaurantModuleEnabled', 'posShowCartMeta'],
         accounting: ['enableEnterpriseFeatures'],
@@ -1314,6 +1316,11 @@ export class SaasAdminService {
       if (verticalKey !== 'maintenance' && (verticalKey as string) !== 'electronics') {
         modulesToSet['enableMobileStoreFeatures'] = false;
       }
+      if (verticalKey !== 'services') {
+        modulesToSet['servicesModuleEnabled'] = false;
+      } else {
+        modulesToSet['servicesModuleEnabled'] = true;
+      }
       if (verticalKey === 'wholesale_van') {
         modulesToSet['deliveryFleetModuleEnabled'] = true;
         modulesToSet['posModuleEnabled'] = false;
@@ -1324,7 +1331,6 @@ export class SaasAdminService {
       if (effectiveFeatures.has('purchases')) {
         modulesToSet['purchasesModuleEnabled'] = true;
         modulesToSet['comboModuleEnabled'] = true;
-        modulesToSet['servicesModuleEnabled'] = true;
       }
       if (effectiveFeatures.has('inventory')) {
         // In maritime freight and pure consulting services, physical inventory is disabled
