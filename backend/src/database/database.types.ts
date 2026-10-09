@@ -3195,6 +3195,7 @@ export interface ManufacturingUnbuildOrderTable {
   notes: string | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface PriceListTable {

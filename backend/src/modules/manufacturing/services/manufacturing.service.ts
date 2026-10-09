@@ -805,7 +805,7 @@ export class ManufacturingService {
           unbuild_number: unbuildNumber,
           total_cost: totalRecoveredCost,
           updated_at: sql`NOW()`,
-        } as any)
+        })
         .where('id', '=', unbuildId)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
