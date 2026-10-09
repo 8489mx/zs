@@ -62,4 +62,4 @@ assert.equal(result4.remainingWorkingDays, 1);
 assert.equal(result4.remainingTarget, 10000);
 assert.equal(result4.requiredDailyTarget, 10000);
 
-console.log('✅ RepTargetEngine tests passed successfully!');
+console.log('[OK] RepTargetEngine tests passed successfully!');

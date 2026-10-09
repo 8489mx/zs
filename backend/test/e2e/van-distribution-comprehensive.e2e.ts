@@ -86,7 +86,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
 
   try {
     process.stdout.write('\n====================================================================\n');
-    process.stdout.write('🚚 [E2E] بدء اختبار دورة مبيعات الجملة والفان المتكاملة\n');
+    process.stdout.write(' [E2E] بدء اختبار دورة مبيعات الجملة والفان المتكاملة\n');
     process.stdout.write('====================================================================\n');
 
     // --- 1. Fixtures -----------------------------------------------------------------------
@@ -209,7 +209,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     const repId = Number(rep.id);
 
     // --- STEP 1: Open Trip & Load Van ------------------------------------------------------
-    process.stdout.write('  1️⃣ تحميل بضاعة الصباح لسيارة الفان:\n');
+    process.stdout.write('  1. تحميل بضاعة الصباح لسيارة الفان:\n');
     const loadResult = await vanSales.openTripAndLoad(repId, TENANT, ACCOUNT, {
       sourceWarehouseId: Number(warehouse.id),
       items: [
@@ -232,7 +232,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write(`     ✓ تم فتح الرحلة #${loadResult.tripId} وتحميل بضاعة بقيمة 2,000 ج.م\n`);
 
     // --- STEP 2: Multi-UOM & Free Bonus Sale (Cash) -----------------------------------------
-    process.stdout.write('  2️⃣ بيع بوحدة مجمعة (كرتونة = 12 قطعة) + بونص مجاني عينة ترويجية:\n');
+    process.stdout.write('  2. بيع بوحدة مجمعة (كرتونة = 12 قطعة) + بونص مجاني عينة ترويجية:\n');
     // Sell 2 cartons of Juice (multiplier 12 -> 24 base pieces) + 1 piece BONUS (price 0)
     const sale1 = await vanSales.executeFieldSale(repId, TENANT, ACCOUNT, {
       tripId: loadResult.tripId,
@@ -287,7 +287,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write(`     ✓ تم بيع 2 كرتونة + 1 عبوة بونص مجاني، وخصمت 25 عبوة من رصيد السيارة\n`);
 
     // --- STEP 3: Credit Sale with Supervisor PIN Override -----------------------------------
-    process.stdout.write('  3️⃣ بيع آجل مع تجاوز سقف الائتمان واعتماد رمز المشرف (PIN):\n');
+    process.stdout.write('  3. بيع آجل مع تجاوز سقف الائتمان واعتماد رمز المشرف (PIN):\n');
     // Customer A has balance 500, credit limit 600.
     // Try to buy 10 bags of rice on credit = 10 * 40 = 400 EGP.
     // Projected balance = 900 EGP > 600 EGP (Exceeded by 300 EGP).
@@ -353,7 +353,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write('     ✓ تم اعتماد البيع الآجل بنجاح بواسطة PIN المشرف وسجلت بيانات التدقيق\n');
 
     // --- STEP 4: Field Customer Debt Collection --------------------------------------------
-    process.stdout.write('  4️⃣ تحصيل نقدي ميداني من مديونية العميل:\n');
+    process.stdout.write('  4. تحصيل نقدي ميداني من مديونية العميل:\n');
     const collection = await vanSales.recordFieldCollection(repId, TENANT, ACCOUNT, {
       tripId: loadResult.tripId,
       customerId: Number(customerA.id),
@@ -367,7 +367,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write('     ✓ تم تحصيل 300 ج.م وأصبح إجمالي الكاش في عهدة المندوب 780 ج.م\n');
 
     // --- STEP 5: Returnable Packaging & Empties Ledger ------------------------------------
-    process.stdout.write('  5️⃣ حركة ذمة الفوارغ والصناديق والبالتات المستردة:\n');
+    process.stdout.write('  5. حركة ذمة الفوارغ والصناديق والبالتات المستردة:\n');
     // Movement 1: 10 plastic crates delivered, 4 returned for Customer A
     const pkg1 = await vanSales.recordPackagingMovement(repId, TENANT, ACCOUNT, {
       tripId: loadResult.tripId,
@@ -391,7 +391,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write('     ✓ تم تسجيل حركة الفوارغ وصافي ذمة العميل = 6 صناديق في ذمته\n');
 
     // --- STEP 6: Field Trip Operational Expenses -------------------------------------------
-    process.stdout.write('  6️⃣ تسجيل مصروفات تشغيلية ميدانية للرحلة (وقود وكارتات):\n');
+    process.stdout.write('  6. تسجيل مصروفات تشغيلية ميدانية للرحلة (وقود وكارتات):\n');
     const exp1 = await vanSales.recordTripExpense(repId, TENANT, ACCOUNT, {
       tripId: loadResult.tripId,
       expenseType: 'fuel',
@@ -416,7 +416,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write('     ✓ تم تسجيل 180 ج.م مصروفات تشغيل (وقود 150 + كارتة 30)\n');
 
     // --- STEP 7: Van Settlement with Expense Deduction & General Ledger Balance ------------
-    process.stdout.write('  7️⃣ تصفية الرحلة وتوريد الكاش مع خصم المصروفات وترحيل القيود:\n');
+    process.stdout.write('  7. تصفية الرحلة وتوريد الكاش مع خصم المصروفات وترحيل القيود:\n');
     // Gross Cash Collected = 780 EGP
     // Total Trip Expenses = 180 EGP
     // Net Expected Cash = 780 - 180 = 600 EGP!
@@ -500,8 +500,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
     process.stdout.write(`     ✓ قيد التسوية المحاسبي متزن بالمليم: مدين ${setDebit} ج.م = دائن ${setCredit} ج.م\n`);
     process.stdout.write(`     ✓ كافة قيود اليومية للشركة متزنة بالكامل: مدين ${grandDebit} = دائن ${grandCredit}\n`);
 
-    process.stdout.write('\n====================================================================\n');
-    process.stdout.write('🎉 نجحت دورة مبيعات الجملة والفان الكاملة بنسبة 100% دون أي خطأ!\n');
+    process.stdout.write('  تهانينا! نجحت دورة مبيعات الجملة والفان الكاملة بنسبة 100% دون أي خطأ\n');
     process.stdout.write('====================================================================\n\n');
   } finally {
     await cleanup(db);
