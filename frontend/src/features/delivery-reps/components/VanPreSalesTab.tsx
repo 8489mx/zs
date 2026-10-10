@@ -12,7 +12,6 @@ import {
   XIcon,
   BuildingIcon,
   ArrowRightIcon,
-  BriefcaseIcon,
   BoxesIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
@@ -545,8 +544,6 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   const cartDiscountAmount = useMemo(() => {
     return Math.max(0, Number((cartGrossSubtotal - cartNetTotal).toFixed(2)));
   }, [cartGrossSubtotal, cartNetTotal]);
-
-  const cartTotalAmount = cartNetTotal;
 
   const totalPieces = useMemo(() => {
     return cart.reduce((sum, line) => sum + line.quantity, 0);

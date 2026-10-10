@@ -21,7 +21,6 @@ import {
   SearchIcon,
   XIcon,
   BoxesIcon,
-  BriefcaseIcon,
   BuildingIcon,
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';

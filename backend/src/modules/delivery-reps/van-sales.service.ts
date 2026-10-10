@@ -3245,6 +3245,7 @@ export class VanSalesService {
       district?: string;
       route?: string;
       notes?: string;
+      visitDays?: string[];
       metadata?: any;
     },
   ) {
