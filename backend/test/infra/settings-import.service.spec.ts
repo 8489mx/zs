@@ -8,73 +8,158 @@ const accountId = 'account-test';
 type DbState = {
   customers: Array<Record<string, unknown>>;
   customer_ledger: Array<Record<string, unknown>>;
+  products: Array<Record<string, unknown>>;
+  product_units: Array<Record<string, unknown>>;
+  product_categories: Array<Record<string, unknown>>;
+  suppliers: Array<Record<string, unknown>>;
+  stock_locations: Array<Record<string, unknown>>;
+  product_location_stock: Array<Record<string, unknown>>;
   nextCustomerId: number;
+  nextProductId: number;
+  nextUnitId: number;
+  nextCategoryId: number;
+  nextSupplierId: number;
+  nextLocationId: number;
 };
 
 function createState(): DbState {
-  return { customers: [], customer_ledger: [], nextCustomerId: 1 };
+  return {
+    customers: [],
+    customer_ledger: [],
+    products: [],
+    product_units: [],
+    product_categories: [],
+    suppliers: [],
+    stock_locations: [],
+    product_location_stock: [],
+    nextCustomerId: 1,
+    nextProductId: 1,
+    nextUnitId: 1,
+    nextCategoryId: 1,
+    nextSupplierId: 1,
+    nextLocationId: 1,
+  };
 }
 
 class FakeSelectBuilder {
   private conditions: Array<{ column: unknown; value: unknown }> = [];
-  constructor(private readonly state: DbState) {}
+  constructor(private readonly table: string, private readonly state: DbState) {}
   select(): this { return this; }
   where(column: unknown, _op?: string, value?: unknown): this { this.conditions.push({ column, value }); return this; }
   async executeTakeFirst() {
-    const phone = this.conditions.find((entry) => entry.column === 'phone')?.value;
-    const loweredName = this.conditions.find((entry) => typeof entry.column !== 'string')?.value;
-    const isActive = this.conditions.some((entry) => entry.column === 'is_active' && entry.value === true);
-    return this.state.customers.find((row) => {
-      if (row.tenant_id !== tenantId || row.is_active !== isActive) return false;
-      if (typeof phone === 'string' && phone) return row.phone === phone;
-      if (typeof loweredName === 'string') return String(row.name || '').toLowerCase() === loweredName;
-      return false;
-    });
+    if (this.table === 'customers') {
+      const phone = this.conditions.find((entry) => entry.column === 'phone')?.value;
+      const loweredName = this.conditions.find((entry) => typeof entry.column !== 'string')?.value;
+      const isActive = this.conditions.some((entry) => entry.column === 'is_active' && entry.value === true);
+      return this.state.customers.find((row) => {
+        if (row.tenant_id !== tenantId || row.is_active !== isActive) return false;
+        if (typeof phone === 'string' && phone) return row.phone === phone;
+        if (typeof loweredName === 'string') return String(row.name || '').toLowerCase() === loweredName;
+        return false;
+      });
+    }
+    if (this.table === 'products') {
+      const barcode = this.conditions.find((entry) => entry.column === 'barcode')?.value;
+      const loweredName = this.conditions.find((entry) => typeof entry.column !== 'string')?.value;
+      return this.state.products.find((row) => {
+        if (row.tenant_id !== tenantId) return false;
+        if (typeof barcode === 'string' && barcode) return row.barcode === barcode;
+        if (typeof loweredName === 'string') return String(row.name || '').toLowerCase() === loweredName;
+        return false;
+      });
+    }
+    if (this.table === 'branches') {
+      return { id: 1 };
+    }
+    return undefined;
+  }
+}
+
+class FakeDeleteBuilder {
+  private conditions: Array<{ column: unknown; value: unknown }> = [];
+  constructor(private readonly table: string, private readonly state: DbState) {}
+  where(column: unknown, _op?: string, value?: unknown): this { this.conditions.push({ column, value }); return this; }
+  async execute() {
+    if (this.table === 'product_units') {
+      const productId = this.conditions.find((c) => c.column === 'product_id')?.value;
+      if (productId != null) {
+        this.state.product_units = this.state.product_units.filter((u) => u.product_id !== Number(productId));
+      }
+    }
   }
 }
 
 class FakeInsertBuilder {
   private payload: Record<string, unknown> = {};
-  constructor(private readonly table: 'customers' | 'customer_ledger', private readonly state: DbState, private readonly failOnCustomerNumber: number | null) {}
+  constructor(private readonly table: string, private readonly state: DbState, private readonly failOnCustomerNumber: number | null) {}
   values(payload: Record<string, unknown>): this { this.payload = payload; return this; }
   returning(): this { return this; }
   async execute() {
-    if (this.table !== 'customer_ledger') throw new Error(`Unsupported execute table: ${this.table}`);
-    this.state.customer_ledger.push({ ...this.payload });
+    if (this.table === 'customer_ledger') {
+      this.state.customer_ledger.push({ ...this.payload });
+    } else if (this.table === 'product_units') {
+      const id = this.state.nextUnitId++;
+      this.state.product_units.push({ id, ...this.payload });
+    } else if (this.table === 'product_location_stock') {
+      this.state.product_location_stock.push({ ...this.payload });
+    }
   }
   async executeTakeFirstOrThrow() {
-    if (this.table !== 'customers') throw new Error(`Unsupported insert table: ${this.table}`);
-    const id = this.state.nextCustomerId;
-    if (this.failOnCustomerNumber === id) throw new Error(`forced_customer_insert_failure_${id}`);
-    this.state.nextCustomerId += 1;
-    const row = { id, ...this.payload };
-    this.state.customers.push(row);
-    return { id };
+    if (this.table === 'customers') {
+      const id = this.state.nextCustomerId;
+      if (this.failOnCustomerNumber === id) throw new Error(`forced_customer_insert_failure_${id}`);
+      this.state.nextCustomerId += 1;
+      const row = { id, ...this.payload };
+      this.state.customers.push(row);
+      return { id };
+    }
+    if (this.table === 'products') {
+      const id = this.state.nextProductId++;
+      const row = { id, ...this.payload };
+      this.state.products.push(row);
+      return { id };
+    }
+    if (this.table === 'product_categories') {
+      const id = this.state.nextCategoryId++;
+      return { id };
+    }
+    if (this.table === 'suppliers') {
+      const id = this.state.nextSupplierId++;
+      return { id };
+    }
+    if (this.table === 'stock_locations') {
+      const id = this.state.nextLocationId++;
+      return { id };
+    }
+    throw new Error(`Unsupported insert table: ${this.table}`);
   }
 }
 
 class FakeUpdateBuilder {
   private payload: Record<string, unknown> = {};
-  private customerId = 0;
-  constructor(private readonly state: DbState) {}
+  private id = 0;
+  constructor(private readonly table: string, private readonly state: DbState) {}
   set(payload: Record<string, unknown>): this { this.payload = payload; return this; }
-  where(column: unknown, _op?: string, value?: unknown): this { if (column === 'id') this.customerId = Number(value || 0); return this; }
+  where(column: unknown, _op?: string, value?: unknown): this { if (column === 'id') this.id = Number(value || 0); return this; }
   async execute() {
-    const row = this.state.customers.find((entry) => entry.id === this.customerId && entry.tenant_id === tenantId);
+    const list = this.table === 'customers' ? this.state.customers : this.state.products;
+    const row = list.find((entry) => entry.id === this.id && entry.tenant_id === tenantId);
     if (row) Object.assign(row, this.payload);
   }
 }
 
 class FakeDb {
   constructor(public state: DbState, private readonly failOnCustomerNumber: number | null = null) {}
-  selectFrom(table: string) { if (table !== 'customers') throw new Error(`Unsupported select table: ${table}`); return new FakeSelectBuilder(this.state); }
-  insertInto(table: 'customers' | 'customer_ledger') { return new FakeInsertBuilder(table, this.state, this.failOnCustomerNumber); }
-  updateTable(table: string) { if (table !== 'customers') throw new Error(`Unsupported update table: ${table}`); return new FakeUpdateBuilder(this.state); }
+  selectFrom(table: string) { return new FakeSelectBuilder(table, this.state); }
+  insertInto(table: string) { return new FakeInsertBuilder(table, this.state, this.failOnCustomerNumber); }
+  updateTable(table: string) { return new FakeUpdateBuilder(table, this.state); }
+  deleteFrom(table: string) { return new FakeDeleteBuilder(table, this.state); }
   transaction() {
     return { execute: async <T>(work: (trx: FakeDb) => Promise<T>) => {
       const snapshot = JSON.parse(JSON.stringify(this.state)) as DbState;
-      const result = await work(new FakeDb(snapshot, this.failOnCustomerNumber));
-      this.state = snapshot;
+      const trxDb = new FakeDb(snapshot, this.failOnCustomerNumber);
+      const result = await work(trxDb);
+      this.state = trxDb.state;
       return result;
     } };
   }
@@ -118,6 +203,78 @@ async function run(): Promise<void> {
     assert.equal(Number(db.state.customers[0]?.balance), 25);
     assert.equal(Number(db.state.customers[1]?.balance), 40);
     assert.equal(auditCalls.length, 1);
+  }
+
+  {
+    // Test importProducts with units (Piece + Carton) from Excel columns
+    const { db, service } = createService();
+    const result = await service.importProducts([
+      {
+        'اسم الصنف (إجباري)': 'شاحن سامسونج أصلي',
+        'الباركود': '622800800',
+        'سعر التكلفة': 500,
+        'سعر البيع': 750,
+        'سعر الجملة': 600,
+        'الكمية': 24,
+        'وحدة القياس الأساسية': 'قطعة',
+        'وحدة البيع': 'قطعة',
+        'وحدة الشراء': 'كرتونة',
+        'اسم وحدة إضافية': 'كرتونة',
+        'معامل الوحدة الإضافية': 12,
+        'باركود الوحدة الإضافية': '622800801',
+      },
+    ], actor);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.inserted, 1);
+    assert.equal(db.state.products.length, 1);
+    assert.equal(db.state.products[0]?.name, 'شاحن سامسونج أصلي');
+    assert.equal(Number(db.state.products[0]?.cost_price), 500);
+    assert.equal(Number(db.state.products[0]?.retail_price), 750);
+    assert.equal(Number(db.state.products[0]?.wholesale_price), 600);
+
+    // Verify units created
+    assert.equal(db.state.product_units.length, 2);
+    const baseUnit = db.state.product_units.find((u) => u.name === 'قطعة');
+    assert.ok(baseUnit, 'Base unit قطعة must exist');
+    assert.equal(baseUnit.multiplier, 1);
+    assert.equal(baseUnit.barcode, '622800800');
+    assert.equal(baseUnit.is_base_unit, true);
+    assert.equal(baseUnit.is_sale_unit_default, true);
+    assert.equal(baseUnit.is_purchase_unit_default, false);
+
+    const extraUnit = db.state.product_units.find((u) => u.name === 'كرتونة');
+    assert.ok(extraUnit, 'Extra unit كرتونة must exist');
+    assert.equal(extraUnit.multiplier, 12);
+    assert.equal(extraUnit.barcode, '622800801');
+    assert.equal(extraUnit.is_base_unit, false);
+    assert.equal(extraUnit.is_sale_unit_default, false);
+    assert.equal(extraUnit.is_purchase_unit_default, true);
+
+    // Test updating existing product with new carton multiplier (e.g. 24)
+    const updateResult = await service.importProducts([
+      {
+        'اسم الصنف': 'شاحن سامسونج أصلي',
+        'الباركود': '622800800',
+        'سعر التكلفة': 480,
+        'وحدة القياس': 'قطعة',
+        'وحدة الشراء': 'كرتونة',
+        'اسم وحدة إضافية': 'كرتونة',
+        'معامل الوحدة الإضافية': 24,
+      },
+    ], actor);
+
+    assert.equal(updateResult.ok, true);
+    assert.equal(updateResult.updated, 1);
+    assert.equal(db.state.products.length, 1);
+    assert.equal(Number(db.state.products[0]?.cost_price), 480);
+
+    // Verify units updated
+    assert.equal(db.state.product_units.length, 2);
+    const updatedExtraUnit = db.state.product_units.find((u) => u.name === 'كرتونة');
+    assert.ok(updatedExtraUnit);
+    assert.equal(updatedExtraUnit.multiplier, 24);
+    assert.equal(updatedExtraUnit.is_purchase_unit_default, true);
   }
 
   console.log('settings-import.service.spec: ok');

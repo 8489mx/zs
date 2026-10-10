@@ -1535,13 +1535,22 @@ export function SettingsBackupImportSection({
             fieldMappings={[
               { key: 'name', label: isMaritime ? 'اسم الخدمة / البند' : isContracting ? 'اسم البند' : 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الخدمة', 'اسم البند', 'اسم الصنف', 'الاسم', 'name'] },
               { key: 'categoryName', label: isMaritime ? 'التصنيف اللوجستي' : isContracting ? 'المجموعة / المرحلة' : 'الصنف', aliases: ['القسم', 'category', 'التصنيف'] },
+              { key: 'supplierName', label: 'المورد', aliases: ['المورد', 'اسم المورد', 'supplier', 'supplierName'] },
               { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
               { key: 'barcode', label: isMaritime ? 'كود التعريفة' : isContracting ? 'كود البند' : 'الباركود', aliases: ['barcode', 'كود', 'code'] },
               { key: 'costPrice', label: isMaritime ? 'التكلفة المرجعية' : 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
               { key: 'retailPrice', label: isMaritime ? 'سعر الخدمة / النولون' : isContracting ? 'فئة البند التعاقدية' : 'السعر', aliases: ['سعر البيع', 'price', 'retail_price', 'تعريفة'] },
+              { key: 'wholesalePrice', label: 'سعر الجملة', aliases: ['سعر الجملة', 'الجملة', 'wholesalePrice', 'wholesale_price'] },
+              { key: 'minStockQty', label: 'الحد الأدنى', aliases: ['الحد الأدنى', 'حد الطلب', 'minStockQty', 'minQty', 'min_stock'] },
               { key: 'stockQty', label: 'الكمية الافتتاحية', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
-              { key: 'unitName', label: 'الوحدة', aliases: ['unit', 'القياس'] },
               { key: 'warehouseName', label: isMaritime ? 'الميناء / المحطة' : isContracting ? 'موقع التشوين' : 'المخزن', aliases: ['المخزن', 'warehouse', 'store', 'الميناء'] },
+              { key: 'unitName', label: 'وحدة القياس الأساسية', aliases: ['وحدة القياس الأساسية', 'وحدة القياس', 'الوحدة الأساسية', 'الوحدة', 'unit', 'unitName', 'القياس'] },
+              { key: 'saleUnit', label: 'وحدة البيع', aliases: ['وحدة البيع', 'saleUnit', 'sale_unit'] },
+              { key: 'purchaseUnit', label: 'وحدة الشراء', aliases: ['وحدة الشراء', 'purchaseUnit', 'purchase_unit'] },
+              { key: 'extraUnitName', label: 'اسم وحدة إضافية', aliases: ['اسم وحدة إضافية', 'وحدة إضافية', 'الوحدة الكبرى', 'اسم الوحدة الكبرى', 'extraUnit', 'extraUnitName', 'extra_unit'] },
+              { key: 'extraUnitMultiplier', label: 'معامل الوحدة الإضافية', aliases: ['معامل الوحدة الإضافية', 'معامل التحويل', 'معامل الوحدة', 'التحويل', 'المعامل', 'عدد القطع في الوحدة الكبرى', 'extraUnitMultiplier', 'multiplier', 'factor'] },
+              { key: 'extraUnitBarcode', label: 'باركود الوحدة الإضافية', aliases: ['باركود الوحدة الإضافية', 'باركود الوحدة', 'باركود الكرتونة', 'extraUnitBarcode', 'extra_barcode'] },
+              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'الوصف', 'notes', 'description'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}
             onExportData={onExportData ? () => onExportData('products') : undefined}

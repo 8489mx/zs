@@ -129,6 +129,12 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
       const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
       const items = res.products || [];
       for (const p of items) {
+        const units = Array.isArray(p.units) ? p.units : [];
+        const baseUnit = units.find((u: any) => u.isBaseUnit) || units.find((u: any) => Number(u.multiplier) === 1) || units[0];
+        const extraUnit = units.find((u: any) => !u.isBaseUnit && Number(u.multiplier) > 1);
+        const saleUnit = units.find((u: any) => u.isSaleUnit) || baseUnit;
+        const purchaseUnit = units.find((u: any) => u.isPurchaseUnit) || extraUnit || baseUnit;
+
         allRows.push([
           p.name || '',
           p.barcode || '',
@@ -140,12 +146,12 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
           p.minStock ?? p.minStockQty ?? 0,
           p.stock ?? p.stockQty ?? 0,
           'المخزن الرئيسي',
-          p.unit?.name || p.unitName || 'قطعة',
-          p.saleUnit?.name || p.unit?.name || 'قطعة',
-          p.purchaseUnit?.name || p.unit?.name || 'قطعة',
-          '',
-          '',
-          '',
+          baseUnit?.name || p.unit?.name || p.unitName || 'قطعة',
+          saleUnit?.name || p.saleUnit?.name || 'قطعة',
+          purchaseUnit?.name || p.purchaseUnit?.name || 'قطعة',
+          extraUnit?.name || '',
+          extraUnit?.multiplier ? Number(extraUnit.multiplier) : '',
+          extraUnit?.barcode || '',
           p.description || p.notes || '',
         ]);
       }
