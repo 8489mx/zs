@@ -373,18 +373,19 @@ export function EditProductForm({
                 </button>
               )}
               <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                تعديل صنف:
+                {groupedEntry ? 'تعديل المجموعة:' : 'تعديل صنف:'}
               </span>
               <span
                 title={product.name}
                 style={{
-                  fontSize: '0.85rem',
+                  fontSize: (product.name?.length || 0) > 40 ? '0.78rem' : (product.name?.length || 0) > 25 ? '0.82rem' : '0.88rem',
                   fontWeight: 700,
                   color: '#1d4ed8',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   minWidth: 0,
+                  maxWidth: 'min(550px, 45vw)',
                 }}
               >
                 {product.name}

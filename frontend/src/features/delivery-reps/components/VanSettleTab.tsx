@@ -650,145 +650,82 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
 
         {/* Subtab Navigation Bar (2 balanced rows of 3 tabs on mobile, 6 on desktop, 100% visible) */}
         <style>{`
+          .van-settle-subtabs {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+          }
           @media (min-width: 640px) {
             .van-settle-subtabs {
-              grid-template-columns: repeat(6, 1fr) !important;
+              grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
             }
           }
         `}</style>
         <div
-          className="van-settle-subtabs"
+          className="van-settle-subtabs keep-grid-row"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            backgroundColor: '#f1f5f9',
-            padding: '4px',
-            borderRadius: '10px',
-            gap: '4px',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            padding: '5px',
+            borderRadius: '12px',
+            gap: '6px',
             width: '100%',
             boxSizing: 'border-box',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('sales')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'sales' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'sales' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            فواتير ({sales.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('collections')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'collections' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'collections' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            تحصيلات ({collections.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('returns')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'returns' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'returns' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            مرتجعات ({returns.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('expenses')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'expenses' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'expenses' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            مصروفات ({safeExpenses.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('packaging')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'packaging' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'packaging' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            فوارغ ({safePackaging.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('inventory')}
-            style={{
-              padding: '7px 4px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: activeSubTab === 'inventory' ? '#170e5e' : 'transparent',
-              color: activeSubTab === 'inventory' ? '#ffffff' : '#475569',
-              fontWeight: 700,
-              fontSize: '11px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            المخزون ({inventory.length})
-          </button>
+          {[
+            { key: 'sales', label: 'فواتير', count: sales.length },
+            { key: 'collections', label: 'تحصيلات', count: collections.length },
+            { key: 'returns', label: 'مرتجعات', count: returns.length },
+            { key: 'expenses', label: 'مصروفات', count: safeExpenses.length },
+            { key: 'packaging', label: 'فوارغ', count: safePackaging.length },
+            { key: 'inventory', label: 'المخزون', count: inventory.length },
+          ].map((tab) => {
+            const isActive = activeSubTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveSubTab(tab.key as typeof activeSubTab)}
+                style={{
+                  padding: '7px 4px',
+                  borderRadius: '8px',
+                  border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  backgroundColor: isActive ? '#170e5e' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#334155',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
+                  minWidth: 0,
+                  boxShadow: isActive ? '0 1px 3px rgba(23, 14, 94, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '3px',
+                }}
+              >
+                <span>{tab.label}</span>
+                <span
+                  style={{
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                    color: isActive ? '#ffffff' : '#64748b',
+                    borderRadius: '10px',
+                    padding: '1px 5px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    lineHeight: '13px',
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Subtab Contents Container (Bounded with Slim Scroll) */}

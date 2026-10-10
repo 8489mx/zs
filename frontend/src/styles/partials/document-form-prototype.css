@@ -786,21 +786,35 @@
   align-items: center;
   color: #94a3b8;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap !important;
   gap: 0.42rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   line-height: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap !important;
 }
 
-.purchase-prototype-breadcrumb a {
+.purchase-prototype-breadcrumb a,
+.purchase-prototype-breadcrumb span {
   color: #94a3b8;
   text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .purchase-prototype-breadcrumb strong {
   color: #0f172a;
-  font-size: 1.02rem;
+  font-size: clamp(0.78rem, 1vw + 0.5rem, 0.98rem);
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: min(500px, 45vw);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .purchase-prototype-topbar {
@@ -833,20 +847,34 @@
   align-items: center;
   color: #94a3b8;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap !important;
   gap: 0.32rem;
   font-size: 0.78rem;
   line-height: 1.2;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap !important;
 }
 
-.document-prototype-breadcrumb a {
+.document-prototype-breadcrumb a,
+.document-prototype-breadcrumb span {
   color: #94a3b8;
   text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .document-prototype-breadcrumb strong {
   color: #1f2937;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: min(450px, 45vw);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .document-prototype-shell {
@@ -895,17 +923,24 @@
 .document-prototype-topbar-right {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap !important;
   gap: 0.32rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .document-prototype-topbar-right h1 {
   color: #0f172a;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
-  font-size: 18px;
+  font-size: clamp(0.85rem, 1vw + 0.55rem, 1.125rem);
   font-weight: 800;
   line-height: 1.35;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .document-prototype-status {

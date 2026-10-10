@@ -117,24 +117,66 @@ export function GlobalAppToolbar() {
           </button>
         )}
 
-        <div className="purchase-prototype-breadcrumb">
+        <div 
+          className="purchase-prototype-breadcrumb"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexWrap: 'nowrap',
+            minWidth: 0,
+            flex: '1 1 auto',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {activeBreadcrumbs.map((crumb, index) => {
             const isLast = index === activeBreadcrumbs.length - 1;
+            if (isLast) {
+              const labelText = crumb.label || '';
+              const charCount = labelText.length;
+              // Responsive dynamic font sizing: shrinks when text is long or space is tight ("او يصغر الكلام")
+              const dynamicFontSize = charCount > 40 ? '0.78rem' : charCount > 25 ? '0.84rem' : '0.94rem';
+
+              return (
+                <strong
+                  key={index}
+                  title={labelText}
+                  style={{
+                    fontSize: dynamicFontSize,
+                    color: '#0f172a',
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    minWidth: 0,
+                    maxWidth: 'min(480px, 45vw)',
+                    display: 'inline-block',
+                    verticalAlign: 'middle',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {labelText}
+                </strong>
+              );
+            }
+
             return (
               <Fragment key={index}>
-                {isLast ? (
-                  <strong>{crumb.label}</strong>
-                ) : (
-                  <>
-                    <span 
-                      style={{ cursor: crumb.to ? 'pointer' : 'default', color: crumb.to ? '#64748b' : 'inherit' }} 
-                      onClick={() => crumb.to && navigate(crumb.to)}
-                    >
-                      {crumb.label}
-                    </span>
-                    <span>›</span>
-                  </>
-                )}
+                <span 
+                  style={{ 
+                    cursor: crumb.to ? 'pointer' : 'default', 
+                    color: crumb.to ? '#64748b' : 'inherit',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }} 
+                  onClick={() => crumb.to && navigate(crumb.to)}
+                >
+                  {crumb.label}
+                </span>
+                <span style={{ color: '#cbd5e1', flexShrink: 0, userSelect: 'none', marginInline: '1px' }}>›</span>
               </Fragment>
             );
           })}
@@ -166,10 +208,22 @@ export function GlobalAppToolbar() {
             </svg>
           </button>
 
-          <div className="purchase-prototype-search-container desktop-only-toolbar-item" role="search">
-            <button className="purchase-prototype-search" onClick={() => setGlobalSearchOpen(true)} aria-label="بحث شامل">
+          <div 
+            className="purchase-prototype-search-container desktop-only-toolbar-item" 
+            role="search"
+            style={{ minWidth: 0, flexShrink: 1 }}
+          >
+            <button 
+              className="purchase-prototype-search" 
+              onClick={() => setGlobalSearchOpen(true)} 
+              aria-label="بحث شامل"
+              style={{
+                width: 'clamp(8.5rem, 12vw, 11.5rem)',
+                transition: 'width 0.2s ease',
+              }}
+            >
               <span aria-hidden="true">⌕</span>
-              <span style={{ flex: 1, textAlign: 'right', color: 'var(--text-muted)' }}>ابحث في أي مكان...</span>
+              <span style={{ flex: 1, textAlign: 'right', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>ابحث في أي مكان...</span>
               <div className="purchase-prototype-search-shortcut" dir="ltr">
                 <kbd>Ctrl</kbd> + <kbd>/</kbd>
               </div>

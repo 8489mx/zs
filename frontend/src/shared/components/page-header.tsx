@@ -69,7 +69,28 @@ export function PageHeader({
                   &rarr;
                 </button>
               )}
-              <h1 className="page-header-title" style={{ margin: 0, lineHeight: 1.2, display: 'flex', alignItems: 'center' }}>{title}</h1>
+              <h1 
+                className="page-header-title" 
+                title={typeof title === 'string' ? title : undefined}
+                style={{ 
+                  margin: 0, 
+                  lineHeight: 1.25, 
+                  display: 'inline-flex', 
+                  alignItems: 'center',
+                  minWidth: 0,
+                  maxWidth: 'min(600px, 60vw)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontSize: typeof title === 'string' && title.length > 40 
+                    ? '1.02rem' 
+                    : typeof title === 'string' && title.length > 25 
+                    ? '1.1rem' 
+                    : undefined,
+                }}
+              >
+                {title}
+              </h1>
               {badge ? <div className="page-header-badge" style={{ display: 'inline-flex', alignItems: 'center' }}>{badge}</div> : null}
             </div>
           )}
