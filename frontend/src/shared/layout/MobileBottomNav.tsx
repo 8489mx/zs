@@ -103,6 +103,8 @@ function getCurvedNotchPath(W: number, H = 54, R = 20): string {
   // Button diameter 44px (radius 22px). Center of button at y=0.
   // Notch cradle: width 52px (cx - 26 to cx + 26), depth 28px.
   // Smooth continuous flair transitions from cx - 48 to cx - 26 and cx + 26 to cx + 48.
+  // Top corners keep smooth R=20 curve with center notch cradle.
+  // Bottom corners and bottom edge are flat and docked flush with screen bottom.
   return `M ${R} 0 ` +
     `L ${cx - 48} 0 ` +
     `C ${cx - 36} 0, ${cx - 32} 8, ${cx - 26} 18 ` +
@@ -110,17 +112,15 @@ function getCurvedNotchPath(W: number, H = 54, R = 20): string {
     `C ${cx + 32} 8, ${cx + 36} 0, ${cx + 48} 0 ` +
     `L ${W - R} 0 ` +
     `A ${R} ${R} 0 0 1 ${W} ${R} ` +
-    `L ${W} ${H - R} ` +
-    `A ${R} ${R} 0 0 1 ${W - R} ${H} ` +
-    `L ${R} ${H} ` +
-    `A ${R} ${R} 0 0 1 0 ${H - R} ` +
+    `L ${W} ${H} ` +
+    `L 0 ${H} ` +
     `L 0 ${R} ` +
     `A ${R} ${R} 0 0 1 ${R} 0 Z`;
 }
 
 export function MobileBottomNav() {
   const navRef = useRef<HTMLElement>(null);
-  const [navWidth, setNavWidth] = useState(0);
+  const [navDims, setNavDims] = useState({ width: 0, height: 54 });
   const location = useLocation();
   const { toggleMobileSidebar, isMobileSidebarOpen } = useToolbarStore();
   const tenant = useAuthStore((state) => state.tenant);
@@ -129,27 +129,31 @@ export function MobileBottomNav() {
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
 
-  // Measure container width for responsive pixel-perfect curved notch path
+  // Measure container dimensions for responsive pixel-perfect curved notch path
   useEffect(() => {
     const el = navRef.current;
     if (!el) return;
 
-    const updateWidth = () => {
-      const w = el.getBoundingClientRect().width;
-      if (w > 0) setNavWidth(Math.round(w));
+    const updateDims = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+      if (w > 0) {
+        setNavDims({ width: w, height: h > 0 ? h : 54 });
+      }
     };
 
-    updateWidth();
+    updateDims();
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(updateWidth);
+      ro = new ResizeObserver(updateDims);
       ro.observe(el);
     }
-    window.addEventListener('resize', updateWidth);
+    window.addEventListener('resize', updateDims);
 
     return () => {
       ro?.disconnect();
-      window.removeEventListener('resize', updateWidth);
+      window.removeEventListener('resize', updateDims);
     };
   }, []);
 
@@ -219,8 +223,9 @@ export function MobileBottomNav() {
     p === '/' ? location.pathname === '/' : location.pathname.startsWith(p)
   );
 
-  const effectiveWidth = navWidth || (typeof window !== 'undefined' ? Math.min(window.innerWidth - 24, 440) : 400);
-  const notchPath = getCurvedNotchPath(effectiveWidth, 54, 20);
+  const effectiveWidth = navDims.width || (typeof window !== 'undefined' ? window.innerWidth : 400);
+  const effectiveHeight = navDims.height || 54;
+  const notchPath = getCurvedNotchPath(effectiveWidth, effectiveHeight, 20);
 
   return (
     <>
@@ -233,8 +238,8 @@ export function MobileBottomNav() {
         <svg 
           className="mobile-bottom-nav-bg"
           width="100%"
-          height="54"
-          viewBox={`0 0 ${effectiveWidth} 54`}
+          height={effectiveHeight}
+          viewBox={`0 0 ${effectiveWidth} ${effectiveHeight}`}
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"

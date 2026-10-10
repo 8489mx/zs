@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast } from '@/shared/components/system-alert';
 import {
   SearchIcon,
@@ -13,6 +14,7 @@ import {
   BuildingIcon,
   ArrowRightIcon,
   BoxesIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   vanSalesApi,
@@ -210,6 +212,33 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   // Browsing by company and category
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [allCategoriesModalOpen, setAllCategoriesModalOpen] = useState(false);
+  const [categoryModalSearch, setCategoryModalSearch] = useState('');
+
+  // Horizontal categories drag-to-scroll & mouse wheel ref
+  const categoriesScrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingCatRef = useRef(false);
+  const startXCatRef = useRef(0);
+  const scrollLeftCatRef = useRef(0);
+
+  const handleCatMouseDown = (e: React.MouseEvent) => {
+    if (!categoriesScrollRef.current) return;
+    isDraggingCatRef.current = true;
+    startXCatRef.current = e.pageX - categoriesScrollRef.current.offsetLeft;
+    scrollLeftCatRef.current = categoriesScrollRef.current.scrollLeft;
+  };
+
+  const handleCatMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingCatRef.current || !categoriesScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - categoriesScrollRef.current.offsetLeft;
+    const walk = (x - startXCatRef.current) * 1.5;
+    categoriesScrollRef.current.scrollLeft = scrollLeftCatRef.current - walk;
+  };
+
+  const handleCatMouseUpOrLeave = () => {
+    isDraggingCatRef.current = false;
+  };
 
   // Cart
   const [cart, setCart] = useState<PreSalesCartLine[]>([]);
@@ -1242,17 +1271,30 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                 </div>
               </div>
 
-              {/* HORIZONTAL CATEGORIES BAR (DEFAULT IS 'all') */}
+              {/* HORIZONTAL CATEGORIES BAR - HYBRID SWIPEABLE & MODAL ACCESS */}
               <div
+                ref={categoriesScrollRef}
+                onMouseDown={handleCatMouseDown}
+                onMouseMove={handleCatMouseMove}
+                onMouseUp={handleCatMouseUpOrLeave}
+                onMouseLeave={handleCatMouseUpOrLeave}
+                onWheel={(e) => {
+                  if (e.deltaY !== 0 && categoriesScrollRef.current) {
+                    categoriesScrollRef.current.scrollLeft += e.deltaY;
+                  }
+                }}
                 style={{
                   display: 'flex',
                   gap: '6px',
                   overflowX: 'auto',
-                  padding: '1px 0 4px',
+                  padding: '2px 0 6px',
                   scrollbarWidth: 'none',
                   WebkitOverflowScrolling: 'touch',
+                  cursor: isDraggingCatRef.current ? 'grabbing' : 'grab',
+                  userSelect: 'none',
                 }}
               >
+                {/* 1. All Categories Button */}
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('all')}
@@ -1279,6 +1321,38 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                   </span>
                 </button>
 
+                {/* 2. Show All Categories Modal Trigger Button */}
+                {companyCategories.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategoryModalSearch('');
+                      setAllCategoriesModalOpen(true);
+                    }}
+                    style={{
+                      height: '28px',
+                      padding: '0 10px',
+                      borderRadius: '14px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      border: '1px solid #c7d2fe',
+                      backgroundColor: '#eef2ff',
+                      color: '#170e5e',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      flexShrink: 0,
+                    }}
+                    title="فتح نافذة تصفح كافة الأقسام"
+                  >
+                    <SlidersIcon size={12} color="#170e5e" />
+                    <span>كافة الأقسام ({companyCategories.length})</span>
+                  </button>
+                )}
+
+                {/* 3. Horizontal Category Pills */}
                 {companyCategories.map((cat) => (
                   <button
                     key={cat.name}
@@ -1747,6 +1821,148 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
             ))
           )}
         </div>
+      )}
+
+      {/* 5. ALL CATEGORIES MODAL (BottomSheet Dialog) */}
+      {allCategoriesModalOpen && (
+        <StandardDialog
+          open={allCategoriesModalOpen}
+          onClose={() => setAllCategoriesModalOpen(false)}
+          title="اختيار قسم المنتجات"
+          subtitle={`أقسام (${selectedCompany === '__ALL__' ? 'كافة الشركات' : selectedCompany}) • انقر لاختيار القسم وتصفية الأصناف فوراً`}
+          badge={`${companyCategories.length} قسم`}
+          width="min(520px, 95vw)"
+          compact={true}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
+            {/* Search Input for categories if more than 5 */}
+            {companyCategories.length > 5 && (
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={categoryModalSearch}
+                  onChange={(e) => setCategoryModalSearch(e.target.value)}
+                  placeholder="ابحث عن قسم..."
+                  style={{
+                    width: '100%',
+                    height: '34px',
+                    padding: '0 32px 0 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '12px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ position: 'absolute', right: '9px', top: '9px', pointerEvents: 'none', color: '#94a3b8' }}>
+                  <SearchIcon size={14} />
+                </div>
+                {categoryModalSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryModalSearch('')}
+                    style={{
+                      position: 'absolute',
+                      left: '8px',
+                      top: '8px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      padding: 0,
+                    }}
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Grid of categories */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                gap: '8px',
+                maxHeight: '340px',
+                overflowY: 'auto',
+                padding: '2px',
+              }}
+            >
+              {/* Option: All Categories */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setAllCategoriesModalOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
+                  gap: '3px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: selectedCategory === 'all' ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                  backgroundColor: selectedCategory === 'all' ? '#eef2ff' : '#ffffff',
+                  color: selectedCategory === 'all' ? '#170e5e' : '#0f172a',
+                  cursor: 'pointer',
+                  textAlign: 'right',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800 }}>كافة الأقسام</span>
+                  {selectedCategory === 'all' && <CheckCircleIcon size={13} color="#170e5e" />}
+                </div>
+                <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                  {selectedCompany === '__ALL__' ? catalogProducts.length : catalogProducts.filter((p) => ((p.supplierName || '').trim() || 'الشركة العامة') === selectedCompany).length} صنف
+                </span>
+              </button>
+
+              {/* Company Categories */}
+              {companyCategories
+                .filter((cat) => !categoryModalSearch.trim() || cat.name.toLowerCase().includes(categoryModalSearch.trim().toLowerCase()))
+                .map((cat) => {
+                  const isSelected = selectedCategory === cat.name;
+                  return (
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.name);
+                        setAllCategoriesModalOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                        backgroundColor: isSelected ? '#eef2ff' : '#ffffff',
+                        color: isSelected ? '#170e5e' : '#0f172a',
+                        cursor: 'pointer',
+                        textAlign: 'right',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span style={{ fontSize: '12px', fontWeight: isSelected ? 800 : 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {cat.name}
+                        </span>
+                        {isSelected && <CheckCircleIcon size={13} color="#170e5e" />}
+                      </div>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                        {cat.count} صنف
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </StandardDialog>
       )}
     </div>
   );

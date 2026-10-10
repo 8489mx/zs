@@ -256,7 +256,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               </strong>
               {customer?.customerCode && (
                 <span style={{ fontSize: '10.5px', backgroundColor: '#e2e8f0', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                  #{customer.customerCode}
+                  [{customer.customerCode.replace(/^#/, '')}]
                 </span>
               )}
             </div>

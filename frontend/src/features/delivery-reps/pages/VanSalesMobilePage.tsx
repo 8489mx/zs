@@ -860,7 +860,7 @@ export default function VanSalesMobilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '76px', fontFamily: 'inherit', overflowX: 'hidden' }} dir="rtl">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: 'calc(68px + env(safe-area-inset-bottom, 0px))', fontFamily: 'inherit', overflowX: 'hidden' }} dir="rtl">
       {/* Responsive Styles for Mobile vs Desktop */}
       <style>{`
         @media (max-width: 640px) {
@@ -3128,31 +3128,42 @@ export default function VanSalesMobilePage() {
         />
       )}
 
-      {/* Mobile Fixed Bottom Navigation Bar - Floating Capsule Design */}
+      {/* Mobile Fixed Bottom Navigation Bar - Pinned Docked Standard with Curved Top Corners */}
       <nav
         dir="rtl"
         aria-label="شريط الملاحة الميداني السريع للمندوب"
         className="van-bottom-nav"
         style={{
           position: 'fixed',
-          bottom: 'max(6px, calc(env(safe-area-inset-bottom, 0px) - 26px))',
-          left: 'max(12px, env(safe-area-inset-left, 0px))',
-          right: 'max(12px, env(safe-area-inset-right, 0px))',
-          maxWidth: '460px',
-          margin: '0 auto',
-          height: '56px',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
           backgroundColor: '#ffffff',
-          border: '1px solid rgba(226, 232, 240, 0.95)',
-          borderRadius: '16px',
-          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.10)',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          border: '1px solid #e2e8f0',
+          borderBottom: 'none',
+          boxShadow: '0 -3px 12px rgba(15, 23, 42, 0.06)',
           zIndex: 90,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          padding: '0 6px',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           boxSizing: 'border-box',
         }}
       >
+        <div
+          style={{
+            maxWidth: '520px',
+            margin: '0 auto',
+            height: '56px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            padding: '0 4px',
+            boxSizing: 'border-box',
+          }}
+        >
         {data?.hasActiveTrip ? (
           <>
             <button
@@ -3569,6 +3580,7 @@ export default function VanSalesMobilePage() {
             </button>
           </>
         )}
+        </div>
       </nav>
     </div>
   );

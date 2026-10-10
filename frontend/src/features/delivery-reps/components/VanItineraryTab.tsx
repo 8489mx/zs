@@ -498,7 +498,12 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   }, [addCustomerModalOpen, todayArabicName, newCustVisitDays.length, newCustRoute, routes]);
 
   const filtered = useMemo(() => {
-    return itinerary.filter((item) => {
+    const rawSearch = searchTerm.trim().toLowerCase();
+    const cleanSearch = rawSearch.replace(/^[c#]-?/, '');
+    const isPureNumeric = cleanSearch.length > 0 && /^\d+$/.test(cleanSearch);
+    const isExplicitCodeSearch = rawSearch.startsWith('c') || rawSearch.startsWith('#');
+
+    const matched = itinerary.filter((item) => {
       // Day / schedule filter
       if (!customerMatchesDay(item, dayFilter, todayArabicName)) {
         return false;
@@ -506,16 +511,43 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
       if (statusFilter !== 'all' && item.visitStatus !== statusFilter) return false;
       if (routeFilter !== 'all' && item.route !== routeFilter) return false;
-      if (!searchTerm.trim()) return true;
-      const q = searchTerm.toLowerCase();
+      if (!rawSearch) return true;
+
+      const codeDigits = (item.customerCode || '').replace(/\D/g, '');
+
+      // Explicit code prefix search (e.g. "c1", "c-1", "#1", "c-0001")
+      if (isExplicitCodeSearch && isPureNumeric) {
+        return codeDigits === cleanSearch || Number(codeDigits) === Number(cleanSearch);
+      }
+
+      // Normal multi-field search:
+      const matchesCode =
+        (item.customerCode || '').toLowerCase().includes(rawSearch) ||
+        (isPureNumeric && (codeDigits === cleanSearch || Number(codeDigits) === Number(cleanSearch)));
+
       return (
-        item.customerName.toLowerCase().includes(q) ||
-        item.customerCode.toLowerCase().includes(q) ||
-        item.customerPhone.includes(q) ||
-        item.route.toLowerCase().includes(q) ||
-        (item.district && item.district.toLowerCase().includes(q))
+        matchesCode ||
+        item.customerName.toLowerCase().includes(rawSearch) ||
+        item.customerPhone.includes(rawSearch) ||
+        item.route.toLowerCase().includes(rawSearch) ||
+        (item.district && item.district.toLowerCase().includes(rawSearch))
       );
     });
+
+    // If searching by number (e.g. "1"), prioritize exact customer code matches to the very top!
+    if (isPureNumeric) {
+      return matched.sort((a, b) => {
+        const aDigits = (a.customerCode || '').replace(/\D/g, '');
+        const bDigits = (b.customerCode || '').replace(/\D/g, '');
+        const aExact = aDigits === cleanSearch || Number(aDigits) === Number(cleanSearch);
+        const bExact = bDigits === cleanSearch || Number(bDigits) === Number(cleanSearch);
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return 0;
+      });
+    }
+
+    return matched;
   }, [itinerary, dayFilter, todayArabicName, statusFilter, routeFilter, searchTerm]);
 
   // 1. Group ALL filtered items by District to establish canonical itinerary ordering
@@ -673,8 +705,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         },
       };
 
+      let createRes: any = null;
       try {
-        await vanSalesApi.createCustomer(customerPayload);
+        createRes = await vanSalesApi.createCustomer(customerPayload);
       } catch (vanErr: any) {
         // Fallback to standard catalog API if in web session
         await catalogApi.createCustomer({
@@ -697,7 +730,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         } catch {}
       }
 
-      toast.success(`تم إضافة المحل (${newCustName.trim()}) لخط السير بنجاح`);
+      if (createRes?.alreadyExisted) {
+        toast.info(createRes.message || `المحل مسجل مسبقاً وتم ربطه بخط سيرك بنجاح`);
+      } else {
+        toast.success(`تم إضافة المحل (${newCustName.trim()}) لخط السير بنجاح`);
+      }
       setAddCustomerModalOpen(false);
       setNewCustName('');
       setNewCustPhone('');
@@ -935,7 +972,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     flexShrink: 0,
                   }}
                 >
-                  #{selectedCustomerForHub.customerCode}
+                  [{selectedCustomerForHub.customerCode.replace(/^#/, '')}]
                 </span>
 
                 <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2043,7 +2080,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                               {item.globalSeq}
                             </span>
                             <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1', flexShrink: 0 }}>
-                              [{item.customerCode}]
+                              [{item.customerCode.replace(/^#/, '')}]
                             </span>
                             <h4
                               style={{
@@ -2729,7 +2766,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           open={true}
           onClose={() => setNegativeModalOpen(false)}
           title="تسجيل زيارة غير موفقة"
-          subtitle={`${activeCustomer.customerName} [${activeCustomer.customerCode}]`}
+          subtitle={`${activeCustomer.customerName} [${activeCustomer.customerCode.replace(/^#/, '')}]`}
           badge="خط السير الميداني"
           width="min(460px, 95vw)"
           compact={true}

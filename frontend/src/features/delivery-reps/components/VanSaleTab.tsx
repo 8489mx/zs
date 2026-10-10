@@ -210,7 +210,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               </span>
               {selectedCustomer.customerCode && (
                 <span style={{ fontSize: '10.5px', color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  #{selectedCustomer.customerCode}
+                  [{selectedCustomer.customerCode.replace(/^#/, '')}]
                 </span>
               )}
               {selectedCustomer.route && (
@@ -285,7 +285,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                 { value: '', label: '-- عميل نقدي عام (أو اختر من خط السير) --' },
                 ...customers.map((c) => ({
                   value: String(c.id),
-                  label: `${c.customerCode ? `[#${c.customerCode}] ` : ''}${c.name}${c.route ? ` (${c.route})` : ''}`,
+                  label: `${c.customerCode ? `[${c.customerCode.replace(/^#/, '')}] ` : ''}${c.name}${c.route ? ` (${c.route})` : ''}`,
                   hint: `مديونية: ${c.balance.toFixed(2)}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
                 })),
               ]}

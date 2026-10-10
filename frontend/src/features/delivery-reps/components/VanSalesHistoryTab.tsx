@@ -507,7 +507,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                   { value: '', label: 'كافة العملاء' },
                   ...customers.map((c) => ({
                     value: String(c.id),
-                    label: `${c.name} ${c.customerCode ? `(${c.customerCode})` : ''}`,
+                    label: `${c.name} ${c.customerCode ? `[${c.customerCode.replace(/^#/, '')}]` : ''}`,
                   })),
                 ]}
                 placeholder="كافة العملاء"
@@ -688,7 +688,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                       {sale.customerName}
                       {sale.customerCode && (
                         <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginRight: '6px' }}>
-                          ({sale.customerCode})
+                          [{sale.customerCode.replace(/^#/, '')}]
                         </span>
                       )}
                     </div>

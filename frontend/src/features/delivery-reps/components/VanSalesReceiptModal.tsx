@@ -155,7 +155,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             <span style={{ color: '#64748b' }}>العميل:</span>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>
               {receipt.customerName}
-              {receipt.customerCode ? ` (${receipt.customerCode})` : ''}
+              {receipt.customerCode ? ` [${receipt.customerCode.replace(/^#/, '')}]` : ''}
             </span>
           </div>
 

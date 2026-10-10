@@ -671,7 +671,21 @@ export class PartnersService {
       .executeTakeFirstOrThrow();
 
     await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
-    await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} بواسطة ${actor.username}`, actor);
+
+    const customerCode = `C-${String(inserted.id).padStart(4, '0')}`;
+    const initialMeta = {
+      ...(payload.metadata || {}),
+      customer_code: customerCode,
+      code: customerCode,
+    };
+    await (this.db as any)
+      .updateTable('customers')
+      .set({ metadata: JSON.stringify(initialMeta) })
+      .where('id', '=', (inserted as any).id)
+      .where('tenant_id', '=', actor.tenantId)
+      .execute();
+
+    await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} [${customerCode}] بواسطة ${actor.username}`, actor);
 
     const listing = await this.listCustomers({}, actor);
     return { ok: true, id: String(inserted.id), customers: listing.customers };

@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
 import { VanFleetService } from './van-fleet.service';
+import { normalizeCustomerCode } from './van-common.util';
 
 @Injectable()
 export class VanRoutesService {
@@ -137,7 +138,7 @@ export class VanRoutesService {
         customerName: c.name,
         customerPhone: c.phone || '',
         customerAddress: c.address || '',
-        customerCode: meta.customer_code || `#CUST-${cId}`,
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cId),
         route: meta.route || 'الخط العام',
         district: meta.district || meta.area || meta.neighborhood || '',
         routeSequence: Number(meta.route_sequence || 0),
@@ -529,7 +530,7 @@ export class VanRoutesService {
         customerName: r.name,
         customerPhone: r.phone || '',
         customerAddress: r.address || '',
-        customerCode: meta.customer_code || meta.code || `#CUST-${r.id}`,
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, r.id),
         route: meta.route || 'غير محدد',
         routeSequence: Number(meta.route_sequence || 1),
         visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : [],

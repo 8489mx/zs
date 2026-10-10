@@ -23,6 +23,8 @@ import {
   generateDailySequenceNumber,
   getMonthlyOfficialHolidayDates,
   FLEET_VEHICLE_STATUSES,
+  normalizeCustomerCode,
+  formatCustomerCode,
 } from './services/van-common.util';
 import { calculateRepTargetMetrics, type RepTargetCalculationResult } from './rep-target.engine';
 import { VanFleetService } from './services/van-fleet.service';
@@ -462,7 +464,7 @@ export class VanSalesService {
         address: c.address || '',
         balance: Number(c.balance || 0),
         creditLimit: Number(c.creditLimit || 0),
-        customerCode: meta.customer_code || meta.code || String(c.id),
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, c.id),
         route: meta.route || '',
         locationUrl: meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
       };
@@ -2586,7 +2588,7 @@ export class VanSalesService {
         customerId: r.customerId ? Number(r.customerId) : null,
         customerName: r.customerName || 'عميل نقدي',
         customerPhone: r.customerPhone || null,
-        customerCode: r.customerCode || null,
+        customerCode: r.customerId ? normalizeCustomerCode(r.customerCode, r.customerId) : null,
         customerAddress: r.customerAddress || null,
         repName: r.repName || 'مندوب التوزيع',
         vehiclePlate: r.vehiclePlate || null,
@@ -3273,6 +3275,76 @@ export class VanSalesService {
       ...(body.metadata || {}),
     };
 
+    const cleanPhone = phone ? phone.replace(/[\s-]/g, '') : '';
+    if (cleanPhone) {
+      const existing = await this.anyDb
+        .selectFrom('customers')
+        .where('tenant_id', '=', tenantId)
+        .where((eb: any) =>
+          eb.or([
+            eb('phone', '=', cleanPhone),
+            eb('phone', '=', phone),
+          ]),
+        )
+        .select(['id', 'name', 'phone', 'address', 'metadata', 'balance'])
+        .executeTakeFirst();
+
+      if (existing) {
+        let existingMeta: any = {};
+        if (typeof existing.metadata === 'string') {
+          try { existingMeta = JSON.parse(existing.metadata); } catch { existingMeta = {}; }
+        } else if (existing.metadata && typeof existing.metadata === 'object') {
+          existingMeta = existing.metadata;
+        }
+
+        const assignedRepIds: number[] = Array.isArray(existingMeta.assigned_rep_ids)
+          ? existingMeta.assigned_rep_ids
+          : existingMeta.assigned_rep_id ? [Number(existingMeta.assigned_rep_id)] : [];
+        if (!assignedRepIds.includes(repId)) {
+          assignedRepIds.push(repId);
+        }
+
+        const existingVisitDays: string[] = Array.isArray(existingMeta.visit_days)
+          ? existingMeta.visit_days
+          : [];
+        const mergedDays = Array.from(new Set([...existingVisitDays, ...visit_days]));
+        const custCode = normalizeCustomerCode(existingMeta.customer_code || existingMeta.code, existing.id);
+
+        const updatedMetadata = {
+          ...existingMeta,
+          assigned_rep_id: repId,
+          assigned_rep_ids: assignedRepIds,
+          route: route || existingMeta.route,
+          district: district || existingMeta.district,
+          visit_days: mergedDays,
+          customer_code: custCode,
+          code: custCode,
+        };
+
+        await this.anyDb
+          .updateTable('customers')
+          .set({ metadata: JSON.stringify(updatedMetadata) })
+          .where('id', '=', existing.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        return {
+          ok: true,
+          alreadyExisted: true,
+          message: `المحل مسجل مسبقاً بكود [${custCode}] (${existing.name}) وتم ربطه بخط سيرك بنجاح`,
+          customer: {
+            id: Number(existing.id),
+            name: existing.name,
+            phone: existing.phone,
+            address: existing.address,
+            balance: Number(existing.balance || 0),
+            customerCode: custCode,
+            metadata: updatedMetadata,
+          },
+        };
+      }
+    }
+
     const inserted = await this.anyDb
       .insertInto('customers')
       .values({
@@ -3291,15 +3363,31 @@ export class VanSalesService {
       .returning(['id', 'name', 'phone', 'address', 'balance'])
       .executeTakeFirstOrThrow();
 
+    const customerCode = formatCustomerCode(inserted.id);
+    const finalizedMetadata = {
+      ...metadata,
+      customer_code: customerCode,
+      code: customerCode,
+    };
+
+    await this.anyDb
+      .updateTable('customers')
+      .set({ metadata: JSON.stringify(finalizedMetadata) })
+      .where('id', '=', inserted.id)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
     return {
       ok: true,
+      alreadyExisted: false,
       customer: {
         id: Number(inserted.id),
         name: inserted.name,
         phone: inserted.phone,
         address: inserted.address,
         balance: 0,
-        metadata,
+        customerCode,
+        metadata: finalizedMetadata,
       },
     };
   }

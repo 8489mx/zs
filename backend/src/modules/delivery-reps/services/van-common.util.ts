@@ -248,3 +248,27 @@ export async function getMonthlyOfficialHolidayDates(
   }
 }
 
+/**
+ * Format customer code consistently as C-XXXX (e.g. C-0001, C-04185).
+ * Never uses '#' and ensures minimum 4 digits.
+ */
+export function formatCustomerCode(id: number | string): string {
+  const num = Number(id);
+  if (isNaN(num) || num <= 0) return `C-${String(id).replace(/\D/g, '') || '0001'}`;
+  return `C-${String(num).padStart(4, '0')}`;
+}
+
+export function normalizeCustomerCode(code: string | undefined | null, fallbackId: number | string): string {
+  if (code && typeof code === 'string' && code.trim()) {
+    const trimmed = code.trim().replace(/^#/, '');
+    if (/^C-\d{4,}$/.test(trimmed)) {
+      return trimmed;
+    }
+    const numMatch = trimmed.match(/\d+$/);
+    if (numMatch) {
+      return formatCustomerCode(numMatch[0]);
+    }
+  }
+  return formatCustomerCode(fallbackId);
+}
+

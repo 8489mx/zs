@@ -23,11 +23,22 @@ export function parsePartnersListQuery(query: Record<string, unknown>): Partners
 }
 
 export function mapCustomerRow(row: CustomerRow): Record<string, unknown> {
+  let meta: any = {};
+  if (typeof row.metadata === 'string') {
+    try { meta = JSON.parse(row.metadata); } catch { meta = {}; }
+  } else if (row.metadata && typeof row.metadata === 'object') {
+    meta = row.metadata;
+  }
+  const rawCode = meta.customer_code || meta.code || '';
+  const numMatch = String(rawCode).match(/\d+$/);
+  const custCode = numMatch ? `C-${String(numMatch[0]).padStart(4, '0')}` : `C-${String(row.id).padStart(4, '0')}`;
+
   return {
     id: String(row.id),
     name: row.name || '',
     phone: row.phone || '',
     address: row.address || '',
+    customerCode: custCode,
     balance: Number(row.balance || 0),
     type: row.customer_type || 'cash',
     creditLimit: Number(row.credit_limit || 0),
@@ -35,7 +46,7 @@ export function mapCustomerRow(row: CustomerRow): Record<string, unknown> {
     companyName: row.company_name || '',
     taxNumber: row.tax_number || '',
     loyaltyPoints: Number((row as any).loyalty_points || 0),
-    metadata: row.metadata || {},
+    metadata: meta,
   };
 }
 

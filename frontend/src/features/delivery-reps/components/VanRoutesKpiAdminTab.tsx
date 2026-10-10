@@ -1059,7 +1059,7 @@ export function VanRoutesKpiAdminTab() {
                           />
                         </td>
                         <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>
-                          {c.customerCode || `#${c.customerId}`}
+                          {c.customerCode ? c.customerCode.replace(/^#/, '') : `C-${String(c.customerId).padStart(4, '0')}`}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
@@ -1178,7 +1178,7 @@ export function VanRoutesKpiAdminTab() {
           open={Boolean(editingCustomer)}
           onClose={() => setEditingCustomer(null)}
           title={`تخصيص خط ومندوب: ${editingCustomer.customerName}`}
-          subtitle={`كود المحل: ${editingCustomer.customerCode || `#${editingCustomer.customerId}`}`}
+          subtitle={`كود المحل: [${editingCustomer.customerCode ? editingCustomer.customerCode.replace(/^#/, '') : `C-${String(editingCustomer.customerId).padStart(4, '0')}`}]`}
           maxWidth="520px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
