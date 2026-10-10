@@ -8,7 +8,7 @@ function nextEmptyUnit(): ProductUnit {
   return {
     id: `unit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: 'علبة',
-    multiplier: 1,
+    multiplier: 12,
     barcode: '',
     isBaseUnit: false,
     isSaleUnit: false,
@@ -137,22 +137,35 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
 
               {/* Multiplier */}
               <div style={{ flex: '0.9', minWidth: 0 }}>
-                <input
-                  className="purchase-prototype-field-input"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={unit.multiplier}
-                  disabled={disabled || unit.isBaseUnit}
-                  onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })}
-                  style={{
-                    height: '34px',
-                    fontSize: '0.86rem',
-                    background: unit.isBaseUnit ? '#f1f5f9' : '#fff',
-                    cursor: unit.isBaseUnit ? 'not-allowed' : 'text'
-                  }}
-                  title={unit.isBaseUnit ? 'الوحدة الأساسية مضاعفها دائماً 1' : `تحتوي على كم ${baseUnitName}`}
-                />
+                {(() => {
+                  const isInvalid = !unit.isBaseUnit && Number(unit.multiplier || 0) <= 1;
+                  return (
+                    <>
+                      <input
+                        className="purchase-prototype-field-input"
+                        type="number"
+                        min={unit.isBaseUnit ? 1 : 2}
+                        step="1"
+                        value={unit.multiplier}
+                        disabled={disabled || unit.isBaseUnit}
+                        onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })}
+                        style={{
+                          height: '34px',
+                          fontSize: '0.86rem',
+                          background: unit.isBaseUnit ? '#f1f5f9' : isInvalid ? '#fef2f2' : '#fff',
+                          border: isInvalid ? '1.5px solid #ef4444' : undefined,
+                          cursor: unit.isBaseUnit ? 'not-allowed' : 'text',
+                        }}
+                        title={unit.isBaseUnit ? 'الوحدة الأساسية مضاعفها دائماً 1' : (isInvalid ? 'تنبيه: مضاعف الوحدة الإضافية يجب أن يكون أكبر من 1' : `تحتوي على كم ${baseUnitName}`)}
+                      />
+                      {isInvalid && (
+                        <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700, display: 'block', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                          يجب أن يكون أكبر من 1
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Barcode */}

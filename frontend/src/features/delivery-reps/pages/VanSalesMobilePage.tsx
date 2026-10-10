@@ -420,6 +420,8 @@ export default function VanSalesMobilePage() {
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lastSaleReceipt, setLastSaleReceipt] = useState<any | null>(null);
   const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
+  const [inventorySubMode, setInventorySubMode] = useState<'stock' | 'requisitions'>('stock');
+  const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
 
   const showAlert = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
@@ -768,7 +770,10 @@ export default function VanSalesMobilePage() {
       showAlert('success', `تم إغلاق وتصفية رحلة التوزيع بنجاح! عجز/زيادة الكاش: ${res.variance} ${getGlobalCurrencySymbol()}`);
       setCountedCash('');
       setActiveTab('cockpit');
+      handleEndVisit();
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-fuel-logs'] });
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل تصفية الرحلة'),
   });
@@ -855,7 +860,7 @@ export default function VanSalesMobilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '40px', fontFamily: 'inherit', overflowX: 'hidden' }} dir="rtl">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: '76px', fontFamily: 'inherit', overflowX: 'hidden' }} dir="rtl">
       {/* Responsive Styles for Mobile vs Desktop */}
       <style>{`
         @media (max-width: 640px) {
@@ -875,16 +880,17 @@ export default function VanSalesMobilePage() {
         }
       `}</style>
 
-      {/* Top Header */}
+      {/* Top Header - Clean Enterprise SaaS White Header */}
       <header
         style={{
-          backgroundColor: '#170e5e',
-          color: '#ffffff',
-          paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
-          paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
-          paddingBottom: '12px',
-          paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          backgroundColor: '#ffffff',
+          color: '#0f172a',
+          paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
+          paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+          paddingBottom: '8px',
+          paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+          borderBottom: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -893,30 +899,30 @@ export default function VanSalesMobilePage() {
           zIndex: 40,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <TruckIcon size={22} color="#ffffff" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <TruckIcon size={17} color="#170e5e" />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+            <h1 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
               مبيعات وتوزيع الفان
             </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {session.rep?.fullName || session.rep?.name || 'المندوب'} • {vehicle?.plate ? `سيارة [${vehicle.plate}]` : 'الميدان'}
               </span>
               <span
                 onClick={() => window.location.reload()}
                 title="رقم إصدار البيلد - انقر للتحديث الفوري"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.18)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: '#ffffff',
-                  borderRadius: '5px',
-                  padding: '1px 6px',
-                  fontSize: '10px',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  color: '#475569',
+                  borderRadius: '4px',
+                  padding: '0 5px',
+                  fontSize: '9.5px',
                   fontFamily: 'monospace',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -927,18 +933,19 @@ export default function VanSalesMobilePage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
           <a
             href="/inventory/van-sales"
             title="الانتقال إلى لوحة إدارة المشرف والأسطول المركزية"
             className="van-erp-link"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.12)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: '#ffffff',
-              borderRadius: '8px',
-              padding: '6px 10px',
-              fontSize: '11px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#170e5e',
+              borderRadius: '7px',
+              padding: '0 8px',
+              height: '29px',
+              fontSize: '10.5px',
               textDecoration: 'none',
               fontWeight: 700,
               display: 'inline-flex',
@@ -955,13 +962,13 @@ export default function VanSalesMobilePage() {
             disabled={isGlobalRefreshing}
             title="تحديث البيانات"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              border: 'none',
-              color: '#ffffff',
-              borderRadius: '8px',
-              height: '32px',
-              padding: '0 10px',
-              fontSize: '11px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#0f172a',
+              borderRadius: '7px',
+              height: '29px',
+              padding: '0 8px',
+              fontSize: '10.5px',
               cursor: isGlobalRefreshing ? 'not-allowed' : 'pointer',
               fontWeight: 700,
               display: 'inline-flex',
@@ -971,8 +978,8 @@ export default function VanSalesMobilePage() {
             }}
           >
             <RefreshCwIcon
-              size={13}
-              color="#ffffff"
+              size={12}
+              color="#170e5e"
               style={{ animation: isGlobalRefreshing ? 'vanSpin 0.8s linear infinite' : 'none' }}
             />
             <span>{isGlobalRefreshing ? 'جاري...' : 'تحديث'}</span>
@@ -982,13 +989,13 @@ export default function VanSalesMobilePage() {
             onClick={handleLogout}
             title="تسجيل الخروج"
             style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.2)',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#fca5a5',
-              borderRadius: '8px',
-              height: '32px',
-              padding: '0 10px',
-              fontSize: '11px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              borderRadius: '7px',
+              height: '29px',
+              padding: '0 8px',
+              fontSize: '10.5px',
               cursor: 'pointer',
               fontWeight: 700,
               display: 'inline-flex',
@@ -1094,9 +1101,9 @@ export default function VanSalesMobilePage() {
           style={{
             backgroundColor: '#ffffff',
             color: '#0f172a',
-            padding: '8px 12px',
+            padding: '6px 10px',
             borderBottom: '1px solid #e2e8f0',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
+            boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -1108,13 +1115,13 @@ export default function VanSalesMobilePage() {
           }}
         >
           {/* Customer info & Duration */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '32px',
-                height: '32px',
-                minWidth: '32px',
-                borderRadius: '8px',
+                width: '28px',
+                height: '28px',
+                minWidth: '28px',
+                borderRadius: '7px',
                 backgroundColor: '#eff6ff',
                 border: '1px solid #bfdbfe',
                 display: 'flex',
@@ -1123,7 +1130,7 @@ export default function VanSalesMobilePage() {
                 flexShrink: 0,
               }}
             >
-              <ClockIcon size={16} color="#2563eb" />
+              <ClockIcon size={14} color="#2563eb" />
             </div>
             <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
               <div
@@ -1134,13 +1141,13 @@ export default function VanSalesMobilePage() {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  lineHeight: 1.3,
+                  lineHeight: 1.25,
                 }}
                 title={activeVisit.customerName}
               >
                 {activeVisit.customerName}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' }}>
                 <span style={{ color: '#2563eb', fontWeight: 700 }}>
                   المدة: {formatDuration(visitDurationSecs)}
                 </span>
@@ -1150,8 +1157,8 @@ export default function VanSalesMobilePage() {
             </div>
           </div>
 
-          {/* Action buttons on single line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {/* Action buttons on single line - Compact Premium */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
             {currentTab !== 'sale' && (
               <button
                 type="button"
@@ -1160,21 +1167,23 @@ export default function VanSalesMobilePage() {
                   setActiveTab('sale');
                 }}
                 style={{
+                  height: '27px',
                   backgroundColor: '#170e5e',
                   color: '#ffffff',
                   border: 'none',
-                  borderRadius: '7px',
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  fontWeight: 800,
+                  borderRadius: '6px',
+                  padding: '0 8px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '3px',
                   whiteSpace: 'nowrap',
+                  boxShadow: '0 1px 2px rgba(23, 14, 94, 0.1)',
                 }}
               >
-                <ReceiptIcon size={13} color="#ffffff" />
+                <ReceiptIcon size={12} color="#ffffff" />
                 <span>+ فاتورة</span>
               </button>
             )}
@@ -1194,15 +1203,18 @@ export default function VanSalesMobilePage() {
                 }
               }}
               style={{
+                height: '27px',
                 backgroundColor: '#fff1f2',
                 border: '1px solid #fecdd3',
                 color: '#e11d48',
-                borderRadius: '7px',
-                padding: '6px 9px',
-                fontSize: '11px',
+                borderRadius: '6px',
+                padding: '0 8px',
+                fontSize: '10.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
               }}
             >
               إنهاء الزيارة
@@ -1212,7 +1224,7 @@ export default function VanSalesMobilePage() {
       )}
 
       {/* Main Container */}
-      <main style={{ padding: '14px 16px 88px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
+      <main style={{ padding: '10px 12px 84px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
         {/* Monthly Multi-Dimensional Target Progress Card */}
         {data?.targetMetrics && (
           (data.targetMetrics.targetAmount > 0) ||
@@ -1232,7 +1244,8 @@ export default function VanSalesMobilePage() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isTargetMetricsExpanded ? '12px' : '0', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
+                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
                   مستهدفات وإنجازات الشهر ({data.targetMetrics.periodMonth})
                 </span>
                 <button
@@ -1745,56 +1758,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    بضاعة السيارة {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('fleet')}
-                    style={{
-                      flex: 1,
-                      minWidth: '70px',
-                      padding: '8px 4px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      backgroundColor: currentTab === 'fleet' ? '#170e5e' : 'transparent',
-                      color: currentTab === 'fleet' ? '#ffffff' : '#475569',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      position: 'relative',
-                    }}
-                  >
-                    السيارة والوقود
-                    {maintenanceAlerts.length > 0 && (
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          backgroundColor: maintenanceAlerts.some((a) => a.severity === 'critical') ? '#ef4444' : '#d97706',
-                          marginRight: '4px',
-                        }}
-                      />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('requisitions')}
-                    style={{
-                      flex: 1,
-                      minWidth: '70px',
-                      padding: '8px 4px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      backgroundColor: currentTab === 'requisitions' ? '#170e5e' : 'transparent',
-                      color: currentTab === 'requisitions' ? '#ffffff' : '#475569',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    أذونات الشحن {myRequisitions.length > 0 && `(${myRequisitions.length})`}
+                    المخزون والشحن {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
                   </button>
                   <button
                     type="button"
@@ -1856,87 +1820,171 @@ export default function VanSalesMobilePage() {
 
             {/* TAB CONTENT: COCKPIT (Idle / Standby Morning Hub) */}
             {!data?.hasActiveTrip && currentTab === 'cockpit' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Quick Actions Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '-4px' }}>
+                  <span style={{ width: '3px', height: '12px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                  <h2 style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    الإجراءات الميدانية السريعة
+                  </h2>
+                </div>
+
+                {/* 2-Column Quick Action Grid (دستور شبكة الإجراءات المتوازنة ثنائية الأعمدة) */}
+                <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+                  {/* Tile 1: إذن تحميل بضاعة */}
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('new-requisition')}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '11px',
+                      padding: '8px 6px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                      <PackageIcon size={16} color="#7e22ce" />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>إذن تحميل بضاعة</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>طلب شحن من المستودع</span>
+                  </button>
+
+                  {/* Tile 2: خط سير اليوم */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('itinerary')}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '11px',
+                      padding: '8px 6px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                      <MapPinIcon size={16} color="#15803d" />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>خط سير اليوم</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{itinerary.length} متاجر مجدولة</span>
+                  </button>
+
+                  {/* Tile 3: تسجيل وقود وصيانة */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFleetInCockpit((prev) => !prev)}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '11px',
+                      padding: '8px 6px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                      <TruckIcon size={16} color="#b45309" />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>تفويل وصيانة</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>سجل الوقود والعداد</span>
+                  </button>
+
+                  {/* Tile 4: بضاعة ومخزون السيارة */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('inventory')}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '11px',
+                      padding: '8px 6px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                      <ShoppingBagIcon size={16} color="#0369a1" />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>مخزون السيارة</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{data?.inventory?.length || 0} أصناف متوفرة</span>
+                  </button>
+                </div>
+
                 {/* 1. Vehicle Fleet Status & Health Cockpit */}
                 <div
                   style={{
                     backgroundColor: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '12px',
                     border: '1px solid #e2e8f0',
-                    padding: '16px 18px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    padding: '10px 12px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TruckIcon size={18} color="#170e5e" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TruckIcon size={15} color="#170e5e" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>مركبة التوزيع والأسطول الميداني</h3>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>حالة السيارة وقراءة العداد وتنبيهات الصيانة</span>
+                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>مركبة التوزيع والأسطول الميداني</h3>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>حالة السيارة وقراءة العداد وتنبيهات الصيانة</span>
                     </div>
                   </div>
 
-                  <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', width: '100%' }}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('fleet')}
-                      style={{
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#170e5e',
-                        borderRadius: '8px',
-                        padding: '7px 10px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                    >
-                      + تفويلة وقود
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('fleet')}
-                      style={{
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#170e5e',
-                        borderRadius: '8px',
-                        padding: '7px 10px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                    >
-                      + غيار زيت
-                    </button>
-                  </div>
-
-                  {/* Vehicle Specs Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', fontWeight: 600 }}>رقم لوحة السيارة</span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>{vehicle?.plate || 'سيارة التوزيع'}</span>
+                  {/* Vehicle Specs Grid: 4 Balanced Elegant Tiles */}
+                  <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', marginBottom: '8px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>رقم لوحة السيارة</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>{vehicle?.plate || 'سيارة التوزيع'}</span>
                     </div>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', fontWeight: 600 }}>الموديل والنوع</span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.model || 'فان توزيع بضاعة'}</span>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>الموديل والنوع</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.model || 'فان توزيع بضاعة'}</span>
                     </div>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', fontWeight: 600 }}>عداد الكيلومتر الحالي</span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.startOdometer ? `${vehicle.startOdometer.toLocaleString()} كم` : '0 كم'}</span>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>عداد الكيلومتر الحالي</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.startOdometer ? `${vehicle.startOdometer.toLocaleString()} كم` : '0 كم'}</span>
                     </div>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', fontWeight: 600 }}>نوع الوقود</span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#059669' }}>{vehicle?.fuelType === 'diesel' ? 'سولار' : 'بنزين 92'}</span>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>نوع الوقود</span>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#166534', backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '5px', display: 'inline-block' }}>
+                        {vehicle?.fuelType === 'diesel' ? 'سولار' : 'بنزين 92'}
+                      </span>
                     </div>
                   </div>
 
                   {/* Maintenance & Oil Alerts Strip */}
                   {maintenanceAlerts.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '8px' }}>
                       {maintenanceAlerts.map((al) => (
                         <div
                           key={al.id}
@@ -1944,28 +1992,28 @@ export default function VanSalesMobilePage() {
                             backgroundColor: al.severity === 'critical' ? '#fef2f2' : '#fffbeb',
                             border: `1px solid ${al.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
                             borderRadius: '8px',
-                            padding: '8px 12px',
+                            padding: '6px 10px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <AlertTriangleIcon size={16} color={al.severity === 'critical' ? '#dc2626' : '#d97706'} />
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: al.severity === 'critical' ? '#991b1b' : '#92400e' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <AlertTriangleIcon size={14} color={al.severity === 'critical' ? '#dc2626' : '#d97706'} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: al.severity === 'critical' ? '#991b1b' : '#92400e' }}>
                               {al.description || al.title}
                             </span>
                           </div>
                           <button
                             type="button"
-                            onClick={() => setActiveTab('fleet')}
+                            onClick={() => setShowFleetInCockpit(true)}
                             style={{
                               backgroundColor: '#ffffff',
                               border: '1px solid #cbd5e1',
                               color: '#0f172a',
-                              borderRadius: '6px',
-                              padding: '3px 8px',
-                              fontSize: '11px',
+                              borderRadius: '5px',
+                              padding: '2px 7px',
+                              fontSize: '10.5px',
                               fontWeight: 700,
                               cursor: 'pointer',
                             }}
@@ -1976,11 +2024,65 @@ export default function VanSalesMobilePage() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircleIcon size={16} color="#16a34a" />
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534' }}>
+                    <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <CheckCircleIcon size={14} color="#16a34a" />
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534' }}>
                         حالة المركبة ممتازة ولا توجد تنبيهات صيانة أو غيارات زيت متأخرة
                       </span>
+                    </div>
+                  )}
+
+                  {/* Quick Fleet Toggles */}
+                  <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowFleetInCockpit((prev) => !prev)}
+                      style={{
+                        backgroundColor: showFleetInCockpit ? '#170e5e' : '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: showFleetInCockpit ? '#ffffff' : '#170e5e',
+                        borderRadius: '7px',
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {showFleetInCockpit ? 'إخفاء سجل المركبة' : '+ تسجيل تفويلة وقود'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFleetInCockpit((prev) => !prev)}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: '#0f172a',
+                        borderRadius: '7px',
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {showFleetInCockpit ? 'إغلاق السجل' : 'سجل الوقود والصيانة'}
+                    </button>
+                  </div>
+
+                  {/* Embedded Fleet & Fuel Logs Tab inside Vehicle Card */}
+                  {showFleetInCockpit && (
+                    <div style={{ marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                      <VanFleetTab
+                        vehicle={vehicle}
+                        tripId={data?.trip?.id}
+                        maintenanceAlerts={maintenanceAlerts}
+                        fuelLogs={fuelLogs}
+                        onRefreshFuel={() => {
+                          refetchFuelLogs();
+                          refetch();
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -1989,19 +2091,19 @@ export default function VanSalesMobilePage() {
                 <div
                   style={{
                     backgroundColor: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '12px',
                     border: '1px solid #e2e8f0',
-                    padding: '20px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    padding: '10px 12px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <PackageIcon size={20} color="#170e5e" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <PackageIcon size={15} color="#170e5e" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>بدء رحلة التوزيع والعمليات الميدانية</h3>
-                      <span style={{ fontSize: '11.5px', color: '#64748b' }}>إعداد بضاعة السيارة والانطلاق للميدان</span>
+                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>بدء رحلة التوزيع والعمليات الميدانية</h3>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>إعداد بضاعة السيارة والانطلاق للميدان</span>
                     </div>
                   </div>
 
@@ -2011,19 +2113,19 @@ export default function VanSalesMobilePage() {
                       style={{
                         backgroundColor: '#eff6ff',
                         border: '1px solid #bfdbfe',
-                        borderRadius: '10px',
-                        padding: '12px 14px',
-                        marginBottom: '16px',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        marginBottom: '8px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '10px',
+                        gap: '6px',
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e40af', display: 'block' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e40af', display: 'block' }}>
                           يوجد بضاعة متوفرة بالسيارة حالياً ({data.inventory.length} أصناف)
                         </span>
-                        <span style={{ fontSize: '11px', color: '#3b82f6' }}>
+                        <span style={{ fontSize: '10px', color: '#3b82f6' }}>
                           إجمالي القيمة: {totalInventoryValue.toFixed(2)} {getGlobalCurrencySymbol()} جاهزة للبيع الفوري
                         </span>
                       </div>
@@ -2034,35 +2136,39 @@ export default function VanSalesMobilePage() {
                         style={{
                           backgroundColor: '#170e5e',
                           color: '#ffffff',
-                          fontSize: '12.5px',
+                          fontSize: '11.5px',
                           fontWeight: 800,
                           width: '100%',
-                          height: '40px',
+                          height: '34px',
+                          borderRadius: '7px',
                           justifyContent: 'center',
+                          boxShadow: '0 2px 6px rgba(23, 14, 94, 0.15)',
                         }}
                       >
                         {startTripMutation.isPending ? 'جاري بدء الرحلة...' : 'بدء رحلة التوزيع بالبضاعة الحالية'}
                       </Button>
                     </div>
                   ) : (
-                    <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
                       سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة لمشرف المستودع للمراجعة وصرف البضاعة، أو بدء الرحلة مباشرة للتحصيل وزيارة المتاجر.
                     </p>
                   )}
 
                   {/* Action Buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
                     <Button
                       variant="primary"
                       onClick={() => setViewMode('new-requisition')}
                       style={{
                         backgroundColor: '#170e5e',
                         color: '#ffffff',
-                        fontSize: '13px',
+                        fontSize: '11.5px',
                         fontWeight: 800,
                         width: '100%',
-                        height: '42px',
+                        height: '35px',
+                        borderRadius: '7px',
                         justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(23, 14, 94, 0.15)',
                       }}
                     >
                       + إنشاء طلب شحن بضاعة (إذن تحميل)
@@ -2072,7 +2178,7 @@ export default function VanSalesMobilePage() {
                       style={{
                         display: 'grid',
                         gridTemplateColumns: (!data?.inventory || data.inventory.length === 0) ? '1fr 1fr' : '1fr',
-                        gap: '8px',
+                        gap: '6px',
                         width: '100%',
                       }}
                     >
@@ -2082,11 +2188,15 @@ export default function VanSalesMobilePage() {
                           onClick={() => startTripMutation.mutate()}
                           disabled={startTripMutation.isPending}
                           style={{
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             width: '100%',
-                            height: '40px',
+                            height: '33px',
+                            borderRadius: '7px',
                             justifyContent: 'center',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            color: '#0f172a',
                           }}
                         >
                           {startTripMutation.isPending ? 'جاري فتح الرحلة...' : 'بدء الرحلة مباشرة'}
@@ -2096,11 +2206,15 @@ export default function VanSalesMobilePage() {
                         variant="secondary"
                         onClick={() => refetch()}
                         style={{
-                          fontSize: '12px',
+                          fontSize: '11px',
                           fontWeight: 700,
                           width: '100%',
-                          height: '40px',
+                          height: '33px',
+                          borderRadius: '7px',
                           justifyContent: 'center',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          color: '#0f172a',
                         }}
                       >
                         تحديث حالة الرحلة
@@ -2113,24 +2227,24 @@ export default function VanSalesMobilePage() {
                 <div
                   style={{
                     backgroundColor: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '12px',
                     border: '1px solid #e2e8f0',
-                    padding: '14px 16px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    padding: '10px 12px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
+                    gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <MapPinIcon size={18} color="#16a34a" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MapPinIcon size={15} color="#15803d" />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                      <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
                         خط سير اليوم: {itinerary.length} متاجر مجدولة
                       </h4>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>
                         استعرض قائمة المحلات ومواقعها وأرقام الهواتف للاستعداد الميداني
                       </span>
                     </div>
@@ -2140,18 +2254,19 @@ export default function VanSalesMobilePage() {
                     onClick={() => setActiveTab('itinerary')}
                     style={{
                       width: '100%',
-                      height: '38px',
-                      backgroundColor: '#170e5e',
-                      border: 'none',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      padding: '0 14px',
-                      fontSize: '12px',
+                      height: '33px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      color: '#170e5e',
+                      borderRadius: '7px',
+                      padding: '0 10px',
+                      fontSize: '11px',
                       fontWeight: 700,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      transition: 'none',
                     }}
                   >
                     استعراض خط السير ({itinerary.length} متجر مجدول)
@@ -2163,19 +2278,25 @@ export default function VanSalesMobilePage() {
                   <div
                     style={{
                       backgroundColor: '#ffffff',
-                      borderRadius: '14px',
+                      borderRadius: '16px',
                       border: '1px solid #e2e8f0',
-                      padding: '14px 16px',
+                      padding: '16px 18px',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                        أحدث طلبات شحن وتحميل السيارة:
-                      </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                          أحدث طلبات شحن وتحميل السيارة:
+                        </span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setActiveTab('requisitions')}
+                        onClick={() => {
+                          setActiveTab('inventory');
+                          setInventorySubMode('requisitions');
+                        }}
                         style={{ backgroundColor: 'transparent', border: 'none', color: '#4338ca', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                       >
                         عرض الكل ({myRequisitions.length})
@@ -2295,157 +2416,390 @@ export default function VanSalesMobilePage() {
               />
             )}
 
-            {/* TAB CONTENT: INVENTORY (Works before & during active trip) */}
+            {/* TAB CONTENT: INVENTORY (بضاعة السيارة & طلبات شحن السيارة) */}
             {currentTab === 'inventory' && (
-              <VanInventoryTab
-                stockSearch={stockSearch}
-                onSearchChange={setStockSearch}
-                filteredInventory={filteredInventory}
-                cart={cart}
-                cartTotal={cartTotal}
-                onAddToCart={(item) => {
-                  if (data?.hasActiveTrip) {
-                    addToCart(item);
-                  } else {
-                    toast.info('يرجى بدء رحلة التوزيع أولاً لإضافة الأصناف للفاتورة');
-                  }
-                }}
-                onUpdateCartQty={updateCartQty}
-                onGoToSale={() => setActiveTab('sale')}
-                onOpenTransferModal={() => setTransferModalOpen(true)}
-                pendingTransfersCount={peerTransfers.filter((t) => t.status === 'pending').length}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Segmented Sub-Header for Stock vs Requisitions */}
+                <div
+                  style={{
+                    display: 'flex',
+                    backgroundColor: '#e2e8f0',
+                    padding: '3px',
+                    borderRadius: '10px',
+                    gap: '4px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setInventorySubMode('stock')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: inventorySubMode === 'stock' ? '#170e5e' : 'transparent',
+                      color: inventorySubMode === 'stock' ? '#ffffff' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    بضاعة السيارة {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInventorySubMode('requisitions')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: inventorySubMode === 'requisitions' ? '#170e5e' : 'transparent',
+                      color: inventorySubMode === 'requisitions' ? '#ffffff' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>طلبات شحن السيارة</span>
+                    {myRequisitions.length > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: inventorySubMode === 'requisitions' ? 'rgba(255,255,255,0.25)' : '#cbd5e1',
+                          color: inventorySubMode === 'requisitions' ? '#ffffff' : '#1e293b',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {myRequisitions.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {inventorySubMode === 'stock' ? (
+                  <VanInventoryTab
+                    stockSearch={stockSearch}
+                    onSearchChange={setStockSearch}
+                    filteredInventory={filteredInventory}
+                    cart={cart}
+                    cartTotal={cartTotal}
+                    onAddToCart={(item) => {
+                      if (data?.hasActiveTrip) {
+                        addToCart(item);
+                      } else {
+                        toast.info('يرجى بدء رحلة التوزيع أولاً لإضافة الأصناف للفاتورة');
+                      }
+                    }}
+                    onUpdateCartQty={updateCartQty}
+                    onGoToSale={() => setActiveTab('sale')}
+                    onOpenTransferModal={() => setTransferModalOpen(true)}
+                    onRequestRequisition={() => setViewMode('new-requisition')}
+                    pendingTransfersCount={peerTransfers.filter((t) => t.status === 'pending').length}
+                  />
+                ) : (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          طلبات شحن السيارة
+                        </h3>
+                        <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                          صرف بضاعة المستودع إلى سيارة التوزيع
+                        </span>
+                      </div>
+                      <Button
+                        variant="primary"
+                        onClick={() => setViewMode('new-requisition')}
+                        style={{
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          height: '32px',
+                          padding: '0 10px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        + طلب شحن جديد
+                      </Button>
+                    </div>
+
+                    {myRequisitions.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
+                        <PackageIcon size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
+                        <span style={{ fontSize: '12.5px', fontWeight: 600 }}>لا توجد طلبات شحن سابقة مسجلة</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {myRequisitions.map((req) => (
+                          <div
+                            key={req.id}
+                            style={{
+                              backgroundColor: '#f8fafc',
+                              borderRadius: '10px',
+                              padding: '12px 14px',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                                طلب شحن #{req.docNo}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0,
+                                  backgroundColor:
+                                    req.status === 'dispatched'
+                                      ? '#dcfce7'
+                                      : req.status === 'rejected'
+                                      ? '#fee2e2'
+                                      : '#fef3c7',
+                                  color:
+                                    req.status === 'dispatched'
+                                      ? '#15803d'
+                                      : req.status === 'rejected'
+                                      ? '#b91c1c'
+                                      : '#b45309',
+                                }}
+                              >
+                                {req.status === 'dispatched'
+                                  ? 'تم الصرف'
+                                  : req.status === 'rejected'
+                                  ? 'مرفوض'
+                                  : 'قيد المراجعة'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <span>المستودع المصدر: <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
+                              <span>الأصناف المطلوبة: <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} صنف</strong></span>
+                              <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
+                            </div>
+                            {req.rejectionReason && (
+                              <div
+                                style={{
+                                  marginTop: '6px',
+                                  padding: '4px 8px',
+                                  backgroundColor: '#fef2f2',
+                                  border: '1px solid #fee2e2',
+                                  borderRadius: '6px',
+                                  fontSize: '10.5px',
+                                  color: '#b91c1c',
+                                  fontWeight: 600,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                title={req.rejectionReason}
+                              >
+                                <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {req.rejectionReason}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* TAB CONTENT: FLEET & FUEL (Works before & during active trip) */}
             {currentTab === 'fleet' && (
-              <VanFleetTab
-                vehicle={vehicle}
-                tripId={data?.trip?.id}
-                maintenanceAlerts={maintenanceAlerts}
-                fuelLogs={fuelLogs}
-                onRefreshFuel={() => {
-                  refetchFuelLogs();
-                  refetch();
-                }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('cockpit')}
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#170e5e',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← عودة لمركز القيادة (الرئيسية)
+                </button>
+                <VanFleetTab
+                  vehicle={vehicle}
+                  tripId={data?.trip?.id}
+                  maintenanceAlerts={maintenanceAlerts}
+                  fuelLogs={fuelLogs}
+                  onRefreshFuel={() => {
+                    refetchFuelLogs();
+                    refetch();
+                  }}
+                />
+              </div>
             )}
 
-            {/* TAB CONTENT: REQUISITIONS (History & New Requisitions) */}
+            {/* TAB CONTENT: REQUISITIONS (Direct Link Fallback) */}
             {currentTab === 'requisitions' && (
-              <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      طلبات شحن السيارة
-                    </h3>
-                    <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                      صرف بضاعة المستودع
-                    </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('inventory');
+                    setInventorySubMode('stock');
+                  }}
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#170e5e',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← عودة لبضاعة السيارة (المخزون)
+                </button>
+                <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        طلبات شحن السيارة
+                      </h3>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                        صرف بضاعة المستودع إلى سيارة التوزيع
+                      </span>
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={() => setViewMode('new-requisition')}
+                      style={{
+                        backgroundColor: '#170e5e',
+                        color: '#ffffff',
+                        fontSize: '11.5px',
+                        fontWeight: 800,
+                        height: '32px',
+                        padding: '0 10px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      + طلب شحن جديد
+                    </Button>
                   </div>
-                  <Button
-                    variant="primary"
-                    onClick={() => setViewMode('new-requisition')}
-                    style={{
-                      backgroundColor: '#170e5e',
-                      color: '#ffffff',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      height: '32px',
-                      padding: '0 10px',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    + طلب شحن جديد
-                  </Button>
-                </div>
 
-                {myRequisitions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                    <PackageIcon size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                    <span style={{ fontSize: '12.5px', fontWeight: 600 }}>لا توجد طلبات شحن سابقة مسجلة</span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {myRequisitions.map((req) => (
-                      <div
-                        key={req.id}
-                        style={{
-                          backgroundColor: '#f8fafc',
-                          borderRadius: '10px',
-                          padding: '12px 14px',
-                          border: '1px solid #e2e8f0',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                            طلب شحن #{req.docNo}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                              backgroundColor:
-                                req.status === 'dispatched'
-                                  ? '#dcfce7'
-                                  : req.status === 'rejected'
-                                  ? '#fee2e2'
-                                  : '#fef3c7',
-                              color:
-                                req.status === 'dispatched'
-                                  ? '#15803d'
-                                  : req.status === 'rejected'
-                                  ? '#b91c1c'
-                                  : '#b45309',
-                            }}
-                          >
-                            {req.status === 'dispatched'
-                              ? 'تم الصرف'
-                              : req.status === 'rejected'
-                              ? 'مرفوض'
-                              : 'قيد المراجعة'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                          <span>المستودع المصدر: <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
-                          <span>الأصناف المطلوبة: <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} صنف</strong></span>
-                          <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
-                        </div>
-                        {req.rejectionReason && (
-                          <div
-                            style={{
-                              marginTop: '6px',
-                              padding: '4px 8px',
-                              backgroundColor: '#fef2f2',
-                              border: '1px solid #fee2e2',
-                              borderRadius: '6px',
-                              fontSize: '10.5px',
-                              color: '#b91c1c',
-                              fontWeight: 600,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                            title={req.rejectionReason}
-                          >
-                            <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {req.rejectionReason}
+                  {myRequisitions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
+                      <PackageIcon size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
+                      <span style={{ fontSize: '12.5px', fontWeight: 600 }}>لا توجد طلبات شحن سابقة مسجلة</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {myRequisitions.map((req) => (
+                        <div
+                          key={req.id}
+                          style={{
+                            backgroundColor: '#f8fafc',
+                            borderRadius: '10px',
+                            padding: '12px 14px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                              طلب شحن #{req.docNo}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                backgroundColor:
+                                  req.status === 'dispatched'
+                                    ? '#dcfce7'
+                                    : req.status === 'rejected'
+                                    ? '#fee2e2'
+                                    : '#fef3c7',
+                                color:
+                                  req.status === 'dispatched'
+                                    ? '#15803d'
+                                    : req.status === 'rejected'
+                                    ? '#b91c1c'
+                                    : '#b45309',
+                              }}
+                            >
+                              {req.status === 'dispatched'
+                                ? 'تم الصرف'
+                                : req.status === 'rejected'
+                                ? 'مرفوض'
+                                : 'قيد المراجعة'}
                             </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                            <span>المستودع المصدر: <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
+                            <span>الأصناف المطلوبة: <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} صنف</strong></span>
+                            <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
+                          </div>
+                          {req.rejectionReason && (
+                            <div
+                              style={{
+                                marginTop: '6px',
+                                padding: '4px 8px',
+                                backgroundColor: '#fef2f2',
+                                border: '1px solid #fee2e2',
+                                borderRadius: '6px',
+                                fontSize: '10.5px',
+                                color: '#b91c1c',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                              title={req.rejectionReason}
+                            >
+                              <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {req.rejectionReason}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -2610,6 +2964,7 @@ export default function VanSalesMobilePage() {
               data?.hasActiveTrip ? (
                 <VanSettleTab
                   tripData={data.trip}
+                  activeVisit={activeVisit}
                   sales={data.sales || []}
                   collections={data.collections || []}
                   returns={data.returns || []}
@@ -2623,14 +2978,18 @@ export default function VanSalesMobilePage() {
                   unloadRemaining={unloadRemaining}
                   onUnloadRemainingChange={setUnloadRemaining}
                   onSubmitSettle={() => {
-                    if (countedCash === '') {
+                    const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
+                    const finalCountedCash = countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash;
+                    if (finalCountedCash === '') {
                       showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك');
                       return;
                     }
+                    const activeCustId = activeVisit?.customerId;
                     settleTripMutation.mutate({
                       tripId: data.trip!.id,
-                      countedCash: Number(countedCash),
+                      countedCash: Number(finalCountedCash),
                       unloadRemainingToWarehouse: unloadRemaining,
+                      activeVisitCustomerId: activeCustId,
                     });
                   }}
                   isSubmitting={settleTripMutation.isPending}
@@ -2769,26 +3128,28 @@ export default function VanSalesMobilePage() {
         />
       )}
 
-      {/* Mobile Fixed Bottom Navigation Bar (Under-the-Thumb Ergonomics) */}
+      {/* Mobile Fixed Bottom Navigation Bar - Floating Capsule Design */}
       <nav
         dir="rtl"
         aria-label="شريط الملاحة الميداني السريع للمندوب"
         className="van-bottom-nav"
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '60px',
+          bottom: 'max(6px, calc(env(safe-area-inset-bottom, 0px) - 26px))',
+          left: 'max(12px, env(safe-area-inset-left, 0px))',
+          right: 'max(12px, env(safe-area-inset-right, 0px))',
+          maxWidth: '460px',
+          margin: '0 auto',
+          height: '56px',
           backgroundColor: '#ffffff',
-          borderTop: '1px solid #e2e8f0',
-          boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.08)',
+          border: '1px solid rgba(226, 232, 240, 0.95)',
+          borderRadius: '16px',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.10)',
           zIndex: 90,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
-          padding: '0 4px',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          padding: '0 6px',
           boxSizing: 'border-box',
         }}
       >
@@ -2810,20 +3171,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'itinerary' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'itinerary' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <MapPinIcon size={17} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
@@ -2847,14 +3210,15 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: (currentTab === 'sale' || currentTab === 'sales-history') ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: (currentTab === 'sale' || currentTab === 'sales-history') ? '#eef2ff' : 'transparent',
@@ -2862,6 +3226,7 @@ export default function VanSalesMobilePage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
+                  transition: 'none',
                 }}
               >
                 <ReceiptIcon size={17} color={(currentTab === 'sale' || currentTab === 'sales-history') ? '#170e5e' : '#64748b'} />
@@ -2905,20 +3270,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'pre-sales' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'pre-sales' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <ShoppingBagIcon size={17} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
@@ -2942,20 +3309,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'inventory' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'inventory' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <PackageIcon size={17} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
@@ -2979,20 +3348,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'collection' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'collection' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <CreditCardIcon size={17} color={currentTab === 'collection' ? '#170e5e' : '#64748b'} />
@@ -3016,20 +3387,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: (currentTab === 'settle' || currentTab === 'fleet') ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: (currentTab === 'settle' || currentTab === 'fleet') ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <ClockIcon size={17} color={(currentTab === 'settle' || currentTab === 'fleet') ? '#170e5e' : '#64748b'} />
@@ -3055,20 +3428,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'cockpit' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'cockpit' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <HomeIcon size={17} color={currentTab === 'cockpit' ? '#170e5e' : '#64748b'} />
@@ -3092,20 +3467,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'itinerary' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'itinerary' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <MapPinIcon size={17} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
@@ -3129,20 +3506,22 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'pre-sales' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'pre-sales' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <ShoppingBagIcon size={17} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
@@ -3166,99 +3545,27 @@ export default function VanSalesMobilePage() {
                 background: 'transparent',
                 cursor: 'pointer',
                 color: currentTab === 'inventory' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
+                transition: 'none',
               }}
             >
               <div
                 style={{
-                  width: '32px',
+                  width: '36px',
                   height: '24px',
                   borderRadius: '12px',
                   backgroundColor: currentTab === 'inventory' ? '#eef2ff' : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'none',
                 }}
               >
                 <PackageIcon size={17} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
               </div>
               <span>المخزون</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('requisitions')}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '2px',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                color: currentTab === 'requisitions' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
-                fontSize: '11px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '24px',
-                  borderRadius: '12px',
-                  backgroundColor: currentTab === 'requisitions' ? '#eef2ff' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ReceiptIcon size={17} color={currentTab === 'requisitions' ? '#170e5e' : '#64748b'} />
-              </div>
-              <span>طلب شحن</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('fleet')}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '2px',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                color: currentTab === 'fleet' ? '#170e5e' : '#64748b',
-                fontWeight: 700,
-                fontSize: '11px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '24px',
-                  borderRadius: '12px',
-                  backgroundColor: currentTab === 'fleet' ? '#eef2ff' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <TruckIcon size={17} color={currentTab === 'fleet' ? '#170e5e' : '#64748b'} />
-              </div>
-              <span>المركبة</span>
             </button>
           </>
         )}

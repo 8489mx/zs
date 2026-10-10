@@ -15,6 +15,12 @@ import { VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
 
 interface VanSettleTabProps {
   tripData: VanActiveTripResponse['trip'];
+  activeVisit?: {
+    customerId: number;
+    customerName: string;
+    startedAt: number;
+    startedTimeStr?: string;
+  } | null;
   sales?: {
     id: number;
     docNo: string;
@@ -74,6 +80,7 @@ interface VanSettleTabProps {
 
 export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   tripData,
+  activeVisit,
   sales = [],
   collections = [],
   returns = [],
@@ -253,6 +260,29 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Active Visit Auto-Close Notice */}
+          {activeVisit && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '11.5px',
+                color: '#1e40af',
+                fontWeight: 600,
+              }}
+            >
+              <ClockIcon size={16} color="#2563eb" />
+              <span>
+                توجد زيارة جارية للعميل <strong>"{activeVisit.customerName}"</strong>. سيتم إنهاء وتوثيق الزيارة تلقائياً فور تأكيد تصفية اليومية.
+              </span>
+            </div>
+          )}
 
         {/* Detailed Financial Ledger */}
         <div
@@ -449,9 +479,27 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
 
         {/* Cash Counting Input */}
         <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
-            الكاش الفعلي الموجود معك للتوريد ({getGlobalCurrencySymbol()}):
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+              الكاش الفعلي الموجود معك للتوريد ({getGlobalCurrencySymbol()}):
+            </label>
+            <button
+              type="button"
+              onClick={() => onCountedCashChange(String(cashCollected))}
+              style={{
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#170e5e',
+                cursor: 'pointer',
+              }}
+            >
+              مطابقة المتوقع ({cashCollected.toFixed(2)})
+            </button>
+          </div>
           <input
             type="number"
             step="0.01"

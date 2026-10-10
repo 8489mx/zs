@@ -1683,6 +1683,7 @@ export class VanSalesService {
       countedCash: number;
       endOdometer?: number;
       unloadRemainingToWarehouse: boolean;
+      activeVisitCustomerId?: number;
       notes?: string;
     },
   ): Promise<{
@@ -1736,6 +1737,47 @@ export class VanSalesService {
       .where('tenant_id', '=', tenantId)
       .execute();
 
+    // Auto-record / end active visit if rep had an open visit upon submission
+    if (payload.activeVisitCustomerId) {
+      const custId = Number(payload.activeVisitCustomerId);
+      if (custId > 0) {
+        const existingVisit = await this.anyDb
+          .selectFrom('van_field_visits')
+          .select(['id'])
+          .where('trip_id', '=', payload.tripId)
+          .where('customer_id', '=', custId)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+
+        if (!existingVisit) {
+          const custSale = await this.anyDb
+            .selectFrom('sales')
+            .select(['id'])
+            .where('van_trip_id', '=', payload.tripId)
+            .where('customer_id', '=', custId)
+            .where('tenant_id', '=', tenantId)
+            .executeTakeFirst();
+
+          await this.anyDb
+            .insertInto('van_field_visits')
+            .values({
+              tenant_id: tenantId,
+              account_id: accountId,
+              trip_id: payload.tripId,
+              rep_id: repId,
+              customer_id: custId,
+              visit_type: custSale?.id ? 'positive' : 'negative',
+              sale_id: custSale?.id ? Number(custSale.id) : null,
+              negative_reason: custSale?.id ? null : 'other',
+              notes: 'تم إنهاء وتوثيق الزيارة تلقائياً عند تقديم إقرار التصفية',
+              visited_at: sql`NOW()`,
+              created_at: sql`NOW()`,
+            })
+            .execute();
+        }
+      }
+    }
+
     return {
       ok: true,
       tripId: payload.tripId,
@@ -1767,6 +1809,7 @@ export class VanSalesService {
       nightStockNotes?: string;
       endOdometer?: number;
       chargeStockVarianceToRep?: boolean;
+      activeVisitCustomerId?: number;
       notes?: string;
     },
     authContext?: AuthContext,
@@ -2028,6 +2071,47 @@ export class VanSalesService {
         .where('id', '=', payload.tripId)
         .where('tenant_id', '=', tenantId)
         .execute();
+
+      // Auto-record / finish any ongoing active customer visit upon settlement
+      if (payload.activeVisitCustomerId) {
+        const custId = Number(payload.activeVisitCustomerId);
+        if (custId > 0) {
+          const existingVisit = await trxAny
+            .selectFrom('van_field_visits')
+            .select(['id'])
+            .where('trip_id', '=', payload.tripId)
+            .where('customer_id', '=', custId)
+            .where('tenant_id', '=', tenantId)
+            .executeTakeFirst();
+
+          if (!existingVisit) {
+            const custSale = await trxAny
+              .selectFrom('sales')
+              .select(['id'])
+              .where('van_trip_id', '=', payload.tripId)
+              .where('customer_id', '=', custId)
+              .where('tenant_id', '=', tenantId)
+              .executeTakeFirst();
+
+            await trxAny
+              .insertInto('van_field_visits')
+              .values({
+                tenant_id: tenantId,
+                account_id: accountId,
+                trip_id: payload.tripId,
+                rep_id: repId,
+                customer_id: custId,
+                visit_type: custSale?.id ? 'positive' : 'negative',
+                sale_id: custSale?.id ? Number(custSale.id) : null,
+                negative_reason: custSale?.id ? null : 'other',
+                notes: 'تم إنهاء وتوثيق الزيارة تلقائياً عند تصفية وإغلاق اليومية',
+                visited_at: sql`NOW()`,
+                created_at: sql`NOW()`,
+              })
+              .execute();
+          }
+        }
+      }
 
       // 7. General Ledger Double-Entry Postings
       const vanLocRow = await trxAny
@@ -3174,12 +3258,18 @@ export class VanSalesService {
     const phone = (body.phone || '').trim();
     const address = (body.address || district || '').trim();
 
+    const rawDays = body.visitDays || body.metadata?.visit_days || body.metadata?.visitDays;
+    const visit_days = Array.isArray(rawDays) && rawDays.length > 0
+      ? rawDays
+      : ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
     const metadata = {
       district: district || undefined,
       route: route || undefined,
       assigned_rep_id: repId,
       created_by_rep_id: repId,
-      visit_days: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+      visit_days,
+      ...(body.metadata || {}),
     };
 
     const inserted = await this.anyDb

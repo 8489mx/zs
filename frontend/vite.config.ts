@@ -40,8 +40,9 @@ export default defineConfig(({ mode }) => {
         description: 'نظام إدارة المبيعات ونقاط البيع والمخزون والحسابات المتكامل',
         theme_color: '#170c5c',
         background_color: '#0f172a',
+        id: '/',
         display: 'standalone',
-        display_override: ['standalone', 'window-controls-overlay', 'minimal-ui'],
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
         start_url: '/',
         scope: '/',
@@ -52,13 +53,25 @@ export default defineConfig(({ mode }) => {
             src: '/logo.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/logo.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
           },
           {
             src: '/apple-touch-icon.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ],
         shortcuts: [

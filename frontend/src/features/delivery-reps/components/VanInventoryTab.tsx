@@ -1,7 +1,7 @@
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { VanStockItem } from '../api/van-sales.api';
-import { ShoppingCartIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
+import { ShoppingCartIcon, PlusIcon, PackageIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 
 interface CartItemSummary {
   productId: number;
@@ -18,6 +18,7 @@ interface VanInventoryTabProps {
   onUpdateCartQty?: (productId: number, delta: number) => void;
   onGoToSale?: () => void;
   onOpenTransferModal?: () => void;
+  onRequestRequisition?: () => void;
   pendingTransfersCount?: number;
 }
 
@@ -31,6 +32,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
   onUpdateCartQty,
   onGoToSale,
   onOpenTransferModal,
+  onRequestRequisition,
   pendingTransfersCount = 0,
 }) => {
   const totalPiecesInCart = cart.reduce((sum, it) => sum + it.qty, 0);
@@ -94,7 +96,124 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+      {filteredInventory.length === 0 ? (
+        stockSearch.trim() ? (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              padding: '36px 20px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '13px',
+                backgroundColor: '#f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+              }}
+            >
+              <SearchIcon size={22} color="#64748b" />
+            </div>
+            <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+              لا توجد أصناف مطابقة للبحث
+            </h4>
+            <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
+              لم يتم العثور على أي صنف بالاسم أو الباركود &ldquo;{stockSearch}&rdquo;
+            </p>
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              style={{
+                marginTop: '4px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+              }}
+            >
+              مسح البحث
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              border: '1px solid #e2e8f0',
+              padding: '36px 20px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
+            }}
+          >
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '15px',
+                backgroundColor: '#eef2ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#170e5e',
+              }}
+            >
+              <PackageIcon size={26} color="#170e5e" />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                لا توجد بضاعة في سيارة التوزيع حالياً
+              </h4>
+              <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', maxWidth: '300px', lineHeight: 1.5 }}>
+                يمكنك إنشاء إذن شحن وتحميل بضاعة من المستودع الرئيسي للانطلاق وبدء البيع الميداني
+              </p>
+            </div>
+            {onRequestRequisition && (
+              <button
+                type="button"
+                onClick={onRequestRequisition}
+                style={{
+                  marginTop: '4px',
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '9px 18px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+                }}
+              >
+                <PlusIcon size={14} color="#ffffff" />
+                <span>+ طلب تحميل بضاعة من المستودع</span>
+              </button>
+            )}
+          </div>
+        )
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
         {filteredInventory.map((item) => {
           const inCartItem = cart.find((c) => c.productId === item.productId);
           const inCartQty = inCartItem ? inCartItem.qty : 0;
@@ -248,6 +367,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
           );
         })}
       </div>
+    )}
 
       {/* Floating Bottom Cart Bar */}
       {cart.length > 0 && onGoToSale && (

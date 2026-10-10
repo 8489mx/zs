@@ -400,7 +400,7 @@ export class VanPreSalesService {
     let customerName = (payload.customerName || '').trim() || 'عميل تجزئة ميداني';
 
     if (payload.paymentMethod === 'credit' && !customerId && !payload.customerName) {
-      throw new AppError('الطلبيات الآجلة تتطلب تحديد اسم العميل أو الصيدلية', 'CREDIT_REQUIRES_CUSTOMER', 400);
+      throw new AppError('الطلبيات الآجلة تتطلب تحديد اسم العميل', 'CREDIT_REQUIRES_CUSTOMER', 400);
     }
 
     if (!customerId && payload.customerName?.trim()) {
@@ -443,7 +443,8 @@ export class VanPreSalesService {
     let orderId = 0;
     let finalOrderNumber = '';
     let totalAmount = 0;
-    let subtotalAmount = 0;
+    let grossSubtotalAmount = 0;
+    let totalDiscountAmount = 0;
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
@@ -504,13 +505,19 @@ export class VanPreSalesService {
           );
         }
 
-        // Determine price
-        const isCredit = payload.paymentMethod === 'credit';
-        const defaultBasePrice = isCredit && prod.credit_price != null && Number(prod.credit_price) > 0
+        // Determine baseline list price (Credit Price is official catalog baseline):
+        const creditBasePrice = prod.credit_price != null && Number(prod.credit_price) > 0
           ? Number(prod.credit_price) * multiplier
           : Number(prod.retail_price || 0) * multiplier;
 
-        let unitPrice = item.unitPrice ? Number(item.unitPrice) : defaultBasePrice;
+        const cashBasePrice = Number(prod.retail_price || 0) * multiplier;
+        const listPrice = Math.max(creditBasePrice, cashBasePrice);
+
+        const isCredit = payload.paymentMethod === 'credit';
+        // When cash: grant cash discount equal to difference between list/credit price and cash price
+        const cashDiscountPerUnit = isCredit ? 0 : Math.max(0, Number((listPrice - cashBasePrice).toFixed(2)));
+
+        let unitPrice = isCredit ? listPrice : (item.unitPrice ? Number(item.unitPrice) : cashBasePrice);
         let pricingTierType: 'cash' | 'credit' | 'offer' = isCredit ? 'credit' : 'cash';
         let unitOfferSavings = 0;
 
@@ -523,23 +530,27 @@ export class VanPreSalesService {
         if (matchingOffer && !item.unitPrice) {
           const offerVal = Number(matchingOffer.value || 0);
           if (matchingOffer.offer_type === 'percent' && offerVal > 0) {
-            unitPrice = Math.max(0, Number((defaultBasePrice * (1 - offerVal / 100)).toFixed(2)));
+            unitPrice = Math.max(0, Number((unitPrice * (1 - offerVal / 100)).toFixed(2)));
             pricingTierType = 'offer';
-            unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
           } else if (matchingOffer.offer_type === 'fixed' && offerVal > 0) {
-            unitPrice = Math.max(0, Number((defaultBasePrice - (offerVal * multiplier)).toFixed(2)));
+            unitPrice = Math.max(0, Number((unitPrice - (offerVal * multiplier)).toFixed(2)));
             pricingTierType = 'offer';
-            unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
           } else if (matchingOffer.offer_type === 'price' && offerVal > 0) {
             unitPrice = Number((offerVal * multiplier).toFixed(2));
             pricingTierType = 'offer';
-            unitOfferSavings = Math.max(0, Number((defaultBasePrice - unitPrice).toFixed(2)));
+            unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
           }
         }
 
-        const lineTotal = Number((unitPrice * qty).toFixed(2));
-        totalAmount += lineTotal;
-        subtotalAmount += lineTotal;
+        const lineGrossTotal = Number((listPrice * qty).toFixed(2));
+        const lineNetTotal = Number((unitPrice * qty).toFixed(2));
+        const lineDiscount = Math.max(0, Number((lineGrossTotal - lineNetTotal).toFixed(2)));
+
+        grossSubtotalAmount += lineGrossTotal;
+        totalDiscountAmount += lineDiscount;
+        totalAmount += lineNetTotal;
 
         const consumerPrice = prod.consumer_price != null && Number(prod.consumer_price) > 0
           ? Number((Number(prod.consumer_price) * multiplier).toFixed(2))
@@ -552,11 +563,14 @@ export class VanPreSalesService {
           quantity: qty,
           unitMultiplier: multiplier,
           totalBaseQty,
+          listPrice,
           unitPrice,
           consumerPrice,
           pricingTierType,
           unitOfferSavings,
-          lineTotal,
+          cashDiscountPerUnit,
+          lineDiscount,
+          lineTotal: lineNetTotal,
         });
       }
 
@@ -588,10 +602,10 @@ export class VanPreSalesService {
           rep_id: repId,
           order_source: 'pre_sales_rep',
           payment_terms: payload.paymentMethod,
-          subtotal: subtotalAmount,
-          discount_amount: 0,
+          subtotal: Number(grossSubtotalAmount.toFixed(2)),
+          discount_amount: Number(totalDiscountAmount.toFixed(2)),
           tax_amount: 0,
-          total_amount: totalAmount,
+          total_amount: Number(totalAmount.toFixed(2)),
           status: 'pending_approval',
           notes: payload.notes || null,
           delivery_date: payload.deliveryDate ? new Date(payload.deliveryDate) : null,
@@ -630,7 +644,7 @@ export class VanPreSalesService {
             consumer_price: poi.consumerPrice,
             pricing_tier_type: poi.pricingTierType,
             unit_offer_savings: poi.unitOfferSavings,
-            discount: 0,
+            discount: poi.lineDiscount,
             total: poi.lineTotal,
             created_at: sql`NOW()`,
           })
@@ -679,6 +693,8 @@ export class VanPreSalesService {
         'so.warehouse_location_id as warehouseLocationId',
         'so.order_source as orderSource',
         'so.payment_terms as paymentTerms',
+        'so.subtotal as subtotalAmount',
+        'so.discount_amount as discountAmount',
         'so.total_amount as totalAmount',
         'so.status',
         'so.supervisor_approved_at as supervisorApprovedAt',
@@ -736,6 +752,8 @@ export class VanPreSalesService {
       orders: orders.map((o: any) => ({
         ...o,
         id: Number(o.id),
+        subtotalAmount: Number(o.subtotalAmount || 0),
+        discountAmount: Number(o.discountAmount || 0),
         totalAmount: Number(o.totalAmount || 0),
       })),
       total: orders.length,
@@ -764,7 +782,8 @@ export class VanPreSalesService {
         'sl.name as warehouseName',
         'so.order_source as orderSource',
         'so.payment_terms as paymentTerms',
-        'so.subtotal',
+        'so.subtotal as subtotalAmount',
+        'so.discount_amount as discountAmount',
         'so.total_amount as totalAmount',
         'so.status',
         'so.supervisor_approved_at as supervisorApprovedAt',
@@ -796,6 +815,7 @@ export class VanPreSalesService {
         'soi.consumer_price as consumerPrice',
         'soi.pricing_tier_type as pricingTierType',
         'soi.unit_offer_savings as unitOfferSavings',
+        'soi.discount',
         'soi.total',
       ])
       .where('soi.sales_order_id', '=', orderId)
@@ -806,6 +826,8 @@ export class VanPreSalesService {
     return {
       ...order,
       id: Number(order.id),
+      subtotalAmount: Number(order.subtotalAmount || 0),
+      discountAmount: Number(order.discountAmount || 0),
       totalAmount: Number(order.totalAmount || 0),
       items: items.map((it: any) => ({
         ...it,
@@ -816,6 +838,7 @@ export class VanPreSalesService {
         unitPrice: Number(it.unitPrice || 0),
         consumerPrice: it.consumerPrice != null ? Number(it.consumerPrice) : null,
         unitOfferSavings: it.unitOfferSavings != null ? Number(it.unitOfferSavings) : 0,
+        discount: Number(it.discount || 0),
         total: Number(it.total || 0),
       })),
     };

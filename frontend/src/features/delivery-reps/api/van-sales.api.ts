@@ -104,6 +104,7 @@ export interface PreSalesOrderRecord {
   warehouseLocationName?: string;
   totalAmount: number;
   subtotalAmount: number;
+  discountAmount?: number;
   itemsCount: number;
   notes?: string;
   deliveryDate?: string;
@@ -432,6 +433,10 @@ export interface DriverAvailableProduct {
   warehouseStocks: DriverProductStock[];
   packagingUnit?: { name: string; multiplier: number };
   isWeight?: boolean;
+  supplierId?: number;
+  supplierName?: string;
+  categoryId?: number;
+  categoryName?: string;
 }
 
 export interface RepTargetSummary {
@@ -822,6 +827,8 @@ export const vanSalesApi = {
     tripId: number;
     countedCash: number;
     unloadRemainingToWarehouse: boolean;
+    endOdometer?: number;
+    activeVisitCustomerId?: number;
     notes?: string;
   }): Promise<{
     ok: boolean;
@@ -1523,6 +1530,7 @@ export const vanSalesApi = {
     district?: string;
     route?: string;
     notes?: string;
+    visitDays?: string[];
     metadata?: any;
   }): Promise<{ ok: boolean; customer: any }> => {
     return http('/api/driver-portal/van-sales/customers', {

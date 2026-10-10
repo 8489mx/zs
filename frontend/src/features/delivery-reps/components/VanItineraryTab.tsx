@@ -54,6 +54,8 @@ const DAY_ALIASES: Record<string, string[]> = {
   saturday: ['saturday', 'السبت', 'سبت'],
 };
 
+const ALL_WEEK_DAYS = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] as const;
+
 function normalizeDayKey(day?: string): string {
   if (!day) return '';
   const d = day.trim().toLowerCase();
@@ -115,7 +117,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
   onPageChange,
   onPageSizeChange,
 }) => {
-  if (totalCount === 0) return null;
+  if (totalCount === 0 || totalPages <= 1) return null;
 
   return (
     <div
@@ -338,7 +340,33 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustDistrict, setNewCustDistrict] = useState('');
   const [newCustRoute, setNewCustRoute] = useState('');
+  const [newCustAddress, setNewCustAddress] = useState('');
+  const [newCustGps, setNewCustGps] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocatingGps, setIsLocatingGps] = useState(false);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [districtDropdownOpen, setDistrictDropdownOpen] = useState(false);
+  const [routeDropdownOpen, setRouteDropdownOpen] = useState(false);
+  const [newCustVisitDays, setNewCustVisitDays] = useState<string[]>([]);
+  const districtContainerRef = useRef<HTMLDivElement | null>(null);
+  const routeContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close combobox dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (districtContainerRef.current && !districtContainerRef.current.contains(e.target as Node)) {
+        setDistrictDropdownOpen(false);
+      }
+      if (routeContainerRef.current && !routeContainerRef.current.contains(e.target as Node)) {
+        setRouteDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   // Memory list of saved districts
   const savedDistrictsList = useMemo(() => {
@@ -357,6 +385,35 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
     }
     return Array.from(set).filter(Boolean);
   }, [itinerary]);
+
+  const filteredDistricts = useMemo(() => {
+    if (!newCustDistrict.trim()) return savedDistrictsList;
+    const q = newCustDistrict.trim().toLowerCase();
+    return savedDistrictsList.filter((d) => d.toLowerCase().includes(q));
+  }, [savedDistrictsList, newCustDistrict]);
+
+  const handleCaptureGps = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.warning('خدمة تحديد المواقع (GPS) غير مدعومة في جهازك');
+      return;
+    }
+    setIsLocatingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocatingGps(false);
+        setNewCustGps({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          lng: Number(pos.coords.longitude.toFixed(6)),
+        });
+        toast.success('تم التقاط إحداثيات موقع المحل عبر GPS بنجاح');
+      },
+      () => {
+        setIsLocatingGps(false);
+        toast.warning('تعذر تحديد الموقع، يرجى تفعيل الـ GPS في الهاتف');
+      },
+      { timeout: 5000, enableHighAccuracy: true }
+    );
+  };
 
   // Live timer interval for active visit duration
   const [timerTick, setTimerTick] = useState(Date.now());
@@ -421,6 +478,24 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const routes = useMemo(() => {
     return Array.from(new Set(itinerary.map((i) => i.route).filter(Boolean)));
   }, [itinerary]);
+
+  const filteredRoutes = useMemo(() => {
+    if (!newCustRoute.trim()) return routes;
+    const q = newCustRoute.trim().toLowerCase();
+    return routes.filter((r) => r.toLowerCase().includes(q));
+  }, [routes, newCustRoute]);
+
+  // Default to today's visit day and current trip route when opening the modal
+  useEffect(() => {
+    if (addCustomerModalOpen) {
+      if (newCustVisitDays.length === 0) {
+        setNewCustVisitDays([todayArabicName]);
+      }
+      if (!newCustRoute.trim() && routes.length > 0) {
+        setNewCustRoute(routes[0]);
+      }
+    }
+  }, [addCustomerModalOpen, todayArabicName, newCustVisitDays.length, newCustRoute, routes]);
 
   const filtered = useMemo(() => {
     return itinerary.filter((item) => {
@@ -575,14 +650,31 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
     try {
       const districtVal = newCustDistrict.trim() || undefined;
       const routeVal = newCustRoute.trim() || undefined;
-      try {
-        await vanSalesApi.createCustomer({
-          name: newCustName.trim(),
-          phone: newCustPhone.trim() || undefined,
+      const addressVal = newCustAddress.trim() || districtVal;
+      const locationUrl = newCustGps
+        ? `https://maps.google.com/?q=${newCustGps.lat},${newCustGps.lng}`
+        : undefined;
+
+      const visitDaysVal = newCustVisitDays.length > 0 ? newCustVisitDays : [todayArabicName];
+      const customerPayload = {
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || undefined,
+        district: districtVal,
+        route: routeVal,
+        address: addressVal,
+        visitDays: visitDaysVal,
+        metadata: {
           district: districtVal,
           route: routeVal,
-          address: districtVal,
-        });
+          visit_days: visitDaysVal,
+          gpsLat: newCustGps?.lat,
+          gpsLng: newCustGps?.lng,
+          locationUrl,
+        },
+      };
+
+      try {
+        await vanSalesApi.createCustomer(customerPayload);
       } catch (vanErr: any) {
         // Fallback to standard catalog API if in web session
         await catalogApi.createCustomer({
@@ -591,10 +683,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           type: 'cash',
           creditLimit: 0,
           balance: 0,
-          metadata: {
-            district: districtVal,
-            route: routeVal,
-          },
+          address: addressVal,
+          metadata: customerPayload.metadata,
         });
       }
 
@@ -613,6 +703,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
       setNewCustPhone('');
       setNewCustDistrict('');
       setNewCustRoute('');
+      setNewCustAddress('');
+      setNewCustGps(null);
+      setNewCustVisitDays([todayArabicName]);
+      setDistrictDropdownOpen(false);
+      setRouteDropdownOpen(false);
       onRefreshItinerary();
     } catch (err: any) {
       toast.error(err?.message || 'تعذر إضافة العميل');
@@ -1582,94 +1677,98 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </div>
         </div>
 
-        {/* Row 3: Compact Search, Route Filter & Route Actions */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 180px', minWidth: '140px', position: 'relative' }}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="بحث باسم المحل، الكود، الحي، أو الهاتف..."
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '5px 10px 5px 28px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '11.5px',
-                height: '32px',
-              }}
-            />
-            <span style={{ position: 'absolute', left: '8px', top: '8px', color: '#94a3b8' }}>
-              <SearchIcon size={13} />
-            </span>
-          </div>
+        {/* Row 3: Full-width Clean Search Bar */}
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="بحث باسم المحل، الكود، الحي، أو الهاتف..."
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '6px 12px 6px 32px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '12px',
+              height: '35px',
+              backgroundColor: '#f8fafc',
+            }}
+          />
+          <span style={{ position: 'absolute', left: '10px', top: '9px', color: '#94a3b8' }}>
+            <SearchIcon size={14} />
+          </span>
+        </div>
 
-          {routes.length > 1 && (
-            <div style={{ minWidth: '85px', maxWidth: '110px', flex: '0 0 auto' }}>
-              <CustomSelect
-                value={routeFilter}
-                onChange={(val) => setRouteFilter(val || 'all')}
-                dropdownAlign="left"
-                options={[
-                  { value: 'all', label: 'كافة الخطوط' },
-                  ...routes.map((r) => ({ value: r, label: r })),
-                ]}
-                placeholder="الخط"
-                style={{ height: '32px', fontSize: '11.5px' }}
-              />
-            </div>
-          )}
-
+        {/* Row 4: Route Actions & Route Filter */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           {/* Add Store Button */}
           <button
             type="button"
             onClick={() => setAddCustomerModalOpen(true)}
             style={{
               height: '32px',
-              padding: '0 8px',
-              borderRadius: '6px',
+              padding: '0 12px',
+              borderRadius: '7px',
               backgroundColor: '#170e5e',
               color: '#ffffff',
               border: 'none',
-              fontSize: '11px',
+              fontSize: '11.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '5px',
               whiteSpace: 'nowrap',
             }}
             title="إضافة محل جديد لخط السير"
           >
             <PlusIcon size={12} color="#ffffff" />
-            <span>+ محل</span>
+            <span>+ إضافة محل</span>
           </button>
 
-          {/* Toggle Reordering Mode Button */}
-          <button
-            type="button"
-            onClick={() => setIsReorderingMode((prev) => !prev)}
-            style={{
-              height: '32px',
-              padding: '0 8px',
-              borderRadius: '6px',
-              backgroundColor: isReorderingMode ? '#1e293b' : '#f1f5f9',
-              color: isReorderingMode ? '#ffffff' : '#334155',
-              border: isReorderingMode ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              whiteSpace: 'nowrap',
-            }}
-            title="إعادة ترتيب خط السير"
-          >
-            <SlidersIcon size={12} color={isReorderingMode ? '#ffffff' : '#334155'} />
-            <span>{isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}</span>
-          </button>
+          <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+            {routes.length > 1 && (
+              <div style={{ minWidth: '85px', maxWidth: '110px' }}>
+                <CustomSelect
+                  value={routeFilter}
+                  onChange={(val) => setRouteFilter(val || 'all')}
+                  dropdownAlign="left"
+                  options={[
+                    { value: 'all', label: 'كافة الخطوط' },
+                    ...routes.map((r) => ({ value: r, label: r })),
+                  ]}
+                  placeholder="الخط"
+                  style={{ height: '32px', fontSize: '11.5px' }}
+                />
+              </div>
+            )}
+
+            {/* Toggle Reordering Mode Button */}
+            <button
+              type="button"
+              onClick={() => setIsReorderingMode((prev) => !prev)}
+              style={{
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '7px',
+                backgroundColor: isReorderingMode ? '#1e293b' : '#ffffff',
+                color: isReorderingMode ? '#ffffff' : '#334155',
+                border: isReorderingMode ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap',
+              }}
+              title="إعادة ترتيب خط السير"
+            >
+              <SlidersIcon size={13} color={isReorderingMode ? '#ffffff' : '#334155'} />
+              <span>{isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1783,7 +1882,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Top Compact Pagination Bar */}
+          {/* Top Compact Pagination Bar - only shown if more than 1 page */}
+          {totalPages > 1 && (
             <VanItineraryPagination
               startIdx={startIdx}
               pageSize={pageSize}
@@ -1793,6 +1893,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               onPageChange={setCurrentPage}
               onPageSizeChange={handlePageSizeChange}
             />
+          )}
 
           {districtGroups.map((group, groupIdx) => {
             return (
@@ -2156,7 +2257,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           onClose={() => setAddCustomerModalOpen(false)}
           title="إضافة محل جديد لخط السير"
           subtitle="تسجيل بيانات المحل وإدراجه بخط سير اليوم"
-          minHeight="420px"
+          minHeight="490px"
           footerActions={
             <StandardDialogFooter
               onClose={() => setAddCustomerModalOpen(false)}
@@ -2175,6 +2276,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           }
         >
           <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* 1. Store Name */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
                 اسم المحل / العميل *
@@ -2188,52 +2290,421 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               />
             </div>
 
+            {/* 2. Phone + District (2 Columns) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                  رقم الهاتف / الموبايل
+                </label>
+                <input
+                  type="tel"
+                  value={newCustPhone}
+                  onChange={(e) => setNewCustPhone(e.target.value)}
+                  placeholder="01xxxxxxxxx"
+                  dir="ltr"
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box', textAlign: 'right' }}
+                />
+              </div>
+
+              {/* District Custom Combobox */}
+              <div ref={districtContainerRef} style={{ position: 'relative' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                  الحي / المربع السكني
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={newCustDistrict}
+                    onChange={(e) => {
+                      setNewCustDistrict(e.target.value);
+                      if (!districtDropdownOpen) setDistrictDropdownOpen(true);
+                    }}
+                    onFocus={() => setDistrictDropdownOpen(true)}
+                    placeholder="اختر أو اكتب الحي..."
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      padding: '0 26px 0 10px',
+                      borderRadius: '6px',
+                      border: districtDropdownOpen ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                      fontSize: '12.5px',
+                      boxSizing: 'border-box',
+                      backgroundColor: '#ffffff',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setDistrictDropdownOpen((prev) => !prev)}
+                    style={{
+                      position: 'absolute',
+                      left: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ChevronDownIcon
+                      size={14}
+                      style={{
+                        transition: 'transform 0.15s ease',
+                        transform: districtDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* Dropdown Card */}
+                {districtDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      right: 0,
+                      left: 0,
+                      maxHeight: '190px',
+                      overflowY: 'auto',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 24px rgba(15, 23, 42, 0.14)',
+                      zIndex: 100,
+                    }}
+                  >
+                    <div style={{ padding: '6px 10px', fontSize: '10.5px', fontWeight: 700, color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                      الأحياء المحفوظة ({savedDistrictsList.length}):
+                    </div>
+                    {filteredDistricts.length === 0 && !newCustDistrict.trim() && (
+                      <div style={{ padding: '10px 12px', fontSize: '11.5px', color: '#94a3b8', textAlign: 'center' }}>
+                        لا توجد أحياء مسجلة سابقاً
+                      </div>
+                    )}
+                    {filteredDistricts.map((d) => (
+                      <div
+                        key={d}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setNewCustDistrict(d);
+                          setDistrictDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          fontSize: '12px',
+                          fontWeight: newCustDistrict.trim() === d ? 700 : 500,
+                          color: newCustDistrict.trim() === d ? '#170e5e' : '#0f172a',
+                          backgroundColor: newCustDistrict.trim() === d ? '#eef2ff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          borderBottom: '1px solid #f8fafc',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPinIcon size={13} color={newCustDistrict.trim() === d ? '#170e5e' : '#94a3b8'} />
+                          <span>{d}</span>
+                        </div>
+                        {newCustDistrict.trim() === d && <CheckCircleIcon size={13} color="#170e5e" />}
+                      </div>
+                    ))}
+                    {newCustDistrict.trim() && !savedDistrictsList.some((d) => d.toLowerCase() === newCustDistrict.trim().toLowerCase()) && (
+                      <div
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setDistrictDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          color: '#2563eb',
+                          backgroundColor: '#eff6ff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <PlusIcon size={12} color="#2563eb" />
+                        <span>إضافة حي جديد: &quot;{newCustDistrict.trim()}&quot;</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Detailed Address / Landmark with GPS button */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                رقم الهاتف / الموبايل
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                  العنوان التفصيلي / علامة مميزة
+                </label>
+                <button
+                  type="button"
+                  onClick={handleCaptureGps}
+                  disabled={isLocatingGps}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: '5px',
+                    border: newCustGps ? '1px solid #86efac' : '1px solid #cbd5e1',
+                    backgroundColor: newCustGps ? '#f0fdf4' : '#f8fafc',
+                    color: newCustGps ? '#15803d' : '#475569',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <MapPinIcon size={12} color={newCustGps ? '#15803d' : '#64748b'} />
+                  <span>
+                    {isLocatingGps
+                      ? 'جاري التحديد...'
+                      : newCustGps
+                        ? 'تم تثبيت GPS'
+                        : 'التقاط موقع المحل (GPS)'}
+                  </span>
+                </button>
+              </div>
               <input
-                type="tel"
-                value={newCustPhone}
-                onChange={(e) => setNewCustPhone(e.target.value)}
-                placeholder="01xxxxxxxxx"
-                dir="ltr"
-                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box', textAlign: 'right' }}
+                type="text"
+                value={newCustAddress}
+                onChange={(e) => setNewCustAddress(e.target.value)}
+                placeholder="مثال: شارع الجمهورية - بجوار مسجد النور"
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
 
+            {/* 4. Scheduled Visit Days */}
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                الحي / المربع السكني (District)
-              </label>
-              <input
-                list="van-itinerary-saved-districts"
-                value={newCustDistrict}
-                onChange={(e) => setNewCustDistrict(e.target.value)}
-                placeholder="اكتب اسم الحي أو اختر من المحفوظ..."
-                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
-              />
-              <datalist id="van-itinerary-saved-districts">
-                {savedDistrictsList.map((d) => (
-                  <option key={d} value={d} />
-                ))}
-              </datalist>
-              <span style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                يتم حفظ الأحياء تلقائياً واسترجاعها لترتيب خط السير حسب المنطقة.
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                  أيام الزيارة الأسبوعية المجدولة
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setNewCustVisitDays([...ALL_WEEK_DAYS])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: newCustVisitDays.length === 7 ? '#170e5e' : '#2563eb',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    كل الأيام
+                  </button>
+                  <span style={{ fontSize: '10px', color: '#cbd5e1' }}>•</span>
+                  <button
+                    type="button"
+                    onClick={() => setNewCustVisitDays([todayArabicName])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748b',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    اليوم فقط
+                  </button>
+                </div>
+              </div>
+
+              {/* 7 Day Touch Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                {ALL_WEEK_DAYS.map((day) => {
+                  const isSelected = newCustVisitDays.some(
+                    (d) => normalizeDayKey(d) === normalizeDayKey(day)
+                  );
+                  const isToday = normalizeDayKey(day) === normalizeDayKey(todayArabicName);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          if (newCustVisitDays.length > 1) {
+                            setNewCustVisitDays((prev) =>
+                              prev.filter((d) => normalizeDayKey(d) !== normalizeDayKey(day))
+                            );
+                          } else {
+                            toast.warning('يجب تحديد يوم واحد على الأقل لزيارة العميل');
+                          }
+                        } else {
+                          setNewCustVisitDays((prev) => [...prev, day]);
+                        }
+                      }}
+                      style={{
+                        flex: '1 0 calc(25% - 5px)',
+                        minWidth: '46px',
+                        height: '28px',
+                        padding: '0 4px',
+                        borderRadius: '6px',
+                        border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                        backgroundColor: isSelected ? '#170e5e' : '#f8fafc',
+                        color: isSelected ? '#ffffff' : '#475569',
+                        fontSize: '11px',
+                        fontWeight: isSelected ? 700 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        transition: 'none',
+                      }}
+                    >
+                      {isToday && (
+                        <span
+                          style={{
+                            width: '5px',
+                            height: '5px',
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#38bdf8' : '#170e5e',
+                            display: 'inline-block',
+                          }}
+                        />
+                      )}
+                      <span>{day}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <span style={{ fontSize: '10px', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                يظهر المحل في خط سير المندوب تلقائياً في الأيام المختارة فقط.
               </span>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                خط السير الرئيسي (Route)
-              </label>
-              <input
-                type="text"
-                value={newCustRoute}
-                onChange={(e) => setNewCustRoute(e.target.value)}
-                placeholder={routes[0] || 'مثال: خط فيصل الرئيسي'}
-                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
-              />
+            {/* 5. Main Route Combobox */}
+            <div ref={routeContainerRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                  خط السير الرئيسي (Route)
+                </label>
+                <span style={{ fontSize: '10px', color: '#64748b' }}>
+                  مسار الرحلة الجغرافي
+                </span>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={newCustRoute}
+                  onChange={(e) => {
+                    setNewCustRoute(e.target.value);
+                    if (!routeDropdownOpen) setRouteDropdownOpen(true);
+                  }}
+                  onFocus={() => setRouteDropdownOpen(true)}
+                  placeholder={routes[0] || 'مثال: خط فيصل الرئيسي'}
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 26px 0 10px',
+                    borderRadius: '6px',
+                    border: routeDropdownOpen ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                    fontSize: '12.5px',
+                    boxSizing: 'border-box',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+                {routes.length > 0 && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setRouteDropdownOpen((prev) => !prev)}
+                    style={{
+                      position: 'absolute',
+                      left: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ChevronDownIcon
+                      size={14}
+                      style={{
+                        transition: 'transform 0.15s ease',
+                        transform: routeDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    />
+                  </button>
+                )}
+              </div>
+
+              {/* Route Dropdown Card */}
+              {routeDropdownOpen && routes.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    right: 0,
+                    left: 0,
+                    maxHeight: '160px',
+                    overflowY: 'auto',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.14)',
+                    zIndex: 100,
+                  }}
+                >
+                  <div style={{ padding: '6px 10px', fontSize: '10.5px', fontWeight: 700, color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                    خطوط سير الرحلة الحالية:
+                  </div>
+                  {filteredRoutes.map((r) => (
+                    <div
+                      key={r}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setNewCustRoute(r);
+                        setRouteDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        fontSize: '12px',
+                        fontWeight: newCustRoute.trim() === r ? 700 : 500,
+                        color: newCustRoute.trim() === r ? '#170e5e' : '#0f172a',
+                        backgroundColor: newCustRoute.trim() === r ? '#eef2ff' : 'transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #f8fafc',
+                      }}
+                    >
+                      <span>{r}</span>
+                      {newCustRoute.trim() === r && <CheckCircleIcon size={13} color="#170e5e" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Hint Notice */}
+            <div style={{ fontSize: '11px', color: '#64748b', backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon size={13} color="#15803d" />
+              <span>المحل يُسجل بنظام (سداد نقدي) ويُدرج في خط سير اليوم لتبدأ زيارته فوراً، ويتكرر أسبوعياً في الأيام المحددة.</span>
             </div>
           </div>
         </StandardDialog>

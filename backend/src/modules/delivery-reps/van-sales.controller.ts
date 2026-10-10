@@ -91,11 +91,26 @@ export class VanSalesController {
       countedCash: number;
       endOdometer?: number;
       unloadRemainingToWarehouse: boolean;
+      activeVisitCustomerId?: number;
       notes?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
-    return this.vanSalesService.submitTripSettlement(driver.repId, driver.tenantId, driver.accountId, body);
+    return this.vanSalesService.settleTrip(
+      driver.repId,
+      driver.tenantId,
+      driver.accountId,
+      {
+        tripId: body.tripId,
+        countedCash: body.countedCash,
+        unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
+        nightStockApproved: !body.unloadRemainingToWarehouse,
+        nightStockNotes: !body.unloadRemainingToWarehouse ? 'تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي' : undefined,
+        endOdometer: body.endOdometer,
+        activeVisitCustomerId: body.activeVisitCustomerId,
+        notes: body.notes,
+      },
+    );
   }
 
   @Post('trips/submit-settlement')

@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { matchesArabic } from '@/lib/arabic-normalization';
 import {
   useDriverLoadRequisition,
@@ -19,6 +18,11 @@ import {
   PlusIcon,
   MinusIcon,
   ArrowRightIcon,
+  SearchIcon,
+  XIcon,
+  BoxesIcon,
+  BriefcaseIcon,
+  BuildingIcon,
 } from '@/shared/components/icons/AppIcons';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
@@ -44,46 +48,6 @@ export interface RequisitionLineItem {
   isSearchOpen?: boolean;
 }
 
-export interface ProductOptionItem {
-  id: string;
-  name: string;
-  barcode: string;
-  sku: string;
-  totalStock: number;
-  unit: string;
-  retailPrice: number;
-  product: DriverAvailableProduct;
-  searchTerms: string;
-}
-
-// Stable combobox helper functions (preventing inline allocations and unneeded re-filtering)
-const getProductOptionLabel = (opt: ProductOptionItem) => opt.name;
-const getProductOptionMeta = (opt: ProductOptionItem) => {
-  const p = opt.product;
-  let packMeta = '';
-  if (p.packagingUnit && p.packagingUnit.multiplier > 1) {
-    const c = Math.floor(opt.totalStock / p.packagingUnit.multiplier);
-    const pcs = opt.totalStock % p.packagingUnit.multiplier;
-    packMeta = ` | كرتونة=${p.packagingUnit.multiplier}ق (${c}ك + ${pcs}ق)`;
-  }
-  return `متاح: ${opt.totalStock} ${opt.unit}${packMeta} ${opt.barcode ? `| باركود: ${opt.barcode}` : ''}`;
-};
-const searchProductOption = (opt: ProductOptionItem, query: string) => {
-  if (!query || !query.trim()) return true;
-  const q = query.toLowerCase().trim();
-  return (
-    opt.searchTerms.includes(q) ||
-    matchesArabic(opt.name, q) ||
-    matchesArabic(opt.barcode, q)
-  );
-};
-
-const getWarehouseOptionLabel = (opt: { id: string; name: string }) => opt.name;
-const searchWarehouseOption = (opt: { id: string; name: string }, query: string) => {
-  if (!query || !query.trim()) return true;
-  return matchesArabic(opt.name, query);
-};
-
 interface CompactStepperProps {
   value: number;
   min?: number;
@@ -96,8 +60,6 @@ interface CompactStepperProps {
   onChange: (val: number) => void;
   disabledIncrement?: boolean;
   disabledDecrement?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
-  onEnter?: () => void;
   inputWidth?: string;
   height?: string;
 }
@@ -117,10 +79,8 @@ const CompactStepper = memo(function CompactStepper({
   onChange,
   disabledIncrement = false,
   disabledDecrement = false,
-  inputRef,
-  onEnter,
-  inputWidth = '42px',
-  height = '32px',
+  inputWidth = '36px',
+  height = '28px',
 }: CompactStepperProps) {
   return (
     <div
@@ -149,24 +109,26 @@ const CompactStepper = memo(function CompactStepper({
           onClick={onIncrement}
           disabled={disabledIncrement}
           style={{
-            width: '28px',
+            width: '26px',
             height: '100%',
             border: 'none',
             backgroundColor: '#f8fafc',
             color: '#334155',
             cursor: disabledIncrement ? 'not-allowed' : 'pointer',
-            opacity: disabledIncrement ? 0.4 : 1,
+            opacity: disabledIncrement ? 0.35 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             borderInlineEnd: '1px solid #e2e8f0',
+            fontWeight: 800,
+            fontSize: '13px',
+            padding: 0,
           }}
           title={`زيادة ${unitLabel}`}
         >
-          <PlusIcon size={12} />
+          <PlusIcon size={11} />
         </button>
         <input
-          ref={inputRef as any}
           type="number"
           step={step}
           className="no-spin-arrows"
@@ -179,18 +141,12 @@ const CompactStepper = memo(function CompactStepper({
             else if (e.target.value === '') onChange(0);
           }}
           onFocus={(e) => e.target.select()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              onEnter?.();
-            }
-          }}
           style={{
             width: inputWidth,
             height: '100%',
             border: 'none',
             textAlign: 'center',
-            fontSize: '12.5px',
+            fontSize: '12px',
             fontWeight: 800,
             color: '#0f172a',
             outline: 'none',
@@ -205,30 +161,33 @@ const CompactStepper = memo(function CompactStepper({
           onClick={onDecrement}
           disabled={disabledDecrement}
           style={{
-            width: '28px',
+            width: '26px',
             height: '100%',
             border: 'none',
             backgroundColor: '#f8fafc',
             color: '#334155',
             cursor: disabledDecrement ? 'not-allowed' : 'pointer',
-            opacity: disabledDecrement ? 0.4 : 1,
+            opacity: disabledDecrement ? 0.35 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             borderInlineStart: '1px solid #e2e8f0',
+            fontWeight: 800,
+            fontSize: '13px',
+            padding: 0,
           }}
           title={`إنقاص ${unitLabel}`}
         >
-          <MinusIcon size={12} />
+          <MinusIcon size={11} />
         </button>
       </div>
       <span
         style={{
-          fontSize: '11px',
+          fontSize: '10.5px',
           fontWeight: 700,
           color: '#475569',
           backgroundColor: '#f8fafc',
-          padding: '3px 6px',
+          padding: '2px 5px',
           borderRadius: '5px',
           whiteSpace: 'nowrap',
           border: '1px solid #e2e8f0',
@@ -236,735 +195,6 @@ const CompactStepper = memo(function CompactStepper({
       >
         {unitLabel}
       </span>
-    </div>
-  );
-});
-
-interface RequisitionLineRowProps {
-  line: RequisitionLineItem;
-  index?: number;
-  isLast: boolean;
-  productOptions: ProductOptionItem[];
-  selectedWarehouseFilter: string;
-  onSelectProduct: (lineId: string, product: DriverAvailableProduct) => void;
-  onLineProductChange: (lineId: string, val: string) => void;
-  onChangeLineWarehouse: (lineId: string, warehouseIdStr: string) => void;
-  onLineWarehouseChange: (lineId: string, val: string) => void;
-  onUpdateLineQty: (lineId: string, newQty: number) => void;
-  onUpdateLineCartonsPieces?: (lineId: string, cartons: number, pieces: number) => void;
-  onRemoveLine: (lineId: string) => void;
-  onEnterQty?: () => void;
-}
-
-const RequisitionLineRow = memo(function RequisitionLineRow({
-  line,
-  isLast,
-  productOptions,
-  selectedWarehouseFilter,
-  onSelectProduct,
-  onLineProductChange,
-  onChangeLineWarehouse,
-  onLineWarehouseChange,
-  onUpdateLineQty,
-  onUpdateLineCartonsPieces,
-  onRemoveLine,
-  onEnterQty,
-}: RequisitionLineRowProps) {
-  const qtyInputRef = useRef<HTMLInputElement | null>(null);
-  const shouldFocusQtyRef = useRef<boolean>(false);
-
-  // Warehouses with positive stock for this line's product
-  const productWarehouseOptions = useMemo(() => {
-    return (line.warehouseStocks || [])
-      .filter((w) => w.qty > 0)
-      .map((w) => ({
-        id: String(w.warehouseId),
-        name: `${w.warehouseName} (متاح: ${w.qty})`,
-      }));
-  }, [line.warehouseStocks]);
-
-  const handleProductChange = useCallback(
-    (val: string) => {
-      onLineProductChange(line.id, val);
-    },
-    [line.id, onLineProductChange],
-  );
-
-  const handleProductSelect = useCallback(
-    (opt: ProductOptionItem) => {
-      shouldFocusQtyRef.current = true;
-      onSelectProduct(line.id, opt.product);
-      setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-          shouldFocusQtyRef.current = false;
-        }
-      }, 60);
-    },
-    [line.id, onSelectProduct],
-  );
-
-  useEffect(() => {
-    if (shouldFocusQtyRef.current && qtyInputRef.current) {
-      shouldFocusQtyRef.current = false;
-      const timer = setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-        }
-      }, 60);
-      return () => clearTimeout(timer);
-    }
-  }, [line.productId]);
-
-  const handleWarehouseChange = useCallback(
-    (val: string) => {
-      onLineWarehouseChange(line.id, val);
-    },
-    [line.id, onLineWarehouseChange],
-  );
-
-  const handleWarehouseSelect = useCallback(
-    (opt: { id: string; name: string }) => {
-      onChangeLineWarehouse(line.id, opt.id);
-    },
-    [line.id, onChangeLineWarehouse],
-  );
-
-  const handleRemove = useCallback(() => {
-    onRemoveLine(line.id);
-  }, [line.id, onRemoveLine]);
-
-  const isCartonItem = Boolean(line.packagingUnit && line.packagingUnit.multiplier > 1);
-  const isWeightItem = Boolean(line.isWeight);
-  const mult = line.packagingUnit?.multiplier || 1;
-  const cartons = line.cartons !== undefined ? line.cartons : (isCartonItem ? Math.floor(line.qty / mult) : 0);
-  const pieces = line.pieces !== undefined ? line.pieces : (isCartonItem ? line.qty % mult : 0);
-
-  const handleCartonsIncrement = useCallback(() => {
-    const newC = cartons + 1;
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleCartonsDecrement = useCallback(() => {
-    const newC = Math.max(0, cartons - 1);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleCartonsChange = useCallback((val: number) => {
-    const newC = Math.max(0, val);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesIncrement = useCallback(() => {
-    const newP = pieces + 1;
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesDecrement = useCallback(() => {
-    const newP = Math.max(0, pieces - 1);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesChange = useCallback((val: number) => {
-    const newP = Math.max(0, val);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleSingleQtyPlus = useCallback(() => {
-    const step = isWeightItem ? 0.5 : 1;
-    const newQ = Number((line.qty + step).toFixed(2));
-    onUpdateLineQty(line.id, newQ);
-  }, [line.qty, isWeightItem, line.id, onUpdateLineQty]);
-
-  const handleSingleQtyMinus = useCallback(() => {
-    const step = isWeightItem ? 0.5 : 1;
-    const minQ = isWeightItem ? 0.05 : 1;
-    const newQ = Math.max(minQ, Number((line.qty - step).toFixed(2)));
-    onUpdateLineQty(line.id, newQ);
-  }, [line.qty, isWeightItem, line.id, onUpdateLineQty]);
-
-  const handleSingleQtyChange = useCallback((val: number) => {
-    const minQ = isWeightItem ? 0.05 : 1;
-    const safeQ = Math.max(minQ, val);
-    onUpdateLineQty(line.id, safeQ);
-  }, [isWeightItem, line.id, onUpdateLineQty]);
-
-  const isExceedingStock = line.availableInWarehouse > 0 && line.qty > line.availableInWarehouse;
-
-  return (
-    <tr
-      style={{
-        borderBottom: !isLast ? '1px solid #e2e8f0' : 'none',
-        backgroundColor: line.productId ? '#ffffff' : '#fcfcfd',
-      }}
-    >
-      {/* Product Search & Selection Cell via Portal Combobox */}
-      <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-        <SearchableCombobox
-          inputId={`product-input-${line.id}`}
-          options={productOptions}
-          value={line.productName || line.searchQuery || ''}
-          onChange={handleProductChange}
-          onSelect={handleProductSelect}
-          getLabel={getProductOptionLabel}
-          getMeta={getProductOptionMeta}
-          search={searchProductOption}
-          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
-          inline={true}
-          inputClassName="purchase-prototype-field-input"
-          inputStyle={{ height: '38px', borderRadius: '6px' }}
-        />
-      </td>
-
-      {/* Source Warehouse Cell (when "all warehouses" is active) */}
-      {selectedWarehouseFilter === 'all' && (
-        <td style={{ padding: '8px 12px', verticalAlign: 'middle' }}>
-          {line.productId ? (
-            productWarehouseOptions.length > 0 ? (
-              <SearchableCombobox
-                inputId={`warehouse-input-${line.id}`}
-                options={productWarehouseOptions}
-                value={line.sourceWarehouseName || ''}
-                onChange={handleWarehouseChange}
-                onSelect={handleWarehouseSelect}
-                getLabel={getWarehouseOptionLabel}
-                search={searchWarehouseOption}
-                placeholder="اختر المخزن..."
-                inline={true}
-                inputClassName="purchase-prototype-field-input"
-                inputStyle={{ height: '38px', borderRadius: '6px' }}
-              />
-            ) : (
-              <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>
-                لا يتوفر رصيد بأي مخزن
-              </span>
-            )
-          ) : (
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>- اختر صنفاً أولاً -</span>
-          )}
-        </td>
-      )}
-
-      {/* Available Stock in Warehouse Cell */}
-      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-        {line.productId ? (
-          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: line.availableInWarehouse > 0 ? '#15803d' : '#dc2626',
-                backgroundColor: line.availableInWarehouse > 0 ? '#ecfdf5' : '#fef2f2',
-                border: `1px solid ${line.availableInWarehouse > 0 ? '#bbf7d0' : '#fecaca'}`,
-                padding: '3px 8px',
-                borderRadius: '6px',
-                display: 'inline-block',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isCartonItem ? (
-                <>
-                  {Math.floor(line.availableInWarehouse / mult)} {line.packagingUnit?.name}
-                  {line.availableInWarehouse % mult > 0 ? ` + ${line.availableInWarehouse % mult} ق` : ''}
-                </>
-              ) : (
-                `${line.availableInWarehouse} ${line.unit}`
-              )}
-            </span>
-            {isCartonItem && (
-              <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>
-                ({line.availableInWarehouse} قطعة)
-              </span>
-            )}
-          </div>
-        ) : (
-          <span style={{ color: '#94a3b8' }}>-</span>
-        )}
-      </td>
-
-      {/* Requested Qty Cell */}
-      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-        {line.productId ? (
-          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            {isCartonItem ? (
-              <>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <CompactStepper
-                    value={cartons}
-                    unitLabel={line.packagingUnit?.name || 'كرتونة'}
-                    onIncrement={handleCartonsIncrement}
-                    onDecrement={handleCartonsDecrement}
-                    onChange={handleCartonsChange}
-                    disabledDecrement={cartons <= 0}
-                    onEnter={onEnterQty}
-                    inputWidth="38px"
-                  />
-                  <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '12px' }}>+</span>
-                  <CompactStepper
-                    value={pieces}
-                    unitLabel="قطع"
-                    onIncrement={handlePiecesIncrement}
-                    onDecrement={handlePiecesDecrement}
-                    onChange={handlePiecesChange}
-                    disabledDecrement={pieces <= 0}
-                    onEnter={onEnterQty}
-                    inputWidth="38px"
-                  />
-                </div>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: isExceedingStock ? '#dc2626' : '#170e5e',
-                  }}
-                >
-                  الإجمالي: {line.qty} قطعة
-                </span>
-              </>
-            ) : (
-              <CompactStepper
-                value={line.qty}
-                unitLabel={line.unit || 'قطعة'}
-                isDecimal={isWeightItem}
-                step={isWeightItem ? 0.5 : 1}
-                min={isWeightItem ? 0.05 : 1}
-                onIncrement={handleSingleQtyPlus}
-                onDecrement={handleSingleQtyMinus}
-                onChange={handleSingleQtyChange}
-                disabledDecrement={line.qty <= (isWeightItem ? 0.05 : 1)}
-                disabledIncrement={line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse}
-                onEnter={onEnterQty}
-                inputWidth={isWeightItem ? '54px' : '44px'}
-              />
-            )}
-          </div>
-        ) : (
-          <span style={{ color: '#94a3b8' }}>-</span>
-        )}
-      </td>
-
-      {/* Delete Line Action Cell */}
-      <td style={{ padding: '8px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-        <button
-          type="button"
-          onClick={handleRemove}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#ef4444',
-            cursor: 'pointer',
-            padding: '6px',
-            borderRadius: '6px',
-          }}
-          title="حذف هذا السطر"
-        >
-          <Trash2Icon size={16} />
-        </button>
-      </td>
-    </tr>
-  );
-});
-
-const RequisitionLineCard = memo(function RequisitionLineCard({
-  line,
-  index = 0,
-  productOptions,
-  selectedWarehouseFilter,
-  onSelectProduct,
-  onLineProductChange,
-  onChangeLineWarehouse,
-  onLineWarehouseChange,
-  onUpdateLineQty,
-  onUpdateLineCartonsPieces,
-  onRemoveLine,
-  onEnterQty,
-}: RequisitionLineRowProps) {
-  const qtyInputRef = useRef<HTMLInputElement | null>(null);
-  const shouldFocusQtyRef = useRef<boolean>(false);
-
-  // Warehouses with positive stock for this line's product
-  const productWarehouseOptions = useMemo(() => {
-    return (line.warehouseStocks || [])
-      .filter((w) => w.qty > 0)
-      .map((w) => ({
-        id: String(w.warehouseId),
-        name: `${w.warehouseName} (متاح: ${w.qty})`,
-      }));
-  }, [line.warehouseStocks]);
-
-  const handleProductChange = useCallback(
-    (val: string) => {
-      onLineProductChange(line.id, val);
-    },
-    [line.id, onLineProductChange],
-  );
-
-  const handleProductSelect = useCallback(
-    (opt: ProductOptionItem) => {
-      shouldFocusQtyRef.current = true;
-      onSelectProduct(line.id, opt.product);
-      setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-          shouldFocusQtyRef.current = false;
-        }
-      }, 60);
-    },
-    [line.id, onSelectProduct],
-  );
-
-  useEffect(() => {
-    if (shouldFocusQtyRef.current && qtyInputRef.current) {
-      shouldFocusQtyRef.current = false;
-      const timer = setTimeout(() => {
-        if (qtyInputRef.current) {
-          qtyInputRef.current.focus();
-          qtyInputRef.current.select();
-        }
-      }, 60);
-      return () => clearTimeout(timer);
-    }
-  }, [line.productId]);
-
-  const handleWarehouseChange = useCallback(
-    (val: string) => {
-      onLineWarehouseChange(line.id, val);
-    },
-    [line.id, onLineWarehouseChange],
-  );
-
-  const handleWarehouseSelect = useCallback(
-    (opt: { id: string; name: string }) => {
-      onChangeLineWarehouse(line.id, opt.id);
-    },
-    [line.id, onChangeLineWarehouse],
-  );
-
-  const handleRemove = useCallback(() => {
-    onRemoveLine(line.id);
-  }, [line.id, onRemoveLine]);
-
-  const isCartonItem = Boolean(line.packagingUnit && line.packagingUnit.multiplier > 1);
-  const isWeightItem = Boolean(line.isWeight);
-  const mult = line.packagingUnit?.multiplier || 1;
-  const cartons = line.cartons !== undefined ? line.cartons : (isCartonItem ? Math.floor(line.qty / mult) : 0);
-  const pieces = line.pieces !== undefined ? line.pieces : (isCartonItem ? line.qty % mult : 0);
-
-  const handleCartonsIncrement = useCallback(() => {
-    const newC = cartons + 1;
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleCartonsDecrement = useCallback(() => {
-    const newC = Math.max(0, cartons - 1);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleCartonsChange = useCallback((val: number) => {
-    const newC = Math.max(0, val);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, newC, pieces);
-    } else {
-      onUpdateLineQty(line.id, (newC * mult) + pieces);
-    }
-  }, [pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesIncrement = useCallback(() => {
-    const newP = pieces + 1;
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesDecrement = useCallback(() => {
-    const newP = Math.max(0, pieces - 1);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, pieces, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handlePiecesChange = useCallback((val: number) => {
-    const newP = Math.max(0, val);
-    if (onUpdateLineCartonsPieces) {
-      onUpdateLineCartonsPieces(line.id, cartons, newP);
-    } else {
-      onUpdateLineQty(line.id, (cartons * mult) + newP);
-    }
-  }, [cartons, mult, line.id, onUpdateLineCartonsPieces, onUpdateLineQty]);
-
-  const handleSingleQtyPlus = useCallback(() => {
-    const step = isWeightItem ? 0.5 : 1;
-    const newQ = Number((line.qty + step).toFixed(2));
-    onUpdateLineQty(line.id, newQ);
-  }, [line.qty, isWeightItem, line.id, onUpdateLineQty]);
-
-  const handleSingleQtyMinus = useCallback(() => {
-    const step = isWeightItem ? 0.5 : 1;
-    const minQ = isWeightItem ? 0.05 : 1;
-    const newQ = Math.max(minQ, Number((line.qty - step).toFixed(2)));
-    onUpdateLineQty(line.id, newQ);
-  }, [line.qty, isWeightItem, line.id, onUpdateLineQty]);
-
-  const handleSingleQtyChange = useCallback((val: number) => {
-    const minQ = isWeightItem ? 0.05 : 1;
-    const safeQ = Math.max(minQ, val);
-    onUpdateLineQty(line.id, safeQ);
-  }, [isWeightItem, line.id, onUpdateLineQty]);
-
-  const isExceedingStock = line.availableInWarehouse > 0 && line.qty > line.availableInWarehouse;
-
-  return (
-    <div
-      style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #cbd5e1',
-        borderRadius: '10px',
-        padding: '12px 14px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-      }}
-    >
-      {/* Card Header: Item index & Unit Price badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#475569' }}>
-          بند رقم #{index + 1}
-        </span>
-        {line.productId && line.unitPrice > 0 ? (
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: '#170e5e',
-              backgroundColor: '#ede9fe',
-              padding: '2px 8px',
-              borderRadius: '6px',
-            }}
-          >
-            سعر الوحدة: {line.unitPrice.toFixed(2)} <CurrencySymbol />
-          </span>
-        ) : null}
-      </div>
-
-      {/* Product Search & Selection via Portal Combobox */}
-      <div>
-        <SearchableCombobox
-          inputId={`product-card-input-${line.id}`}
-          options={productOptions}
-          value={line.productName || line.searchQuery || ''}
-          onChange={handleProductChange}
-          onSelect={handleProductSelect}
-          getLabel={getProductOptionLabel}
-          getMeta={getProductOptionMeta}
-          search={searchProductOption}
-          placeholder="ابحث عن الصنف بالاسم أو الباركود..."
-          inline={true}
-          inputClassName="purchase-prototype-field-input"
-          inputStyle={{ height: '40px', borderRadius: '8px', fontSize: '13px' }}
-        />
-      </div>
-
-      {/* Source Warehouse (when "all" is active) */}
-      {selectedWarehouseFilter === 'all' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-            مخزن الصرف:
-          </label>
-          {line.productId ? (
-            productWarehouseOptions.length > 0 ? (
-              <SearchableCombobox
-                inputId={`warehouse-card-input-${line.id}`}
-                options={productWarehouseOptions}
-                value={line.sourceWarehouseName || ''}
-                onChange={handleWarehouseChange}
-                onSelect={handleWarehouseSelect}
-                getLabel={getWarehouseOptionLabel}
-                search={searchWarehouseOption}
-                placeholder="اختر المخزن..."
-                inline={true}
-                inputClassName="purchase-prototype-field-input"
-                inputStyle={{ height: '38px', borderRadius: '8px', fontSize: '12.5px' }}
-              />
-            ) : (
-              <span style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: 700 }}>
-                لا يتوفر رصيد بأي مخزن
-              </span>
-            )
-          ) : (
-            <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>- اختر صنفاً أولاً -</span>
-          )}
-        </div>
-      )}
-
-      {/* Bottom Action Section */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          paddingTop: '8px',
-          borderTop: '1px solid #f1f5f9',
-        }}
-      >
-        {/* Row 1: Stock info & Total summary */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>المتاح:</span>
-            {line.productId ? (
-              <span
-                style={{
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  color: line.availableInWarehouse > 0 ? '#15803d' : '#dc2626',
-                  backgroundColor: line.availableInWarehouse > 0 ? '#ecfdf5' : '#fef2f2',
-                  border: `1px solid ${line.availableInWarehouse > 0 ? '#bbf7d0' : '#fecaca'}`,
-                  padding: '2px 7px',
-                  borderRadius: '6px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {isCartonItem ? (
-                  <>
-                    {Math.floor(line.availableInWarehouse / mult)} {line.packagingUnit?.name}
-                    {line.availableInWarehouse % mult > 0 ? ` + ${line.availableInWarehouse % mult} ق` : ''}
-                  </>
-                ) : (
-                  `${line.availableInWarehouse} ${line.unit}`
-                )}
-              </span>
-            ) : (
-              <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
-            )}
-          </div>
-
-          {line.productId && isCartonItem && (
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                color: isExceedingStock ? '#dc2626' : '#170e5e',
-                backgroundColor: isExceedingStock ? '#fee2e2' : '#ede9fe',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              المطلوب: {line.qty} قطعة
-            </span>
-          )}
-        </div>
-
-        {/* Row 2: Controls row */}
-        {line.productId ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-            {isCartonItem ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
-                <CompactStepper
-                  value={cartons}
-                  unitLabel={line.packagingUnit?.name || 'كرتونة'}
-                  onIncrement={handleCartonsIncrement}
-                  onDecrement={handleCartonsDecrement}
-                  onChange={handleCartonsChange}
-                  disabledDecrement={cartons <= 0}
-                  inputWidth="38px"
-                  height="32px"
-                  onEnter={onEnterQty}
-                />
-                <CompactStepper
-                  value={pieces}
-                  unitLabel="قطع"
-                  onIncrement={handlePiecesIncrement}
-                  onDecrement={handlePiecesDecrement}
-                  onChange={handlePiecesChange}
-                  disabledDecrement={pieces <= 0}
-                  inputWidth="38px"
-                  height="32px"
-                  onEnter={onEnterQty}
-                />
-              </div>
-            ) : (
-              <CompactStepper
-                value={line.qty}
-                unitLabel={line.unit || 'قطعة'}
-                isDecimal={isWeightItem}
-                step={isWeightItem ? 0.5 : 1}
-                min={isWeightItem ? 0.05 : 1}
-                onIncrement={handleSingleQtyPlus}
-                onDecrement={handleSingleQtyMinus}
-                onChange={handleSingleQtyChange}
-                disabledDecrement={line.qty <= (isWeightItem ? 0.05 : 1)}
-                disabledIncrement={line.availableInWarehouse > 0 && line.qty >= line.availableInWarehouse}
-                inputWidth={isWeightItem ? '54px' : '44px'}
-                height="32px"
-                onEnter={onEnterQty}
-              />
-            )}
-
-            {/* Delete button */}
-            <button
-              type="button"
-              onClick={handleRemove}
-              style={{
-                backgroundColor: '#fee2e2',
-                border: '1px solid #fecaca',
-                color: '#ef4444',
-                cursor: 'pointer',
-                padding: '6px 8px',
-                borderRadius: '7px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '32px',
-                width: '32px',
-                flexShrink: 0,
-              }}
-              title="حذف هذا السطر"
-            >
-              <Trash2Icon size={14} />
-            </button>
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 });
@@ -984,7 +214,17 @@ export function DriverNewLoadRequisitionView({
   const isAdmin = mode === 'admin';
   const isMobile = useIsMobile(768);
 
-  // 'all' means automatic source warehouse selection; otherwise a specific warehouseId string
+  // Active Sub-Tab: 'catalog' (Browsing & Adding) | 'selected' (Reviewing chosen items & Notes)
+  const [activeViewTab, setActiveViewTab] = useState<'catalog' | 'selected'>('catalog');
+
+  // Search & Company filter state (Unified mix)
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showOutOfStock, setShowOutOfStock] = useState<boolean>(true);
+  const [hideOutOfStockCompanies, setHideOutOfStockCompanies] = useState<boolean>(false);
+
+  // Warehouse filter: 'all' means automatic source warehouse selection; otherwise a specific warehouseId string
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>('all');
   const [notes, setNotes] = useState('');
   const [submittedDocNo, setSubmittedDocNo] = useState<string | null>(null);
@@ -998,10 +238,10 @@ export function DriverNewLoadRequisitionView({
     repName: string;
   } | null>(null);
 
-  // Driver Hook (only enabled when in driver mode to avoid 401 redirects in ERP session)
+  // Driver Hook (only enabled in driver mode)
   const driverHook = useDriverLoadRequisition(selectedWarehouseFilter, { enabled: !isAdmin });
 
-  // Admin Queries (only enabled when in admin mode)
+  // Admin Queries (only enabled in admin mode)
   const adminWarehousesQuery = useQuery<DriverWarehouse[]>({
     queryKey: ['admin-warehouses'],
     queryFn: () => vanSalesApi.getAdminWarehouses(),
@@ -1054,9 +294,7 @@ export function DriverNewLoadRequisitionView({
   const isLoadingWarehouses = isAdmin ? adminWarehousesQuery.isLoading : driverHook.isLoadingWarehouses;
   const availableProducts = isAdmin ? (adminProductsQuery.data || []) : driverHook.availableProducts;
   const driverName = isAdmin ? (selectedRep?.name || selectedRep?.full_name || 'اختر مندوب التوزيع') : driverHook.driverName;
-  const rawVehiclePlate = isAdmin
-    ? (selectedRep?.vehicle_plate || '')
-    : (driverHook.vehiclePlate || '');
+  const rawVehiclePlate = isAdmin ? (selectedRep?.vehicle_plate || '') : (driverHook.vehiclePlate || '');
 
   const displayVehiclePlate = useMemo(() => {
     if (!rawVehiclePlate) return '—';
@@ -1105,24 +343,8 @@ export function DriverNewLoadRequisitionView({
 
   const isSubmitting = isAdmin ? adminSubmitMutation.isPending : driverHook.isSubmitting;
 
-  // Initialize with one empty line ready for user input (mirroring NewIssueOrderPage)
-  const [lines, setLines] = useState<RequisitionLineItem[]>([
-    {
-      id: `line-${Date.now()}-1`,
-      productId: '',
-      productName: '',
-      barcode: '',
-      unitPrice: 0,
-      unit: 'قطعة',
-      sourceWarehouseId: '',
-      sourceWarehouseName: '',
-      availableInWarehouse: 0,
-      warehouseStocks: [],
-      qty: 1,
-      searchQuery: '',
-      isSearchOpen: false,
-    },
-  ]);
+  // Selected Requisition Lines (Orders cart logic)
+  const [lines, setLines] = useState<RequisitionLineItem[]>([]);
 
   // Draft auto-save and restore engine
   const draftKey = `zs_van_load_requisition_draft_${mode}`;
@@ -1146,7 +368,7 @@ export function DriverNewLoadRequisitionView({
       (!draft.notes || !draft.notes.trim()),
     onRestore: (restored) => {
       if (restored.lines && restored.lines.length > 0) {
-        setLines(restored.lines);
+        setLines(restored.lines.filter((l) => Boolean(l.productId)));
       }
       if (restored.selectedWarehouseFilter) {
         setSelectedWarehouseFilter(restored.selectedWarehouseFilter);
@@ -1161,21 +383,6 @@ export function DriverNewLoadRequisitionView({
     debounceMs: 300,
   });
 
-  // Options for SearchableCombobox (portal-based dropdown)
-  const productOptions = useMemo(() => {
-    return (availableProducts || []).map((p) => ({
-      id: String(p.id),
-      name: p.name,
-      barcode: p.barcode || p.sku || '',
-      sku: p.sku || '',
-      totalStock: p.totalStock,
-      unit: p.unit || 'قطعة',
-      retailPrice: p.retailPrice,
-      product: p,
-      searchTerms: `${p.name} ${p.barcode || ''} ${p.sku || ''}`.toLowerCase(),
-    }));
-  }, [availableProducts]);
-
   const warehouseSelectOptions = useMemo(() => [
     { value: 'all', label: 'كل المخازن (تحديد تلقائي للمستودع الأوفر رصيداً)' },
     ...warehouses.map((w) => ({
@@ -1183,6 +390,130 @@ export function DriverNewLoadRequisitionView({
       label: `${w.name} ${w.code ? `(${w.code})` : ''}`,
     })),
   ], [warehouses]);
+
+  // Group products by Company (Supplier) with category breakdown
+  const companies = useMemo(() => {
+    const map = new Map<string, {
+      name: string;
+      totalProducts: number;
+      availableProducts: number;
+      categoryMap: Map<string, { id: number | null; name: string; count: number }>;
+    }>();
+
+    for (const prod of availableProducts || []) {
+      const compName = (prod.supplierName || '').trim() || 'الشركة العامة';
+      if (!map.has(compName)) {
+        map.set(compName, {
+          name: compName,
+          totalProducts: 0,
+          availableProducts: 0,
+          categoryMap: new Map(),
+        });
+      }
+      const c = map.get(compName)!;
+      c.totalProducts += 1;
+      if (prod.totalStock > 0) {
+        c.availableProducts += 1;
+      }
+
+      const catName = (prod.categoryName || '').trim() || 'عام';
+      const catId = prod.categoryId ?? null;
+      if (!c.categoryMap.has(catName)) {
+        c.categoryMap.set(catName, { id: catId, name: catName, count: 0 });
+      }
+      c.categoryMap.get(catName)!.count += 1;
+    }
+
+    return Array.from(map.values())
+      .map((c) => ({
+        name: c.name,
+        totalProducts: c.totalProducts,
+        availableProducts: c.availableProducts,
+        categories: Array.from(c.categoryMap.values()),
+      }))
+      .sort((a, b) => b.availableProducts - a.availableProducts);
+  }, [availableProducts]);
+
+  // Filtered companies based on hideOutOfStockCompanies
+  const displayedCompanies = useMemo(() => {
+    if (!hideOutOfStockCompanies) return companies;
+    return companies.filter((c) => c.availableProducts > 0);
+  }, [companies, hideOutOfStockCompanies]);
+
+  // Distinct items from each company in requisition lines
+  const linesCompanyCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const line of lines) {
+      if (!line.productId) continue;
+      const prod = (availableProducts || []).find((p) => p.id === Number(line.productId));
+      const comp = (prod?.supplierName || '').trim() || 'الشركة العامة';
+      map.set(comp, (map.get(comp) || 0) + 1);
+    }
+    return map;
+  }, [lines, availableProducts]);
+
+  // Categories for currently selected company
+  const companyCategories = useMemo(() => {
+    if (!selectedCompany) return [];
+    if (selectedCompany === '__ALL__') {
+      const catMap = new Map<string, { id: number | null; name: string; count: number }>();
+      for (const p of availableProducts || []) {
+        const catName = (p.categoryName || '').trim() || 'عام';
+        if (!catMap.has(catName)) {
+          catMap.set(catName, { id: p.categoryId ?? null, name: catName, count: 0 });
+        }
+        catMap.get(catName)!.count += 1;
+      }
+      return Array.from(catMap.values());
+    }
+    const found = companies.find((c) => c.name === selectedCompany);
+    return found ? found.categories : [];
+  }, [companies, selectedCompany, availableProducts]);
+
+  const totalAvailableItemsCount = useMemo(() => {
+    return (availableProducts || []).filter((p) => p.totalStock > 0).length;
+  }, [availableProducts]);
+
+  const outOfStockCount = useMemo(() => {
+    return (availableProducts || []).length - totalAvailableItemsCount;
+  }, [availableProducts, totalAvailableItemsCount]);
+
+  // Filter Catalog Products by search, company, category, and out of stock
+  const displayedProducts = useMemo(() => {
+    return (availableProducts || []).filter((p) => {
+      // Out of stock filter
+      if (!showOutOfStock && p.totalStock <= 0) return false;
+
+      // 1. Search query filter takes priority across ALL companies
+      if (catalogSearchQuery.trim()) {
+        const q = catalogSearchQuery.trim().toLowerCase();
+        const sup = (p.supplierName || '').toLowerCase();
+        const cat = (p.categoryName || '').toLowerCase();
+        const matchName = (p.name || '').toLowerCase().includes(q) || matchesArabic(p.name, q);
+        const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
+        const matchSku = (p.sku || '').toLowerCase().includes(q);
+        const matchSupplier = sup.includes(q) || matchesArabic(sup, q);
+        const matchCategory = cat.includes(q) || matchesArabic(cat, q);
+        return matchName || matchBarcode || matchSku || matchSupplier || matchCategory;
+      }
+
+      // 2. Company & category filter
+      if (selectedCompany) {
+        if (selectedCompany !== '__ALL__') {
+          const comp = (p.supplierName || '').trim() || 'الشركة العامة';
+          if (comp !== selectedCompany) return false;
+        }
+
+        if (selectedCategory !== 'all') {
+          const cat = (p.categoryName || '').trim() || 'عام';
+          if (cat !== selectedCategory) return false;
+        }
+        return true;
+      }
+
+      return true;
+    });
+  }, [availableProducts, catalogSearchQuery, selectedCompany, selectedCategory, showOutOfStock]);
 
   // Update line's warehouse when top warehouse filter changes
   useEffect(() => {
@@ -1251,66 +582,19 @@ export function DriverNewLoadRequisitionView({
     });
   }, [availableProducts]);
 
-  // Add a new empty row to the table
-  const handleAddLine = useCallback(() => {
-    const newLineId = `line-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
-    setLines((prev) => [
-      ...prev,
-      {
-        id: newLineId,
-        productId: '',
-        productName: '',
-        barcode: '',
-        unitPrice: 0,
-        unit: 'قطعة',
-        sourceWarehouseId: '',
-        sourceWarehouseName: '',
-        availableInWarehouse: 0,
-        warehouseStocks: [],
-        qty: 1,
-        searchQuery: '',
-        isSearchOpen: true, // open dropdown immediately so cashier/driver can pick
-      },
-    ]);
-    setTimeout(() => {
-      const input = document.getElementById(`product-input-${newLineId}`) as HTMLInputElement | null;
-      if (input) {
-        input.focus();
-      }
-    }, 80);
-  }, []);
+  // Update product quantities (Orders logic)
+  const handleUpdateProductUnits = useCallback((
+    product: DriverAvailableProduct,
+    targetCartons: number,
+    targetPieces: number,
+  ) => {
+    const mult = product.packagingUnit?.multiplier || 1;
+    const isCartonItem = Boolean(product.packagingUnit && mult > 1);
+    const safeCartons = isCartonItem ? Math.max(0, targetCartons) : 0;
+    const safePieces = Math.max(0, targetPieces);
+    const totalQty = (safeCartons * mult) + safePieces;
 
-  // Remove a row
-  const handleRemoveLine = useCallback((lineId: string) => {
-    setLines((prev) => {
-      const filtered = prev.filter((l) => l.id !== lineId);
-      // If all deleted, keep at least one empty row
-      if (filtered.length === 0) {
-        return [
-          {
-            id: `line-${Date.now()}-1`,
-            productId: '',
-            productName: '',
-            barcode: '',
-            unitPrice: 0,
-            unit: 'قطعة',
-            sourceWarehouseId: '',
-            sourceWarehouseName: '',
-            availableInWarehouse: 0,
-            warehouseStocks: [],
-            qty: 1,
-            searchQuery: '',
-            isSearchOpen: false,
-          },
-        ];
-      }
-      return filtered;
-    });
-  }, []);
-
-  // Select a product into a specific line
-  const handleSelectProduct = useCallback((lineId: string, product: DriverAvailableProduct) => {
-    // Determine the source warehouse for this line
+    // Determine source warehouse
     let sourceWhId: number;
     let sourceWhName: string;
     let availStock: number;
@@ -1322,7 +606,6 @@ export function DriverNewLoadRequisitionView({
       sourceWhName = stockInFilter?.warehouseName || warehouses.find((w) => w.id === filterId)?.name || 'المستودع المختار';
       availStock = stockInFilter?.qty || 0;
     } else {
-      // Pick warehouse with highest available stock
       const sortedStocks = [...(product.warehouseStocks || [])].sort((a, b) => b.qty - a.qty);
       if (sortedStocks.length > 0 && sortedStocks[0].qty > 0) {
         sourceWhId = sortedStocks[0].warehouseId;
@@ -1339,41 +622,93 @@ export function DriverNewLoadRequisitionView({
       }
     }
 
-    const packUnit = product.packagingUnit;
-    const isWeight = Boolean(product.isWeight);
-    const mult = packUnit?.multiplier || 1;
-    const isCarton = Boolean(packUnit && mult > 1);
-    const initialCartons = isCarton ? 1 : undefined;
-    const initialPieces = isCarton ? 0 : undefined;
-    const initialQty = isCarton ? mult : 1;
+    if (availStock > 0 && totalQty > availStock) {
+      toast.warning(`الكمية المطلوبة من "${product.name}" تتجاوز المتاح بالمخزن (${availStock})`);
+    }
 
-    setLines((prev) =>
-      prev.map((line) => {
-        if (line.id !== lineId) return line;
-        return {
-          ...line,
-          productId: product.id,
-          productName: product.name,
-          barcode: product.barcode || '',
-          unitPrice: product.retailPrice || 0,
-          unit: product.unit || 'قطعة',
-          packagingUnit: packUnit,
-          isWeight,
-          cartons: initialCartons,
-          pieces: initialPieces,
-          sourceWarehouseId: sourceWhId,
-          sourceWarehouseName: sourceWhName,
-          availableInWarehouse: availStock,
-          warehouseStocks: product.warehouseStocks || [],
-          qty: initialQty,
-          searchQuery: product.name,
-          isSearchOpen: false,
-        };
-      }),
-    );
+    setLines((prev) => {
+      const existingIdx = prev.findIndex((l) => Number(l.productId) === product.id);
+
+      if (totalQty <= 0) {
+        if (existingIdx >= 0) {
+          return prev.filter((l) => Number(l.productId) !== product.id);
+        }
+        return prev;
+      }
+
+      const newLine: RequisitionLineItem = {
+        id: existingIdx >= 0 ? prev[existingIdx].id : `line-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        productId: product.id,
+        productName: product.name,
+        barcode: product.barcode || '',
+        unitPrice: product.retailPrice || 0,
+        unit: product.unit || 'قطعة',
+        packagingUnit: product.packagingUnit,
+        isWeight: Boolean(product.isWeight),
+        cartons: isCartonItem ? safeCartons : undefined,
+        pieces: isCartonItem ? safePieces : undefined,
+        sourceWarehouseId: existingIdx >= 0 ? prev[existingIdx].sourceWarehouseId : sourceWhId,
+        sourceWarehouseName: existingIdx >= 0 ? prev[existingIdx].sourceWarehouseName : sourceWhName,
+        availableInWarehouse: availStock,
+        warehouseStocks: product.warehouseStocks || [],
+        qty: totalQty,
+        searchQuery: product.name,
+        isSearchOpen: false,
+      };
+
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx] = newLine;
+        return next;
+      } else {
+        return [...prev, newLine];
+      }
+    });
   }, [selectedWarehouseFilter, warehouses]);
 
-  // Change warehouse for a specific line (when "all warehouses" is active)
+  // Stepper handlers
+  const handleCatalogAdd = useCallback((product: DriverAvailableProduct) => {
+    const mult = product.packagingUnit?.multiplier || 1;
+    const isCarton = Boolean(product.packagingUnit && mult > 1);
+    if (isCarton) {
+      handleUpdateProductUnits(product, 1, 0);
+    } else {
+      handleUpdateProductUnits(product, 0, 1);
+    }
+  }, [handleUpdateProductUnits]);
+
+  const handleCartonIncrement = useCallback((product: DriverAvailableProduct, currentCartons: number, currentPieces: number) => {
+    handleUpdateProductUnits(product, currentCartons + 1, currentPieces);
+  }, [handleUpdateProductUnits]);
+
+  const handleCartonDecrement = useCallback((product: DriverAvailableProduct, currentCartons: number, currentPieces: number) => {
+    handleUpdateProductUnits(product, Math.max(0, currentCartons - 1), currentPieces);
+  }, [handleUpdateProductUnits]);
+
+  const handlePieceIncrement = useCallback((product: DriverAvailableProduct, currentCartons: number, currentPieces: number) => {
+    handleUpdateProductUnits(product, currentCartons, currentPieces + 1);
+  }, [handleUpdateProductUnits]);
+
+  const handlePieceDecrement = useCallback((product: DriverAvailableProduct, currentCartons: number, currentPieces: number) => {
+    handleUpdateProductUnits(product, currentCartons, Math.max(0, currentPieces - 1));
+  }, [handleUpdateProductUnits]);
+
+  const handleSingleIncrement = useCallback((product: DriverAvailableProduct, currentQty: number) => {
+    const step = product.isWeight ? 0.5 : 1;
+    handleUpdateProductUnits(product, 0, Number((currentQty + step).toFixed(2)));
+  }, [handleUpdateProductUnits]);
+
+  const handleSingleDecrement = useCallback((product: DriverAvailableProduct, currentQty: number) => {
+    const step = product.isWeight ? 0.5 : 1;
+    const minQ = product.isWeight ? 0.05 : 0;
+    const nextQ = Math.max(minQ, Number((currentQty - step).toFixed(2)));
+    handleUpdateProductUnits(product, 0, nextQ);
+  }, [handleUpdateProductUnits]);
+
+  const handleRemoveLine = useCallback((lineId: string) => {
+    setLines((prev) => prev.filter((l) => l.id !== lineId));
+  }, []);
+
   const handleChangeLineWarehouse = useCallback((lineId: string, warehouseIdStr: string) => {
     const whId = Number(warehouseIdStr);
     setLines((prev) =>
@@ -1393,74 +728,8 @@ export function DriverNewLoadRequisitionView({
     );
   }, [warehouses]);
 
-  // Update line quantity
-  const handleUpdateLineQty = useCallback((lineId: string, newQty: number) => {
-    setLines((prev) =>
-      prev.map((line) => {
-        if (line.id !== lineId) return line;
-        const minQ = line.isWeight ? 0.05 : 1;
-        const clamped = Math.max(minQ, newQty);
-        const mult = line.packagingUnit?.multiplier || 1;
-        let cartons = line.cartons;
-        let pieces = line.pieces;
-        if (line.packagingUnit && mult > 1) {
-          cartons = Math.floor(clamped / mult);
-          pieces = Math.round(clamped % mult);
-        }
-        return { ...line, qty: clamped, cartons, pieces };
-      }),
-    );
-  }, []);
-
-  const handleUpdateLineCartonsPieces = useCallback((lineId: string, cartons: number, pieces: number) => {
-    setLines((prev) =>
-      prev.map((line) => {
-        if (line.id !== lineId) return line;
-        const mult = line.packagingUnit?.multiplier || 1;
-        const safeC = Math.max(0, cartons);
-        const safeP = Math.max(0, pieces);
-        const total = (safeC * mult) + safeP;
-        return {
-          ...line,
-          cartons: safeC,
-          pieces: safeP,
-          qty: total,
-        };
-      }),
-    );
-  }, []);
-
-  const handleLineProductChange = useCallback((lineId: string, val: string) => {
-    setLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId
-          ? {
-              ...l,
-              productName: val,
-              searchQuery: val,
-              ...(val === ''
-                ? {
-                    productId: '',
-                    barcode: '',
-                    availableInWarehouse: 0,
-                    warehouseStocks: [],
-                    unitPrice: 0,
-                  }
-                : {}),
-            }
-          : l,
-      ),
-    );
-  }, []);
-
-  const handleLineWarehouseChange = useCallback((lineId: string, val: string) => {
-    setLines((prev) =>
-      prev.map((l) => (l.id === lineId ? { ...l, sourceWarehouseName: val } : l)),
-    );
-  }, []);
-
   // Summary statistics
-  const validLines = useMemo(() => lines.filter((l) => l.productId !== ''), [lines]);
+  const validLines = useMemo(() => lines.filter((l) => Boolean(l.productId)), [lines]);
   const distinctItemsCount = validLines.length;
   const totalUnitsCount = useMemo(() => validLines.reduce((acc, l) => acc + l.qty, 0), [validLines]);
   const totalEstimatedValue = useMemo(() => validLines.reduce((acc, l) => acc + l.qty * l.unitPrice, 0), [validLines]);
@@ -1491,23 +760,7 @@ export function DriverNewLoadRequisitionView({
 
     if (confirmed) {
       clearDraft();
-      setLines([
-        {
-          id: `line-${Date.now()}-1`,
-          productId: '',
-          productName: '',
-          barcode: '',
-          unitPrice: 0,
-          unit: 'قطعة',
-          sourceWarehouseId: '',
-          sourceWarehouseName: '',
-          availableInWarehouse: 0,
-          warehouseStocks: [],
-          qty: 1,
-          searchQuery: '',
-          isSearchOpen: false,
-        },
-      ]);
+      setLines([]);
       setNotes('');
       dismissRestoredNotice();
       toast.success('تم حذف المسودة بنجاح وتفريغ البيانات');
@@ -1521,7 +774,6 @@ export function DriverNewLoadRequisitionView({
       return;
     }
 
-    // Check if any line has 0 available or exceeding
     for (const line of validLines) {
       if (line.availableInWarehouse <= 0) {
         toast.error(`الصنف "${line.productName}" رصيده نافد في مستودع "${line.sourceWarehouseName}"`);
@@ -1575,11 +827,11 @@ export function DriverNewLoadRequisitionView({
         onRequisitionSubmitted(res.docNo);
       }
     } catch {
-      // Toast is already handled in the hook's mutation onError
+      // Toast handled in mutation onError
     }
   };
 
-  // Handle submit in admin mode (direct dispatch or pending)
+  // Handle submit in admin mode
   const handleAdminSubmit = async (dispatchImmediately: boolean) => {
     if (!selectedRepId) {
       toast.error('يرجى اختيار مندوب التوزيع أولاً');
@@ -1604,7 +856,7 @@ export function DriverNewLoadRequisitionView({
     if (dispatchImmediately) {
       const ok = await systemConfirm({
         title: 'اعتماد وصرف وتحميل السيارة فوراً',
-        message: `هل تود صرف هذه الأصناف (${distinctItemsCount} صنف بإجمالي ${totalUnitsCount} قطعة) من المستودع وتحميل سيارة المندوب "${driverName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وفتح الرحلة تلقائياً.`,
+        message: `هل تود صرف هذه الأصناف (${distinctItemsCount} صنف بإجمالي ${totalUnitsCount} قطعة) من المستودع وتحميل سيارة المندوب "${driverName}" وبدء رحلة التوزيع فوراً؟`,
         confirmText: 'صرف وتحميل السيارة وبدء الرحلة',
         cancelText: 'إلغاء',
         variant: 'primary',
@@ -1653,7 +905,7 @@ export function DriverNewLoadRequisitionView({
     try {
       await adminSubmitMutation.mutateAsync(payload);
     } catch {
-      // Error handled in mutation onError
+      // Toast handled in mutation onError
     }
   };
 
@@ -1669,7 +921,6 @@ export function DriverNewLoadRequisitionView({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px 16px',
-          fontFamily: 'inherit',
         }}
       >
         <div
@@ -1738,8 +989,8 @@ export function DriverNewLoadRequisitionView({
 
           <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: '0 0 24px' }}>
             {adminSubmitResult.dispatched
-              ? `تم خصم كميات البضاعة من المستودع وتحويلها رسمياً لعهدة سيارة المندوب "${adminSubmitResult.repName}". السيارة محملة الآن والرحلة الميدانية نشطة وجاهزة لتسجيل الفواتير والتحصيلات.`
-              : `تم تسجيل طلب التحميل وإسناده للمندوب "${adminSubmitResult.repName}". يمكنك مراجعته أو تعديل كمياته وصرفه في أي وقت من جدول أذونات التحميل.`}
+              ? `تم خصم كميات البضاعة من المستودع وتحويلها لعهدة سيارة المندوب "${adminSubmitResult.repName}". السيارة محملة والرحلة نشطة.`
+              : `تم تسجيل طلب التحميل وإسناده للمندوب "${adminSubmitResult.repName}".`}
           </p>
 
           <Button
@@ -1774,7 +1025,6 @@ export function DriverNewLoadRequisitionView({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px 16px',
-          fontFamily: 'inherit',
         }}
       >
         <div
@@ -1824,7 +1074,7 @@ export function DriverNewLoadRequisitionView({
           </div>
 
           <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: '0 0 24px' }}>
-            تم رفع الطلب إلى المشرف المختص لمراجعة الأرصدة وإصدار أمر الصرف الفعلي لسيارتك. يمكنك متابعة حالة الطلب من شاشة المبيعات.
+            تم رفع الطلب إلى المشرف المختص لمراجعة الأرصدة وإصدار أمر الصرف الفعلي لسيارتك.
           </p>
 
           <Button
@@ -1847,6 +1097,253 @@ export function DriverNewLoadRequisitionView({
     );
   }
 
+  function renderProductsList(items: DriverAvailableProduct[]) {
+    if (items.length === 0) {
+      return (
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            padding: '30px 14px',
+            textAlign: 'center',
+            color: '#64748b',
+            fontSize: '12px',
+          }}
+        >
+          لا توجد أصناف مطابقة للبحث أو للشركة المحددة بالمخزن
+        </div>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: '8px',
+        }}
+      >
+        {items.map((prod) => {
+          const isOutOfStock = prod.totalStock <= 0;
+          const mult = prod.packagingUnit?.multiplier || 1;
+          const isCartonItem = Boolean(prod.packagingUnit && mult > 1);
+
+          // Current chosen quantity in lines
+          const lineItem = lines.find((l) => Number(l.productId) === prod.id);
+          const totalChosen = lineItem ? lineItem.qty : 0;
+          const currentCartons = lineItem?.cartons ?? (isCartonItem ? Math.floor(totalChosen / mult) : 0);
+          const currentPieces = lineItem?.pieces ?? (isCartonItem ? totalChosen % mult : totalChosen);
+
+          // Stock breakdown in cartons
+          const availCartons = isCartonItem ? Math.floor(prod.totalStock / mult) : 0;
+          const availPieces = isCartonItem ? prod.totalStock % mult : prod.totalStock;
+
+          return (
+            <div
+              key={prod.id}
+              style={{
+                border: `1px solid ${totalChosen > 0 ? '#c7d2fe' : '#e2e8f0'}`,
+                borderRadius: '9px',
+                padding: '8px 10px',
+                backgroundColor: totalChosen > 0 ? '#f5f3ff' : isOutOfStock ? '#f8fafc' : '#ffffff',
+                opacity: isOutOfStock && totalChosen === 0 ? 0.65 : 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '5px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                transition: 'border-color 0.15s ease',
+              }}
+            >
+              {/* Row 1: Name & Badges */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                <span style={{ fontWeight: 800, fontSize: '12.5px', color: '#0f172a', lineHeight: 1.3 }}>
+                  {prod.name}
+                </span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    backgroundColor: '#eef2ff',
+                    color: '#3730a3',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  {prod.supplierName || 'الشركة العامة'}
+                </span>
+              </div>
+
+              {/* Row 2: Price & Warehouse Stock */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                <span style={{ color: '#170e5e', fontWeight: 800 }}>
+                  سعر: {prod.retailPrice.toFixed(2)} <CurrencySymbol />
+                </span>
+
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: !isOutOfStock ? '#15803d' : '#dc2626',
+                    backgroundColor: !isOutOfStock ? '#ecfdf5' : '#fef2f2',
+                    border: `1px solid ${!isOutOfStock ? '#bbf7d0' : '#fecaca'}`,
+                    padding: '1px 6px',
+                    borderRadius: '5px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {!isOutOfStock ? (
+                    isCartonItem ? (
+                      <>
+                        {availCartons} {prod.packagingUnit?.name} {availPieces > 0 ? `+ ${availPieces}ق` : ''} ({prod.totalStock}ق)
+                      </>
+                    ) : (
+                      `متاح: ${prod.totalStock} ${prod.unit}`
+                    )
+                  ) : (
+                    'نافد من المخزن'
+                  )}
+                </span>
+              </div>
+
+              {/* Row 3: Action / Steppers */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '2px', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+                {totalChosen === 0 ? (
+                  isCartonItem ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateProductUnits(prod, 1, 0)}
+                        disabled={isOutOfStock}
+                        style={{
+                          flex: 1,
+                          backgroundColor: !isOutOfStock ? '#170e5e' : '#f1f5f9',
+                          color: !isOutOfStock ? '#ffffff' : '#94a3b8',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '5px 8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: !isOutOfStock ? 'pointer' : 'not-allowed',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          height: '28px',
+                        }}
+                      >
+                        <PlusIcon size={12} />
+                        <span>+ حجز {prod.packagingUnit?.name || 'كرتونة'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateProductUnits(prod, 0, 1)}
+                        disabled={isOutOfStock}
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '5px 8px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: !isOutOfStock ? 'pointer' : 'not-allowed',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          height: '28px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <PlusIcon size={11} color="#64748b" />
+                        <span>+ بالقطعة</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleCatalogAdd(prod)}
+                      disabled={isOutOfStock}
+                      style={{
+                        backgroundColor: !isOutOfStock ? '#170e5e' : '#f1f5f9',
+                        color: !isOutOfStock ? '#ffffff' : '#94a3b8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '5px 12px',
+                        fontSize: '11.5px',
+                        fontWeight: 800,
+                        cursor: !isOutOfStock ? 'pointer' : 'not-allowed',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        height: '28px',
+                        width: '100%',
+                      }}
+                    >
+                      <PlusIcon size={12} />
+                      <span>إضافة للتحميل</span>
+                    </button>
+                  )
+                ) : isCartonItem ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
+                      المطلوب: {totalChosen} قطعة
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CompactStepper
+                        value={currentCartons}
+                        unitLabel={prod.packagingUnit?.name || 'كرتونة'}
+                        onIncrement={() => handleCartonIncrement(prod, currentCartons, currentPieces)}
+                        onDecrement={() => handleCartonDecrement(prod, currentCartons, currentPieces)}
+                        onChange={(val) => handleUpdateProductUnits(prod, val, currentPieces)}
+                        disabledDecrement={currentCartons <= 0}
+                        height="28px"
+                        inputWidth="32px"
+                      />
+                      <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '11px' }}>+</span>
+                      <CompactStepper
+                        value={currentPieces}
+                        unitLabel="قطع"
+                        onIncrement={() => handlePieceIncrement(prod, currentCartons, currentPieces)}
+                        onDecrement={() => handlePieceDecrement(prod, currentCartons, currentPieces)}
+                        onChange={(val) => handleUpdateProductUnits(prod, currentCartons, val)}
+                        disabledDecrement={currentPieces <= 0}
+                        height="28px"
+                        inputWidth="32px"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
+                      القيمة: {(totalChosen * prod.retailPrice).toFixed(2)} <CurrencySymbol />
+                    </span>
+                    <CompactStepper
+                      value={totalChosen}
+                      unitLabel={prod.unit || 'قطعة'}
+                      isDecimal={Boolean(prod.isWeight)}
+                      step={prod.isWeight ? 0.5 : 1}
+                      min={0}
+                      onIncrement={() => handleSingleIncrement(prod, totalChosen)}
+                      onDecrement={() => handleSingleDecrement(prod, totalChosen)}
+                      onChange={(val) => handleUpdateProductUnits(prod, 0, val)}
+                      disabledDecrement={totalChosen <= 0}
+                      height="28px"
+                      inputWidth={prod.isWeight ? '44px' : '36px'}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div dir="rtl" className="driver-requisition-view" style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}>
       <style>{`
@@ -1859,82 +1356,42 @@ export function DriverNewLoadRequisitionView({
           -moz-appearance: textfield !important;
           appearance: textfield !important;
         }
-        @media (max-width: 768px) {
-          .driver-requisition-card {
-            padding: 12px 14px !important;
-          }
-          .driver-req-top-actions {
-            width: 100% !important;
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            gap: 8px !important;
-            margin-top: 8px !important;
-          }
-          .driver-req-top-actions > * {
-            min-height: 36px !important;
-            justify-content: center !important;
-          }
-          .driver-req-top-actions > .driver-req-primary-btn {
-            flex: 1 1 auto !important;
-          }
-          .driver-req-top-actions > button:not(.driver-req-primary-btn) {
-            flex: 0 0 auto !important;
-          }
-          .driver-req-bottom-actions {
-            width: 100% !important;
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            gap: 8px !important;
-            margin-top: 10px !important;
-          }
-          .driver-req-bottom-actions > * {
-            min-height: 38px !important;
-            justify-content: center !important;
-          }
-          .driver-req-bottom-actions > .driver-req-primary-btn {
-            flex: 1 1 auto !important;
-          }
-          .driver-req-bottom-actions > button:not(.driver-req-primary-btn) {
-            flex: 0 0 auto !important;
-          }
-        }
       `}</style>
       <div
         style={{
           maxWidth: '1280px',
           width: 'min(100%, 1280px)',
           margin: '0 auto',
-          paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))',
-          paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
-          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
-          paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+          paddingTop: 'calc(10px + env(safe-area-inset-top, 0px))',
+          paddingRight: 'max(10px, env(safe-area-inset-right, 0px))',
+          paddingBottom: 'calc(85px + env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(10px, env(safe-area-inset-left, 0px))',
           boxSizing: 'border-box',
         }}
       >
-        {/* Top Header Bar matching NewIssueOrderPage */}
+        {/* Top Header Bar */}
         <header
           style={{
             backgroundColor: '#ffffff',
-            borderRadius: '12px',
+            borderRadius: '10px',
             border: '1px solid #e2e8f0',
-            padding: '10px 14px',
-            marginBottom: '10px',
+            padding: '8px 12px',
+            marginBottom: '8px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            flexWrap: 'wrap',
-            gap: '12px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+            gap: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
             <button
               type="button"
               onClick={handleGoBack}
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '7px',
                 backgroundColor: '#f1f5f9',
                 border: '1px solid #e2e8f0',
                 display: 'flex',
@@ -1942,228 +1399,183 @@ export function DriverNewLoadRequisitionView({
                 justifyContent: 'center',
                 cursor: 'pointer',
                 color: '#475569',
+                flexShrink: 0,
               }}
               title="العودة للقائمة"
             >
-              <ArrowRightIcon size={18} />
+              <ArrowRightIcon size={16} />
             </button>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  {isAdmin
-                    ? 'إسناد وصرف إذن تحميل السيارة'
-                    : 'طلب شحن وتحميل سيارة التوزيع'}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <h1 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {isAdmin ? 'إسناد وصرف إذن تحميل السيارة' : 'طلب شحن وتحميل سيارة التوزيع'}
                 </h1>
                 <span
                   style={{
                     backgroundColor: isAdmin ? '#fef3c7' : '#e0e7ff',
                     color: isAdmin ? '#92400e' : '#3730a3',
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
+                    padding: '1px 6px',
+                    borderRadius: '5px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   {isAdmin ? 'إسناد إداري' : 'مسودة جديدة'}
                 </span>
+                {isMobile && distinctItemsCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#f0fdf4',
+                      color: '#15803d',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '5px',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    ({distinctItemsCount} بالطلب)
+                  </span>
+                )}
               </div>
-
             </div>
           </div>
 
-          <div className="driver-req-top-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
-            {isAdmin ? (
-              <>
+          {!isMobile && (
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+              {isAdmin ? (
                 <Button
                   type="button"
                   variant="primary"
-                  className="driver-req-primary-btn"
                   onClick={() => handleAdminSubmit(true)}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
                     backgroundColor: '#170e5e',
                     color: '#ffffff',
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     fontWeight: 800,
-                    padding: '8px 14px',
+                    padding: '6px 12px',
                     whiteSpace: 'nowrap',
-                    flex: '1 1 auto',
+                    height: '32px',
                   }}
                 >
-                  {adminSubmitMutation.isPending
-                    ? 'جاري الصرف والتحميل...'
-                    : `صرف وتحميل (${distinctItemsCount})`}
+                  {adminSubmitMutation.isPending ? 'جاري الصرف...' : `صرف وتحميل (${distinctItemsCount})`}
                 </Button>
+              ) : (
                 <Button
-                  variant="secondary"
                   type="button"
-                  onClick={() => handleAdminSubmit(false)}
+                  variant="primary"
+                  onClick={handleSubmit}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
                     fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#170e5e',
-                    borderColor: '#170e5e',
-                    padding: '8px 12px',
+                    fontWeight: 800,
+                    padding: '6px 12px',
                     whiteSpace: 'nowrap',
-                    flex: '0 0 auto',
+                    height: '32px',
                   }}
                 >
-                  {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'إذن معلق'}
+                  {isSubmitting ? 'جارٍ الإرسال...' : `إرسال للمشرف (${distinctItemsCount})`}
                 </Button>
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="primary"
-                className="driver-req-primary-btn"
-                onClick={handleSubmit}
-                disabled={isSubmitting || validLines.length === 0}
-                style={{
-                  backgroundColor: '#170e5e',
-                  color: '#ffffff',
-                  fontSize: '12.5px',
-                  fontWeight: 800,
-                  padding: '8px 14px',
-                  whiteSpace: 'nowrap',
-                  flex: '1 1 auto',
-                }}
-              >
-                {isSubmitting
-                  ? 'جارٍ الإرسال...'
-                  : `إرسال للمشرف (${distinctItemsCount})`}
-              </Button>
-            )}
-
-            {(hasDraftContent || hasSavedDraft) && (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={handleClearDraft}
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#dc2626',
-                  borderColor: '#fca5a5',
-                  backgroundColor: '#fef2f2',
-                  padding: '8px 12px',
-                  whiteSpace: 'nowrap',
-                  flex: '0 0 auto',
-                }}
-              >
-                حذف المسودة
-              </Button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </header>
 
         {/* Draft Restored Banner */}
         {isDraftRestored && (
           <div
             style={{
-              marginBottom: '16px',
-              padding: '10px 16px',
+              marginBottom: '8px',
+              padding: '8px 12px',
               backgroundColor: '#eff6ff',
               border: '1px solid #bfdbfe',
-              borderRadius: '10px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap',
+              gap: '8px',
+              fontSize: '12px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#1e40af' }}>
-              <CheckCircleIcon size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1e40af' }}>
+              <CheckCircleIcon size={15} />
               <span>
-                <strong>تم استرجاع المسودة غير المحفوظة تلقائياً:</strong> تم تحميل الأصناف والبيانات السابقة لمتابعة إذن التحميل دون فقدان.
+                <strong>تم استرجاع المسودة تلقائياً:</strong> ({validLines.length} صنف محفوظ).
               </span>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <button
                 type="button"
                 onClick={handleClearDraft}
                 style={{
-                  fontSize: '11.5px',
+                  fontSize: '11px',
                   color: '#b91c1c',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: 700,
                   textDecoration: 'underline',
-                  padding: '2px 6px',
+                  padding: '2px 4px',
                 }}
               >
-                حذف المسودة
+                حذف
               </button>
               <button
                 type="button"
                 onClick={dismissRestoredNotice}
                 style={{
-                  fontSize: '11.5px',
+                  fontSize: '11px',
                   color: '#1e40af',
                   backgroundColor: '#dbeafe',
                   border: '1px solid #bfdbfe',
-                  borderRadius: '6px',
+                  borderRadius: '5px',
                   cursor: 'pointer',
                   fontWeight: 600,
-                  padding: '3px 10px',
+                  padding: '2px 8px',
                 }}
               >
-                إغلاق التنبيه
+                إغلاق
               </button>
             </div>
           </div>
         )}
 
-        {/* Section 1: "المعلومات الأساسية" matching IssueOrderHeaderSection */}
+        {/* Basic Info Section (Source Warehouse & Representative) */}
         <section
-          className="driver-requisition-card"
           style={{
-            position: 'relative',
-            zIndex: 10,
             backgroundColor: '#ffffff',
-            borderRadius: '12px',
+            borderRadius: '10px',
             border: '1px solid #cbd5e1',
-            padding: '12px 14px',
-            marginBottom: '10px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            padding: '8px 12px',
+            marginBottom: '8px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
           }}
         >
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '14px',
-              paddingBottom: '8px',
+              gap: '6px',
+              marginBottom: '6px',
+              paddingBottom: '4px',
               borderBottom: '1px solid #f1f5f9',
             }}
           >
-            <div style={{ width: '4px', height: '16px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px' }} />
+            <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
               المعلومات الأساسية لطلب التحميل
-            </h3>
+            </span>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
-            {/* Field 1: Source Warehouse Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  color: '#334155',
-                  marginBottom: '4px',
-                }}
-              >
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
                 من مخزن (مستودع الصرف)
               </label>
               <CustomSelect
@@ -2175,21 +1587,10 @@ export function DriverNewLoadRequisitionView({
               />
             </div>
 
-            {/* Field 2 & 3: Representative & Vehicle Side by Side on 1 Row (Flex row to strictly prevent mobile collapse) */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               <div style={{ flex: '1 1 50%', minWidth: 0 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    color: '#334155',
-                    marginBottom: '3px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {isAdmin ? 'المندوب (السائق)' : 'المندوب (المستلم)'}
-                  {isAdmin && <span style={{ color: '#dc2626' }}> *</span>}
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px', whiteSpace: 'nowrap' }}>
+                  {isAdmin ? 'المندوب (السائق) *' : 'المندوب (المستلم)'}
                 </label>
                 {isAdmin ? (
                   <CustomSelect
@@ -2206,12 +1607,12 @@ export function DriverNewLoadRequisitionView({
                     value={driverName}
                     style={{
                       width: '100%',
-                      height: '36px',
+                      height: '32px',
                       backgroundColor: '#f8fafc',
                       border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '0 10px',
-                      fontSize: '12px',
+                      borderRadius: '7px',
+                      padding: '0 8px',
+                      fontSize: '11.5px',
                       color: '#0f172a',
                       fontWeight: 700,
                       boxSizing: 'border-box',
@@ -2221,16 +1622,7 @@ export function DriverNewLoadRequisitionView({
               </div>
 
               <div style={{ flex: '1 1 50%', minWidth: 0 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    color: '#334155',
-                    marginBottom: '3px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px', whiteSpace: 'nowrap' }}>
                   السيارة
                 </label>
                 <input
@@ -2239,12 +1631,12 @@ export function DriverNewLoadRequisitionView({
                   value={displayVehiclePlate}
                   style={{
                     width: '100%',
-                    height: '36px',
+                    height: '32px',
                     backgroundColor: '#f8fafc',
                     border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '0 10px',
-                    fontSize: '12px',
+                    borderRadius: '7px',
+                    padding: '0 8px',
+                    fontSize: '11.5px',
                     color: '#0f172a',
                     fontWeight: 700,
                     boxSizing: 'border-box',
@@ -2255,265 +1647,863 @@ export function DriverNewLoadRequisitionView({
           </div>
         </section>
 
-        {/* Section 2: "الأصناف المطلوبة للتحميل" matching IssueOrderItemsTable */}
-        <section
-          className="driver-requisition-card"
+        {/* SUB-TABS SELECTOR: Catalog vs Selected Items */}
+        <div
           style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #cbd5e1',
-            padding: '12px 14px',
-            marginBottom: '10px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            backgroundColor: '#f1f5f9',
+            padding: '3px',
+            borderRadius: '9px',
+            gap: '4px',
+            marginBottom: '8px',
           }}
         >
-          <div
+          <button
+            type="button"
+            onClick={() => setActiveViewTab('catalog')}
             style={{
+              flex: 1,
+              padding: '7px 8px',
+              borderRadius: '7px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: activeViewTab === 'catalog' ? '1px solid #170e5e' : '1px solid transparent',
+              background: activeViewTab === 'catalog' ? '#170e5e' : 'transparent',
+              color: activeViewTab === 'catalog' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '14px',
-              paddingBottom: '8px',
-              borderBottom: '1px solid #f1f5f9',
+              justifyContent: 'center',
+              gap: '6px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '4px', height: '16px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                الأصناف المطلوبة للتحميل
-              </h3>
-              <span
+            <BoxesIcon size={14} />
+            <span>كتالوج أصناف المخزن ({displayedProducts.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveViewTab('selected')}
+            style={{
+              flex: 1,
+              padding: '7px 8px',
+              borderRadius: '7px',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: activeViewTab === 'selected' ? '1px solid #170e5e' : '1px solid transparent',
+              background: activeViewTab === 'selected' ? '#170e5e' : 'transparent',
+              color: activeViewTab === 'selected' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <CheckCircleIcon size={14} />
+            <span>الأصناف المطلوبة للتحميل ({distinctItemsCount})</span>
+          </button>
+        </div>
+
+        {/* TAB 1: CATALOG VIEW (Orders-style Browsing & Instant Steppers) */}
+        {activeViewTab === 'catalog' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* SEARCH INPUT */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                type="text"
+                placeholder="ابحث بالاسم أو الباركود في كافة المخزن..."
+                value={catalogSearchQuery}
+                onChange={(e) => setCatalogSearchQuery(e.target.value)}
                 style={{
-                  backgroundColor: '#f1f5f9',
-                  color: '#475569',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '6px',
+                  width: '100%',
+                  height: '38px',
+                  padding: catalogSearchQuery ? '0 32px 0 32px' : '0 32px 0 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12.5px',
+                  boxSizing: 'border-box',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                }}
+              />
+              <SearchIcon
+                size={15}
+                color="#94a3b8"
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              />
+              {catalogSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setCatalogSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '22px',
+                    height: '22px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#64748b',
+                    padding: 0,
+                  }}
+                  title="مسح البحث"
+                >
+                  <XIcon size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* CATALOG WORKFLOW */}
+            {catalogSearchQuery.trim() ? (
+              /* SEARCH RESULTS VIEW */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', fontSize: '11.5px' }}>
+                  <span style={{ color: '#475569', fontWeight: 700 }}>
+                    نتائج البحث: ({displayedProducts.length} صنف)
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {outOfStockCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowOutOfStock((prev) => !prev)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: showOutOfStock ? '#170e5e' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          padding: 0,
+                        }}
+                      >
+                        {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCatalogSearchQuery('')}
+                      style={{ background: 'none', border: 'none', color: '#170e5e', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                    >
+                      العودة لتصفح الشركات
+                    </button>
+                  </div>
+                </div>
+
+                {renderProductsList(displayedProducts)}
+              </div>
+            ) : !selectedCompany ? (
+              /* COMPANIES GRID VIEW (DEFAULT) */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                      شركات وموردي البضاعة ({companies.length})
+                    </span>
+                  </div>
+                  {companies.some((c) => c.availableProducts === 0) && (
+                    <button
+                      type="button"
+                      onClick={() => setHideOutOfStockCompanies((prev) => !prev)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: hideOutOfStockCompanies ? '#170e5e' : '#64748b',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      {hideOutOfStockCompanies ? 'عرض كل الشركات' : 'المتوفر فقط'}
+                    </button>
+                  )}
+                </div>
+
+                {displayedCompanies.length === 0 ? (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+                    لا توجد شركات مطابقة بالمخزن حالياً
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    {/* ALL PRODUCTS MASTER CARD */}
+                    <div
+                      onClick={() => {
+                        setSelectedCompany('__ALL__');
+                        setSelectedCategory('all');
+                      }}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #170e5e',
+                        borderRadius: '12px',
+                        padding: '9px 8px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 1px 3px rgba(23,14,94,0.06)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '9px',
+                          backgroundColor: '#170e5e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                        }}
+                      >
+                        <BoxesIcon size={16} />
+                      </div>
+
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '11.5px',
+                          color: '#170e5e',
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title="كافة أصناف المخزن"
+                      >
+                        كافة الأصناف
+                      </span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: totalAvailableItemsCount > 0 ? '#15803d' : '#94a3b8',
+                            backgroundColor: totalAvailableItemsCount > 0 ? '#ecfdf5' : '#f1f5f9',
+                            border: `1px solid ${totalAvailableItemsCount > 0 ? '#bbf7d0' : '#e2e8f0'}`,
+                            padding: '1px 6px',
+                            borderRadius: '10px',
+                          }}
+                        >
+                          {totalAvailableItemsCount > 0 ? `${totalAvailableItemsCount} صنف متاح` : `${(availableProducts || []).length} صنف`}
+                        </span>
+                        {distinctItemsCount > 0 && (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              color: '#170e5e',
+                              backgroundColor: '#e0e7ff',
+                              border: '1px solid #c7d2fe',
+                              padding: '1px 5px',
+                              borderRadius: '10px',
+                            }}
+                          >
+                            {distinctItemsCount} بالطلب
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* INDIVIDUAL COMPANY CARDS */}
+                    {displayedCompanies.map((comp) => {
+                      const inReqCount = linesCompanyCounts.get(comp.name) || 0;
+                      return (
+                        <div
+                          key={comp.name}
+                          onClick={() => {
+                            setSelectedCompany(comp.name);
+                            setSelectedCategory('all');
+                          }}
+                          style={{
+                            backgroundColor: inReqCount > 0 ? '#fbfbfe' : '#ffffff',
+                            border: inReqCount > 0 ? '1.5px solid #a5b4fc' : '1px solid #e2e8f0',
+                            borderRadius: '12px',
+                            padding: '9px 8px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '9px',
+                              backgroundColor: '#eef2ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#170e5e',
+                            }}
+                          >
+                            <BuildingIcon size={16} />
+                          </div>
+
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: '11.5px',
+                              color: '#0f172a',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={comp.name}
+                          >
+                            {comp.name}
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: comp.availableProducts > 0 ? '#047857' : '#94a3b8',
+                                backgroundColor: comp.availableProducts > 0 ? '#f0fdf4' : '#f1f5f9',
+                                border: `1px solid ${comp.availableProducts > 0 ? '#bbf7d0' : '#e2e8f0'}`,
+                                padding: '1px 6px',
+                                borderRadius: '10px',
+                              }}
+                            >
+                              {comp.availableProducts > 0 ? `${comp.availableProducts} صنف متاح` : 'نفد الرصيد'}
+                            </span>
+                            {inReqCount > 0 && (
+                              <span
+                                style={{
+                                  fontSize: '9.5px',
+                                  fontWeight: 800,
+                                  color: '#170e5e',
+                                  backgroundColor: '#e0e7ff',
+                                  border: '1px solid #c7d2fe',
+                                  padding: '1px 5px',
+                                  borderRadius: '10px',
+                                }}
+                              >
+                                {inReqCount} بالطلب
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* SELECTED COMPANY VIEW: HORIZONTAL CATEGORIES BAR & PRODUCTS */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* COMPANY HEADER WITH BACK BUTTON */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    padding: '7px 10px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCompany(null);
+                        setSelectedCategory('all');
+                      }}
+                      style={{
+                        height: '28px',
+                        padding: '0 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#f8fafc',
+                        color: '#170e5e',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                      title="الرجوع لقائمة الشركات"
+                    >
+                      <ArrowRightIcon size={13} />
+                      <span>الشركات</span>
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span
+                        style={{
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          color: '#0f172a',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={selectedCompany === '__ALL__' ? 'كافة أصناف المخزن' : selectedCompany || ''}
+                      >
+                        {selectedCompany === '__ALL__' ? 'كافة أصناف المخزن' : selectedCompany}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          color: '#170e5e',
+                          fontWeight: 700,
+                          backgroundColor: '#eef2ff',
+                          padding: '1px 6px',
+                          borderRadius: '8px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {displayedProducts.length} صنف
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    {outOfStockCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowOutOfStock((prev) => !prev)}
+                        style={{
+                          height: '26px',
+                          padding: '0 8px',
+                          borderRadius: '6px',
+                          border: showOutOfStock ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
+                          backgroundColor: showOutOfStock ? '#e0e7ff' : '#f8fafc',
+                          color: showOutOfStock ? '#170e5e' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: '10.5px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* HORIZONTAL CATEGORIES BAR (DEFAULT IS 'all') */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    overflowX: 'auto',
+                    padding: '1px 0 4px',
+                    scrollbarWidth: 'none',
+                    WebkitOverflowScrolling: 'touch',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    style={{
+                      height: '28px',
+                      padding: '0 10px',
+                      borderRadius: '14px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      border: selectedCategory === 'all' ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                      backgroundColor: selectedCategory === 'all' ? '#170e5e' : '#ffffff',
+                      color: selectedCategory === 'all' ? '#ffffff' : '#475569',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span>الكل</span>
+                    <span style={{ opacity: selectedCategory === 'all' ? 0.9 : 0.7, fontSize: '10px' }}>
+                      ({selectedCompany === '__ALL__' ? (availableProducts || []).length : (availableProducts || []).filter((p) => ((p.supplierName || '').trim() || 'الشركة العامة') === selectedCompany).length})
+                    </span>
+                  </button>
+
+                  {companyCategories.map((cat) => (
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.name)}
+                      style={{
+                        height: '28px',
+                        padding: '0 10px',
+                        borderRadius: '14px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: selectedCategory === cat.name ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                        backgroundColor: selectedCategory === cat.name ? '#170e5e' : '#ffffff',
+                        color: selectedCategory === cat.name ? '#ffffff' : '#475569',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <bdi>{cat.name}</bdi>
+                      <span style={{ opacity: selectedCategory === cat.name ? 0.9 : 0.7, fontSize: '10px' }}>
+                        ({cat.count})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* PRODUCTS LIST */}
+                {renderProductsList(displayedProducts)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: SELECTED ITEMS REVIEW & NOTES */}
+        {activeViewTab === 'selected' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {validLines.length === 0 ? (
+              <div
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  padding: '36px 16px',
+                  textAlign: 'center',
+                  color: '#64748b',
                 }}
               >
-                [{distinctItemsCount} صنف مُحدد]
-              </span>
-            </div>
-            {/* Top add button removed to avoid duplicate */}
-          </div>
+                <BoxesIcon size={32} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
+                <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700 }}>
+                  لم تقم بتحديد أي أصناف للتحميل حتى الآن.
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={() => setActiveViewTab('catalog')}
+                  style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    padding: '7px 16px',
+                  }}
+                >
+                  تصفح كتالوج المخزن واختيار الأصناف
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {validLines.map((line, index) => {
+                  const mult = line.packagingUnit?.multiplier || 1;
+                  const isCartonItem = Boolean(line.packagingUnit && mult > 1);
+                  const lineTotal = line.qty * line.unitPrice;
 
-          {/* Items Container: Responsive Cards on Mobile, Table on Desktop */}
-          {isMobile ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {lines.map((line, index) => (
-                <RequisitionLineCard
-                  key={line.id}
-                  line={line}
-                  index={index}
-                  isLast={index === lines.length - 1}
-                  productOptions={productOptions}
-                  selectedWarehouseFilter={selectedWarehouseFilter}
-                  onSelectProduct={handleSelectProduct}
-                  onLineProductChange={handleLineProductChange}
-                  onChangeLineWarehouse={handleChangeLineWarehouse}
-                  onLineWarehouseChange={handleLineWarehouseChange}
-                  onUpdateLineQty={handleUpdateLineQty}
-                  onUpdateLineCartonsPieces={handleUpdateLineCartonsPieces}
-                  onRemoveLine={handleRemoveLine}
-                  onEnterQty={handleAddLine}
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              className="purchase-prototype-items-table-wrapper"
-              style={{
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                backgroundColor: '#ffffff',
-              }}
-            >
-              <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'right' }}>
-                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
-                  <tr>
-                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '34%' }}>
-                      الصنف (بحث بالاسم أو الباركود)
-                    </th>
-                    {selectedWarehouseFilter === 'all' && (
-                      <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '22%' }}>
-                        مخزن الصرف
-                      </th>
-                    )}
-                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '16%', textAlign: 'center' }}>
-                      المتاح بالمخزن
-                    </th>
-                    <th style={{ padding: '10px 14px', color: '#475569', fontSize: '12.5px', fontWeight: 700, width: '23%', textAlign: 'center' }}>
-                      الكمية المطلوبة (كرتونة / قطع)
-                    </th>
-                    <th style={{ padding: '10px 14px', width: '5%', textAlign: 'center' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => (
-                    <RequisitionLineRow
+                  // Product object to read stocks
+                  const prod = availableProducts.find((p) => p.id === Number(line.productId));
+
+                  return (
+                    <div
                       key={line.id}
-                      line={line}
-                      index={index}
-                      isLast={index === lines.length - 1}
-                      productOptions={productOptions}
-                      selectedWarehouseFilter={selectedWarehouseFilter}
-                      onSelectProduct={handleSelectProduct}
-                      onLineProductChange={handleLineProductChange}
-                      onChangeLineWarehouse={handleChangeLineWarehouse}
-                      onLineWarehouseChange={handleLineWarehouseChange}
-                      onUpdateLineQty={handleUpdateLineQty}
-                      onUpdateLineCartonsPieces={handleUpdateLineCartonsPieces}
-                      onRemoveLine={handleRemoveLine}
-                      onEnterQty={handleAddLine}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '9px',
+                        padding: '8px 10px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                      }}
+                    >
+                      {/* Top Row: Index, Name, Subtotal, Delete */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', flexShrink: 0 }}>
+                            #{index + 1}
+                          </span>
+                          <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {line.productName}
+                          </span>
+                        </div>
 
-          {/* Add Line Bottom Bar */}
-          <div style={{ marginTop: '12px', textAlign: isMobile ? 'center' : 'right' }}>
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={handleAddLine}
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 700,
-                color: '#170e5e',
-                borderColor: '#cbd5e1',
-                padding: '8px 16px',
-                backgroundColor: '#f8fafc',
-                width: isMobile ? '100%' : 'auto',
-                justifyContent: 'center',
-              }}
-            >
-              + إضافة صنف جديد
-            </Button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e', backgroundColor: '#ede9fe', padding: '1px 6px', borderRadius: '4px' }}>
+                            {lineTotal.toFixed(2)} <CurrencySymbol />
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLine(line.id)}
+                            style={{
+                              backgroundColor: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '3px 6px',
+                              borderRadius: '5px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '24px',
+                              width: '24px',
+                            }}
+                            title="حذف هذا السطر"
+                          >
+                            <Trash2Icon size={12} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Middle: Warehouse picker (if 'all') & Available stock */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                        {selectedWarehouseFilter === 'all' && (line.warehouseStocks || []).filter((w) => w.qty > 0).length > 1 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: '#64748b', fontWeight: 700 }}>المخزن:</span>
+                            <select
+                              value={line.sourceWarehouseId ? String(line.sourceWarehouseId) : ''}
+                              onChange={(e) => handleChangeLineWarehouse(line.id, e.target.value)}
+                              style={{
+                                height: '24px',
+                                fontSize: '11px',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '5px',
+                                padding: '0 4px',
+                                backgroundColor: '#f8fafc',
+                                color: '#0f172a',
+                              }}
+                            >
+                              {(line.warehouseStocks || [])
+                                .filter((w) => w.qty > 0)
+                                .map((w) => (
+                                  <option key={w.warehouseId} value={w.warehouseId}>
+                                    {w.warehouseName} (متاح: {w.qty})
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#64748b' }}>
+                            مخزن: {line.sourceWarehouseName || 'المستودع المختار'}
+                          </span>
+                        )}
+
+                        <span style={{ color: '#15803d', fontWeight: 700 }}>
+                          متاح: {line.availableInWarehouse} {line.unit}
+                        </span>
+                      </div>
+
+                      {/* Bottom: Stepper controls */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
+                          إجمالي الكمية: {line.qty} {line.unit}
+                        </span>
+
+                        {isCartonItem && prod ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CompactStepper
+                              value={line.cartons || 0}
+                              unitLabel={line.packagingUnit?.name || 'كرتونة'}
+                              onIncrement={() => handleCartonIncrement(prod, line.cartons || 0, line.pieces || 0)}
+                              onDecrement={() => handleCartonDecrement(prod, line.cartons || 0, line.pieces || 0)}
+                              onChange={(val) => handleUpdateProductUnits(prod, val, line.pieces || 0)}
+                              disabledDecrement={(line.cartons || 0) <= 0}
+                              height="26px"
+                              inputWidth="30px"
+                            />
+                            <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '11px' }}>+</span>
+                            <CompactStepper
+                              value={line.pieces || 0}
+                              unitLabel="قطع"
+                              onIncrement={() => handlePieceIncrement(prod, line.cartons || 0, line.pieces || 0)}
+                              onDecrement={() => handlePieceDecrement(prod, line.cartons || 0, line.pieces || 0)}
+                              onChange={(val) => handleUpdateProductUnits(prod, line.cartons || 0, val)}
+                              disabledDecrement={(line.pieces || 0) <= 0}
+                              height="26px"
+                              inputWidth="30px"
+                            />
+                          </div>
+                        ) : prod ? (
+                          <CompactStepper
+                            value={line.qty}
+                            unitLabel={line.unit || 'قطعة'}
+                            isDecimal={Boolean(line.isWeight)}
+                            step={line.isWeight ? 0.5 : 1}
+                            min={0}
+                            onIncrement={() => handleSingleIncrement(prod, line.qty)}
+                            onDecrement={() => handleSingleDecrement(prod, line.qty)}
+                            onChange={(val) => handleUpdateProductUnits(prod, 0, val)}
+                            height="26px"
+                            inputWidth={line.isWeight ? '44px' : '36px'}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Additional Notes Card */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '9px',
+                    border: '1px solid #cbd5e1',
+                    padding: '8px 10px',
+                  }}
+                >
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                    ملاحظات إضافية لمشرف المستودع
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={1}
+                    placeholder="أي ملاحظات إضافية على طلب الشحن..."
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '7px',
+                      padding: '6px 8px',
+                      fontSize: '11.5px',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      resize: 'vertical',
+                      minHeight: '34px',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </section>
+        )}
 
-        {/* Section 3: "الملاحظات" matching NewIssueOrderPage */}
+        {/* BOTTOM SUMMARY CARD & ACTIONS */}
         <section
-          className="driver-requisition-card"
           style={{
+            position: 'sticky',
+            bottom: '10px',
             backgroundColor: '#ffffff',
-            borderRadius: '12px',
+            borderRadius: '10px',
             border: '1px solid #cbd5e1',
-            padding: '10px 14px',
-            marginBottom: '10px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '10px',
-              paddingBottom: '8px',
-              borderBottom: '1px solid #f1f5f9',
-            }}
-          >
-            <div style={{ width: '4px', height: '16px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              ملاحظات إضافية لمشرف المستودع
-            </h3>
-          </div>
-
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            placeholder="أي ملاحظات إضافية على طلب الشحن..."
-            style={{
-              width: '100%',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px 10px',
-              fontSize: '12px',
-              color: '#0f172a',
-              boxSizing: 'border-box',
-              resize: 'vertical',
-              minHeight: '44px',
-            }}
-          />
-        </section>
-
-        {/* Section 4: Summary Card & Action Bar */}
-        <section
-          className="driver-requisition-card"
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '10px 14px',
+            padding: '8px 12px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            marginTop: '10px',
+            zIndex: 30,
           }}
         >
+          {/* Mini-KPI Strip */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr auto 1fr auto 1.2fr',
               alignItems: 'center',
               width: '100%',
-              gap: '6px',
+              gap: '4px',
               backgroundColor: '#f8fafc',
-              padding: '10px 12px',
-              borderRadius: '10px',
+              padding: '6px 10px',
+              borderRadius: '8px',
               border: '1px solid #e2e8f0',
               boxSizing: 'border-box',
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>الأصناف</span>
-              <strong style={{ fontSize: '13.5px', color: '#0f172a', whiteSpace: 'nowrap' }}>{distinctItemsCount} صنف</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>الأصناف</span>
+              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{distinctItemsCount} صنف</strong>
             </div>
-            <div style={{ height: '22px', width: '1px', backgroundColor: '#cbd5e1' }} />
+            <div style={{ height: '18px', width: '1px', backgroundColor: '#cbd5e1' }} />
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>القطع</span>
-              <strong style={{ fontSize: '13.5px', color: '#0f172a', whiteSpace: 'nowrap' }}>{totalUnitsCount} قطعة</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>القطع</span>
+              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{totalUnitsCount} قطعة</strong>
             </div>
-            <div style={{ height: '22px', width: '1px', backgroundColor: '#cbd5e1' }} />
+            <div style={{ height: '18px', width: '1px', backgroundColor: '#cbd5e1' }} />
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>إجمالي القيمة</span>
-              <strong style={{ fontSize: '14px', color: '#170e5e', fontWeight: 900, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>القيمة المقدرة</span>
+              <strong style={{ fontSize: '13px', color: '#170e5e', fontWeight: 900 }}>
                 {totalEstimatedValue.toFixed(2)} <CurrencySymbol />
               </strong>
             </div>
           </div>
 
-          <div className="driver-req-bottom-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
+          {/* Action Buttons Row */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setActiveViewTab(activeViewTab === 'catalog' ? 'selected' : 'catalog')}
+              style={{
+                flex: '1 1 auto',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#170e5e',
+                borderColor: '#170e5e',
+                padding: '7px 10px',
+                height: '34px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {activeViewTab === 'catalog'
+                ? `مراجعة الأصناف (${distinctItemsCount})`
+                : '+ كتالوج الأصناف'}
+            </Button>
+
             {isAdmin ? (
               <>
                 <Button
                   variant="primary"
                   type="button"
-                  className="driver-req-primary-btn"
                   onClick={() => handleAdminSubmit(true)}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
+                    flex: '1.2 1 auto',
                     backgroundColor: '#170e5e',
                     color: '#ffffff',
                     fontWeight: 800,
-                    fontSize: '13px',
-                    padding: '9px 16px',
-                    borderRadius: '8px',
+                    fontSize: '12px',
+                    padding: '7px 12px',
+                    borderRadius: '7px',
+                    height: '34px',
                     whiteSpace: 'nowrap',
-                    flex: '1 1 auto',
                   }}
                 >
-                  {adminSubmitMutation.isPending
-                    ? 'جارٍ الصرف والتحميل...'
-                    : `صرف وتحميل (${distinctItemsCount})`}
+                  {adminSubmitMutation.isPending ? 'جاري الصرف...' : `صرف وتحميل (${distinctItemsCount})`}
                 </Button>
                 <Button
                   variant="secondary"
@@ -2521,39 +2511,38 @@ export function DriverNewLoadRequisitionView({
                   onClick={() => handleAdminSubmit(false)}
                   disabled={isSubmitting || validLines.length === 0}
                   style={{
-                    fontSize: '12.5px',
+                    flex: '0 0 auto',
+                    fontSize: '11.5px',
                     fontWeight: 700,
                     color: '#170e5e',
-                    borderColor: '#170e5e',
-                    padding: '9px 12px',
+                    borderColor: '#cbd5e1',
+                    padding: '7px 10px',
+                    height: '34px',
                     whiteSpace: 'nowrap',
-                    flex: '0 0 auto',
                   }}
                 >
-                  {adminSubmitMutation.isPending ? 'جاري الحفظ...' : 'حفظ كإذن معلق'}
+                  إذن معلق
                 </Button>
               </>
             ) : (
               <Button
                 variant="primary"
                 type="button"
-                className="driver-req-primary-btn"
                 onClick={handleSubmit}
                 disabled={isSubmitting || validLines.length === 0}
                 style={{
+                  flex: '1.4 1 auto',
                   backgroundColor: '#170e5e',
                   color: '#ffffff',
                   fontWeight: 800,
-                  fontSize: '13px',
-                  padding: '9px 16px',
-                  borderRadius: '8px',
+                  fontSize: '12.5px',
+                  padding: '7px 12px',
+                  borderRadius: '7px',
+                  height: '34px',
                   whiteSpace: 'nowrap',
-                  flex: '1 1 auto',
                 }}
               >
-                {isSubmitting
-                  ? 'جارٍ الإرسال...'
-                  : `إرسال للمشرف (${distinctItemsCount})`}
+                {isSubmitting ? 'جارٍ الإرسال...' : `إرسال للمشرف (${distinctItemsCount})`}
               </Button>
             )}
 
@@ -2563,12 +2552,13 @@ export function DriverNewLoadRequisitionView({
                 type="button"
                 onClick={handleClearDraft}
                 style={{
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   color: '#dc2626',
                   borderColor: '#fca5a5',
                   backgroundColor: '#fef2f2',
-                  padding: '9px 14px',
+                  padding: '7px 10px',
+                  height: '34px',
                   whiteSpace: 'nowrap',
                   flex: '0 0 auto',
                 }}

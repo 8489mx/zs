@@ -1242,7 +1242,7 @@ export class CatalogProductService {
       name: this.normalizeUnitName(unit.name) || (index === 0 ? 'قطعة' : 'وحدة'),
       multiplier: Number(unit.multiplier || 1),
       barcode: String(unit.barcode || '').trim(),
-      isBaseUnit: Boolean(unit.isBaseUnit) || Number(unit.multiplier || 1) === 1 || index === 0,
+      isBaseUnit: Boolean(unit.isBaseUnit),
       isSaleUnit: Boolean(unit.isSaleUnit),
       isPurchaseUnit: Boolean(unit.isPurchaseUnit),
     }));
@@ -1255,6 +1255,12 @@ export class CatalogProductService {
     const baseUnits = normalizedUnits.filter((unit) => unit.isBaseUnit);
     if (baseUnits.length !== 1) throw new AppError('Product must have exactly one base unit', 'INVALID_UNITS', 400);
     baseUnits[0].multiplier = 1;
+
+    for (const unit of normalizedUnits) {
+      if (!unit.isBaseUnit && Number(unit.multiplier || 0) <= 1) {
+        throw new AppError(`مضاعف الوحدة "${unit.name}" يجب أن يكون أكبر من 1 مقارنة بالوحدة الأساسية`, 'INVALID_UNITS', 400);
+      }
+    }
     if (!normalizedUnits.some((unit) => unit.isSaleUnit)) baseUnits[0].isSaleUnit = true;
     if (!normalizedUnits.some((unit) => unit.isPurchaseUnit)) baseUnits[0].isPurchaseUnit = true;
     if (normalizedUnits.filter((unit) => unit.isSaleUnit).length !== 1) throw new AppError('Choose exactly one default sale unit', 'INVALID_UNITS', 400);

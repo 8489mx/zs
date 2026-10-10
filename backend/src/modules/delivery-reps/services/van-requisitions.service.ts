@@ -394,12 +394,18 @@ export class VanRequisitionsService {
   async getDriverAvailableProducts(tenantId: string, warehouseId?: number) {
     const products = await this.anyDb
       .selectFrom('products as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('product_categories as pc', 'pc.id', 'p.category_id')
       .select([
         'p.id',
         'p.name',
         'p.barcode',
         'p.retail_price',
         'p.is_active',
+        'p.supplier_id',
+        's.name as supplier_name',
+        'p.category_id',
+        'pc.name as category_name',
       ])
       .where('p.tenant_id', '=', tenantId)
       .where('p.is_active', '=', true)
@@ -508,6 +514,10 @@ export class VanRequisitionsService {
         isWeight,
         totalStock,
         warehouseStocks: whStocks,
+        supplierId: p.supplier_id ? Number(p.supplier_id) : undefined,
+        supplierName: (p.supplier_name || '').trim() || 'الشركة العامة',
+        categoryId: p.category_id ? Number(p.category_id) : undefined,
+        categoryName: (p.category_name || '').trim() || undefined,
       };
     });
   }

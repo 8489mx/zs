@@ -239,7 +239,14 @@ export function EditProductForm({
 
   const watchedIsCombo = useWatch({ control: form.control, name: 'isCombo' });
 
-  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values as any), itemKind: watchedItemKind, isCombo: (values as any).isCombo, comboComponents: (values as any).comboComponents }));
+  const onSubmit = form.handleSubmit((values) => {
+    const invalidMultiplierUnit = units.find((u) => !u.isBaseUnit && Number(u.multiplier || 0) <= 1);
+    if (invalidMultiplierUnit) {
+      toast.error(`مضاعف الوحدة "${invalidMultiplierUnit.name || 'الإضافية'}" يجب أن يكون أكبر من 1 مقارنة بالوحدة الأساسية`);
+      return;
+    }
+    mutation.mutate({ ...omitStock(values as any), itemKind: watchedItemKind, isCombo: (values as any).isCombo, comboComponents: (values as any).comboComponents });
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

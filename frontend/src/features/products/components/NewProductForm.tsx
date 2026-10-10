@@ -21,6 +21,7 @@ import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { ProductNameField } from '@/features/products/components/ProductNameField';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
+import { toast } from '@/shared/components/system-alert';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -317,6 +318,11 @@ export function NewProductForm({
       : (mode === 'modal' ? 'حفظ وإضافة للسلة' : 'حفظ الصنف'));
 
   const onSubmit = form.handleSubmit((values) => {
+    const invalidMultiplierUnit = units.find((u) => !u.isBaseUnit && Number(u.multiplier || 0) <= 1);
+    if (invalidMultiplierUnit) {
+      toast.error(`مضاعف الوحدة "${invalidMultiplierUnit.name || 'الإضافية'}" يجب أن يكون أكبر من 1 مقارنة بالوحدة الأساسية`);
+      return;
+    }
     mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder });
   });
 
