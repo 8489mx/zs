@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
+import { tableCallsApi } from '@/shared/api/table-calls.api';
 import { buildCartProduct } from '../lib/storefront-variant-pricing';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
 import type {
@@ -48,6 +49,21 @@ export function usePublicStorefront(cleanSlug: string) {
   const [confirmedOrder, setConfirmedOrder] = useState<CreateOnlineOrderResponse | null>(null);
   const [reviewProduct, setReviewProduct] = useState<StorefrontProduct | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isCallingService, setIsCallingService] = useState(false);
+
+  const handleRequestTableService = useCallback(async (tableNumber: string, callType: 'waiter' | 'bill') => {
+    setIsCallingService(true);
+    try {
+      const tenantId = (infoQuery.data as any)?.tenantId;
+      await tableCallsApi.createCall({
+        tableNumber,
+        callType,
+      }, tenantId ? String(tenantId) : undefined);
+      return true;
+    } finally {
+      setIsCallingService(false);
+    }
+  }, [infoQuery.data]);
 
   // Favorites State (Persisted per slug)
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => {
@@ -486,5 +502,7 @@ export function usePublicStorefront(cleanSlug: string) {
     paginatedProducts,
     hasMore,
     isHomepageMultiRow,
+    handleRequestTableService,
+    isCallingService,
   };
 }

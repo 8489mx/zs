@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -9,8 +8,6 @@ import {
   ArrowRightIcon,
   BellIcon,
 } from '@/shared/components/icons/AppIcons';
-import { toast } from '@/shared/components/system-alert';
-import { tableCallsApi, type TableServiceCall } from '@/features/pos/api/table-calls.api';
 
 export function WaiterStationPage() {
   const navigate = useNavigate();
@@ -32,35 +29,16 @@ export function WaiterStationPage() {
     tablesCount,
     products,
     occupiedTablesMap,
+    pendingCalls,
+    pendingCallsByTable,
+    handleResolveCall: resolveCallAction,
     sendToKitchen,
     isSendingToKitchen,
   } = useWaiterStation();
 
-  // Real-time table service calls (Waiters & Bill requests)
-  const { data: pendingCalls = [], refetch: refetchCalls } = useQuery({
-    queryKey: ['waiter-station-table-calls'],
-    queryFn: () => tableCallsApi.listPendingCalls(),
-    refetchInterval: 5_000,
-  });
-
-  const pendingCallsByTable = new Map<string, TableServiceCall[]>();
-  for (const call of pendingCalls) {
-    const tNum = String(call.table_number).trim();
-    if (!pendingCallsByTable.has(tNum)) {
-      pendingCallsByTable.set(tNum, []);
-    }
-    pendingCallsByTable.get(tNum)!.push(call);
-  }
-
   const handleResolveCall = async (e: React.MouseEvent, callId: number) => {
     e.stopPropagation();
-    try {
-      await tableCallsApi.resolveCall(callId);
-      toast.success('تم تأكيد تلبية نداء الطاولة');
-      await refetchCalls();
-    } catch {
-      toast.error('تعذر تحديث حالة النداء');
-    }
+    await resolveCallAction(callId);
   };
 
   // Extract distinct categories

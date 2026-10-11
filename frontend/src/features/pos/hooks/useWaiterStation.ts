@@ -4,6 +4,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { settingsApi } from '@/features/settings';
 import { printKitchenTicket } from '@/lib/pos-printing/kitchen';
 import { toast } from '@/shared/components/system-alert';
+import { tableCallsApi, type TableServiceCall } from '@/shared/api/table-calls.api';
 
 export interface WaiterCartItem {
   id: string;
@@ -48,6 +49,36 @@ export function useWaiterStation() {
     }
     return map;
   }, [heldDrafts]);
+
+  // Real-time table service calls (Waiters & Bill requests)
+  const { data: pendingCalls = [], refetch: refetchCalls } = useQuery({
+    queryKey: ['waiter-station-table-calls'],
+    queryFn: () => tableCallsApi.listPendingCalls(),
+    refetchInterval: 5_000,
+  });
+
+  const pendingCallsByTable = useMemo(() => {
+    const map = new Map<string, TableServiceCall[]>();
+    for (const call of pendingCalls) {
+      const tNum = String(call.table_number).trim();
+      if (!map.has(tNum)) {
+        map.set(tNum, []);
+      }
+      map.get(tNum)!.push(call);
+    }
+    return map;
+  }, [pendingCalls]);
+
+  const resolveCallMutation = useMutation({
+    mutationFn: (callId: number) => tableCallsApi.resolveCall(callId),
+    onSuccess: () => {
+      toast.success('تم تأكيد تلبية نداء الطاولة');
+      queryClient.invalidateQueries({ queryKey: ['waiter-station-table-calls'] });
+    },
+    onError: () => {
+      toast.error('فشل تحديث حالة النداء');
+    },
+  });
 
   // Submit & Send to Kitchen Mutation
   const sendToKitchenMutation = useMutation({
@@ -130,6 +161,9 @@ export function useWaiterStation() {
     heldDrafts,
     refetchDrafts,
     occupiedTablesMap,
+    pendingCalls,
+    pendingCallsByTable,
+    handleResolveCall: (callId: number) => resolveCallMutation.mutateAsync(callId),
     sendToKitchen: sendToKitchenMutation.mutateAsync,
     isSendingToKitchen: sendToKitchenMutation.isPending,
   };
