@@ -1,11 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { posApi } from '@/features/pos/api/pos.api';
-import { settingsApi } from '@/features/settings/api/settings.api';
+import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
 import { formatCurrency } from '@/lib/format';
-import { printKitchenTicket } from '@/lib/pos-printing/kitchen';
-import { toast } from '@/shared/components/system-alert';
 import {
   UsersIcon,
   SearchIcon,
@@ -17,19 +13,8 @@ import {
   TrashIcon,
 } from '@/shared/components/icons/AppIcons';
 
-interface WaiterCartItem {
-  id: string;
-  productId: number;
-  name: string;
-  price: number;
-  qty: number;
-  notes?: string;
-  modifiers?: Array<{ name: string; price: number }>;
-}
-
 export function WaiterStationPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Authentication State
   const [waiterPin, setWaiterPin] = useState<string>('101');
@@ -44,36 +29,17 @@ export function WaiterStationPage() {
   const [activeItemNoteModal, setActiveItemNoteModal] = useState<WaiterCartItem | null>(null);
   const [itemNoteText, setItemNoteText] = useState<string>('');
 
-  // Settings & Configuration
-  const { data: settings } = useQuery({
-    queryKey: ['waiter-settings'],
-    queryFn: () => settingsApi.getSettings(),
-  });
-  const tablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 20));
-
-  // Products Catalog (Cached & Fast)
-  const { data: productsData, isLoading: isCatalogLoading } = useQuery({
-    queryKey: ['waiter-products'],
-    queryFn: () => posApi.searchProducts({ fullCatalog: true, limit: 100 }),
-  });
-  const products = productsData || [];
-
-  // Active Held Drafts (To know occupied tables and their items)
-  const { data: heldDrafts = [], refetch: refetchDrafts } = useQuery({
-    queryKey: ['waiter-held-drafts'],
-    queryFn: () => posApi.listHeldDrafts(),
-    refetchInterval: 10_000,
-  });
-
-  const occupiedTablesMap = useMemo(() => {
-    const map = new Map<string, any>();
-    for (const d of heldDrafts) {
-      if (d.tableNumber && String(d.tableNumber).trim()) {
-        map.set(String(d.tableNumber).trim(), d);
-      }
-    }
-    return map;
-  }, [heldDrafts]);
+  // Feature Hook (Isolating API and React Query from page file)
+  const {
+    tablesCount,
+    products,
+    isCatalogLoading,
+    heldDrafts,
+    refetchDrafts,
+    occupiedTablesMap,
+    sendToKitchen,
+    isSendingToKitchen,
+  } = useWaiterStation();
 
   // Extract distinct categories
   const categories = useMemo(() => {
@@ -155,71 +121,21 @@ export function WaiterStationPage() {
     setCart([]);
   };
 
-  // Submit & Send to Kitchen Mutation
-  const sendToKitchenMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedTable || cart.length === 0) return;
-
-      const existingDraft = occupiedTablesMap.get(selectedTable);
-      const existingCart = existingDraft?.cart || [];
-
-      // Consolidate payload
-      const combinedCart = [
-        ...existingCart,
-        ...cart.map((c) => ({
-          productId: c.productId,
-          productName: c.name,
-          name: c.name,
-          price: c.price,
-          qty: c.qty,
-          notes: c.notes,
-          modifiers: c.modifiers || [],
-        })),
-      ];
-
-      const draftPayload = {
-        id: existingDraft?.id || `draft-${Date.now()}`,
-        tableNumber: selectedTable,
-        orderType: 'dine_in',
+  const handleSendToKitchen = async () => {
+    if (!selectedTable || cart.length === 0) return;
+    try {
+      await sendToKitchen({
+        selectedTable,
         guestCount,
         waiterPin,
-        cart: combinedCart,
-        updatedAt: new Date().toISOString(),
-      };
-
-      // 1. Save / Update Held Draft
-      await posApi.saveHeldDraft(draftPayload);
-
-      // 2. Thermal Kitchen Order Ticket (KOT)
-      try {
-        printKitchenTicket({
-          ticketNumber: String(draftPayload.id).slice(-4),
-          tableNumber: selectedTable,
-          orderType: 'dine_in',
-          items: cart.map((c) => ({
-            name: c.name,
-            qty: c.qty,
-            notes: c.notes,
-            modifiers: c.modifiers,
-          })),
-          timestamp: new Date(),
-          serverName: `ويتر #${waiterPin}`,
-        });
-      } catch {
-        // Kitchen print non-blocking
-      }
-    },
-    onSuccess: () => {
-      toast.success(`تم إرسال طلب طاولة ${selectedTable} إلى المطبخ بنجاح!`);
-      queryClient.invalidateQueries({ queryKey: ['waiter-held-drafts'] });
-      queryClient.invalidateQueries({ queryKey: ['pos-floor-kds-tickets'] });
+        cart,
+      });
       setSelectedTable(null);
       setCart([]);
-    },
-    onError: () => {
-      toast.error('حدث خطأ أثناء إرسال الطلب إلى المطبخ.');
-    },
-  });
+    } catch {
+      // Handled in hook
+    }
+  };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
   const cartItemsCount = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -642,8 +558,8 @@ export function WaiterStationPage() {
 
             <button
               type="button"
-              disabled={cart.length === 0 || sendToKitchenMutation.isPending}
-              onClick={() => sendToKitchenMutation.mutate()}
+              disabled={cart.length === 0 || isSendingToKitchen}
+              onClick={handleSendToKitchen}
               style={{
                 width: '100%',
                 background: cart.length === 0 ? '#94a3b8' : '#16a34a',
@@ -662,7 +578,7 @@ export function WaiterStationPage() {
               }}
             >
               <CheckCircleIcon size={16} color="#ffffff" />
-              <span>{sendToKitchenMutation.isPending ? 'جاري الإرسال...' : 'إرسال الطلب للمطبخ (Send to Kitchen)'}</span>
+              <span>{isSendingToKitchen ? 'جاري الإرسال...' : 'إرسال الطلب للمطبخ (Send to Kitchen)'}</span>
             </button>
           </div>
         </div>

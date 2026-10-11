@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { kdsApi, KdsTicket } from '@/features/pos/api/kds.api';
+import { useOrderStatusBoard } from '@/features/pos/hooks/useOrderStatusBoard';
 import { ClockIcon, CheckCircleIcon, RefreshCwIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 export function OrderStatusBoardPage() {
@@ -62,18 +61,8 @@ export function OrderStatusBoardPage() {
     }
   };
 
-  // Poll KDS tickets every 4 seconds
-  const { data, refetch, isFetching } = useQuery({
-    queryKey: ['order-status-board-tickets'],
-    queryFn: () => kdsApi.getTickets(),
-    refetchInterval: 4_000,
-  });
-
-  const tickets = data?.tickets || [];
-
-  // Group tickets into Preparing & Ready
-  const preparingTickets = tickets.filter((t) => t.status === 'pending' || t.status === 'cooking');
-  const readyTickets = tickets.filter((t) => t.status === 'ready');
+  // Poll KDS tickets via feature hook
+  const { preparingTickets, readyTickets, refetch, isFetching } = useOrderStatusBoard();
 
   // Detect newly ready tickets to trigger acoustic chime
   useEffect(() => {
