@@ -759,10 +759,10 @@ export class VanSalesAdminController {
   async reviewRequisition(
     @Req() req: RequestWithAuth,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { approvedItems: { productId: number; qty: number }[]; notes?: string },
+    @Body() body: { approvedItems: { productId: number; qty: number }[]; notes?: string; sourceWarehouseId?: number },
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
-    const res = await this.vanSalesService.reviewLoadRequisition(tenantId, id, body.approvedItems, body.notes);
+    const res = await this.vanSalesService.reviewLoadRequisition(tenantId, id, body.approvedItems, body.notes, body.sourceWarehouseId);
     return res;
   }
 

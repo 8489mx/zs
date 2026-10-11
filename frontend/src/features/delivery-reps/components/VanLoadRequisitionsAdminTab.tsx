@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
-import { vanSalesApi, type VanLoadRequisitionRecord, type DriverAvailableProduct } from '../api/van-sales.api';
+import { vanSalesApi, type VanLoadRequisitionRecord, type DriverAvailableProduct, type DriverWarehouse } from '../api/van-sales.api';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import {
   RefreshCwIcon,
   FileTextIcon,
@@ -36,6 +37,7 @@ export interface AdminReviewLine {
   approvedPieces?: number;
   packingText?: string;
   warehouseAvailQty: number;
+  warehouseStocks?: { warehouseId: number; warehouseName: string; qty: number }[];
 }
 
 export function VanLoadRequisitionsAdminTab() {
@@ -52,10 +54,21 @@ export function VanLoadRequisitionsAdminTab() {
   const { data: settings } = useSettingsQuery();
   const defaultPaperSize = (settings?.paperSize === 'receipt' ? 'receipt' : 'a4') as 'a4' | 'receipt';
 
+  const [selectedSourceWarehouseId, setSelectedSourceWarehouseId] = useState<number | null>(null);
+
+  // Fetch all active warehouses for supervisor warehouse switching
+  const { data: adminWarehouses = [] } = useQuery<DriverWarehouse[]>({
+    queryKey: ['admin-warehouses'],
+    queryFn: () => vanSalesApi.getAdminWarehouses(),
+    staleTime: 60_000,
+  });
+
+  const activeWarehouseId = selectedSourceWarehouseId ?? (selectedReq?.sourceWarehouseId ? Number(selectedReq.sourceWarehouseId) : undefined);
+
   // 1. Fetch available products in the warehouse for adding items
   const { data: warehouseProducts = [] } = useQuery<DriverAvailableProduct[]>({
-    queryKey: ['admin-warehouse-products', selectedReq?.sourceWarehouseId],
-    queryFn: () => vanSalesApi.getAdminAvailableProducts(selectedReq?.sourceWarehouseId),
+    queryKey: ['admin-warehouse-products', activeWarehouseId],
+    queryFn: () => vanSalesApi.getAdminAvailableProducts(activeWarehouseId),
     enabled: Boolean(selectedReq && selectedReq.status === 'pending'),
     staleTime: 30_000,
   });
@@ -78,6 +91,7 @@ export function VanLoadRequisitionsAdminTab() {
           return {
             ...line,
             warehouseAvailQty: found.totalStock,
+            warehouseStocks: found.warehouseStocks,
             unit: found.unit || line.unit,
             isWeight: found.isWeight ?? line.isWeight,
             packagingUnit: pkg,
@@ -138,6 +152,7 @@ export function VanLoadRequisitionsAdminTab() {
 
   const openReviewModal = (req: VanLoadRequisitionRecord) => {
     setSelectedReq(req);
+    setSelectedSourceWarehouseId(req.sourceWarehouseId ? Number(req.sourceWarehouseId) : null);
     setAdminNotes(req.notes || '');
     setIsAddProductOpen(false);
     setProductSearch('');
@@ -301,8 +316,17 @@ export function VanLoadRequisitionsAdminTab() {
 
   // Review (Update Quantities & Items) Mutation
   const reviewMutation = useMutation({
-    mutationFn: ({ id, items, notes }: { id: number; items: { productId: number; qty: number; productName?: string; barcode?: string }[]; notes?: string }) =>
-      vanSalesApi.reviewRequisition(id, items, notes),
+    mutationFn: ({
+      id,
+      items,
+      notes,
+      sourceWarehouseId,
+    }: {
+      id: number;
+      items: { productId: number; qty: number; productName?: string; barcode?: string }[];
+      notes?: string;
+      sourceWarehouseId?: number;
+    }) => vanSalesApi.reviewRequisition(id, items, notes, sourceWarehouseId),
     onSuccess: () => {
       toast.success('تم حفظ تعديل أصناف وكميات إذن التحميل بنجاح');
       queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
@@ -398,10 +422,12 @@ export function VanLoadRequisitionsAdminTab() {
     }
 
     const totalPieces = items.reduce((sum: number, it: any) => sum + (Number(it.qty) || 0), 0);
+    const targetWhId = isModalOpen && activeWarehouseId ? activeWarehouseId : req.sourceWarehouseId;
+    const targetWhName = adminWarehouses.find((w) => w.id === targetWhId)?.name || req.sourceWarehouseName;
 
     const ok = await systemConfirm({
       title: 'اعتماد وصرف وتحميل السيارة',
-      message: `هل تود صرف البضاعة (${items.length} صنف بإجمالي ${totalPieces} قطعة) من مستودع "${req.sourceWarehouseName}" وتحميل سيارة المندوب "${req.repName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وتحويلها لعهدة السيارة.`,
+      message: `هل تود صرف البضاعة (${items.length} صنف بإجمالي ${totalPieces} قطعة) من مستودع "${targetWhName}" وتحميل سيارة المندوب "${req.repName}" وبدء رحلة التوزيع فوراً؟ سيتم خصم الكميات من المستودع وتحويلها لعهدة السيارة.`,
       confirmText: 'اعتماد وصرف وتحميل الآن',
       cancelText: 'إلغاء',
       variant: 'primary',
@@ -409,11 +435,12 @@ export function VanLoadRequisitionsAdminTab() {
     if (ok) {
       try {
         if (isModalOpen) {
-          // Automatically save reviewed items first, then dispatch!
+          // Automatically save reviewed items and warehouse first, then dispatch!
           await vanSalesApi.reviewRequisition(
             req.id,
             formatReviewLinesForPayload(reviewLines),
             adminNotes,
+            targetWhId,
           );
         }
         dispatchMutation.mutate(req.id);
@@ -433,6 +460,7 @@ export function VanLoadRequisitionsAdminTab() {
       id: selectedReq.id,
       items: formatReviewLinesForPayload(reviewLines),
       notes: adminNotes,
+      sourceWarehouseId: activeWarehouseId,
     });
   };
 
@@ -1021,7 +1049,7 @@ export function VanLoadRequisitionsAdminTab() {
           <table
             style={{
               width: '100%',
-              minWidth: '940px',
+              minWidth: '1080px',
               borderCollapse: 'collapse',
               textAlign: 'right',
               fontSize: '12px',
@@ -1029,25 +1057,25 @@ export function VanLoadRequisitionsAdminTab() {
             }}
           >
             <colgroup>
-              <col style={{ width: '10%' }} />
               <col style={{ width: '14%' }} />
+              <col style={{ width: '13%' }} />
               <col style={{ width: '9%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '6%' }} />
               <col style={{ width: '10%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '14%' }} />
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '13%' }} />
             </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>رقم الإذن</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>مندوب التوزيع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>المركبة</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>المستودع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle' }}>الأصناف</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle' }}>القطع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>تاريخ الطلب</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>رقم الإذن</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>مندوب التوزيع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المركبة</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المستودع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>الأصناف</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>القطع</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>تاريخ الطلب</th>
                 <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>حالة الإذن والقرار</th>
                 <th style={{ padding: '10px 8px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المعاينة والطباعة</th>
               </tr>
@@ -1061,10 +1089,10 @@ export function VanLoadRequisitionsAdminTab() {
 
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', background: isPending ? '#fffdf7' : 'transparent', height: '48px' }}>
-                    <td style={{ padding: '8px 6px', fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', fontSize: '11.5px', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '8px 8px', fontFamily: 'monospace', fontWeight: 800, color: '#170e5e', fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
                       {r.docNo}
                     </td>
-                    <td style={{ padding: '8px 6px', fontWeight: 700, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '8px 8px', fontWeight: 700, color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
                       {r.repName}
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
@@ -1326,8 +1354,20 @@ export function VanLoadRequisitionsAdminTab() {
                 <strong style={{ fontSize: '13px', color: '#0f172a' }}>{selectedReq.vehiclePlate || '—'}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المستودع المصدر:</span>
-                <strong style={{ fontSize: '13px', color: '#0369a1' }}>{selectedReq.sourceWarehouseName}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>مستودع الصرف:</span>
+                {selectedReq.status === 'pending' ? (
+                  <CustomSelect
+                    value={String(activeWarehouseId || '')}
+                    onChange={(val) => setSelectedSourceWarehouseId(Number(val))}
+                    options={adminWarehouses.map((w) => ({
+                      value: String(w.id),
+                      label: w.name,
+                    }))}
+                    placeholder="اختر مستودع الصرف..."
+                  />
+                ) : (
+                  <strong style={{ fontSize: '13px', color: '#0369a1' }}>{selectedReq.sourceWarehouseName}</strong>
+                )}
               </div>
               <div>
                 <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>حالة الإذن:</span>
@@ -1468,6 +1508,17 @@ export function VanLoadRequisitionsAdminTab() {
                               >
                                 {avail} {it.unit || 'قطعة'} {isShortage ? '(عجز)' : '(متوفر)'}
                               </span>
+                              {isShortage && it.warehouseStocks && it.warehouseStocks.length > 0 && (
+                                (() => {
+                                  const other = it.warehouseStocks.find((w: any) => w.warehouseId !== activeWarehouseId && w.qty > 0);
+                                  if (!other) return null;
+                                  return (
+                                    <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '3px', fontWeight: 700 }}>
+                                      متوفر في {other.warehouseName}: {other.qty} {it.unit || 'قطعة'}
+                                    </div>
+                                  );
+                                })()
+                              )}
                               {isCarton && it.packagingUnit && (
                                 <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
                                   {Math.floor(avail / mult)} {it.packagingUnit.name}

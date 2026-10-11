@@ -2797,8 +2797,9 @@ export class VanSalesService {
     requisitionId: number,
     approvedItems: { productId: number; qty: number }[],
     notes?: string,
+    sourceWarehouseId?: number,
   ) {
-    return this.vanRequisitionsService.reviewLoadRequisition(tenantId, requisitionId, approvedItems, notes);
+    return this.vanRequisitionsService.reviewLoadRequisition(tenantId, requisitionId, approvedItems, notes, sourceWarehouseId);
   }
 
   async approveAndDispatchRequisition(tenantId: string, accountId: string, requisitionId: number, reviewedByUserId: number) {

@@ -27,54 +27,101 @@ export class VanRequisitionsService {
       throw new AppError('يجب تحديد صنف واحد على الأقل لطلب التحميل', 'EMPTY_LOAD_ITEMS', 400);
     }
 
-    let sourceWarehouseId = payload.sourceWarehouseId ? Number(payload.sourceWarehouseId) : 0;
-    if (!sourceWarehouseId) {
-      if (payload.items[0]?.sourceWarehouseId) {
-        sourceWarehouseId = Number(payload.items[0].sourceWarehouseId);
-      } else {
-        const defaultWh = await this.anyDb
-          .selectFrom('stock_locations')
-          .select(['id'])
-          .where('tenant_id', '=', tenantId)
-          .where('is_active', '=', true)
-          .where('location_type', '!=', 'van_stock')
-          .orderBy('id', 'asc')
-          .executeTakeFirst();
-        if (defaultWh) sourceWarehouseId = Number(defaultWh.id);
-      }
-    }
-
-    if (!sourceWarehouseId) {
-      throw new AppError('تعذر تحديد المستودع المصدر لطلب التحميل', 'INVALID_SOURCE_WAREHOUSE', 400);
-    }
-
-    const tempDocNo = `TMP-REQ-${Date.now()}`;
-    const [inserted] = await this.anyDb
-      .insertInto('van_load_requisitions')
-      .values({
-        tenant_id: tenantId,
-        account_id: accountId,
-        doc_no: tempDocNo,
-        rep_id: repId,
-        source_warehouse_id: sourceWarehouseId,
-        status: 'pending',
-        requested_items: JSON.stringify(payload.items),
-        approved_items: JSON.stringify(payload.items),
-        notes: payload.notes || null,
-      })
-      .returning(['id'])
-      .execute();
-
-    const requisitionId = Number(inserted.id);
-    const docNo = await generateDailySequenceNumber(this.anyDb, this.db, 'van_load_requisitions', 'doc_no', 'REQ', tenantId);
-    await this.anyDb
-      .updateTable('van_load_requisitions')
-      .set({ doc_no: docNo })
-      .where('id', '=', requisitionId)
+    let defaultWhId: number | undefined;
+    const defaultWh = await this.anyDb
+      .selectFrom('stock_locations')
+      .select(['id'])
       .where('tenant_id', '=', tenantId)
-      .execute();
+      .where('is_active', '=', true)
+      .where('location_type', '!=', 'van_stock')
+      .orderBy('id', 'asc')
+      .executeTakeFirst();
+    if (defaultWh) defaultWhId = Number(defaultWh.id);
 
-    return { ok: true, docNo, requisitionId };
+    // If sourceWarehouseId is explicitly specified, all items belong to this warehouse:
+    if (payload.sourceWarehouseId && Number(payload.sourceWarehouseId) > 0) {
+      const sourceWarehouseId = Number(payload.sourceWarehouseId);
+      const tempDocNo = `TMP-REQ-${Date.now()}`;
+      const [inserted] = await this.anyDb
+        .insertInto('van_load_requisitions')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          doc_no: tempDocNo,
+          rep_id: repId,
+          source_warehouse_id: sourceWarehouseId,
+          status: 'pending',
+          requested_items: JSON.stringify(payload.items.map((it) => ({ ...it, sourceWarehouseId }))),
+          approved_items: JSON.stringify(payload.items.map((it) => ({ ...it, sourceWarehouseId }))),
+          notes: payload.notes || null,
+        })
+        .returning(['id'])
+        .execute();
+
+      const requisitionId = Number(inserted.id);
+      const docNo = await generateDailySequenceNumber(this.anyDb, this.db, 'van_load_requisitions', 'doc_no', 'REQ', tenantId);
+      await this.anyDb
+        .updateTable('van_load_requisitions')
+        .set({ doc_no: docNo })
+        .where('id', '=', requisitionId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return { ok: true, docNo, requisitionId };
+    }
+
+    // Otherwise (e.g. driver submitted across all warehouses), group items by their source warehouse
+    const itemsByWarehouse = new Map<number, typeof payload.items>();
+    for (const item of payload.items) {
+      const whId = item.sourceWarehouseId ? Number(item.sourceWarehouseId) : (defaultWhId || 1);
+      const list = itemsByWarehouse.get(whId) || [];
+      list.push({ ...item, sourceWarehouseId: whId });
+      itemsByWarehouse.set(whId, list);
+    }
+
+    const createdDocNos: string[] = [];
+    let firstRequisitionId = 0;
+    const allRequisitionIds: number[] = [];
+
+    for (const [whId, groupItems] of itemsByWarehouse.entries()) {
+      const tempDocNo = `TMP-REQ-${Date.now()}-${whId}`;
+      const [inserted] = await this.anyDb
+        .insertInto('van_load_requisitions')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          doc_no: tempDocNo,
+          rep_id: repId,
+          source_warehouse_id: whId,
+          status: 'pending',
+          requested_items: JSON.stringify(groupItems),
+          approved_items: JSON.stringify(groupItems),
+          notes: payload.notes || null,
+        })
+        .returning(['id'])
+        .execute();
+
+      const requisitionId = Number(inserted.id);
+      if (!firstRequisitionId) firstRequisitionId = requisitionId;
+      allRequisitionIds.push(requisitionId);
+
+      const docNo = await generateDailySequenceNumber(this.anyDb, this.db, 'van_load_requisitions', 'doc_no', 'REQ', tenantId);
+      await this.anyDb
+        .updateTable('van_load_requisitions')
+        .set({ doc_no: docNo })
+        .where('id', '=', requisitionId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      createdDocNos.push(docNo);
+    }
+
+    return {
+      ok: true,
+      docNo: createdDocNos.join('، '),
+      requisitionId: firstRequisitionId,
+      requisitionIds: allRequisitionIds,
+    };
   }
 
   async listLoadRequisitions(tenantId: string, filters: { status?: string; repId?: number } = {}) {
@@ -263,6 +310,7 @@ export class VanRequisitionsService {
     requisitionId: number,
     approvedItems: { productId: number; qty: number }[],
     notes?: string,
+    sourceWarehouseId?: number,
   ) {
     const req = await this.anyDb
       .selectFrom('van_load_requisitions')
@@ -275,13 +323,18 @@ export class VanRequisitionsService {
       throw new AppError('لا يمكن تعديل طلب تمت معالجته بالفعل', 'ALREADY_PROCESSED', 400);
     }
 
+    const updateSet: any = {
+      approved_items: JSON.stringify(approvedItems),
+      notes: notes || undefined,
+      updated_at: sql`NOW()`,
+    };
+    if (sourceWarehouseId && Number(sourceWarehouseId) > 0) {
+      updateSet.source_warehouse_id = Number(sourceWarehouseId);
+    }
+
     await this.anyDb
       .updateTable('van_load_requisitions')
-      .set({
-        approved_items: JSON.stringify(approvedItems),
-        notes: notes || undefined,
-        updated_at: sql`NOW()`,
-      })
+      .set(updateSet)
       .where('id', '=', requisitionId)
       .where('tenant_id', '=', tenantId)
       .execute();
@@ -412,7 +465,7 @@ export class VanRequisitionsService {
       .orderBy('p.name', 'asc')
       .execute();
 
-    let stockQuery = this.anyDb
+    const stockQuery = this.anyDb
       .selectFrom('product_location_stock as pls')
       .innerJoin('stock_locations as sl', 'sl.id', 'pls.location_id')
       .select([
@@ -424,10 +477,6 @@ export class VanRequisitionsService {
       .where('pls.tenant_id', '=', tenantId)
       .where('sl.is_active', '=', true)
       .where('sl.location_type', '!=', 'van_stock');
-
-    if (warehouseId && warehouseId > 0) {
-      stockQuery = stockQuery.where('pls.location_id', '=', warehouseId);
-    }
 
     const stockRows = await stockQuery.execute();
 
@@ -495,10 +544,14 @@ export class VanRequisitionsService {
       }
     }
 
+    const targetWhId = warehouseId && Number(warehouseId) > 0 ? Number(warehouseId) : undefined;
+
     return products.map((p: any) => {
       const pId = Number(p.id);
       const whStocks = stockMap.get(pId) || [];
-      const totalStock = whStocks.reduce((sum, w) => sum + w.qty, 0);
+      const totalStock = targetWhId
+        ? (whStocks.find((w) => w.warehouseId === targetWhId)?.qty || 0)
+        : whStocks.reduce((sum, w) => sum + w.qty, 0);
       const unitInfo = unitsMap.get(pId);
       const baseUnit = unitInfo?.baseUnitName || 'قطعة';
       const isWeight = Boolean(unitInfo?.isWeight || /كجم|كيلو|جرام|جم|وزن|kg/i.test(p.name || ''));

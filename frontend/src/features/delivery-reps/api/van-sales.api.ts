@@ -1114,10 +1114,15 @@ export const vanSalesApi = {
     return res.products || [];
   },
 
-  reviewRequisition: async (id: number, approvedItems: { productId: number; qty: number }[], notes?: string) => {
+  reviewRequisition: async (
+    id: number,
+    approvedItems: { productId: number; qty: number }[],
+    notes?: string,
+    sourceWarehouseId?: number,
+  ) => {
     return http(`/api/van-sales/admin/requisitions/${id}/review`, {
       method: 'PUT',
-      body: JSON.stringify({ approvedItems, notes }),
+      body: JSON.stringify({ approvedItems, notes, sourceWarehouseId }),
     });
   },
 

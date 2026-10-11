@@ -46,6 +46,7 @@ export function useFormDraft<T>({
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
 
   const isInitializedRef = useRef(false);
+  const isExplicitlyClearedRef = useRef(false);
   const lastSavedSnapshotRef = useRef<string>('');
   const timeoutRef = useRef<number | null>(null);
   const currentDataRef = useRef<T>(data);
@@ -86,7 +87,7 @@ export function useFormDraft<T>({
 
   // Flush function to write dirty state immediately
   const flushDraft = useCallback(() => {
-    if (typeof window === 'undefined' || !enabled || !isInitializedRef.current) return;
+    if (typeof window === 'undefined' || !enabled || !isInitializedRef.current || isExplicitlyClearedRef.current) return;
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -113,6 +114,7 @@ export function useFormDraft<T>({
 
   // Clear draft helper
   const clearDraft = useCallback(() => {
+    isExplicitlyClearedRef.current = true;
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -146,6 +148,9 @@ export function useFormDraft<T>({
       return;
     }
 
+    // User is modifying new non-empty data; reset cleared flag
+    isExplicitlyClearedRef.current = false;
+
     let snapshot = '';
     try {
       snapshot = JSON.stringify(data);
@@ -176,13 +181,17 @@ export function useFormDraft<T>({
   // 3. Flush on component unmount and beforeunload
   useEffect(() => {
     const handleBeforeUnload = () => {
-      flushDraft();
+      if (!isExplicitlyClearedRef.current) {
+        flushDraft();
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      flushDraft();
+      if (!isExplicitlyClearedRef.current) {
+        flushDraft();
+      }
     };
   }, [flushDraft]);
 

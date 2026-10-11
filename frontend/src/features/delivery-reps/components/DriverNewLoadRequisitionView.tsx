@@ -220,7 +220,7 @@ export function DriverNewLoadRequisitionView({
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showOutOfStock, setShowOutOfStock] = useState<boolean>(true);
+  const [showOutOfStock, setShowOutOfStock] = useState<boolean>(false);
   const [hideOutOfStockCompanies, setHideOutOfStockCompanies] = useState<boolean>(false);
 
   // Warehouse filter: 'all' means automatic source warehouse selection; otherwise a specific warehouseId string
@@ -316,6 +316,9 @@ export function DriverNewLoadRequisitionView({
     mutationFn: vanSalesApi.createAdminLoadRequisition,
     onSuccess: (res, vars) => {
       clearDraft();
+      setLines([]);
+      setNotes('');
+      dismissRestoredNotice();
       const rep = adminReps.find((r) => r.id === vars.repId);
       const repName = rep?.name || 'المندوب';
       queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
@@ -382,12 +385,19 @@ export function DriverNewLoadRequisitionView({
     debounceMs: 300,
   });
 
+  // Auto-default to first physical warehouse if opening fresh without draft
+  useEffect(() => {
+    if (selectedWarehouseFilter === 'all' && warehouses.length > 0 && lines.length === 0) {
+      setSelectedWarehouseFilter(String(warehouses[0].id));
+    }
+  }, [warehouses, selectedWarehouseFilter, lines.length]);
+
   const warehouseSelectOptions = useMemo(() => [
-    { value: 'all', label: 'كل المخازن (تحديد تلقائي للمستودع الأوفر رصيداً)' },
     ...warehouses.map((w) => ({
       value: String(w.id),
       label: `${w.name} ${w.code ? `(${w.code})` : ''}`,
     })),
+    { value: 'all', label: 'كل المخازن (تحديد تلقائي للمستودع الأوفر رصيداً)' },
   ], [warehouses]);
 
   // Group products by Company (Supplier) with category breakdown
@@ -474,8 +484,31 @@ export function DriverNewLoadRequisitionView({
   }, [availableProducts]);
 
   const outOfStockCount = useMemo(() => {
-    return (availableProducts || []).length - totalAvailableItemsCount;
-  }, [availableProducts, totalAvailableItemsCount]);
+    let list = availableProducts || [];
+    if (catalogSearchQuery.trim()) {
+      const q = catalogSearchQuery.trim().toLowerCase();
+      list = list.filter((p) => {
+        const sup = (p.supplierName || '').toLowerCase();
+        const cat = (p.categoryName || '').toLowerCase();
+        return (
+          (p.name || '').toLowerCase().includes(q) ||
+          matchesArabic(p.name, q) ||
+          (p.barcode || '').toLowerCase().includes(q) ||
+          (p.sku || '').toLowerCase().includes(q) ||
+          sup.includes(q) ||
+          matchesArabic(sup, q) ||
+          cat.includes(q) ||
+          matchesArabic(cat, q)
+        );
+      });
+    } else if (selectedCompany && selectedCompany !== '__ALL__') {
+      list = list.filter((p) => ((p.supplierName || '').trim() || 'الشركة العامة') === selectedCompany);
+    }
+    if (selectedCategory !== 'all') {
+      list = list.filter((p) => ((p.categoryName || '').trim() || 'عام') === selectedCategory);
+    }
+    return list.filter((p) => p.totalStock <= 0).length;
+  }, [availableProducts, catalogSearchQuery, selectedCompany, selectedCategory]);
 
   // Filter Catalog Products by search, company, category, and out of stock
   const displayedProducts = useMemo(() => {
@@ -730,6 +763,10 @@ export function DriverNewLoadRequisitionView({
   // Summary statistics
   const validLines = useMemo(() => lines.filter((l) => Boolean(l.productId)), [lines]);
   const distinctItemsCount = validLines.length;
+  const distinctWarehousesCount = useMemo(() => {
+    const whSet = new Set(validLines.map((l) => l.sourceWarehouseId).filter(Boolean));
+    return whSet.size;
+  }, [validLines]);
   const totalUnitsCount = useMemo(() => validLines.reduce((acc, l) => acc + l.qty, 0), [validLines]);
   const totalEstimatedValue = useMemo(() => validLines.reduce((acc, l) => acc + l.qty * l.unitPrice, 0), [validLines]);
 
@@ -821,6 +858,9 @@ export function DriverNewLoadRequisitionView({
     try {
       const res = await driverHook.submitRequisition(payload);
       clearDraft();
+      setLines([]);
+      setNotes('');
+      dismissRestoredNotice();
       setSubmittedDocNo(res.docNo);
       if (onRequisitionSubmitted) {
         onRequisitionSubmitted(res.docNo);
@@ -1110,7 +1150,26 @@ export function DriverNewLoadRequisitionView({
             fontSize: '12px',
           }}
         >
-          لا توجد أصناف مطابقة للبحث أو للشركة المحددة بالمخزن
+          <span>لا توجد أصناف متوفرة حالياً بالبحث أو القسم المحدد بالمخزن.</span>
+          {outOfStockCount > 0 && !showOutOfStock && (
+            <div style={{ marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowOutOfStock(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#170e5e',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                عرض الأصناف غير المتوفرة ({outOfStockCount})
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -1789,7 +1848,7 @@ export function DriverNewLoadRequisitionView({
                           padding: 0,
                         }}
                       >
-                        {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                        {showOutOfStock ? 'إخفاء غير المتوفر' : `عرض غير المتوفر (${outOfStockCount})`}
                       </button>
                     )}
                     <button
@@ -2103,9 +2162,9 @@ export function DriverNewLoadRequisitionView({
                           height: '26px',
                           padding: '0 8px',
                           borderRadius: '6px',
-                          border: showOutOfStock ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
+                          border: showOutOfStock ? '1px solid #c7d2fe' : '1px solid #cbd5e1',
                           backgroundColor: showOutOfStock ? '#e0e7ff' : '#f8fafc',
-                          color: showOutOfStock ? '#170e5e' : '#64748b',
+                          color: showOutOfStock ? '#170e5e' : '#475569',
                           fontWeight: 700,
                           fontSize: '10.5px',
                           cursor: 'pointer',
@@ -2114,7 +2173,7 @@ export function DriverNewLoadRequisitionView({
                           alignItems: 'center',
                         }}
                       >
-                        {showOutOfStock ? 'إخفاء غير المتوفر' : `غير المتوفر (${outOfStockCount})`}
+                        {showOutOfStock ? 'إخفاء غير المتوفر' : `عرض غير المتوفر (${outOfStockCount})`}
                       </button>
                     )}
                   </div>
@@ -2428,6 +2487,24 @@ export function DriverNewLoadRequisitionView({
             zIndex: 30,
           }}
         >
+          {distinctWarehousesCount > 1 && selectedWarehouseFilter === 'all' && (
+            <div
+              style={{
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                color: '#1e40af',
+                fontWeight: 600,
+                lineHeight: 1.45,
+                textAlign: 'center',
+              }}
+            >
+              الأصناف المطلوبة تتوزع على ({distinctWarehousesCount}) مستودعات مختلفة. سيقوم النظام تلقائياً بإصدار إذن تحميل مستقل لكل مستودع لضمان دقة الصرف المخزني.
+            </div>
+          )}
+
           {/* Mini-KPI Strip */}
           <div
             style={{
