@@ -1,13 +1,13 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsDateString, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsIn } from 'class-validator';
 
 export class CreateTableReservationDto {
   @IsNotEmpty()
   @IsString()
-  tableNumber: string;
+  tableNumber!: string;
 
   @IsNotEmpty()
   @IsString()
-  guestName: string;
+  guestName!: string;
 
   @IsOptional()
   @IsString()
@@ -19,7 +19,7 @@ export class CreateTableReservationDto {
 
   @IsNotEmpty()
   @IsString()
-  reservationTime: string;
+  reservationTime!: string;
 
   @IsOptional()
   @IsString()
@@ -33,5 +33,5 @@ export class CreateTableReservationDto {
 export class UpdateTableReservationStatusDto {
   @IsNotEmpty()
   @IsIn(['confirmed', 'seated', 'cancelled', 'no_show'])
-  status: 'confirmed' | 'seated' | 'cancelled' | 'no_show';
+  status!: 'confirmed' | 'seated' | 'cancelled' | 'no_show';
 }

@@ -1,14 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { DatabaseService } from '../../../database/database.service';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Kysely } from 'kysely';
+import { KYSELY_DB } from '../../../database/database.constants';
+import { Database } from '../../../database/database.types';
 import { CreateTableReservationDto, UpdateTableReservationStatusDto } from '../dto/table-reservation.dto';
 
 @Injectable()
 export class TableReservationsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+  ) {}
 
   async listReservations(tenantId: string, branchId?: number, date?: string) {
     let query = this.db
-      .getDb()
       .selectFrom('restaurant_table_reservations')
       .selectAll()
       .where('tenant_id', '=', tenantId);
@@ -39,7 +42,6 @@ export class TableReservationsService {
     }
 
     const [created] = await this.db
-      .getDb()
       .insertInto('restaurant_table_reservations')
       .values({
         tenant_id: tenantId,
@@ -63,7 +65,6 @@ export class TableReservationsService {
 
   async updateStatus(tenantId: string, id: number, dto: UpdateTableReservationStatusDto) {
     const existing = await this.db
-      .getDb()
       .selectFrom('restaurant_table_reservations')
       .selectAll()
       .where('id', '=', id)
@@ -75,7 +76,6 @@ export class TableReservationsService {
     }
 
     const [updated] = await this.db
-      .getDb()
       .updateTable('restaurant_table_reservations')
       .set({
         status: dto.status,
@@ -91,7 +91,6 @@ export class TableReservationsService {
 
   async deleteReservation(tenantId: string, id: number) {
     const existing = await this.db
-      .getDb()
       .selectFrom('restaurant_table_reservations')
       .select('id')
       .where('id', '=', id)
@@ -103,7 +102,6 @@ export class TableReservationsService {
     }
 
     await this.db
-      .getDb()
       .deleteFrom('restaurant_table_reservations')
       .where('id', '=', id)
       .where('tenant_id', '=', tenantId)

@@ -3,6 +3,7 @@ import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { AllowAuthenticated } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { TableReservationsService } from '../services/table-reservations.service';
 import { CreateTableReservationDto, UpdateTableReservationStatusDto } from '../dto/table-reservation.dto';
 
@@ -18,9 +19,9 @@ export class TableReservationsController {
     @Query('branchId') branchId?: string,
     @Query('date') date?: string,
   ) {
-    const tenantId = req.authContext!.tenantId;
+    const scope = requireTenantScope(req.authContext!);
     const branch = branchId ? parseInt(branchId, 10) : undefined;
-    return this.service.listReservations(tenantId, branch, date);
+    return this.service.listReservations(scope.tenantId, branch, date);
   }
 
   @Post()
@@ -28,9 +29,9 @@ export class TableReservationsController {
     @Req() req: RequestWithAuth,
     @Body() dto: CreateTableReservationDto,
   ) {
-    const tenantId = req.authContext!.tenantId;
-    const userId = req.authContext!.userId;
-    return this.service.createReservation(tenantId, userId, dto);
+    const scope = requireTenantScope(req.authContext!);
+    const userId = Number(req.authContext?.userId || 0);
+    return this.service.createReservation(scope.tenantId, userId, dto);
   }
 
   @Patch(':id/status')
@@ -39,8 +40,8 @@ export class TableReservationsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTableReservationStatusDto,
   ) {
-    const tenantId = req.authContext!.tenantId;
-    return this.service.updateStatus(tenantId, id, dto);
+    const scope = requireTenantScope(req.authContext!);
+    return this.service.updateStatus(scope.tenantId, id, dto);
   }
 
   @Delete(':id')
@@ -48,7 +49,7 @@ export class TableReservationsController {
     @Req() req: RequestWithAuth,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const tenantId = req.authContext!.tenantId;
-    return this.service.deleteReservation(tenantId, id);
+    const scope = requireTenantScope(req.authContext!);
+    return this.service.deleteReservation(scope.tenantId, id);
   }
 }
