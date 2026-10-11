@@ -742,7 +742,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             />
           </Field>
           <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
-          <Field label="سبب الحركة (إجباري)"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
+          <Field label="سبب الحركة *"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
           <SubmitButton
             type="submit"

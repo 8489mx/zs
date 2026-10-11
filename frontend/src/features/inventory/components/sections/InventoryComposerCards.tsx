@@ -566,7 +566,7 @@ export function StockCountComposerCard({
                   />
                 </Field>
               ) : null}
-              <Field label="المخزن (إجباري)">
+              <Field label="المخزن *">
                 <CustomSelect
                   value={form.locationId}
                   onChange={(val) => onFormChange({ locationId: val })}

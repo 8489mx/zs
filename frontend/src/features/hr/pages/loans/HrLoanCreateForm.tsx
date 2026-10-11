@@ -65,7 +65,7 @@ export function HrLoanCreateForm({
         
         {/* Card 1: Essential Loan Details */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>بيانات السلفة (إجباري)</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>بيانات السلفة *</span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <SearchableCombobox

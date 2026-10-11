@@ -274,6 +274,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowPiecesCount: true,
       printShowPaymentBreakdown: true,
       printShowDate: true,
+      printShowHijriDate: false,
       printShowItemOffers: true,
       printShowDiscountBreakdown: true,
       printShowSavingsBanner: true,
@@ -526,6 +527,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowItemCount: settings.printShowItemCount !== false,
       printShowPiecesCount: settings.printShowPiecesCount !== false,
       printShowPaymentBreakdown: settings.printShowPaymentBreakdown !== false,
+      printShowDate: settings.printShowDate !== false,
+      printShowHijriDate: Boolean(settings.printShowHijriDate),
+      printShowItemOffers: settings.printShowItemOffers !== false,
+      printShowDiscountBreakdown: settings.printShowDiscountBreakdown !== false,
       printShowSavingsBanner: settings.printShowSavingsBanner !== false,
       printShowInvoiceBarcode: settings.printShowInvoiceBarcode !== false,
       printShowFooter: settings.printShowFooter !== false,
@@ -566,7 +571,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   useEffect(() => {
     const selectedLocationId = form.getValues('currentLocationId');
     if (selectedLocationId && !visibleLocations.some((location) => String(location.id) === String(selectedLocationId))) {
-      form.setValue('currentLocationId', '', { shouldDirty: true });
+      form.setValue('currentLocationId', '', { shouldDirty: false });
     }
   }, [visibleLocations, form]);
 
@@ -595,7 +600,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
   useEffect(() => {
     if (!clothingModuleEnabled && form.getValues('defaultProductKind') !== 'standard') {
-      form.setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      form.setValue('defaultProductKind', 'standard', { shouldDirty: false });
     }
   }, [clothingModuleEnabled, form]);
 
@@ -1185,13 +1190,31 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         />
       </div>
 
-      <div className="actions compact-actions sticky-form-actions settings-save-actions">
-        <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ التغييرات</button>
-      </div>
-
       {!canManageSettings ? <div className="muted small">هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.</div> : null}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
-      <SubmitButton type="submit" isPending={mutation.isPending} disabled={!canManageSettings} idleText={setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'} pendingText="جارٍ الحفظ..." />
+
+      <div
+        className="actions compact-actions sticky-form-actions settings-save-actions"
+        style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}
+      >
+        <SubmitButton
+          type="submit"
+          isPending={mutation.isPending}
+          disabled={!canManageSettings}
+          idleText={setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'}
+          pendingText="جارٍ الحفظ..."
+          style={{ minWidth: '160px', background: '#170e5e', color: '#ffffff' }}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => { if (canNavigateAway()) form.reset(); }}
+          disabled={mutation.isPending || !form.formState.isDirty}
+          style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}
+        >
+          تفريغ التغييرات
+        </button>
+      </div>
 
       {/* مودال إضافة فرع سريع */}
       <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel="إضافة فرع جديد">
