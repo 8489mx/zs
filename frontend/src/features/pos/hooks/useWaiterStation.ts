@@ -51,7 +51,7 @@ export function useWaiterStation() {
   }, [heldDrafts]);
 
   // Real-time table service calls (Waiters & Bill requests)
-  const { data: pendingCalls = [], refetch: refetchCalls } = useQuery({
+  const { data: pendingCalls = [] } = useQuery({
     queryKey: ['waiter-station-table-calls'],
     queryFn: () => tableCallsApi.listPendingCalls(),
     refetchInterval: 5_000,

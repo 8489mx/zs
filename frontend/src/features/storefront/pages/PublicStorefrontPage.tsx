@@ -336,7 +336,7 @@ export function PublicStorefrontPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <button
               type="button"
-              disabled={isCallingWaiter}
+              disabled={isCallingService}
               onClick={handleCallWaiter}
               style={{
                 background: '#ffffff',
