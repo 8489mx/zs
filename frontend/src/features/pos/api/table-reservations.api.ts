@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client';
+import { http } from '@/lib/http';
 
 export interface TableReservation {
   id: number;
@@ -27,22 +27,32 @@ export interface CreateTableReservationPayload {
 
 export const tableReservationsApi = {
   async listReservations(params?: { branchId?: number; date?: string }): Promise<TableReservation[]> {
-    const res = await apiClient.get<TableReservation[]>('/api/sales/table-reservations', { params });
-    return res.data;
+    const query = new URLSearchParams();
+    if (params?.branchId) query.set('branch', String(params.branchId));
+    if (params?.date) query.set('date', params.date);
+    const qs = query.toString();
+    const res = await http<{ reservations?: TableReservation[] } | TableReservation[]>(`/api/sales/table-reservations${qs ? `?${qs}` : ''}`);
+    if (Array.isArray(res)) return res;
+    return (res as any)?.reservations || [];
   },
 
   async createReservation(payload: CreateTableReservationPayload): Promise<TableReservation> {
-    const res = await apiClient.post<TableReservation>('/api/sales/table-reservations', payload);
-    return res.data;
+    return http<TableReservation>('/api/sales/table-reservations', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   async updateStatus(id: number, status: 'confirmed' | 'seated' | 'cancelled' | 'no_show'): Promise<TableReservation> {
-    const res = await apiClient.patch<TableReservation>(`/api/sales/table-reservations/${id}/status`, { status });
-    return res.data;
+    return http<TableReservation>(`/api/sales/table-reservations/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
   },
 
   async deleteReservation(id: number): Promise<{ success: boolean }> {
-    const res = await apiClient.delete<{ success: boolean }>(`/api/sales/table-reservations/${id}`);
-    return res.data;
+    return http<{ success: boolean }>(`/api/sales/table-reservations/${id}`, {
+      method: 'DELETE',
+    });
   },
 };

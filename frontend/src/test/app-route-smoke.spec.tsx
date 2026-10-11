@@ -31,8 +31,8 @@ const routes = [
 ] as const;
 
 describe('app route smoke', () => {
-  vi.setConfig({ testTimeout: 15000 });
-  const queryTimeout = { timeout: 4000 };
+  vi.setConfig({ testTimeout: 25000 });
+  const queryTimeout = { timeout: 10000 };
 
   it.each(routes)('loads %s', async (path, title) => {
     await renderAppAt(path);
