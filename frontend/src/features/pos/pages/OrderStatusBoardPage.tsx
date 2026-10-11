@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrderStatusBoard } from '@/features/pos/hooks/useOrderStatusBoard';
-import { ClockIcon, CheckCircleIcon, RefreshCwIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
+import { ClockIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 export function OrderStatusBoardPage() {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ export function OrderStatusBoardPage() {
   };
 
   // Poll KDS tickets via feature hook
-  const { preparingTickets, readyTickets, refetch, isFetching } = useOrderStatusBoard();
+  const { preparingTickets, readyTickets } = useOrderStatusBoard();
 
   // Detect newly ready tickets to trigger acoustic chime
   useEffect(() => {

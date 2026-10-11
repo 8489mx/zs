@@ -1,19 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import {
-  SlidersIcon,
   RefreshCwIcon,
-  CheckCircleIcon,
   ClockIcon,
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
-import {
-  deliveryAggregatorsApi,
-  type AggregatorOrder,
-  type DeliveryAggregator,
-} from '@/features/pos/api/delivery-aggregators.api';
+import { deliveryAggregatorsApi } from '@/features/pos/api/delivery-aggregators.api';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
 
@@ -27,7 +21,6 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
   const [activeTab, setActiveTab] = useState<'orders' | 'platforms' | 'stock86'>('orders');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchProductId, setSearchProductId] = useState('');
-  const [stock86Status, setStock86Status] = useState<boolean>(false);
 
   // Queries
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
@@ -37,7 +30,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
     refetchInterval: open ? 10_000 : false, // Poll live orders every 10s
   });
 
-  const { data: platforms = [], isLoading: isLoadingPlatforms } = useQuery({
+  const { data: platforms = [] } = useQuery({
     queryKey: ['delivery-aggregators-list'],
     queryFn: () => deliveryAggregatorsApi.listAggregators(),
     enabled: open && activeTab === 'platforms',
@@ -100,7 +93,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
   };
 
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={onClose}
       title="منظومة تطبيقات التوصيل الخليجية (جاهز، هنقرستيشن، طلبات، كيتا)"
@@ -194,7 +187,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
                 ))}
               </div>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => refetchOrders()}
                 style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -386,7 +379,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() => togglePlatformMutation.mutate({ id: p.id, is_active: !p.is_active })}
                         style={{ fontSize: '11px' }}
@@ -449,7 +442,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
                 إيقاف الصنف فوراً (Out of Stock)
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() =>
                   trigger86Mutation.mutate({ productId: Number(searchProductId), isAvailable: true })
                 }
@@ -476,6 +469,6 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
           إغلاق
         </Button>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

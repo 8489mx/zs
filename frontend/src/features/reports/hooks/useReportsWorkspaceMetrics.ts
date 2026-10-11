@@ -212,7 +212,8 @@ export function useReportsWorkspaceMetrics({
       treasury: 'ركز على صافي حركة النقدية وصافي الربح قبل اتخاذ أي قرار صرف.',
       employees: 'ابدأ بفلترة الموظف ثم راجع تفاصيل نشاطه وملخصاته قبل أي إجراء إداري.',
       aging: 'راجع فئات تأخر السداد واتخذ إجراءات التحصيل للديون المتأخرة لأكثر من 60 يوماً.',
-      forecasting: 'راجع توقعات الطلب واقتراحات إعادة الطلب للأصناف المعرضة للنفاد.'
+      forecasting: 'راجع توقعات الطلب واقتراحات إعادة الطلب للأصناف المعرضة للنفاد.',
+      food_cost_variance: 'قارن الاستهلاك النظري والفعلي للمكونات وحدد الفروقات والهدر لمعالجتها.'
     };
     const attentionBySection: Record<ReportsSectionKey, string> = {
       overview: formatCurrency(financialCards?.netProfit ?? report?.commercial.netOperatingProfit ?? 0),
@@ -224,7 +225,8 @@ export function useReportsWorkspaceMetrics({
       treasury: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0),
       employees: 'راجع سجل الموظفين بالتفصيل',
       aging: 'متابعة الديون والتحصيل',
-      forecasting: 'تنبؤات حركة المخزون'
+      forecasting: 'تنبؤات حركة المخزون',
+      food_cost_variance: 'مراقبة تكلفة الهدر وفروقات المكونات'
     };
 
     return [

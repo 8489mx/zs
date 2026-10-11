@@ -13,7 +13,6 @@ import {
   PlusCircleIcon,
   UserIcon,
   UsersIcon,
-  XCircleIcon,
   PhoneIcon,
   SlidersIcon,
   TrashIcon,
@@ -141,7 +140,7 @@ export function PosTableReservationsModal({
       title="إدارة وتدفق حجوزات الطاولات (Table Reservations)"
       subtitle="تنظيم حجوزات الصالة، إجلاس الضيوف، ومطابقة الطاولات اللحظية لمنع التضارب"
       width="1060px"
-      contentStyle={{ padding: '16px 20px', minHeight: '520px', maxHeight: '82vh', overflowY: 'auto' }}
+      bodyStyle={{ padding: '16px 20px', minHeight: '520px', maxHeight: '82vh', overflowY: 'auto' }}
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip & Date Filter */}

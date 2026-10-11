@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
-import { CheckCircleIcon, PlusCircleIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
-import type { PosCartItem } from '@/features/pos/types/pos.types';
+import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 
 interface ComboOption {
   id: string;
@@ -100,7 +99,7 @@ export function PosComboMealModal({
       title="معالج وجبات الكومبو السريعة (Combo Meal Builder)"
       subtitle="بناء وجبة متكاملة خطوة بخطوة: الصنف الرئيسي ➔ الطبق الجانبي ➔ المشروب"
       width="880px"
-      contentStyle={{ padding: '16px 20px', minHeight: '480px', maxHeight: '80vh', overflowY: 'auto' }}
+      bodyStyle={{ padding: '16px 20px', minHeight: '480px', maxHeight: '80vh', overflowY: 'auto' }}
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Step Progress Indicators */}

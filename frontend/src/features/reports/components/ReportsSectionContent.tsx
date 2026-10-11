@@ -21,7 +21,7 @@ export function ReportsSectionContent(props: ReportsSectionContentProps) {
     case 'inventory':
       return <InventoryReportSection {...props} />;
     case 'food_cost_variance':
-      return <FoodCostVarianceReportSection from={props.from} to={props.to} />;
+      return <FoodCostVarianceReportSection from={(props.report as any)?.from} to={(props.report as any)?.to} />;
     case 'balances':
       return <BalancesReportSection {...props} />;
     case 'customers':

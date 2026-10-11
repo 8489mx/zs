@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import {
-  AlertTriangleIcon,
-  RefreshCwIcon,
   PlusCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   restaurantFoodWasteApi,
-  type FoodWasteLog,
 } from '@/features/pos/api/restaurant-food-waste.api';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
@@ -35,7 +32,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteM
     enabled: open,
   });
 
-  const { data: logs = [], isLoading: isLoadingLogs, refetch: refetchLogs } = useQuery({
+  const { data: logs = [], isLoading: isLoadingLogs } = useQuery({
     queryKey: ['restaurant-food-waste-logs', branchId],
     queryFn: () => restaurantFoodWasteApi.listLogs({ branchId }),
     enabled: open && activeTab === 'history',
@@ -95,7 +92,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteM
   };
 
   return (
-    <DialogShell
+    <StandardDialog
       open={open}
       onClose={onClose}
       title="إدارة وتوثيق هدر المطبخ والتالف (Kitchen Food Waste & Spoilage)"
@@ -376,6 +373,6 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteM
           إغلاق
         </Button>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }

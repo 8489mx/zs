@@ -21,14 +21,14 @@ export function useWaiterStation() {
   // Settings & Configuration
   const { data: settings } = useQuery({
     queryKey: ['waiter-settings'],
-    queryFn: () => settingsApi.getSettings(),
+    queryFn: () => settingsApi.settings(),
   });
   const tablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 20));
 
   // Products Catalog (Cached & Fast)
   const { data: productsData, isLoading: isCatalogLoading } = useQuery({
     queryKey: ['waiter-products'],
-    queryFn: () => posApi.searchProducts({ fullCatalog: true, limit: 100 }),
+    queryFn: () => posApi.lookupProducts({ fullCatalog: true, limit: 100 }),
   });
   const products = productsData || [];
 
@@ -108,7 +108,7 @@ export function useWaiterStation() {
           })),
           timestamp: new Date(),
           serverName: `ويتر #${waiterPin}`,
-        });
+        } as any, settings);
       } catch {
         // Kitchen print non-blocking
       }

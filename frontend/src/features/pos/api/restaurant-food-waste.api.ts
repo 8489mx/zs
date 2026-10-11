@@ -33,19 +33,26 @@ export const restaurantFoodWasteApi = {
     reason: string;
     notes?: string;
   }): Promise<any> => {
-    return http.post('/sales/food-waste', payload);
+    return http<any>('/api/sales/food-waste', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   listLogs: async (filters?: { branchId?: number; limit?: number }): Promise<FoodWasteLog[]> => {
     const params = new URLSearchParams();
     if (filters?.branchId) params.append('branchId', String(filters.branchId));
     if (filters?.limit) params.append('limit', String(filters.limit));
-    return http.get(`/sales/food-waste?${params.toString()}`);
+    const qs = params.toString();
+    const res = await http<FoodWasteLog[] | { logs: FoodWasteLog[] }>(`/api/sales/food-waste${qs ? `?${qs}` : ''}`);
+    if (Array.isArray(res)) return res;
+    return (res as any)?.logs || [];
   },
 
   getSummary: async (branchId?: number): Promise<FoodWasteSummary> => {
     const params = new URLSearchParams();
     if (branchId) params.append('branchId', String(branchId));
-    return http.get(`/sales/food-waste/summary?${params.toString()}`);
+    const qs = params.toString();
+    return http<FoodWasteSummary>(`/api/sales/food-waste/summary${qs ? `?${qs}` : ''}`);
   },
 };

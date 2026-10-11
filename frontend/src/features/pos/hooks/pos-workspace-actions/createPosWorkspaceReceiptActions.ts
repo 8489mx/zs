@@ -108,13 +108,13 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
       subtotal,
       discount: params.totals.discountValue,
       serviceCharge: (params.totals as any).serviceCharge || 0,
-      taxAmount: params.totals.taxAmount,
+      taxAmount: (params.totals as any).taxAmount || 0,
       total: params.totals.total,
       guestCount: params.guestCount || 1,
       customerName: params.quickCustomerName || undefined,
       cashierName,
-      branchName: params.currentBranch?.name,
-      locationName: params.currentLocation?.name,
+      branchName: (params.currentBranch as any)?.name,
+      locationName: (params.currentLocation as any)?.name,
       settings: params.settings || null,
     });
     params.setGuestCheckPrintedAt?.(new Date().toISOString());

@@ -37,6 +37,8 @@ import {
   ChevronDownIcon,
   PhoneCallIcon,
   PrinterIcon,
+  CheckCircleIcon,
+  UsersIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 

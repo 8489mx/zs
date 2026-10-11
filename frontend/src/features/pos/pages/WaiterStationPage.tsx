@@ -3,22 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
 import { formatCurrency } from '@/lib/format';
 import {
-  UsersIcon,
   SearchIcon,
   CheckCircleIcon,
   ArrowRightIcon,
-  SlidersIcon,
-  ClockIcon,
-  PlusCircleIcon,
-  TrashIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export function WaiterStationPage() {
   const navigate = useNavigate();
 
   // Authentication State
-  const [waiterPin, setWaiterPin] = useState<string>('101');
-  const [isPinUnlocked, setIsPinUnlocked] = useState<boolean>(true);
+  const waiterPin = '101';
 
   // Active Order State
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -33,9 +27,6 @@ export function WaiterStationPage() {
   const {
     tablesCount,
     products,
-    isCatalogLoading,
-    heldDrafts,
-    refetchDrafts,
     occupiedTablesMap,
     sendToKitchen,
     isSendingToKitchen,

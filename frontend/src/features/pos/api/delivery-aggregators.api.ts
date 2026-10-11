@@ -33,25 +33,39 @@ export interface AggregatorOrder {
 
 export const deliveryAggregatorsApi = {
   listAggregators: async (): Promise<DeliveryAggregator[]> => {
-    return http.get('/sales/aggregators');
+    const res = await http<DeliveryAggregator[] | { channels: DeliveryAggregator[] }>('/api/sales/delivery-aggregators');
+    if (Array.isArray(res)) return res;
+    return (res as any)?.channels || [];
   },
 
   updateAggregator: async (id: number, payload: Partial<DeliveryAggregator>): Promise<{ success: boolean }> => {
-    return http.patch(`/sales/aggregators/${id}`, payload);
+    return http<{ success: boolean }>(`/api/sales/delivery-aggregators/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
   },
 
   listOrders: async (filters?: { status?: string; limit?: number }): Promise<AggregatorOrder[]> => {
     const params = new URLSearchParams();
     if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters?.limit) params.append('limit', String(filters.limit));
-    return http.get(`/sales/aggregators/orders?${params.toString()}`);
+    const qs = params.toString();
+    const res = await http<AggregatorOrder[] | { orders: AggregatorOrder[] }>(`/api/sales/delivery-aggregators/orders${qs ? `?${qs}` : ''}`);
+    if (Array.isArray(res)) return res;
+    return (res as any)?.orders || [];
   },
 
   updateOrderStatus: async (id: number, status: string): Promise<{ success: boolean; status: string }> => {
-    return http.patch(`/sales/aggregators/orders/${id}/status`, { status });
+    return http<{ success: boolean; status: string }>(`/api/sales/delivery-aggregators/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
   },
 
   trigger86: async (productId: number, isAvailable: boolean): Promise<any> => {
-    return http.post('/sales/aggregators/86', { productId, isAvailable });
+    return http<any>('/api/sales/delivery-aggregators/86', {
+      method: 'POST',
+      body: JSON.stringify({ productId, isAvailable }),
+    });
   },
 };

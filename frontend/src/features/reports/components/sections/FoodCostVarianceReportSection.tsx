@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { reportsApi, type FoodCostVarianceItem } from '@/features/reports/api/reports.api';
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
-import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 interface FoodCostVarianceReportSectionProps {
   from?: string;

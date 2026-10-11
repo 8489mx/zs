@@ -2,7 +2,7 @@ import { Kysely } from 'kysely';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
-import { ReportRangeQueryDto } from '../dto/report-range-query.dto';
+import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { parseRange } from './reports-range.helper';
 
 export async function buildFoodCostVarianceReport(

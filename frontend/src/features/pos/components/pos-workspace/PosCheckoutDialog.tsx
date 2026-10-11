@@ -16,6 +16,7 @@ import {
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 import { summarizeCartQuantities } from '@/features/pos/lib/pos.domain';
 import { systemConfirm } from '@/shared/components/system-alert';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface PosCheckoutDialogProps {
   open: boolean;
@@ -42,7 +43,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   const createSalePendingRef = useRef(Boolean(pos.createSale.isPending));
   
   const { user } = useAuthStore();
-  const isAdmin = isAdminUser(user);
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isDiscountLocked = !pos.canApplyDiscount && !isAdmin;
 
   let deliveryRepsQuery: any = { data: [] };

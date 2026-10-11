@@ -649,9 +649,9 @@ export function PosWorkspace() {
       <PosComboMealModal
         open={comboMealModalOpen}
         onClose={() => setComboMealModalOpen(false)}
-        products={pos.products || []}
+        products={pos.productsQuery.data || []}
         onAddComboToCart={(combo) => {
-          const product = (pos.products || []).find((p: any) => p.id === combo.productId);
+          const product = (pos.productsQuery.data || []).find((p: any) => p.id === combo.productId);
           if (product) {
             pos.handleAddProduct(product);
             pos.setCart((prevCart: any[]) => {
@@ -700,10 +700,10 @@ export function PosWorkspace() {
               }, 0);
               const discount = Number(matchingDraft.discount || 0);
               const isServiceChargeActive = Boolean(
-                pos.settingsQuery.data?.restaurantServiceChargeEnabled && matchingDraft.orderType === 'dine_in'
+                (pos.settingsQuery.data as any)?.restaurantServiceChargeEnabled && matchingDraft.orderType === 'dine_in'
               );
               const serviceChargePercent = isServiceChargeActive
-                ? Math.max(0, Number(pos.settingsQuery.data?.restaurantServiceChargePercent ?? 0))
+                ? Math.max(0, Number((pos.settingsQuery.data as any)?.restaurantServiceChargePercent ?? 0))
                 : 0;
               const discounted = Math.max(0, subtotal - discount);
               const serviceCharge = serviceChargePercent > 0
@@ -743,7 +743,7 @@ export function PosWorkspace() {
               (matchingDraft as any).guestCheckPrintedAt = new Date().toISOString();
               const updatedHeld = pos.heldDrafts.map((d) => d.id === matchingDraft.id ? { ...matchingDraft } : d);
               persistHeldDrafts(updatedHeld);
-              void pos.saveHeldDraftMutation?.mutateAsync?.(matchingDraft);
+              void posApi.saveHeldDraft(matchingDraft as any);
               toast.success(`تمت طباعة شيك طاولة ${tableNum} بنجاح`);
             }
           }}
