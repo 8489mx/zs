@@ -2,7 +2,7 @@ import { http } from '@/lib/http';
 
 export type KdsTicketStatus = 'pending' | 'cooking' | 'ready' | 'served';
 export type KdsItemStatus = 'pending' | 'cooking' | 'ready';
-export type KdsStation = 'all' | 'kitchen' | 'grill' | 'beverages' | 'bakery' | 'general';
+export type KdsStation = 'all' | 'kitchen' | 'grill' | 'beverages' | 'bakery' | 'general' | 'expo';
 export type KdsUrgencyLevel = 'normal' | 'warning' | 'critical';
 
 export interface KdsTicketItem {

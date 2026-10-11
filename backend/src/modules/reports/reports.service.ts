@@ -16,6 +16,7 @@ import { buildInventoryReportItems, buildInventorySummary, InventoryLocationBrea
 import { applyReportScopeFilter, buildReportListState } from './helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/reports-query-pipeline.helper';
 import { buildFoodCostVarianceReport } from './helpers/reports-food-waste.helper';
+import { buildMenuEngineeringReport } from './helpers/reports-menu-engineering.helper';
 import { ReportsAdminService } from './services/reports-admin.service';
 import { ReportsSummaryService } from './services/reports-summary.service';
 
@@ -873,6 +874,10 @@ export class ReportsService {
 
   async foodCostVarianceReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await buildFoodCostVarianceReport(this.db, query, auth), auth);
+  }
+
+  async menuEngineeringReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.withScope(await buildMenuEngineeringReport(this.db, query, auth) as unknown as Record<string, unknown>, auth);
   }
 }
 

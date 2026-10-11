@@ -54,6 +54,12 @@ export class ReportsController {
     return this.reportsService.foodCostVarianceReport(query, req.authContext!);
   }
 
+  @Get('reports/restaurant/menu-engineering')
+  @RequirePermissions('reports')
+  menuEngineeringReport(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.menuEngineeringReport(query, req.authContext!);
+  }
+
   @Get('reports/customer-balances')
   @RequireAnyPermission('reports', 'accounts')
   customerBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

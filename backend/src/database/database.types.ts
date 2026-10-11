@@ -5065,6 +5065,23 @@ export interface RestaurantTableReservationTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface PosKitchenPrinterTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  name: string;
+  station_code: string;
+  ip_address: string | null;
+  port: number;
+  paper_width: string;
+  is_active: boolean;
+  category_ids: unknown;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
+  pos_kitchen_printers: PosKitchenPrinterTable;
 }
+

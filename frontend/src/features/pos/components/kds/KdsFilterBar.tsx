@@ -16,6 +16,7 @@ const STATIONS: { key: KdsStation; label: string }[] = [
   { key: 'grill', label: 'المشويات' },
   { key: 'beverages', label: 'المشروبات والبار' },
   { key: 'bakery', label: 'المخبوزات والحلويات' },
+  { key: 'expo', label: 'منسق التسليم (Expo)' },
 ];
 
 const ORDER_TYPES = [

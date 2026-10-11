@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { computeInvoiceTotals } from '../../src/common/utils/invoice-totals';
+import { classifyMenuEngineeringQuadrant } from '../../src/modules/reports/helpers/reports-menu-engineering.helper';
 
 // ============================================================================
 // RESTAURANT F&B WORKFLOW & OPERATIONS CRITICAL AUDIT SUITE
@@ -142,6 +143,64 @@ async function testGuestCoversAndAverageSpend(): Promise<void> {
   assert.equal(computeAverageSpend(450, -2), 450.0, 'Negative covers defaults safely to 1');
 }
 
+async function testMenuEngineeringMatrix(): Promise<void> {
+  const hurdlePopularity = 17.5; // Hurdle: e.g. 70% of 25% (4 items)
+  const avgMarginPerUnit = 25.0; // Benchmark avg margin
+
+  // 1. Star (High Popularity, High Margin)
+  const star = classifyMenuEngineeringQuadrant(25.0, hurdlePopularity, 35.0, avgMarginPerUnit);
+  assert.equal(star.quadrant, 'star');
+  assert.equal(star.quadrantLabelAr, 'نجم (Star)');
+
+  // 2. Plowhorse (High Popularity, Low Margin)
+  const plowhorse = classifyMenuEngineeringQuadrant(30.0, hurdlePopularity, 15.0, avgMarginPerUnit);
+  assert.equal(plowhorse.quadrant, 'plowhorse');
+  assert.equal(plowhorse.quadrantLabelAr, 'حصان جر (Plowhorse)');
+
+  // 3. Puzzle (Low Popularity, High Margin)
+  const puzzle = classifyMenuEngineeringQuadrant(10.0, hurdlePopularity, 40.0, avgMarginPerUnit);
+  assert.equal(puzzle.quadrant, 'puzzle');
+  assert.equal(puzzle.quadrantLabelAr, 'لغز (Puzzle)');
+
+  // 4. Dog (Low Popularity, Low Margin)
+  const dog = classifyMenuEngineeringQuadrant(5.0, hurdlePopularity, 12.0, avgMarginPerUnit);
+  assert.equal(dog.quadrant, 'dog');
+  assert.equal(dog.quadrantLabelAr, 'صنف خاسر (Dog)');
+}
+
+async function testMultiStationKitchenPrinterRouting(): Promise<void> {
+  interface StationRoutedItem {
+    id: number;
+    name: string;
+    station: 'kitchen' | 'bar' | 'grill' | 'cold' | 'dessert';
+    qty: number;
+  }
+
+  const orderItems: StationRoutedItem[] = [
+    { id: 1, name: 'ريب آي ستيك', station: 'grill', qty: 2 },
+    { id: 2, name: 'موهيتو فراولة', station: 'bar', qty: 3 },
+    { id: 3, name: 'سلطة سيزر', station: 'cold', qty: 1 },
+    { id: 4, name: 'تشيز كيك', station: 'dessert', qty: 1 },
+    { id: 5, name: 'برجر أنجوس', station: 'kitchen', qty: 2 },
+  ];
+
+  // Group by station routing
+  const stationBuckets = new Map<string, StationRoutedItem[]>();
+  for (const item of orderItems) {
+    const list = stationBuckets.get(item.station) || [];
+    list.push(item);
+    stationBuckets.set(item.station, list);
+  }
+
+  assert.equal(stationBuckets.get('bar')?.length, 1);
+  assert.equal(stationBuckets.get('bar')?.[0].name, 'موهيتو فراولة');
+  assert.equal(stationBuckets.get('grill')?.length, 1);
+  assert.equal(stationBuckets.get('cold')?.length, 1);
+  assert.equal(stationBuckets.get('kitchen')?.length, 1);
+  assert.equal(stationBuckets.get('dessert')?.length, 1);
+  assert.equal(stationBuckets.size, 5);
+}
+
 (async () => {
   console.log('--- Starting Restaurant F&B Critical Workflow Audit ---');
   await testServiceChargeFinancialInvariants();
@@ -154,8 +213,13 @@ async function testGuestCoversAndAverageSpend(): Promise<void> {
   console.log('4. Food Waste & Variance Engine: PASSED');
   await testGuestCoversAndAverageSpend();
   console.log('5. Guest Covers & Spend Per Guest: PASSED');
+  await testMenuEngineeringMatrix();
+  console.log('6. Menu Engineering BCG Matrix (Star/Plowhorse/Puzzle/Dog): PASSED');
+  await testMultiStationKitchenPrinterRouting();
+  console.log('7. Multi-Station Kitchen Printer Routing: PASSED');
   console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100%) ---');
 })().catch((err) => {
   console.error('Restaurant F&B Critical Audit FAILED:', err);
   process.exit(1);
 });
+

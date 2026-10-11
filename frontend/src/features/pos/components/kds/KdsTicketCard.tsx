@@ -201,6 +201,26 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
 
       {/* Ticket Items List */}
       <div style={{ padding: '12px 14px', flex: 1 }}>
+        {/* Expediter Progress Bar */}
+        {ticket.items.length > 1 && (
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>
+              <span>جاهزية الأصناف ({ticket.items.filter(i => i.status === 'ready').length}/{ticket.items.length})</span>
+              <span style={{ fontWeight: 700, color: ticket.items.filter(i => i.status === 'ready').length === ticket.items.length ? '#16a34a' : '#64748b' }}>
+                {Math.round((ticket.items.filter(i => i.status === 'ready').length / ticket.items.length) * 100)}%
+              </span>
+            </div>
+            <div style={{ height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.round((ticket.items.filter(i => i.status === 'ready').length / ticket.items.length) * 100)}%`,
+                background: ticket.items.filter(i => i.status === 'ready').length === ticket.items.length ? '#16a34a' : '#170e5e',
+                transition: 'width 0.2s ease',
+              }} />
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {ticket.items.map((item) => {
             const isDone = item.status === 'ready';
@@ -230,7 +250,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                     justifyContent: 'space-between',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
                         fontSize: '13px',
@@ -253,6 +273,18 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                     >
                       {item.name}
                     </span>
+                    {item.station && item.station !== 'all' && item.station !== 'general' && (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        backgroundColor: item.station === 'beverages' ? '#e0f2fe' : item.station === 'grill' ? '#ffedd5' : '#f1f5f9',
+                        color: item.station === 'beverages' ? '#0369a1' : item.station === 'grill' ? '#c2410c' : '#475569',
+                      }}>
+                        {item.station === 'beverages' ? 'بار' : item.station === 'grill' ? 'شواية' : item.station === 'bakery' ? 'حلويات' : 'مطبخ'}
+                      </span>
+                    )}
                   </div>
 
                   <span

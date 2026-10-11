@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon, CalendarIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -15,6 +15,7 @@ import { kdsApi, type KdsTicket } from '@/features/pos/api/kds.api';
 import { tableReservationsApi, type TableReservation } from '@/features/pos/api/table-reservations.api';
 import { PosTableReservationsModal } from './PosTableReservationsModal';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
+import { PosKitchenPrintersModal } from './PosKitchenPrintersModal';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
 
@@ -66,6 +67,7 @@ export function PosTablesFloorPlanDialog({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
   const [isReservationsModalOpen, setIsReservationsModalOpen] = useState(false);
+  const [isPrintersModalOpen, setIsPrintersModalOpen] = useState(false);
 
   // Dynamic tables count from settings
   const configuredTablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 12));
@@ -596,6 +598,29 @@ export function PosTablesFloorPlanDialog({
                 >
                   <CalendarIcon size={13} color="#1d4ed8" />
                   <span>حجوزات اليوم {confirmedReservationsMap.size > 0 && <strong>({confirmedReservationsMap.size})</strong>}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrintersModalOpen(true)}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    color: '#170e5e',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="توجيه بونات التحضير وطابعات المطبخ والبار الشبكية"
+                >
+                  <PrinterIcon size={13} color="#170e5e" />
+                  <span>طابعات المطبخ والبار</span>
                 </button>
 
                 {currentTableNumber && (
@@ -1144,6 +1169,11 @@ export function PosTablesFloorPlanDialog({
             await onSelectTable(res.table_number);
           }
         }}
+      />
+
+      <PosKitchenPrintersModal
+        open={isPrintersModalOpen}
+        onClose={() => setIsPrintersModalOpen(false)}
       />
     </DialogShell>
   );

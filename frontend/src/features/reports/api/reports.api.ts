@@ -351,7 +351,54 @@ export const reportsApi = {
     };
     return http<FoodCostVarianceResponse>(`/api/reports/restaurant/food-cost-variance${buildQueryString(query)}`);
   },
+  menuEngineering: (params?: { from?: string; to?: string; branchId?: number }) => {
+    const query: Record<string, string | number | undefined | null> = {
+      ...(params?.from ? { from: params.from } : {}),
+      ...(params?.to ? { to: params.to } : {}),
+      ...(params?.branchId ? { branchId: params.branchId } : {}),
+    };
+    return http<MenuEngineeringResponse>(`/api/reports/restaurant/menu-engineering${buildQueryString(query)}`);
+  },
 };
+
+export interface MenuEngineeringItem {
+  productId: number;
+  productName: string;
+  categoryName: string;
+  qtySold: number;
+  unitPrice: number;
+  unitCost: number;
+  unitMargin: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalMargin: number;
+  foodCostPercentage: number;
+  popularityShare: number;
+  quadrant: 'star' | 'plowhorse' | 'puzzle' | 'dog';
+  quadrantLabelAr: string;
+  recommendation: string;
+}
+
+export interface MenuEngineeringSummary {
+  totalItems: number;
+  totalUnitsSold: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalMargin: number;
+  overallFoodCostPercentage: number;
+  averageUnitMargin: number;
+  popularityHurdleRate: number;
+  starCount: number;
+  plowhorseCount: number;
+  puzzleCount: number;
+  dogCount: number;
+  potentialProfitUplift: number;
+}
+
+export interface MenuEngineeringResponse {
+  summary: MenuEngineeringSummary;
+  items: MenuEngineeringItem[];
+}
 
 export type CustomerRfmSegment = 'champions' | 'loyal' | 'promising' | 'at_risk' | 'lost';
 

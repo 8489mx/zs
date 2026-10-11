@@ -6732,4 +6732,77 @@
   - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
   - `frontend/src/features/pos/components/PosWorkspace.tsx`
 
+---
+
+## 214. مصفوفة هندسة قائمة الطعام وتحليل الربحية والشعبية (Menu Engineering Matrix - BCG F&B Analysis)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** التقارير المؤسسية `/reports` ➔ تبويب "هندسة المنيو (BCG)" (`menu_engineering`) ➔ نقطة النهاية `/api/reports/restaurant/menu-engineering`.
+* **الهدف:** تطبيق المعيار الأكاديمي والمهني العالمي لهندسة المنيو (Kasavana & Smith Menu Engineering Model) لتقييم كل صنف في القائمة حسب الربحية والشعبية وحساب نسبة تكلفة الغذاء (Food Cost %) وتصنيفه إلى الأقسام الأربعة (النجوم، أحصنة الجر، الألغاز، الأصناف الخاسرة) مع توصيات تجارية لتعظيم الربح.
+* **المحرك والميزات المنفذة:**
+  1. **معدل العتبة ومعايير التصنيف الأكاديمية (Hurdle Rate Benchmark):**
+     - عتبة الشعبية (Popularity Hurdle): تمثل 70% من الحصة المتساوية للأصناف في القائمة `(100 / N) * 0.70`.
+     - عتبة الربحية (Profit Margin Benchmark): متوسط هامش الربح للصنف عبر كامل المبيعات `إجمالي الربح / إجمالي الوحدات المباعة`.
+  2. **أرباع المصفوفة الأربعة (The 4 BCG Quadrants):**
+     - **النجوم (Stars):** أصناف عالية الربحية وعالية الشعبية (أبطال المنيو ➔ الحفاظ على ثبات الجودة وموقع الصدارة).
+     - **أحصنة الجر (Plowhorses):** أصناف عالية المبيعات منخفضة الهامش (➔ رفع السعر 5-8% أو تخفيض تكلفة المكونات لتحسين الهامش).
+     - **الألغاز (Puzzles):** أصناف عالية الربحية منخفضة المبيعات (➔ إعادة تسليط الضوء عليها في المنيو وتدريب الويترز على الـ Upselling).
+     - **الأصناف الخاسرة (Dogs):** أصناف ضعيفة المبيعات وضعيفة الربحية (➔ دراسة استبعادها لتوفير الهدر ومساحات التخزين).
+  3. **مؤشرات الأداء الاستراتيجية (KPI Cards):**
+     - إجمالي الإيرادات، هامش الربح الإجمالي، نسبة تكلفة الطعام العامة (Overall Food Cost %)، ومتوسط هامش الصنف، وحساب الربح المتوقع تحقيقه من تحسين المنيو (Potential Profit Uplift).
+* **الملفات المنفذة:**
+  - `backend/src/modules/reports/helpers/reports-menu-engineering.helper.ts`
+  - `backend/src/modules/reports/reports.service.ts`
+  - `backend/src/modules/reports/reports.controller.ts`
+  - `frontend/src/features/reports/api/reports.api.ts`
+  - `frontend/src/features/reports/components/sections/MenuEngineeringReportSection.tsx`
+  - `frontend/src/features/reports/pages/reports.page-config.ts`
+  - `frontend/src/features/reports/components/ReportsSectionContent.tsx`
+  - `frontend/src/features/reports/hooks/useReportsWorkspaceMetrics.ts`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 215. شبكة طابعات المطبخ والبار وتوجيه البونات حسب المحطة (Multi-Printer Network KOT Routing)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "طابعات المطبخ والبار" بهيدر الصالة ➔ نافذة `PosKitchenPrintersModal` ➔ والـ API `/api/sales/kitchen-printers`.
+* **الهدف:** توجيه بونات التحضير (Kitchen Order Tickets - KOT) تلقائياً عبر الشبكة المحلية (Ethernet / WiFi / ESC-POS) حسب محطة التجهيز المحددة للأصناف والتصنيفات (المطبخ الساخن، البار والمشروبات، الشواية، المقليات، الحلويات، والسلطات الباردة).
+* **المحرك والميزات المنفذة:**
+  1. **إدارة طابعات الشبكة المحلية:**
+     - تعريف الطابعة: الاسم، عنوان IP المحلي (مثال: `192.168.1.200`)، المنفذ (افتراضياً 9100)، وعرض الورق (80mm / 58mm).
+     - ربط الطابعة بمحطة التحضير المستهدفة: `kitchen`, `bar`, `grill`, `fryer`, `cold`, `dessert`, `expo`.
+  2. **التوجيه التلقائي للأصناف والتصنيفات:**
+     - إضافة حقل `kitchen_station` للتصنيفات والمنتجات لتحديد محطة التجهيز التلقائية لكل صنف.
+     - عزل وتوزيع بنود الفاتورة الواحدة عند إرسال الطلب للمطبخ ليطبع بون المشروبات في البار فقط وبون اللحوم في الشواية فقط وبون الوجبات في المطبخ الرئيسي.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000214_pos_kitchen_printers_and_stations.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/dto/kitchen-printer.dto.ts`
+  - `backend/src/modules/sales/services/kitchen-printers.service.ts`
+  - `backend/src/modules/sales/controllers/kitchen-printers.controller.ts`
+  - `backend/src/modules/sales/sales.module.ts`
+  - `frontend/src/features/pos/api/kitchen-printers.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosKitchenPrintersModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 216. شاشة منسق تسليم المطبخ وتتبع جاهزية الأصناف (Kitchen Expediter / Expo KDS Station)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة المطبخ `/pos/kds` ➔ فلتر المحطات "منسق التسليم (Expo)" ➔ بطاقات التذاكر `KdsTicketCard`.
+* **الهدف:** شاشة مخصصة لمنسق تسليم الأطباق (Kitchen Expediter / Expo Master) تجمع كافة أصناف الطلب المحضرة من المحطات المختلفة وتتحقق من اكتمال الوجبة قبل تسليمها للويتر أو مندوب التوصيل مع شريط تقدم الجاهزية اللحظي.
+* **المحرك والميزات المنفذة:**
+  1. **محطة الـ Expo المتكاملة:**
+     - إضافة محطة "منسق التسليم (Expo)" لشاشات المطبخ الرقمية KDS.
+     - إظهار شارات المحطات الملونة بجوار كل طبق (`[بار]`, `[شواية]`, `[مطبخ]`, `[سلطات]`, إلخ).
+  2. **شريط تقدم اكتمال الوجبة (Readiness Progress Bar):**
+     - عداد ذكي للأصناف الجاهزة مقابل إجمالي الأصناف (مثال: `3 من 5 أصناف جاهزة - 60%`).
+     - شريط تقدم ملون يتدرج من الأصفر للبنفسجي للأخضر عند اكتمال جاهزية كافة الأطباق.
+     - دعم شطب الأصناف الجاهزة وتفعيل نغمة التنبيه عند اكتمال الطلب بالكامل.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/api/kds.api.ts`
+  - `frontend/src/features/pos/components/kds/KdsFilterBar.tsx`
+  - `frontend/src/features/pos/components/kds/KdsTicketCard.tsx`
+
+
 

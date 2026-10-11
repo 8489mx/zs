@@ -34,6 +34,8 @@ import { RestaurantFoodWasteController } from './controllers/restaurant-food-was
 import { RestaurantFoodWasteService } from './services/restaurant-food-waste.service';
 import { TableReservationsController } from './controllers/table-reservations.controller';
 import { TableReservationsService } from './services/table-reservations.service';
+import { KitchenPrintersController } from './controllers/kitchen-printers.controller';
+import { KitchenPrintersService } from './services/kitchen-printers.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule, ReturnsModule],
@@ -48,6 +50,7 @@ import { TableReservationsService } from './services/table-reservations.service'
     DeliveryAggregatorsController,
     RestaurantFoodWasteController,
     TableReservationsController,
+    KitchenPrintersController,
     CommercialSubscriptionController,
     SalesController,
   ],
@@ -67,6 +70,7 @@ import { TableReservationsService } from './services/table-reservations.service'
     DeliveryAggregatorsService,
     RestaurantFoodWasteService,
     TableReservationsService,
+    KitchenPrintersService,
     CommercialSubscriptionService,
   ],
   exports: [
@@ -82,6 +86,7 @@ import { TableReservationsService } from './services/table-reservations.service'
     DeliveryAggregatorsService,
     RestaurantFoodWasteService,
     TableReservationsService,
+    KitchenPrintersService,
     CommercialSubscriptionService,
   ],
 })
