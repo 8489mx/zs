@@ -5,7 +5,7 @@ import { AllowAuthenticated } from '../../../core/auth/decorators/permissions.de
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { DeliveryAggregatorsService, AggregatorChannelDto, IngestOrderDto } from '../services/delivery-aggregators.service';
 
-@Controller('sales/aggregators')
+@Controller(['sales/aggregators', 'api/sales/delivery-aggregators', 'api/sales/aggregators'])
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 @AllowAuthenticated()
 export class DeliveryAggregatorsController {
