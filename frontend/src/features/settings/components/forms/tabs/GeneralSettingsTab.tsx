@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import { useEffect, memo } from 'react';
+import { useWatch, type UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { Branch, Location } from '@/types/domain';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
@@ -196,7 +196,59 @@ interface GeneralTabProps {
   onUpdateBranch?: (id: any, data: any) => Promise<any>;
 }
 
-export function GeneralSettingsTab({
+function BrandAvatarAndTitlePreview({
+  control,
+  accentColor,
+  logoData,
+  children,
+}: {
+  control: any;
+  accentColor: string;
+  logoData?: string;
+  children?: React.ReactNode;
+}) {
+  const storeName = useWatch({ control, name: 'storeName' });
+  const brandName = useWatch({ control, name: 'brandName' });
+
+  return (
+    <>
+      <div
+        style={{
+          width: '50px',
+          height: '50px',
+          borderRadius: '8px',
+          border: `2px solid ${accentColor}`,
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
+        {logoData ? (
+          <img src={logoData} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: '1.3rem', fontWeight: 900, color: accentColor }}>
+            {(storeName || brandName || 'Z').slice(0, 1).toUpperCase()}
+          </span>
+        )}
+      </div>
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {storeName || 'اسم النشاط / المتجر'}
+        </div>
+        <div style={{ fontSize: '0.74rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {brandName || 'Z Systems'}
+        </div>
+        {children}
+      </div>
+    </>
+  );
+}
+
+export const GeneralSettingsTab = memo(function GeneralSettingsTab({
   form,
   canManageSettings,
   disabled,
@@ -230,8 +282,6 @@ export function GeneralSettingsTab({
   locations = [],
   onUpdateBranch,
 }: GeneralTabProps) {
-  const storeName = form.watch('storeName');
-  const brandName = form.watch('brandName');
   const accentColor = form.watch('accentColor') || '#170c5c';
   const logoData = form.watch('logoData');
   const user = useAuthStore((s) => s.user);
@@ -354,36 +404,7 @@ export function GeneralSettingsTab({
           }}>
             {/* Right: Logo Preview box + Brand details */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 200px' }}>
-              {/* Logo Preview box */}
-              <div style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '8px',
-                border: `2px solid ${accentColor}`,
-                background: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                flexShrink: 0,
-              }}>
-                {logoData ? (
-                  <img src={logoData} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: accentColor }}>
-                    {(storeName || brandName || 'Z').slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </div>
-
-              {/* Brand details + upload trigger */}
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {storeName || 'اسم النشاط / المتجر'}
-                </div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {brandName || 'Z Systems'}
-                </div>
+              <BrandAvatarAndTitlePreview control={form.control} accentColor={accentColor} logoData={logoData}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
                   <label style={{
                     fontSize: '0.72rem',
@@ -432,7 +453,7 @@ export function GeneralSettingsTab({
                     </button>
                   )}
                 </div>
-              </div>
+              </BrandAvatarAndTitlePreview>
             </div>
 
             {/* Left: Compact Enterprise Sector & Activity Badge */}
@@ -1073,4 +1094,27 @@ export function GeneralSettingsTab({
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.activeTab !== 'general' && next.activeTab !== 'general') {
+    return true;
+  }
+  return (
+    prev.disabled === next.disabled &&
+    prev.activeTab === next.activeTab &&
+    prev.branchQuery === next.branchQuery &&
+    prev.selectedBranch === next.selectedBranch &&
+    prev.stockMode === next.stockMode &&
+    prev.defaultStockLocationId === next.defaultStockLocationId &&
+    prev.allowExternalSalesStock === next.allowExternalSalesStock &&
+    prev.branchStockSaving === next.branchStockSaving &&
+    prev.branchStockSaved === next.branchStockSaved &&
+    prev.branchStockError === next.branchStockError &&
+    prev.branchStockDirty === next.branchStockDirty &&
+    prev.branchMenuOpen === next.branchMenuOpen &&
+    prev.branchMenuHasContent === next.branchMenuHasContent &&
+    prev.branchCreateOptionVisible === next.branchCreateOptionVisible &&
+    prev.branches === next.branches &&
+    prev.locations === next.locations &&
+    prev.form === next.form
+  );
+});

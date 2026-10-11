@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
@@ -304,7 +304,7 @@ const premiumCheckboxInputStyle = {
   flexShrink: 0,
 };
 
-export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
+export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const isSuperAdmin = isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs');
@@ -1880,4 +1880,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       </DialogShell>
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.activeTab !== 'modules' && next.activeTab !== 'modules') {
+    return true;
+  }
+  return prev.disabled === next.disabled && prev.activeTab === next.activeTab && prev.form === next.form;
+});

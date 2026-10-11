@@ -321,6 +321,56 @@ export function buildSettingsUpdatePayload(
     invoiceNumberingScheme: values.invoiceNumberingScheme !== undefined
       ? (values.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily')
       : (current?.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily'),
+    defaultBranchIssueMode: values.defaultBranchIssueMode !== undefined
+      ? (values.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue')
+      : (current?.defaultBranchIssueMode || 'final_issue'),
+    expiryAlertDays: values.expiryAlertDays !== undefined
+      ? Math.max(1, Number(values.expiryAlertDays || 60))
+      : Math.max(1, Number(current?.expiryAlertDays || 60)),
+    stagnantProductDays: values.stagnantProductDays !== undefined
+      ? Math.max(1, Number(values.stagnantProductDays || 60))
+      : Math.max(1, Number(current?.stagnantProductDays || 60)),
+    posTerminalEnabled: values.posTerminalEnabled !== undefined
+      ? values.posTerminalEnabled !== false
+      : current?.posTerminalEnabled !== false,
+    posTerminalProvider: values.posTerminalProvider !== undefined
+      ? values.posTerminalProvider
+      : (current?.posTerminalProvider || 'mock_sandbox'),
+    posTerminalName: values.posTerminalName !== undefined
+      ? cleanText(values.posTerminalName, 'جهاز الكاشير الرئيسي (EDC)')
+      : cleanText(current?.posTerminalName, 'جهاز الكاشير الرئيسي (EDC)'),
+    posTerminalIp: values.posTerminalIp !== undefined
+      ? cleanText(values.posTerminalIp, '192.168.1.150')
+      : cleanText(current?.posTerminalIp, '192.168.1.150'),
+    posTerminalPort: values.posTerminalPort !== undefined
+      ? Number(values.posTerminalPort || 8080)
+      : Number(current?.posTerminalPort || 8080),
+    contractingRetentionPercent: values.contractingRetentionPercent !== undefined
+      ? Number(values.contractingRetentionPercent ?? 5)
+      : Number(current?.contractingRetentionPercent ?? 5),
+    contractingAdvanceRecoveryMode: values.contractingAdvanceRecoveryMode || current?.contractingAdvanceRecoveryMode || 'proportional',
+    contractingDefaultProfitMargin: values.contractingDefaultProfitMargin !== undefined
+      ? Number(values.contractingDefaultProfitMargin ?? 15)
+      : Number(current?.contractingDefaultProfitMargin ?? 15),
+    contractingDefaultOverhead: values.contractingDefaultOverhead !== undefined
+      ? Number(values.contractingDefaultOverhead ?? 7)
+      : Number(current?.contractingDefaultOverhead ?? 7),
+    contractingDefaultWaste: values.contractingDefaultWaste !== undefined
+      ? Number(values.contractingDefaultWaste ?? 5)
+      : Number(current?.contractingDefaultWaste ?? 5),
+    contractingRequireBoqLinkForIssue: values.contractingRequireBoqLinkForIssue !== undefined
+      ? values.contractingRequireBoqLinkForIssue === true
+      : current?.contractingRequireBoqLinkForIssue === true,
+    maritimeDemurrageFreeDays: values.maritimeDemurrageFreeDays !== undefined
+      ? Number(values.maritimeDemurrageFreeDays ?? 14)
+      : Number(current?.maritimeDemurrageFreeDays ?? 14),
+    maritimeDefaultCurrency: values.maritimeDefaultCurrency || current?.maritimeDefaultCurrency || 'USD',
+    importLandedCostMethod: values.importLandedCostMethod || current?.importLandedCostMethod || 'by_value',
+    importAutoLinkBankExpenses: values.importAutoLinkBankExpenses || current?.importAutoLinkBankExpenses || 'auto_link',
+    servicesBillingMethod: values.servicesBillingMethod || current?.servicesBillingMethod || 'deliverable',
+    servicesContractRenewalNoticeDays: values.servicesContractRenewalNoticeDays !== undefined
+      ? Number(values.servicesContractRenewalNoticeDays ?? 30)
+      : Number(current?.servicesContractRenewalNoticeDays ?? 30),
   };
 
   const rawActivity = String(values.businessIndustry || values.activityType || (current as any)?.activityType || (current as any)?.pillar || current?.businessIndustry || 'retail_general').trim().toLowerCase();

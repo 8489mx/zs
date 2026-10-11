@@ -212,5 +212,23 @@ export const posApi = {
   checkTerminalStatus: async (transactionId: string) =>
     http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/status/${encodeURIComponent(transactionId)}`),
   cancelTerminalCharge: async (transactionId: string) =>
-    http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/cancel/${encodeURIComponent(transactionId)}`, { method: 'POST' })
+    http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/cancel/${encodeURIComponent(transactionId)}`, { method: 'POST' }),
+  testTerminalConnection: async (payload: { ip?: string; port?: number; provider?: string }) =>
+    http<{
+      success: boolean;
+      data: {
+        reachable: boolean;
+        pingSucceeded: boolean;
+        portOpen: boolean;
+        ip: string;
+        port: number;
+        latencyMs?: number;
+        message: string;
+        details?: string;
+        provider?: string;
+      };
+    }>('/api/sales/pos/terminals/test-connection', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };

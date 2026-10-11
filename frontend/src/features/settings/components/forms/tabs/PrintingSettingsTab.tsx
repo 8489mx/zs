@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
@@ -113,7 +113,7 @@ interface PrintingTabProps {
   posKitchenPrinterEnabled?: boolean;
 }
 
-export function PrintingSettingsTab({
+export const PrintingSettingsTab = memo(function PrintingSettingsTab({
   form,
   disabled,
   activeTab,
@@ -830,4 +830,15 @@ export function PrintingSettingsTab({
       </FormSection>
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.activeTab !== 'printing' && next.activeTab !== 'printing') {
+    return true;
+  }
+  return (
+    prev.disabled === next.disabled &&
+    prev.activeTab === next.activeTab &&
+    prev.settings === next.settings &&
+    prev.systemPrinters === next.systemPrinters &&
+    prev.form === next.form
+  );
+});

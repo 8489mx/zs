@@ -99,13 +99,91 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput, vertica
   ];
 }
 
-export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') {
+export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 'customers-retail' | 'customers-van' | 'suppliers' | 'opening-stock') {
   if (kind === 'products') {
     downloadExcelFile('products-template.xlsx', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'المخزن', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'المخزن الرئيسي', 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
     return;
   }
-  if (kind === 'customers') {
-    downloadExcelFile('customers-template.xlsx', ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'], [['عميل جديد', '01000000000', 'القاهرة', 'cash', 0, 1500, 0, 'شركة مثال', '300123456700003']]);
+  if (kind === 'customers' || kind === 'customers-retail') {
+    downloadExcelFile(
+      'customers-retail-template.xlsx',
+      ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل (نقدي / آجل)', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي', 'ملاحظات'],
+      [
+        ['محمد أحمد', '01012345678', 'شارع التحرير، الدقي، الجيزة', 'نقدي', 0, 1500, 0, 'مؤسسة النور', '300123456700003', 'عميل تجزئة منتظم'],
+        ['علي حسن', '01123456789', 'شارع الهرم، الجيزة', 'آجل', 3000, 0, 0, '', '', ''],
+      ],
+    );
+    return;
+  }
+  if (kind === 'customers-van') {
+    downloadExcelFile(
+      'customers-van-wholesale-template.xlsx',
+      [
+        'اسم العميل / المحل (إجباري)',
+        'كود المحل / العميل',
+        'رقم الموبايل',
+        'خط السير / مسار التوزيع',
+        'الحي / المربع السكني',
+        'العنوان التفصيلي',
+        'يوم الزيارة الأسبوعي',
+        'أيام الزيارة (إن تعددت)',
+        'ترتيب خط السير',
+        'المندوب المسؤول / المخصص',
+        'رابط الموقع / GPS',
+        'فئة السعر',
+        'نوع النشاط / التصنيف',
+        'نوع العميل (نقدي / آجل)',
+        'الحد الائتماني',
+        'رصيد افتتاحي',
+        'اسم المنشأة / الشركة',
+        'الرقم الضريبي',
+        'ملاحظات',
+      ],
+      [
+        [
+          'سوبرماركت الأمل',
+          'CUST-1001',
+          '01012345678',
+          'خط الهرم',
+          'العشرين',
+          'شارع فيصل الرئيسي بجوار بنك مصر',
+          'الإثنين',
+          'الإثنين، الخميس',
+          1,
+          'أحمد محمود',
+          'https://maps.google.com/?q=30.0131,31.2089',
+          'جملة',
+          'سوبرماركت',
+          'آجل',
+          5000,
+          1200,
+          'شركة الأمل للتجارة',
+          '300123456700003',
+          'عميل جملة أسبوعي',
+        ],
+        [
+          'بقالة البركة',
+          'CUST-1002',
+          '01198765432',
+          'خط فيصل',
+          'الطوابق',
+          'شارع المنشية تقاطع الطوابق',
+          'الأحد',
+          'الأحد',
+          2,
+          'محمد علي',
+          'https://maps.google.com/?q=30.0150,31.2050',
+          'قطاعي',
+          'بقالة',
+          'نقدي',
+          0,
+          0,
+          'بقالة البركة',
+          '',
+          'سداد كاش مع كل تسليم',
+        ],
+      ],
+    );
     return;
   }
   if (kind === 'suppliers') {
@@ -174,16 +252,28 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
       const res = await http<any>(`/api/customers?page=${page}&pageSize=1000`);
       const items = res.customers || [];
       for (const c of items) {
+        const meta = c.metadata || {};
         allRows.push([
           c.name || '',
+          meta.customer_code || meta.code || c.customerCode || '',
           c.phone || '',
+          meta.route || '',
+          meta.district || meta.area || '',
           c.address || '',
+          meta.visit_day || '',
+          Array.isArray(meta.visit_days) ? meta.visit_days.join('، ') : (meta.visit_day || ''),
+          meta.route_sequence ?? '',
+          meta.assigned_rep_name || '',
+          meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
+          meta.price_tier || '',
+          meta.category || '',
           c.type || 'cash',
           c.creditLimit ?? 0,
-          c.openingBalance ?? 0,
+          c.openingBalance ?? (c.balance ?? 0),
           c.storeCreditBalance ?? 0,
           c.companyName || '',
           c.taxNumber || '',
+          meta.notes || '',
         ]);
       }
       if (items.length < 1000) break;
@@ -192,8 +282,29 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
 
     downloadExcelFile(
       `customers-export-${dateStr}.xlsx`,
-      ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'],
-      allRows.length ? allRows : [['لا يوجد عملاء مسجلين', '', '', '', 0, 0, 0, '', '']],
+      [
+        'اسم العميل / المحل (إجباري)',
+        'كود المحل / العميل',
+        'رقم الموبايل',
+        'خط السير / مسار التوزيع',
+        'الحي / المربع السكني',
+        'العنوان التفصيلي',
+        'يوم الزيارة الأسبوعي',
+        'أيام الزيارة',
+        'ترتيب خط السير',
+        'المندوب المسؤول / المخصص',
+        'رابط الموقع / GPS',
+        'فئة السعر',
+        'نوع النشاط / التصنيف',
+        'نوع العميل',
+        'الحد الائتماني',
+        'رصيد افتتاحي',
+        'رصيد محفظة',
+        'اسم الشركة',
+        'الرقم الضريبي',
+        'ملاحظات',
+      ],
+      allRows.length ? allRows : [['لا يوجد عملاء مسجلين', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, 0, 0, '', '', '']],
     );
     return;
   }

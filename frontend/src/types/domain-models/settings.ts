@@ -118,7 +118,7 @@ export interface AppSettings {
   hrDelayPenalty3rd?: number;
   hrDelayPenalty4th?: number;
   posTerminalEnabled?: boolean;
-  posTerminalProvider?: 'geidea' | 'paymob' | 'network_international' | 'mock_sandbox' | string;
+  posTerminalProvider?: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'mock_sandbox' | string;
   posTerminalName?: string;
   posTerminalIp?: string;
   posTerminalPort?: number;

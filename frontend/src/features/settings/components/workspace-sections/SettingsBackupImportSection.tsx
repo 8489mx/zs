@@ -57,7 +57,7 @@ interface SettingsBackupImportSectionProps {
   importCustomers: (rows: Record<string, string>[]) => Promise<unknown>;
   importSuppliers: (rows: Record<string, string>[]) => Promise<unknown>;
   importOpeningStock: (rows: Record<string, string>[]) => Promise<unknown>;
-  downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
+  downloadTemplate: (kind: 'products' | 'customers' | 'customers-retail' | 'customers-van' | 'suppliers' | 'opening-stock') => void;
   onExportData?: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => Promise<void> | void;
 }
 
@@ -1575,21 +1575,45 @@ export function SettingsBackupImportSection({
             />
           )}
           <ImportWorkbench
-            title={isMaritime ? 'استيراد العملاء والمشحون إليهم (Shippers & Consignees)' : isContracting ? 'استيراد جهات الإسناد والملاك' : 'استيراد العملاء'}
+            title={isMaritime ? 'استيراد العملاء والمشحون إليهم (Shippers & Consignees)' : isContracting ? 'استيراد جهات الإسناد والملاك' : 'استيراد العملاء والمحلات'}
             requiredColumns={['اسم العميل']}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'اسم العميل', aliases: ['اسم العميل (إجباري)', 'اسم العميل', 'الاسم', 'name'] },
-              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
-              { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
-              { key: 'type', label: 'النوع', aliases: ['نوع العميل', 'type'] },
+              { key: 'name', label: 'اسم العميل / المحل', aliases: ['اسم العميل (إجباري)', 'اسم العميل / المحل (إجباري)', 'اسم العميل / المحل', 'اسم العميل', 'اسم المحل', 'العميل', 'المحل', 'الاسم', 'name'] },
+              { key: 'customerCode', label: 'كود المحل / العميل', aliases: ['كود المحل / العميل', 'كود العميل', 'كود المحل', 'كود المحل الفريد', 'الكود', 'customerCode', 'customer_code', 'code'] },
+              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'الموبايل', 'الهاتف', 'phone', 'mobile'] },
+              { key: 'route', label: 'خط السير', aliases: ['خط السير / مسار التوزيع', 'خط السير / المنطقة', 'خط السير', 'مسار التوزيع', 'route'] },
+              { key: 'district', label: 'الحي / المربع السكني', aliases: ['الحي / المربع السكني', 'الحي', 'المنطقة', 'المربع السكني', 'district', 'area'] },
+              { key: 'address', label: 'العنوان التفصيلي', aliases: ['العنوان التفصيلي', 'العنوان', 'address'] },
+              { key: 'visitDay', label: 'يوم الزيارة الأسبوعي', aliases: ['يوم الزيارة الأسبوعي', 'يوم الزيارة', 'visitDay', 'visit_day'] },
+              { key: 'visitDays', label: 'أيام الزيارة', aliases: ['أيام الزيارة (إن تعددت)', 'أيام الزيارة', 'visitDays', 'visit_days'] },
+              { key: 'routeSequence', label: 'ترتيب خط السير', aliases: ['ترتيب خط السير', 'ترتيب الزيارة', 'التسلسل', 'routeSequence', 'route_sequence', 'sequence'] },
+              { key: 'assignedRepName', label: 'المندوب المخصص', aliases: ['المندوب المسؤول / المخصص', 'المندوب المسؤول', 'المندوب المخصص', 'المندوب', 'assignedRep', 'assignedRepName', 'rep'] },
+              { key: 'locationUrl', label: 'رابط الموقع / GPS', aliases: ['رابط الموقع / GPS', 'رابط الموقع', 'رابط الخريطة', 'موقع المحل', 'locationUrl', 'location_url', 'maps', 'gps'] },
+              { key: 'priceTier', label: 'فئة السعر', aliases: ['فئة السعر', 'فئة التسعير', 'قائمة الأسعار', 'priceTier', 'price_tier'] },
+              { key: 'category', label: 'نوع النشاط / التصنيف', aliases: ['نوع النشاط / التصنيف', 'نوع النشاط', 'تصنيف المحل', 'التصنيف', 'category', 'businessType'] },
+              { key: 'type', label: 'النوع', aliases: ['نوع العميل (نقدي / آجل)', 'نوع العميل', 'النوع', 'type'] },
               { key: 'creditLimit', label: 'الحد الائتماني', aliases: ['الحد الائتماني', 'creditLimit'] },
-              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },
+              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance', 'balance'] },
               { key: 'storeCreditBalance', label: 'رصيد محفظة', aliases: ['رصيد محفظة', 'storeCreditBalance'] },
-              { key: 'companyName', label: 'اسم الشركة', aliases: ['اسم الشركة', 'companyName'] },
-              { key: 'taxNumber', label: 'الرقم الضريبي', aliases: ['الرقم الضريبي', 'taxNumber'] },
+              { key: 'companyName', label: 'اسم المنشأة / الشركة', aliases: ['اسم المنشأة / الشركة', 'اسم الشركة', 'اسم المنشأة', 'companyName'] },
+              { key: 'taxNumber', label: 'الرقم الضريبي', aliases: ['الرقم الضريبي', 'البطاقة الضريبية', 'taxNumber'] },
+              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'notes'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('customers')}
+            templateOptions={[
+              {
+                label: 'قالب تجزئة ونقدي',
+                onDownload: () => downloadTemplate('customers-retail'),
+                description: 'تحميل نموذج Excel مخصص لعملاء التجزئة والقطاعي',
+              },
+              {
+                label: 'قالب جملة وتوزيع (فان)',
+                variant: 'primary',
+                onDownload: () => downloadTemplate('customers-van'),
+                description: 'تحميل نموذج Excel شامل لعملاء الجملة والتوزيع الميداني وخطوط السير',
+              },
+            ]}
             onExportData={onExportData ? () => onExportData('customers') : undefined}
             onImportRows={importCustomers}
             isPending={importCustomersPending || !canManageBackups}

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
-import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { PosTerminalService, TerminalPaymentRequest } from '../services/pos-terminal.service';
 
@@ -9,6 +9,19 @@ import { PosTerminalService, TerminalPaymentRequest } from '../services/pos-term
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 export class PosTerminalController {
   constructor(private readonly terminalService: PosTerminalService) {}
+
+  @Post('test-connection')
+  @RequireAnyPermission('sales', 'canManageSettings')
+  async testConnection(
+    @Req() req: RequestWithAuth,
+    @Body() body: { ip?: string; port?: number; provider?: string }
+  ) {
+    const result = await this.terminalService.testConnection(String(req.authContext!.tenantId), body);
+    return {
+      success: true,
+      data: result,
+    };
+  }
 
   @Get()
   @RequirePermissions('sales')

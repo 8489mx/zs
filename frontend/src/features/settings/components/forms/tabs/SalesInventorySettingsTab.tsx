@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { posApi } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
@@ -285,7 +287,7 @@ const fieldControlStyle: React.CSSProperties = {
   lineHeight: '38px',
 };
 
-export function SalesInventorySettingsTab({
+export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab({
   form,
   disabled,
   activeTab,
@@ -305,6 +307,65 @@ export function SalesInventorySettingsTab({
 
   const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
   const [isChangingPin, setIsChangingPin] = useState(false);
+  const [isTestingTerminal, setIsTestingTerminal] = useState(false);
+  const [terminalTestResult, setTerminalTestResult] = useState<{
+    reachable: boolean;
+    pingSucceeded: boolean;
+    portOpen: boolean;
+    ip: string;
+    port: number;
+    latencyMs?: number;
+    message: string;
+    details?: string;
+    timestamp?: number;
+  } | null>(null);
+
+  const handleTestTerminal = async () => {
+    const rawIp = form.getValues('posTerminalIp') || '192.168.1.150';
+    const rawPort = Number(form.getValues('posTerminalPort') || 8080);
+    const provider = form.getValues('posTerminalProvider') || 'fawry';
+
+    setIsTestingTerminal(true);
+    setTerminalTestResult(null);
+
+    try {
+      const res = await posApi.testTerminalConnection({
+        ip: rawIp,
+        port: rawPort,
+        provider,
+      });
+
+      if (res.data) {
+        setTerminalTestResult({
+          ...res.data,
+          timestamp: Date.now(),
+        });
+
+        if (res.data.portOpen) {
+          toast.success(res.data.message);
+        } else if (res.data.pingSucceeded) {
+          toast.warning(res.data.message);
+        } else {
+          toast.error(res.data.message);
+        }
+      }
+    } catch (err: any) {
+      const fallbackResult = {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: rawIp,
+        port: rawPort,
+        message: err?.message || 'فشل الاتصال بالماكينة',
+        details: 'حدث خطأ أثناء محاولة فحص الاتصال بالماكينة. يرجى التأكد من تشغيل الماكينة واتصالها بالشبكة.',
+        timestamp: Date.now(),
+      };
+      setTerminalTestResult(fallbackResult);
+      toast.error(fallbackResult.message);
+    } finally {
+      setIsTestingTerminal(false);
+    }
+  };
 
   return (
     <div style={{ display: activeTab === 'sales_inventory' ? 'block' : 'none' }}>
@@ -1266,7 +1327,7 @@ export function SalesInventorySettingsTab({
       {showPosSettings && (
         <FormSection
           title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
-          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
+          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Fawry, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             {/* Card 1: Activation Toggle & Provider Selection */}
@@ -1299,6 +1360,7 @@ export function SalesInventorySettingsTab({
                   options={[
                     { value: 'geidea', label: 'Geidea POS (جيديا - السعودية / مصر)' },
                     { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
+                    { value: 'fawry', label: 'Fawry POS / PAX (فوري نقاط البيع - أجهزة PAX الذكية)' },
                     { value: 'network_international', label: 'Network International (NI)' },
                     { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
                   ]}
@@ -1356,11 +1418,150 @@ export function SalesInventorySettingsTab({
                 </div>
               </div>
 
+              {/* Action Button: Real Network Ping / ECR Handshake Test */}
+              <div>
+                <button
+                  type="button"
+                  onClick={handleTestTerminal}
+                  disabled={disabled || !form.watch('posTerminalEnabled') || isTestingTerminal}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    minHeight: '38px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    cursor: (disabled || !form.watch('posTerminalEnabled') || isTestingTerminal) ? 'not-allowed' : 'pointer',
+                    opacity: (disabled || !form.watch('posTerminalEnabled') || isTestingTerminal) ? 0.65 : 1,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <RotateCcwIcon size={15} style={{ animation: isTestingTerminal ? 'spin 1s linear infinite' : 'none' }} />
+                  <span>
+                    {isTestingTerminal
+                      ? 'جاري فحص الاتصال بالماكينة...'
+                      : 'فحص الاتصال الفعلي بالماكينة (Ping / ECR Test)'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Real Connection Diagnostic Card */}
+              {terminalTestResult && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${
+                      terminalTestResult.portOpen
+                        ? '#bbf7d0'
+                        : terminalTestResult.pingSucceeded
+                        ? '#fde68a'
+                        : '#fecaca'
+                    }`,
+                    background: terminalTestResult.portOpen
+                      ? '#f0fdf4'
+                      : terminalTestResult.pingSucceeded
+                      ? '#fffbeb'
+                      : '#fef2f2',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {terminalTestResult.portOpen ? (
+                        <CheckIcon size={16} color="#16a34a" />
+                      ) : terminalTestResult.pingSucceeded ? (
+                        <InfoIcon size={16} color="#d97706" />
+                      ) : (
+                        <ShieldAlertIcon size={16} color="#dc2626" />
+                      )}
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          color: terminalTestResult.portOpen
+                            ? '#166534'
+                            : terminalTestResult.pingSucceeded
+                            ? '#92400e'
+                            : '#991b1b',
+                        }}
+                      >
+                        {terminalTestResult.message}
+                      </span>
+                    </div>
+                    {terminalTestResult.latencyMs != null && (
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          background: terminalTestResult.portOpen ? '#dcfce7' : '#fef3c7',
+                          color: terminalTestResult.portOpen ? '#166534' : '#92400e',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {terminalTestResult.latencyMs}ms
+                      </span>
+                    )}
+                  </div>
+                  {terminalTestResult.details && (
+                    <div
+                      style={{
+                        fontSize: '0.74rem',
+                        lineHeight: 1.5,
+                        color: terminalTestResult.portOpen
+                          ? '#15803d'
+                          : terminalTestResult.pingSucceeded
+                          ? '#78350f'
+                          : '#b91c1c',
+                      }}
+                    >
+                      {terminalTestResult.details}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Live Status Bar */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: form.watch('posTerminalEnabled') ? '#10b981' : '#94a3b8', display: 'inline-block' }}></span>
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: !form.watch('posTerminalEnabled')
+                        ? '#94a3b8'
+                        : terminalTestResult?.portOpen
+                        ? '#10b981'
+                        : terminalTestResult?.pingSucceeded
+                        ? '#f59e0b'
+                        : terminalTestResult
+                        ? '#ef4444'
+                        : '#3b82f6',
+                      display: 'inline-block',
+                    }}
+                  ></span>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
-                    حالة التكامل: {form.watch('posTerminalEnabled') ? 'مفعل وجاهز بالكاشير' : 'معطل'}
+                    {!form.watch('posTerminalEnabled')
+                      ? 'الخدمة معطلة'
+                      : terminalTestResult?.portOpen
+                      ? 'متصل وجاهز للعمليات'
+                      : terminalTestResult?.pingSucceeded
+                      ? 'الماكينة أونلاين (المنفذ يحتاج تفعيل)'
+                      : terminalTestResult
+                      ? 'غير متصل (فشل الوصول)'
+                      : 'في انتظار الفحص الشبكي'}
                   </span>
                 </div>
                 <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
@@ -1767,4 +1968,14 @@ export function SalesInventorySettingsTab({
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.activeTab !== 'sales_inventory' && next.activeTab !== 'sales_inventory') {
+    return true;
+  }
+  return (
+    prev.disabled === next.disabled &&
+    prev.activeTab === next.activeTab &&
+    prev.settings === next.settings &&
+    prev.form === next.form
+  );
+});

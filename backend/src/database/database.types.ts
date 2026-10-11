@@ -359,7 +359,7 @@ export interface CustomerTable {
   phone: string;
   address: string;
   balance: number;
-  customer_type: 'cash' | 'vip';
+  customer_type: 'cash' | 'vip' | 'credit' | 'wholesale';
   credit_limit: number;
   store_credit_balance: number;
   company_name: string;

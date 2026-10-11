@@ -81,7 +81,7 @@ export interface SharedSettingsSectionProps {
   importCustomers: (rows: Record<string, string>[]) => Promise<unknown>;
   importSuppliers: (rows: Record<string, string>[]) => Promise<unknown>;
   importOpeningStock: (rows: Record<string, string>[]) => Promise<unknown>;
-  downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
+  downloadTemplate: (kind: 'products' | 'customers' | 'customers-retail' | 'customers-van' | 'suppliers' | 'opening-stock') => void;
   onExportData?: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => Promise<void> | void;
   setupMode?: boolean;
   setupStepKey?: SetupStepKey | null;

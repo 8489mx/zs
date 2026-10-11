@@ -179,6 +179,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const [activeTab, setActiveTab] = useState<'general' | 'sales_inventory' | 'modules' | 'printing'>('general');
   const form = useForm<SettingsFormInput, undefined, SettingsFormOutput>({
     resolver: zodResolver(settingsFormSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onBlur',
     defaultValues: {
       storeName: '',
       brandName: 'Z Systems',
@@ -549,7 +551,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       expiryAlertDays: Math.max(1, Number(settings.expiryAlertDays || 60)),
       stagnantProductDays: Math.max(1, Number(settings.stagnantProductDays || 60)),
       posTerminalEnabled: settings.posTerminalEnabled !== false,
-      posTerminalProvider: (['geidea', 'paymob', 'network_international', 'mock_sandbox'].includes(settings.posTerminalProvider as any) ? settings.posTerminalProvider : 'mock_sandbox') as any,
+      posTerminalProvider: (['geidea', 'paymob', 'fawry', 'network_international', 'mock_sandbox'].includes(settings.posTerminalProvider as any) ? settings.posTerminalProvider : 'mock_sandbox') as any,
       posTerminalName: settings.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
       posTerminalIp: settings.posTerminalIp || '192.168.1.150',
       posTerminalPort: Number(settings.posTerminalPort || 8080),

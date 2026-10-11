@@ -38,13 +38,21 @@ export function summarizeImportResult(result: unknown, rowCount: number, fileNam
   };
 }
 
+export interface ImportTemplateOption {
+  label: string;
+  onDownload: () => void;
+  variant?: 'default' | 'primary';
+  description?: string;
+}
+
 interface ImportWorkbenchProps {
   title: string;
   description?: string;
   requiredColumns: string[];
   requiredFieldKeys?: string[];
   fieldMappings?: ImportFieldMapping[];
-  onDownloadTemplate: () => void;
+  onDownloadTemplate?: () => void;
+  templateOptions?: ImportTemplateOption[];
   onExportData?: () => void | Promise<void>;
   onImportRows: (rows: CsvRow[]) => Promise<unknown>;
   isPending?: boolean;
@@ -58,6 +66,7 @@ export function ImportWorkbench({
   requiredFieldKeys,
   fieldMappings,
   onDownloadTemplate,
+  templateOptions,
   onExportData,
   onImportRows,
   isPending = false,
@@ -212,28 +221,65 @@ export function ImportWorkbench({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={onDownloadTemplate}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '5px 10px',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              background: '#f8fafc',
-              color: '#1e293b',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-          >
-            قالب فارغ
-          </button>
+          {templateOptions && templateOptions.length > 0 ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+              {templateOptions.map((opt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={opt.onDownload}
+                  title={opt.description || opt.label}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    border: opt.variant === 'primary' ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                    background: opt.variant === 'primary' ? '#170e5e' : '#f8fafc',
+                    color: opt.variant === 'primary' ? '#ffffff' : '#1e293b',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (opt.variant === 'primary') e.currentTarget.style.background = '#24147c';
+                    else { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (opt.variant === 'primary') e.currentTarget.style.background = '#170e5e';
+                    else { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : onDownloadTemplate ? (
+            <button
+              type="button"
+              onClick={onDownloadTemplate}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#1e293b',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            >
+              قالب فارغ
+            </button>
+          ) : null}
 
           <button
             type="button"

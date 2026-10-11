@@ -206,6 +206,50 @@ async function run(): Promise<void> {
   }
 
   {
+    // Test importCustomers with Van and wholesale metadata
+    const { db, service } = createService();
+    const result = await service.importCustomers([
+      {
+        'اسم العميل / المحل (إجباري)': 'سوبرماركت الأمل',
+        'كود المحل / العميل': 'CUST-1001',
+        'رقم الموبايل': '01012345678',
+        'خط السير / مسار التوزيع': 'خط الهرم',
+        'الحي / المربع السكني': 'العشرين',
+        'العنوان التفصيلي': 'شارع فيصل',
+        'يوم الزيارة الأسبوعي': 'الإثنين',
+        'أيام الزيارة (إن تعددت)': 'الإثنين، الخميس',
+        'ترتيب خط السير': 1,
+        'المندوب المسؤول / المخصص': 'أحمد محمود',
+        'رابط الموقع / GPS': 'https://maps.google.com/?q=30,31',
+        'فئة السعر': 'جملة',
+        'نوع النشاط / التصنيف': 'سوبرماركت',
+        'نوع العميل (نقدي / آجل)': 'wholesale',
+        'الحد الائتماني': 5000,
+        'رصيد افتتاحي': 1200,
+      },
+    ], actor);
+    assert.equal(result.ok, true);
+    assert.equal(result.inserted, 1);
+    assert.equal(db.state.customers.length, 1);
+    const cust = db.state.customers[0];
+    assert.equal(cust?.name, 'سوبرماركت الأمل');
+    assert.equal(cust?.phone, '01012345678');
+    assert.equal(cust?.customer_type, 'wholesale');
+    assert.equal(Number(cust?.credit_limit), 5000);
+    assert.equal(Number(cust?.balance), 1200);
+    const meta = JSON.parse(cust?.metadata as string);
+    assert.equal(meta.customer_code, 'CUST-1001');
+    assert.equal(meta.route, 'خط الهرم');
+    assert.equal(meta.district, 'العشرين');
+    assert.equal(meta.visit_day, 'الإثنين');
+    assert.deepEqual(meta.visit_days, ['الإثنين', 'الخميس']);
+    assert.equal(meta.route_sequence, 1);
+    assert.equal(meta.assigned_rep_name, 'أحمد محمود');
+    assert.equal(meta.price_tier, 'جملة');
+    assert.equal(meta.category, 'سوبرماركت');
+  }
+
+  {
     // Test importProducts with units (Piece + Carton) from Excel columns
     const { db, service } = createService();
     const result = await service.importProducts([

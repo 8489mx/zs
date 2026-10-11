@@ -64,4 +64,34 @@ describe('ImportWorkbench', () => {
     expect(await screen.findByText(/تحذيرات:/)).toBeInTheDocument();
     expect(screen.getByText(/تم تجاهل stockQty للمنتج الموجود/)).toBeInTheDocument();
   });
+
+  it('renders custom templateOptions and triggers download callbacks', async () => {
+    const onDownloadRetail = vi.fn();
+    const onDownloadVan = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <ImportWorkbench
+        title="استيراد العملاء"
+        requiredColumns={['name']}
+        templateOptions={[
+          { label: 'قالب تجزئة ونقدي', onDownload: onDownloadRetail },
+          { label: 'قالب جملة وتوزيع (فان)', variant: 'primary', onDownload: onDownloadVan },
+        ]}
+        onImportRows={vi.fn()}
+      />,
+    );
+
+    const retailBtn = screen.getByRole('button', { name: 'قالب تجزئة ونقدي' });
+    const vanBtn = screen.getByRole('button', { name: 'قالب جملة وتوزيع (فان)' });
+
+    expect(retailBtn).toBeInTheDocument();
+    expect(vanBtn).toBeInTheDocument();
+
+    await user.click(retailBtn);
+    expect(onDownloadRetail).toHaveBeenCalledTimes(1);
+
+    await user.click(vanBtn);
+    expect(onDownloadVan).toHaveBeenCalledTimes(1);
+  });
 });
