@@ -24,7 +24,7 @@ import {
   MarketplaceOnboardingCheck,
   GtinExemptionApplication,
 } from '@/features/storefront/api/marketplace-sync.api';
-import { productsApi } from '@/features/products/api/products.api';
+import { productsApi } from '@/features/products';
 import {
   CheckIcon,
   CheckCircleIcon,
