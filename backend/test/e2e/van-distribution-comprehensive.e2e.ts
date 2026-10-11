@@ -2,8 +2,6 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
-import { resolveDatabaseConfigFromEnv } from '../../src/database/migration-runner';
-import { resolvePgSslConfig } from '../../src/database/ssl.util';
 import type { Database } from '../../src/database/database.types';
 import type { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 import type { AuditService } from '../../src/core/audit/audit.service';
@@ -65,18 +63,12 @@ async function cleanup(db: Kysely<Database>): Promise<void> {
 }
 
 async function runVanDistributionCompleteSuite(): Promise<void> {
-  const config = resolveDatabaseConfigFromEnv();
   const pool = new Pool({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    database: config.name,
-    ssl: resolvePgSslConfig({
-      enabled: config.ssl,
-      rejectUnauthorized: config.sslRejectUnauthorized,
-      caCert: config.sslCaCert,
-    }),
+    host: process.env.TEST_DB_HOST || '127.0.0.1',
+    port: Number(process.env.TEST_DB_PORT || 5433),
+    user: process.env.TEST_DB_USER || 'postgres',
+    password: process.env.TEST_DB_PASSWORD || 'postgres',
+    database: process.env.TEST_DB_NAME || 'zs_dev',
     application_name: 'backend-e2e-van-distribution',
   });
   const db = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });

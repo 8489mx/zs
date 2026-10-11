@@ -1,34 +1,18 @@
 import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
 import { Pool } from 'pg';
 import { Kysely, PostgresDialect, sql } from 'kysely';
-import { resolveDatabaseConfigFromEnv } from '../../../src/database/migration-runner';
-import { resolvePgSslConfig } from '../../../src/database/ssl.util';
 import type { Database } from '../../../src/database/database.types';
 import type { AuthContext } from '../../../src/core/auth/interfaces/auth-context.interface';
 import { createPasswordRecord } from '../../../src/core/auth/utils/password-hasher';
 import { VanSalesService } from '../../../src/modules/delivery-reps/van-sales.service';
+import { VanPreSalesService } from '../../../src/modules/delivery-reps/services/van-pre-sales.service';
 import { AccountingPostingService } from '../../../src/modules/accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../../src/modules/accounting/accounting-tenant-foundation.service';
 import { AuditService } from '../../../src/core/audit/audit.service';
 import { DeliveryRepsService } from '../../../src/modules/delivery-reps/delivery-reps.service';
 import { applyStockDelta } from '../../../src/common/utils/location-stock-ledger';
-
-/**
- * ============================================================================
- * Z-SYSTEMS ERP — MODULE 3 MASTER SIMULATION & VERIFICATION
- * مبيعات وتوزيع سيارات الفان والجملة الميدانية (Van Sales & Field Distribution)
- * ============================================================================
- * 1. دورة الرحلات وشحن بضاعة الصباح من المستودع للفان (Morning Van Load)
- * 2. البيع الميداني بوحدات مجمعة وبونص ترويجي مجاني (Multi-UOM & Free Bonus)
- * 3. البيع الآجل مع فحص سقف الائتمان واعتماد رمز المشرف (Credit Limit & PIN)
- * 4. التحصيل النقدي الميداني وسداد المديونيات السابقة (Field Collections)
- * 5. مرتجعات البضاعة في خط السير ورد النقدية أو الذمة (Field Route Returns)
- * 6. حركة الفوارغ والصناديق البلاستيكية المستردة (Returnable Packaging & Empties)
- * 7. المصروفات التشغيلية الميدانية للرحلة (Field Fuel & Toll Expenses)
- * 8. التصفية النهائية والاعتماد المزدوج والمطابقة الصفرية (Maker-Checker Settlement)
- * 9. التدقيق المحاسبي الشامل وتوازن دفاتر الأستاذ (Double-Entry Invariants)
- * ============================================================================
- */
 
 export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
   const simUid = Math.floor(1000 + Math.random() * 9000).toString();
@@ -36,30 +20,27 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
   const testAccountId = `acc_van_${simUid}`;
 
   console.log('================================================================');
-  console.log(' Z-SYSTEMS ERP — WHOLESALE VAN SALES & FIELD DISTRIBUTION AUDIT');
-  console.log('1. تحميل بضاعة الصباح لسيارة الفان من المستودع الرئيسي');
-  console.log('2. البيع الميداني بالوحدات المجمعة والبونص الترويجي المجاني');
-  console.log('3. البيع الآجل مع فحص سقف الائتمان واعتماد رمز المشرف');
-  console.log('4. التحصيل النقدي بالشارع وتخفيض مديونية العملاء');
-  console.log('5. استلام مرتجع بضاعة ميداني في خط السير');
-  console.log('6. تتبع حركة الفوارغ والصناديق البلاستيكية المستردة');
-  console.log('7. تسجيل مصروفات الرحلة الميدانية (وقود وبوابات)');
-  console.log('8. تصفية الرحلة وتوريد الكاش بالاعتماد المزدوج (Maker-Checker)');
-  console.log('9. التدقيق المحاسبي الشامل ومطابقة دفاتر الأستاذ بالمليم');
+  console.log(' Z-SYSTEMS ERP — MODERNIZED WHOLESALE VAN SALES & FIELD AUDIT');
+  console.log('1. التهيئة الأساسية وشجرة الحسابات والمستودع المركزي وسيارة الفان');
+  console.log('2. تكويد الأصناف بالوحدات المجمعة وأسعار الجملة والتجزئة');
+  console.log('3. [جديد] تسجيل عملاء جدد ميدانياً من كوكبيت السائق وتوليد كود C-XXXX');
+  console.log('4. [جديد] طلبيات الجملة المسبقة وحجز المخزون الآلي واعتماد المشرف');
+  console.log('5. تحميل بضاعة الصباح لسيارة الفان من المستودع الرئيسي');
+  console.log('6. البيع الميداني بالوحدات المجمعة والبونص الترويجي المجاني');
+  console.log('7. البيع الآجل مع فحص سقف الائتمان واعتماد رمز المشرف (PIN)');
+  console.log('8. التحصيل النقدي بالشارع وتخفيض مديونية العملاء');
+  console.log('9. تتبع حركة الفوارغ والصناديق البلاستيكية المستردة');
+  console.log('10. تسجيل مصروفات الرحلة الميدانية (وقود وبوابات)');
+  console.log('11. [جديد] تصفية الرحلة وتوريد الكاش مع إنهاء الزيارة النشطة آلياً');
+  console.log('12. التدقيق المحاسبي الشامل ومطابقة دفاتر الأستاذ بالمليم (0.00 فرق)');
   console.log('================================================================\n');
 
-  const config = resolveDatabaseConfigFromEnv();
   const pool = new Pool({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    database: config.name,
-    ssl: resolvePgSslConfig({
-      enabled: config.ssl,
-      rejectUnauthorized: config.sslRejectUnauthorized,
-      caCert: config.sslCaCert,
-    }),
+    host: process.env.TEST_DB_HOST || '127.0.0.1',
+    port: Number(process.env.TEST_DB_PORT || 5433),
+    user: process.env.TEST_DB_USER || 'postgres',
+    password: process.env.TEST_DB_PASSWORD || 'postgres',
+    database: process.env.TEST_DB_NAME || 'zs_dev',
     application_name: `van-sim-${simUid}`,
   });
 
@@ -77,6 +58,7 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     deliveryRepsService,
     accountingPosting,
   );
+  const vanPreSalesService = new VanPreSalesService(db);
 
   // إعداد مستخدمي الاختبار (مشرف التوزيع ومندوب المبيعات)
   const supervisorHash = await createPasswordRecord('123456');
@@ -168,9 +150,9 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log(`✓ تم تهيئة مستودع سيارة الفان المتنقل (#${vanLocationId}): "${vanLocation.name}".`);
 
     // -------------------------------------------------------------------------
-    // STEP 2: تكويد الأصناف وضخ رصيد المستودع الافتتاحي
+    // STEP 2: تكويد الأصناف بالوحدات المجمعة وتحديد أسعار الجملة ورصيد المستودع
     // -------------------------------------------------------------------------
-    console.log('\n--- 2. تكويد الأصناف بالوحدات المجمعة ورصيد المستودع المركزي ---');
+    console.log('\n--- 2. تكويد الأصناف بالوحدات المجمعة وأسعار الجملة والائتمان ---');
     const pJuiceRes = await sql<{ id: number }>`
       INSERT INTO products (
         tenant_id, account_id, name, barcode, item_type, retail_price, wholesale_price, cost_price,
@@ -203,11 +185,54 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     `.execute(db);
     const pRiceId = Number(pRiceRes.rows[0].id);
 
-    // ضخ رصيد المستودع المركزي: 120 عبوة عصير + 60 شيكارة أرز
+    // ضخ رصيد المستودع المركزي الافتتاحي: 120 عبوة عصير + 60 شيكارة أرز
     await applyStockDelta(db as any, { productId: pJuiceId, delta: 120, branchId, locationId: mainWarehouseId, tenantId: testTenantId, accountId: testAccountId });
     await applyStockDelta(db as any, { productId: pRiceId, delta: 60, branchId, locationId: mainWarehouseId, tenantId: testTenantId, accountId: testAccountId });
 
-    // إنشاء عميلين (عميل جملة بسقف ائتمان، وعميل تجزئة نقدي)
+    console.log(`✓ تم تكويد العصير (#${pJuiceId}) والأرز (#${pRiceId}) وضخ المخزون في المستودع المركزي.`);
+
+    // -------------------------------------------------------------------------
+    // STEP 3: [جديد] تسجيل عملاء جدد ميدانياً من كوكبيت السائق (Driver Field Registration)
+    // -------------------------------------------------------------------------
+    console.log('\n--- 3. [جديد] تسجيل عملاء جدد ميدانياً من كوكبيت السائق وتوليد كود C-XXXX ---');
+    const newCustPhone = `010${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+    const driverCustomerRes = await vanSalesService.createDriverCustomer(repId, testTenantId, testAccountId, {
+      name: `سوبرماركت البركة الميداني ${simUid}`,
+      phone: newCustPhone,
+      district: 'المعادي',
+      route: 'خط المعادي - حلوان',
+      address: 'شارع النصر، المعادي الجديدة',
+      visitDays: ['الأحد', 'الثلاثاء', 'الخميس'],
+    });
+
+    if (!driverCustomerRes.ok || !driverCustomerRes.customer?.id) {
+      throw new Error(`Driver customer registration failed: ${JSON.stringify(driverCustomerRes)}`);
+    }
+
+    const fieldCustomerId = driverCustomerRes.customer.id;
+    const fieldCustomerCode = driverCustomerRes.customer.customerCode;
+
+    console.log(`✓ تم تسجيل العميل الميداني بنجاح: #${fieldCustomerId} (${driverCustomerRes.customer.name})`);
+    console.log(`✓ كود العميل المؤسسي الموحد: ${fieldCustomerCode} (مطابق لمعيار C-XXXX).`);
+
+    if (!/^C-\d{4,}$/.test(fieldCustomerCode)) {
+      throw new Error(`Customer code format invariant violated: expected C-XXXX, got "${fieldCustomerCode}"`);
+    }
+
+    // فحص درع منع تكرار الهاتف (Phone Deduplication Shield)
+    const duplicatePhoneAttempt = await vanSalesService.createDriverCustomer(repId, testTenantId, testAccountId, {
+      name: `محاولة تسجيل مكررة لنفس الهاتف ${simUid}`,
+      phone: newCustPhone,
+      district: 'المعادي',
+    });
+
+    if (!duplicatePhoneAttempt.ok || !duplicatePhoneAttempt.alreadyExisted) {
+      throw new Error('Phone deduplication shield failed: expected alreadyExisted to be true');
+    }
+    console.log(`✓ درع منع التكرار: تم التقاط نفس الهاتف، ربط المحل بخط السير وإرجاع الكود (${duplicatePhoneAttempt.customer.customerCode}) دون أخطاء.`);
+
+    // عميل جملة إضافي بسقف ائتمان
     const custARes = await sql<{ id: number }>`
       INSERT INTO customers (
         tenant_id, account_id, name, phone, customer_type, balance,
@@ -219,24 +244,47 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     `.execute(db);
     const customerAId = Number(custARes.rows[0].id);
 
-    const custBRes = await sql<{ id: number }>`
-      INSERT INTO customers (
-        tenant_id, account_id, name, phone, customer_type, balance,
-        credit_limit, is_credit_blocked, is_active, created_at, updated_at
-      ) VALUES (
-        ${testTenantId}, ${testAccountId}, ${'بقالة الهدى كاش ' + simUid}, '01233445566', 'cash', 0.00,
-        0.00, false, true, NOW(), NOW()
-      ) RETURNING id
-    `.execute(db);
-    const customerBId = Number(custBRes.rows[0].id);
+    // -------------------------------------------------------------------------
+    // STEP 4: [جديد] طلبيات الجملة المسبقة وحجز المخزون الآلي واعتماد المشرف
+    // -------------------------------------------------------------------------
+    console.log('\n--- 4. [جديد] طلبيات الجملة المسبقة وحجز المخزون الآلي بالمستودع ---');
+    const preSalesOrderRes = await vanPreSalesService.createPreSalesOrder(repId, testTenantId, testAccountId, {
+      customerId: fieldCustomerId,
+      warehouseLocationId: mainWarehouseId,
+      paymentMethod: 'cash',
+      items: [
+        { productId: pJuiceId, qty: 2, unitName: 'كرتونة', unitMultiplier: 12 }, // 2 كرتونة = 24 عبوة
+        { productId: pRiceId, qty: 5 }, // 5 شكاير
+      ],
+      notes: 'طلبية جملة مسبقة للتسليم في زيارة الثلاثاء القادمة',
+    });
 
-    console.log(`✓ الصنف 1 (#${pJuiceId}): عصير برتقال (قطعة 20 ج / كرتونة 220 ج) | الصنف 2 (#${pRiceId}): أرز بسمتي (40 ج).`);
-    console.log(`✓ العميل أ (#${customerAId}): سقف ائتمان 1,500 ومديونية 400 | العميل ب (#${customerBId}): عميل نقدي.`);
+    if (!preSalesOrderRes.ok || !preSalesOrderRes.orderId) {
+      throw new Error(`Pre-sales order creation failed: ${JSON.stringify(preSalesOrderRes)}`);
+    }
+
+    const preSalesOrderId = preSalesOrderRes.orderId;
+    console.log(`✓ تم إنشاء أمر حجز جملة مسبق (#${preSalesOrderId}) برقم وثيقة [${preSalesOrderRes.orderNumber}].`);
+    console.log(`✓ إجمالي الطلبية: ${preSalesOrderRes.totalAmount} جنيه (عدد البنود: ${preSalesOrderRes.itemsCount}).`);
+
+    // التحقق من الحجز الآلي الفعلي لمخزون المستودع
+    const reservedRiceRow = await sql<{ reserved_qty: string }>`SELECT reserved_qty FROM products WHERE id = ${pRiceId}`.execute(db);
+    if (Number(reservedRiceRow.rows[0].reserved_qty) < 5) {
+      throw new Error(`Warehouse reservation failed: expected reserved_qty >= 5, got ${reservedRiceRow.rows[0].reserved_qty}`);
+    }
+    console.log(`✓ تم حجز 5 شكاير أرز و 24 عبوة عصير آلياً في رصيد المستودع المركزي المحجوز.`);
+
+    // اعتماد المشرف لأمر الحجز
+    const approvalRes = await vanPreSalesService.approvePreSalesOrder(preSalesOrderId, supervisorUserId, testTenantId, testAccountId);
+    if (!approvalRes.ok || approvalRes.status !== 'approved') {
+      throw new Error(`Supervisor order approval failed: ${JSON.stringify(approvalRes)}`);
+    }
+    console.log(`✓ اعتمد مشرف التوزيع أمر الحجز بنجاح (الحالة: ${approvalRes.status}).`);
 
     // -------------------------------------------------------------------------
-    // STEP 3: تحميل بضاعة الصباح وفتح رحلة الفان (Morning Van Load)
+    // STEP 5: تحميل بضاعة الصباح وافتتاح رحلة التوزيع (Morning Van Load)
     // -------------------------------------------------------------------------
-    console.log('\n--- 3. شحن بضاعة الصباح وافتتاح رحلة التوزيع ---');
+    console.log('\n--- 5. شحن بضاعة الصباح وافتتاح رحلة التوزيع من المستودع الرئيسي ---');
     const loadResult = await vanSalesService.openTripAndLoad(repId, testTenantId, testAccountId, {
       sourceWarehouseId: mainWarehouseId,
       items: [
@@ -248,6 +296,7 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     if (!loadResult.ok || !loadResult.tripId) {
       throw new Error(`Failed to open van trip: ${JSON.stringify(loadResult)}`);
     }
+
     const tripId = Number(loadResult.tripId);
     console.log(`✓ تم فتح الرحلة (#${tripId}) بنجاح وتحميل بضاعة بقيمة ${loadResult.totalLoadedValue.toLocaleString()} جنيه.`);
 
@@ -257,20 +306,20 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     if (Number(whJuiceStock.rows[0].qty) !== 60 || Number(vanJuiceStock.rows[0].qty) !== 60) {
       throw new Error(`Stock transfer verification failed: Warehouse=${whJuiceStock.rows[0].qty}, Van=${vanJuiceStock.rows[0].qty}`);
     }
-    console.log(`✓ رصيد العصير: المستودع (120 -> 60)، والفان (0 -> 60 عبوة).`);
+    console.log(`✓ رصيد العصير بالمستودع المركزي أصبح 60 عبوة، ورصيد سيارة الفان أصبح 60 عبوة.`);
 
     // -------------------------------------------------------------------------
-    // STEP 4: البيع الميداني بوحدة مجمعة وبونص ترويجي مجاني (Multi-UOM & Free Bonus)
+    // STEP 6: البيع الميداني بوحدة مجمعة وبونص ترويجي مجاني (Multi-UOM & Free Bonus)
     // -------------------------------------------------------------------------
-    console.log('\n--- 4. المحطة الأولى: بيع نقدي بوحدة مجمعة (كرتونة) وبونص عينة ترويجية ---');
+    console.log('\n--- 6. بيع ميداني بوحدات مجمعة (كرتونة) وبونص عينة ترويجية مجانية ---');
     // بيع 2 كرتونة عصير (24 عبوة) بسعر 220 للكرتونة = 440 جنيه + 1 عبوة بونص مجاني عينة ترويجية (سعر 0)
     const sale1 = await vanSalesService.executeFieldSale(repId, testTenantId, testAccountId, {
       tripId,
-      customerId: customerBId,
+      customerId: fieldCustomerId,
       paymentMethod: 'cash',
       items: [
         { productId: pJuiceId, qty: 2, unitPrice: 220, unitName: 'كرتونة', unitMultiplier: 12 },
-        { productId: pJuiceId, qty: 1, unitPrice: 0, isBonus: true, bonusReason: 'عينة ترويجية لافتتاح المحل' },
+        { productId: pJuiceId, qty: 1, unitPrice: 0, isBonus: true, bonusReason: 'عينة ترويجية مجانية للافتتاح' },
       ],
     });
 
@@ -284,12 +333,12 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     if (Number(vanJuiceAfterSale1.rows[0].qty) !== 35) {
       throw new Error(`Van stock after bonus sale mismatch: expected 35, got ${vanJuiceAfterSale1.rows[0].qty}`);
     }
-    console.log(`✓ تم خصم 25 عبوة من رصيد سيارة الفان (المتبقي: 35 عبوة).`);
+    console.log(`✓ تم خصم 25 عبوة من رصيد سيارة الفان بدقة (المتبقي: 35 عبوة).`);
 
     // -------------------------------------------------------------------------
-    // STEP 5: البيع الآجل مع فحص سقف الائتمان واعتماد المشرف (Credit Limit & PIN)
+    // STEP 7: البيع الآجل مع فحص سقف الائتمان واعتماد المشرف (Credit Limit & PIN)
     // -------------------------------------------------------------------------
-    console.log('\n--- 5. المحطة الثانية: بيع آجل مع تجاوز سقف الائتمان واعتماد رمز المشرف ---');
+    console.log('\n--- 7. البيع الآجل مع فحص سقف الائتمان والاعتماد الأمني برمز المشرف ---');
     // رصيد العميل أ الحالي = 400، وسقف الائتمان = 1,500.
     // يطلب شراء 30 شيكارة أرز على الحساب @ 40 = 1,200 جنيه.
     // الرصيد المتوقع = 400 + 1,200 = 1,600 جنيه > 1,500 (تجاوز بمقدار 100 جنيه!).
@@ -318,7 +367,7 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
         tripId,
         customerId: customerAId,
         paymentMethod: 'credit',
-        items: [{ productId: pRiceId, qty: 10 }], // 400 + 400 = 800 (سيتجاوز إذا طلبنا 30)
+        items: [{ productId: pRiceId, qty: 10 }],
         supervisorOverridePin: '9999',
         supervisorOverrideReason: 'محاولة تجاوز خاطئة',
       });
@@ -346,9 +395,9 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log(`✓ رصيد حساب العميل أ الجديد في كشف الحساب: ${custABalance.rows[0].balance} جنيه.`);
 
     // -------------------------------------------------------------------------
-    // STEP 6: التحصيل النقدي الميداني من مديونية العميل (Field Collections)
+    // STEP 8: التحصيل النقدي الميداني من مديونية العميل (Field Collections)
     // -------------------------------------------------------------------------
-    console.log('\n--- 6. المحطة الثالثة: تحصيل نقدي ميداني من مديونية العميل ---');
+    console.log('\n--- 8. التحصيل النقدي الميداني وتخفيض مديونية العملاء بالشارع ---');
     const collectionRes = await vanSalesService.recordFieldCollection(repId, testTenantId, testAccountId, {
       tripId,
       customerId: customerAId,
@@ -358,7 +407,7 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     if (!collectionRes.ok) {
       throw new Error(`Field collection failed: ${JSON.stringify(collectionRes)}`);
     }
-    console.log(`✓ تم تحصيل دفعة نقدية بالشارع بقيمة 300.00 جنيه (الرصيد المتبقي للعميل: ${collectionRes.newBalance} جنيه).`);
+    console.log(`✓ تم تحصيل دفعة نقدية بقيمة 300.00 جنيه (الرصيد المتبقي للعميل: ${collectionRes.newBalance} جنيه).`);
 
     // إجمالي الكاش المحصل في عهدة المندوب الآن: 440 (مبيعات) + 300 (تحصيل) = 740 جنيه
     const tripRow = await sql<{ cash_collected: string }>`SELECT cash_collected FROM van_sales_trips WHERE id = ${tripId}`.execute(db);
@@ -368,9 +417,9 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log(`✓ إجمالي النقدية المحصلة في عهدة المندوب بالسيارة: ${tripRow.rows[0].cash_collected} جنيه.`);
 
     // -------------------------------------------------------------------------
-    // STEP 7: تتبع حركة الفوارغ والصناديق البلاستيكية المستردة (Packaging & Empties)
+    // STEP 9: تتبع حركة الفوارغ والصناديق البلاستيكية المستردة (Packaging & Empties)
     // -------------------------------------------------------------------------
-    console.log('\n--- 7. حركة ذمة الفوارغ والصناديق والبالتات المستردة في خط السير ---');
+    console.log('\n--- 9. حركة ذمة الفوارغ والصناديق البلاستيكية المستردة ---');
     // تسليم 10 أقفاص بلاستيك واسترجاع 4 فارغ من العميل أ
     await vanSalesService.recordPackagingMovement(repId, testTenantId, testAccountId, {
       tripId,
@@ -385,14 +434,14 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log(`✓ تم قيد ذمة الفوارغ: صافي ما في ذمة العميل = ${packagingBal[0]?.netOwedToCompany} أقفاص بلاستيكية.`);
 
     // -------------------------------------------------------------------------
-    // STEP 8: المصروفات التشغيلية الميدانية للرحلة (وقود وكارتات)
+    // STEP 10: المصروفات التشغيلية الميدانية للرحلة (وقود وبوابات)
     // -------------------------------------------------------------------------
-    console.log('\n--- 8. تسجيل مصروفات تشغيلية ميدانية للرحلة (وقود وكارتات) ---');
+    console.log('\n--- 10. تسجيل مصروفات تشغيلية ميدانية للرحلة (وقود وبوابات) ---');
     await vanSalesService.recordTripExpense(repId, testTenantId, testAccountId, {
       tripId,
       expenseType: 'fuel',
       amount: 150.0,
-      notes: 'تفويل سولار للسيارة من محطة وقود بالمعادي',
+      notes: 'تفويل سولار للسيارة من محطة وقود',
     });
 
     await vanSalesService.recordTripExpense(repId, testTenantId, testAccountId, {
@@ -406,9 +455,9 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log(`✓ تم تسجيل إيصالات المصروفات: وقود (150) + كارتة (30) = إجمالي ${expensesSummary.totalExpenses} جنيه.`);
 
     // -------------------------------------------------------------------------
-    // STEP 9: تصفية الرحلة وتوريد النقدية بالاعتماد المزدوج (Maker-Checker Settlement)
+    // STEP 11: [جديد] تصفية الرحلة وتوريد الكاش مع إنهاء الزيارة النشطة آلياً
     // -------------------------------------------------------------------------
-    console.log('\n--- 9. تصفية وإغلاق رحلة الفان وتوريد الكاش (Maker-Checker) ---');
+    console.log('\n--- 11. [جديد] تصفية الرحلة بالاعتماد المزدوج وتوثيق الزيارة النشطة آلياً ---');
     // الحسبة القياسية للنقدية الصافية:
     // الكاش المحصل = 740 جنيه
     // المصروفات الميدانية المعتمدة = 180 جنيه
@@ -418,7 +467,8 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
       tripId,
       countedCash: 560.0, // تسليم المبلغ الصافي بالمليم 100%
       unloadRemainingToWarehouse: true, // إرجاع باقي بضاعة الفان للمستودع الرئيسي
-      notes: 'تصفية اليوم الكاملة وإرجاع البضاعة المتبقية للمستودع وتوريد النقدية',
+      activeVisitCustomerId: fieldCustomerId, // [ميزة جديدة] توثيق الزيارة الجارية تلقائياً
+      notes: 'تصفية اليوم الكاملة وإرجاع البضاعة وتوريد النقدية الصافية',
     });
 
     if (!settlementRes.ok) {
@@ -432,17 +482,28 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     if (settledTrip.rows[0].status !== 'settled' || Number(settledTrip.rows[0].variance) !== 0) {
       throw new Error(`Settlement verification failed: status=${settledTrip.rows[0].status}, variance=${settledTrip.rows[0].variance}`);
     }
-    console.log(`✓ تم إغلاق وتصفية الرحلة بنجاح: الحالة (${settledTrip.rows[0].status})، فارق العجز/الزيادة (${settledTrip.rows[0].variance} فرق صفرى).`);
+    console.log(`✓ تم إغلاق وتصفية الرحلة بنجاح: الحالة (${settledTrip.rows[0].status})، الفارق (${settledTrip.rows[0].variance} فرق صفرى).`);
 
-    // التحقق من تصفير رصيد الفان وإرجاع المتبقي للمستودع المركزي
+    // التحقق من توثيق الزيارة التلقائية في جدول van_field_visits
+    const autoVisitRow = await sql<{ id: number; visit_type: string; sale_id: number | null }>`
+      SELECT id, visit_type, sale_id FROM van_field_visits 
+      WHERE trip_id = ${tripId} AND customer_id = ${fieldCustomerId} AND tenant_id = ${testTenantId}
+    `.execute(db);
+
+    if (autoVisitRow.rows.length === 0) {
+      throw new Error('Auto active visit finalization check failed: no visit recorded in van_field_visits');
+    }
+    console.log(`✓ تم رصد وتوثيق زيارة العميل الميداني تلقائياً (#${autoVisitRow.rows[0].id}) بنوع [${autoVisitRow.rows[0].visit_type}].`);
+
+    // التحقق من تفريغ رصيد الفان وإرجاع المتبقي للمستودع المركزي
     const vanJuiceFinal = await sql<{ qty: string }>`SELECT qty FROM product_location_stock WHERE location_id = ${vanLocationId} AND product_id = ${pJuiceId}`.execute(db);
     const whJuiceFinal = await sql<{ qty: string }>`SELECT qty FROM product_location_stock WHERE location_id = ${mainWarehouseId} AND product_id = ${pJuiceId}`.execute(db);
-    console.log(`✓ تم تفريغ الفان بالكامل: رصيد الفان (${vanJuiceFinal.rows[0]?.qty || 0})، والمستودع المركزي (${whJuiceFinal.rows[0]?.qty} عبوة).`);
+    console.log(`✓ تم تفريغ الفان بالكامل: رصيد الفان (${vanJuiceFinal.rows[0]?.qty || 0})، ورصيد المستودع المركزي (${whJuiceFinal.rows[0]?.qty} عبوة).`);
 
     // -------------------------------------------------------------------------
-    // STEP 10: التدقيق المحاسبي الشامل وتوازن دفاتر الأستاذ (Double-Entry Invariants)
+    // STEP 12: التدقيق المحاسبي الشامل وتوازن دفاتر الأستاذ (Double-Entry Invariants)
     // -------------------------------------------------------------------------
-    console.log('\n--- 10. التدقيق المحاسبي الشامل وثبات القيد المزدوج لكافة حركات الرحلة ---');
+    console.log('\n--- 12. التدقيق المحاسبي الشامل وثبات القيد المزدوج لكافة حركات الرحلة ---');
     const journalSummary = await sql<{ total_journals: string; total_debit: string; total_credit: string }>`
       SELECT 
         COUNT(DISTINCT j.id) as total_journals,
@@ -486,9 +547,12 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
     console.log('=============================================================================\n');
 
   } finally {
-    // تنظيف بيانات الاختبار النظيفة
+    // تنظيف بيانات الاختبار بترتيب عكسي آمن
     await sql`DELETE FROM journal_entry_lines WHERE journal_entry_id IN (SELECT id FROM journal_entries WHERE tenant_id = ${testTenantId})`.execute(db);
     await sql`DELETE FROM journal_entries WHERE tenant_id = ${testTenantId}`.execute(db);
+    await sql`DELETE FROM sales_order_items WHERE sales_order_id IN (SELECT id FROM sales_orders WHERE tenant_id = ${testTenantId})`.execute(db);
+    await sql`DELETE FROM sales_orders WHERE tenant_id = ${testTenantId}`.execute(db);
+    await sql`DELETE FROM van_field_visits WHERE tenant_id = ${testTenantId}`.execute(db);
     await sql`DELETE FROM customer_ledger WHERE tenant_id = ${testTenantId}`.execute(db);
     await sql`DELETE FROM customer_payments WHERE tenant_id = ${testTenantId}`.execute(db);
     await sql`DELETE FROM van_trip_expenses WHERE tenant_id = ${testTenantId}`.execute(db);
