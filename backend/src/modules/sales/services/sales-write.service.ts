@@ -1413,6 +1413,7 @@ export class SalesWriteService {
           order_type: String(normalized.orderType || 'takeaway').trim(),
           dining_course: normalized.diningCourse || null,
           service_charge: normalized.serviceCharge || 0,
+          tip_amount: Number((normalized as any).tipAmount || 0),
           guest_count: normalized.guestCount || 1,
           delivery_rep_id: deliveryRepId,
           delivery_status: deliveryStatus,

@@ -38,6 +38,11 @@ type ProductRow = {
   track_serials?: boolean | null;
   metadata?: string | Record<string, any> | null;
   is_active?: boolean | null;
+  calories?: number | null;
+  allergens?: any;
+  is_spicy?: boolean | null;
+  is_vegetarian?: boolean | null;
+  is_gluten_free?: boolean | null;
 };
 
 type ProductWriteExecutor = Kysely<Database> | Transaction<Database>;
@@ -81,6 +86,11 @@ type ProductUnitReadRow = {
 };
 
 type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+  calories?: number | null;
+  allergens?: any;
+  is_spicy?: boolean | null;
+  is_vegetarian?: boolean | null;
+  is_gluten_free?: boolean | null;
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -278,7 +288,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -883,6 +893,11 @@ export class CatalogProductService {
       icon: (product as any).metadata?.icon || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.icon; } catch { return null; } })() : null) || null,
       units,
       offers: context.offersByProduct.get(String(product.id)) || [],
+      calories: product.calories != null ? Number(product.calories) : null,
+      allergens: Array.isArray(product.allergens) ? product.allergens : [],
+      isSpicy: Boolean(product.is_spicy),
+      isVegetarian: Boolean(product.is_vegetarian),
+      isGlutenFree: Boolean(product.is_gluten_free),
     };
   }
 
@@ -1355,6 +1370,11 @@ export class CatalogProductService {
       },
       stock: payload.stock != null ? Number(payload.stock) : undefined,
       warehouseId: payload.warehouseId ? Number(payload.warehouseId) : undefined,
+      calories: payload.calories != null ? Number(payload.calories) : null,
+      allergens: Array.isArray(payload.allergens) ? payload.allergens : [],
+      isSpicy: Boolean(payload.isSpicy),
+      isVegetarian: Boolean(payload.isVegetarian),
+      isGlutenFree: Boolean(payload.isGlutenFree),
     };
   }
 
@@ -1678,6 +1698,11 @@ export class CatalogProductService {
             default_location_id: resolvedLocationId,
             notes: draft.notes,
             metadata: metaObj ? JSON.stringify(metaObj) : null,
+            calories: draft.calories ?? null,
+            allergens: draft.allergens ? sql`${JSON.stringify(draft.allergens)}::jsonb` : sql`'[]'::jsonb`,
+            is_spicy: Boolean(draft.isSpicy),
+            is_vegetarian: Boolean(draft.isVegetarian),
+            is_gluten_free: Boolean(draft.isGlutenFree),
             is_active: true,
             catalog_updated_at: sql`NOW()`,
             ...this.tenantFields(actor),
@@ -1775,6 +1800,11 @@ export class CatalogProductService {
         default_location_id: normalized.warehouseId || null,
         notes: normalized.notes,
         metadata: metaObj ? JSON.stringify(metaObj) : null,
+        calories: normalized.calories ?? null,
+        allergens: normalized.allergens ? sql`${JSON.stringify(normalized.allergens)}::jsonb` : sql`'[]'::jsonb`,
+        is_spicy: Boolean(normalized.isSpicy),
+        is_vegetarian: Boolean(normalized.isVegetarian),
+        is_gluten_free: Boolean(normalized.isGlutenFree),
         ...(payload.isActive !== undefined ? { is_active: Boolean(payload.isActive) } : {}),
         catalog_updated_at: sql`NOW()`,
         updated_at: sql`NOW()`,
@@ -1849,7 +1879,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

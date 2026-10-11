@@ -58,6 +58,11 @@ export interface Product {
   comboComponentsSummary?: string;
   categoryName?: string;
   supplierName?: string;
+  calories?: number | null;
+  allergens?: string[] | null;
+  isSpicy?: boolean;
+  isVegetarian?: boolean;
+  isGlutenFree?: boolean;
   binLocation?: string;
   defaultLocationId?: string;
   defaultLocationName?: string;

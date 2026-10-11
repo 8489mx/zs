@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
 import { formatCurrency } from '@/lib/format';
 import {
   SearchIcon,
   CheckCircleIcon,
   ArrowRightIcon,
+  BellIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { tableCallsApi, type TableServiceCall } from '@/features/pos/api/table-calls.api';
 
 export function WaiterStationPage() {
   const navigate = useNavigate();
@@ -31,6 +35,33 @@ export function WaiterStationPage() {
     sendToKitchen,
     isSendingToKitchen,
   } = useWaiterStation();
+
+  // Real-time table service calls (Waiters & Bill requests)
+  const { data: pendingCalls = [], refetch: refetchCalls } = useQuery({
+    queryKey: ['waiter-station-table-calls'],
+    queryFn: () => tableCallsApi.listPendingCalls(),
+    refetchInterval: 5_000,
+  });
+
+  const pendingCallsByTable = new Map<string, TableServiceCall[]>();
+  for (const call of pendingCalls) {
+    const tNum = String(call.table_number).trim();
+    if (!pendingCallsByTable.has(tNum)) {
+      pendingCallsByTable.set(tNum, []);
+    }
+    pendingCallsByTable.get(tNum)!.push(call);
+  }
+
+  const handleResolveCall = async (e: React.MouseEvent, callId: number) => {
+    e.stopPropagation();
+    try {
+      await tableCallsApi.resolveCall(callId);
+      toast.success('تم تأكيد تلبية نداء الطاولة');
+      await refetchCalls();
+    } catch {
+      toast.error('تعذر تحديث حالة النداء');
+    }
+  };
 
   // Extract distinct categories
   const categories = useMemo(() => {
@@ -201,6 +232,65 @@ export function WaiterStationPage() {
           </div>
         </div>
 
+        {/* Urgent Service Calls Banner */}
+        {pendingCalls.length > 0 && (
+          <div
+            style={{
+              background: '#fffbeb',
+              borderBottom: '2px solid #f59e0b',
+              padding: '10px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              overflowX: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#92400e', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
+              <BellIcon size={16} color="#d97706" />
+              <span>نداءات الزبائن العاجلة ({pendingCalls.length}):</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap' }}>
+              {pendingCalls.map((call) => (
+                <div
+                  key={call.id}
+                  style={{
+                    background: call.call_type === 'bill' ? '#fee2e2' : '#ffffff',
+                    border: `1px solid ${call.call_type === 'bill' ? '#fca5a5' : '#fde68a'}`,
+                    borderRadius: '8px',
+                    padding: '4px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <strong style={{ fontSize: '12px', color: '#0f172a' }}>طاولة {call.table_number}</strong>
+                  <span style={{ fontSize: '11px', color: call.call_type === 'bill' ? '#991b1b' : '#92400e', fontWeight: 700 }}>
+                    {call.call_type === 'bill' ? 'طلب الحساب' : 'استدعاء ويتر'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => void handleResolveCall(e, call.id)}
+                    style={{
+                      background: call.call_type === 'bill' ? '#dc2626' : '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    تم الحضور
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tables Grid */}
         <div
           style={{
@@ -216,6 +306,9 @@ export function WaiterStationPage() {
           {Array.from({ length: tablesCount }, (_, i) => String(i + 1)).map((tNum) => {
             const occupied = occupiedTablesMap.get(tNum);
             const isOccupied = Boolean(occupied);
+            const tableCalls = pendingCallsByTable.get(tNum) || [];
+            const hasCall = tableCalls.length > 0;
+            const isBill = tableCalls.some((c) => c.call_type === 'bill');
             const total = (occupied?.cart || []).reduce(
               (sum: number, it: any) => sum + (it.qty || 1) * Number(it.price || 0),
               0
@@ -227,8 +320,8 @@ export function WaiterStationPage() {
                 type="button"
                 onClick={() => handleSelectTable(tNum)}
                 style={{
-                  background: isOccupied ? '#fef2f2' : '#ffffff',
-                  border: isOccupied ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                  background: hasCall ? (isBill ? '#fef2f2' : '#fffbeb') : isOccupied ? '#fef2f2' : '#ffffff',
+                  border: hasCall ? (isBill ? '2.5px solid #ef4444' : '2.5px solid #f59e0b') : isOccupied ? '2px solid #ef4444' : '1px solid #cbd5e1',
                   borderRadius: '12px',
                   padding: '16px 10px',
                   textAlign: 'center',
@@ -244,6 +337,24 @@ export function WaiterStationPage() {
                 <div style={{ fontSize: '16px', fontWeight: 900, color: isOccupied ? '#991b1b' : '#0f172a' }}>
                   طاولة {tNum}
                 </div>
+                {hasCall && (
+                  <span
+                    style={{
+                      fontSize: '9.5px',
+                      background: isBill ? '#dc2626' : '#d97706',
+                      color: '#ffffff',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                  >
+                    <BellIcon size={10} color="#ffffff" />
+                    <span>{isBill ? 'طلب حساب!' : 'استدعاء!'}</span>
+                  </span>
+                )}
                 {isOccupied ? (
                   <>
                     <div style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626' }}>

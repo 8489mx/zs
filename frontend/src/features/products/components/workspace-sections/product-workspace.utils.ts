@@ -35,6 +35,11 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     trackSerials: Boolean(product.trackSerials),
     isCombo: false,
     comboComponents: [],
+    calories: product.calories != null ? Number(product.calories) : null,
+    allergens: Array.isArray(product.allergens) ? product.allergens : [],
+    isSpicy: Boolean(product.isSpicy),
+    isVegetarian: Boolean(product.isVegetarian),
+    isGlutenFree: Boolean(product.isGlutenFree),
     metadata: {
       ...(product?.metadata || {}),
       expiryDate: (product as any)?.expiryDate || product?.metadata?.expiryDate || ''
@@ -98,6 +103,11 @@ export function buildUpdatePayload(
     ...(warehouseId ? { warehouseId } : {}),
     binLocation: values.binLocation || '',
     notes: values.notes || '',
+    calories: values.calories != null ? Number(values.calories) : null,
+    allergens: values.allergens || [],
+    isSpicy: Boolean(values.isSpicy),
+    isVegetarian: Boolean(values.isVegetarian),
+    isGlutenFree: Boolean(values.isGlutenFree),
     units: normalizedUnits,
     offers: (offers ?? existingProduct.offers ?? [])
       .filter((offer) => Number(offer.value || 0) > 0 || offer.type === 'bogo')

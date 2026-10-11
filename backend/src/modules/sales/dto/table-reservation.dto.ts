@@ -28,10 +28,19 @@ export class CreateTableReservationDto {
   @IsOptional()
   @IsNumber()
   branchId?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['reservation', 'waitlist'])
+  reservationType?: 'reservation' | 'waitlist';
 }
 
 export class UpdateTableReservationStatusDto {
   @IsNotEmpty()
   @IsIn(['confirmed', 'seated', 'cancelled', 'no_show'])
   status!: 'confirmed' | 'seated' | 'cancelled' | 'no_show';
+
+  @IsOptional()
+  @IsString()
+  tableNumber?: string;
 }

@@ -81,9 +81,25 @@
   - احتساب الاستهلاك النظري التراكمي بدقة من واقع معادلات تصنيع الوجبات المباعة (BOM Recipes) مضافاً إليها إضافات ومعدلات الأطباق (Modifiers).
   - مقارنة الاستهلاك النظري مع الاستهلاك الفعلي للمخازن وحركات الصرف وهدر المطبخ المسجل، واستخراج الفرق الكمي والمالي ونسبة الانحراف.
   - تصنيف تلقائي لمستوى خطورة الهدر والانحراف (عجز حرج، تحذير، مطابق) مع بطاقات KPI ملخصة لإجمالي التكلفة النظرية والفعلية ومبالغ الانحراف، وخيارات التصفية والبحث والطباعة والتصدير.
+- **الامتثال لمتطلبات الهيئة العامة للغذاء والدواء للمطاعم والمقاهي (SFDA Nutritional & Allergen Compliance):**
+  - حقول بيانات غذائية مدمجة بالأصناف: السعرات الحرارية (`calories`)، مسببات الحساسية (`allergens` كـ JSONB)، حار (`is_spicy`)، نباتي (`is_vegetarian`)، وخالٍ من الجلوتين (`is_gluten_free`).
+  - بطاقة تحكم مخصصة في نماذج الأصناف `EditProductForm.tsx` و `NewProductForm.tsx` لضبط القيم الغذائية بسهولة.
+  - التزام كامل بمعايير الإفصاح الغذائي المطلوبة تنظيمياً في المملكة العربية السعودية ودول الخليج.
+- **استدعاء الويتر وطلب الحساب اللحظي عبر باركود الطاولة (Table QR Live Waiter & Bill Service Calls):**
+  - جدول `restaurant_table_service_calls` وخدمات `table-service-calls.service.ts` و `table-service-calls.controller.ts` وواجهة `table-calls.api.ts`.
+  - أزرار تفاعلية فورية في صفحة المنيو العام للطاولة `PublicStorefrontPage.tsx` ("استدعاء الويتر" و "طلب الحساب").
+  - لوحة تحكم فورية في خريطة طاولات الكاشير `PosTablesFloorPlanDialog.tsx` ومحطة النادل `WaiterStationPage.tsx` مع شارات نداء متوهجة وزر حل النداء بنقرة واحدة (1-Click Resolve).
+- **محرك تسجيل وتخصيص الإكرامية / البقشيش (Tip & Gratuity Allocation Engine):**
+  - دعم حقل `tip_amount` في جدول المبيعات `sales` وعمليات الـ Upsert في `sales-write.service.ts`.
+  - واجهة كاشير مدمجة في نافذة الدفع `PosCheckoutDialogSections.tsx` مع خيارات إكرامية سريعة ومخصصة للمطاعم.
+- **إدارة قائمة الانتظار اللحظية للعملاء بدون حجز (Walk-In Waitlist & Queue Management Engine):**
+  - دعم `reservation_type: 'reservation' | 'waitlist'` في جدول `restaurant_table_reservations`.
+  - تبويب مخصص في نافذة الحجوزات `PosTableReservationsModal.tsx` لقائمة الانتظار مع احتساب دقيق لوقت الانتظار المنقضي (`منذ X د`).
+  - زر إجلاس فوري بالصالة وتسكين الطاولة بنقرة واحدة (1-Click Seating) يربط الضيف بالطاولة ويفتحها مباشرة في نقطة البيع.
 - **تطبيق واعتماد كافة الهجرات البنيوية في قاعدة البيانات:**
   - تطبيق الهجرة `2040000000210_pos_restaurant_fnb_advanced_features.ts` (جداول مجمعات التوصيل، طلبات المنصات، وسجل هدر الأطعمة).
   - تطبيق الهجرة `2040000000211_pos_terminal_ecr_metadata.ts` (حقول الربط المالي المباشر ECR في `sales` و `sale_payments`).
+  - تطبيق الهجرة `2040000000215_restaurant_sfda_nutrition_service_calls_tips_waitlist.ts` (حقول SFDA الغذائية، نداءات الخدمة عبر QR، الإكراميات، وقائمة الانتظار).
 
 ### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
 - **المصدر الموحد للحقيقة:** محرك مركزي موحد `frontend/src/shared/verticals/vertical-scope.ts` يستنتج نمط عمل المنشأة بدقة (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `retail_general`, إلخ).

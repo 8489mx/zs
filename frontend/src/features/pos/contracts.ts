@@ -49,6 +49,7 @@ export interface CreatePosSaleInput {
   serviceCharge?: number;
   guestCount?: number;
   guestCheckPrintedAt?: string | null;
+  tipAmount?: number;
 }
 
 function normalizeMoney(value: number) {
@@ -186,6 +187,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     ...(Number(input.serviceCharge) > 0 ? { serviceCharge: normalizeMoney(Number(input.serviceCharge)) } : {}),
     ...(Number(input.guestCount) > 0 ? { guestCount: Math.max(1, Math.round(Number(input.guestCount))) } : {}),
     ...(input.guestCheckPrintedAt ? { guestCheckPrintedAt: input.guestCheckPrintedAt } : {}),
+    ...(Number(input.tipAmount) > 0 ? { tipAmount: normalizeMoney(Number(input.tipAmount)) } : {}),
     items: normalizeCart(input.cart)
   };
 }
@@ -234,6 +236,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     } : {}),
     ...(Number(input.serviceCharge) > 0 ? { serviceCharge: normalizeMoney(Number(input.serviceCharge)) } : {}),
     ...(Number(input.guestCount) > 0 ? { guestCount: Math.max(1, Math.round(Number(input.guestCount))) } : {}),
+    ...(Number(input.tipAmount) > 0 ? { tipAmount: normalizeMoney(Number(input.tipAmount)) } : {}),
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

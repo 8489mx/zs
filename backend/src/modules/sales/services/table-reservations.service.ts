@@ -10,11 +10,15 @@ export class TableReservationsService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
   ) {}
 
-  async listReservations(tenantId: string, branchId?: number, date?: string) {
+  async listReservations(tenantId: string, branchId?: number, date?: string, type?: string) {
     let query = this.db
       .selectFrom('restaurant_table_reservations')
       .selectAll()
       .where('tenant_id', '=', tenantId);
+
+    if (type) {
+      query = query.where('reservation_type', '=', type);
+    }
 
     if (branchId) {
       query = query.where('branch_id', '=', branchId);
@@ -32,11 +36,15 @@ export class TableReservationsService {
   }
 
   async createReservation(tenantId: string, userId: number, dto: CreateTableReservationDto) {
-    if (!dto.tableNumber || !dto.guestName || !dto.reservationTime) {
+    const isWaitlist = dto.reservationType === 'waitlist';
+    if (!dto.guestName) {
+      throw new BadRequestException('اسم الضيف إلزامي.');
+    }
+    if (!isWaitlist && (!dto.tableNumber || !dto.reservationTime)) {
       throw new BadRequestException('بيانات الحجز غير مكتملة (رقم الطاولة، اسم الضيف، ووقت الحجز إلزامية).');
     }
 
-    const reservationTime = new Date(dto.reservationTime);
+    const reservationTime = dto.reservationTime ? new Date(dto.reservationTime) : new Date();
     if (isNaN(reservationTime.getTime())) {
       throw new BadRequestException('توقيت الحجز غير صالح.');
     }
@@ -46,13 +54,14 @@ export class TableReservationsService {
       .values({
         tenant_id: tenantId,
         branch_id: dto.branchId || null,
-        table_number: String(dto.tableNumber).trim(),
+        table_number: dto.tableNumber ? String(dto.tableNumber).trim() : 'قائمة انتظار',
         guest_name: String(dto.guestName).trim(),
         guest_phone: dto.guestPhone ? String(dto.guestPhone).trim() : null,
         guest_count: Math.max(1, Number(dto.guestCount || 1)),
         reservation_time: reservationTime,
         status: 'confirmed',
         special_requests: dto.specialRequests ? String(dto.specialRequests).trim() : null,
+        reservation_type: dto.reservationType || 'reservation',
         created_by: userId,
         created_at: new Date(),
         updated_at: new Date(),
@@ -79,6 +88,7 @@ export class TableReservationsService {
       .updateTable('restaurant_table_reservations')
       .set({
         status: dto.status,
+        ...(dto.tableNumber ? { table_number: String(dto.tableNumber).trim() } : {}),
         updated_at: new Date(),
       })
       .where('id', '=', id)

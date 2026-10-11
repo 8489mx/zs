@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon, CalendarIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon, CalendarIcon, PrinterIcon, BellIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -13,6 +13,7 @@ import {
 } from '@/features/storefront';
 import { kdsApi, type KdsTicket } from '@/features/pos/api/kds.api';
 import { tableReservationsApi, type TableReservation } from '@/features/pos/api/table-reservations.api';
+import { tableCallsApi, type TableServiceCall } from '@/features/pos/api/table-calls.api';
 import { PosTableReservationsModal } from './PosTableReservationsModal';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
 import { PosKitchenPrintersModal } from './PosKitchenPrintersModal';
@@ -132,6 +133,34 @@ export function PosTablesFloorPlanDialog({
       toast.error('تعذر إطلاق المسار للمطبخ');
     } finally {
       setFiringTable(null);
+    }
+  };
+
+  // Real-time pending table service calls (Waiters & Bill requests)
+  const { data: pendingCalls = [], refetch: refetchCalls } = useQuery({
+    queryKey: ['pos-floor-table-calls'],
+    queryFn: () => tableCallsApi.listPendingCalls(),
+    enabled: open,
+    refetchInterval: 6_000,
+  });
+
+  const pendingCallsByTable = new Map<string, TableServiceCall[]>();
+  for (const call of pendingCalls) {
+    const tNum = String(call.table_number).trim();
+    if (!pendingCallsByTable.has(tNum)) {
+      pendingCallsByTable.set(tNum, []);
+    }
+    pendingCallsByTable.get(tNum)!.push(call);
+  }
+
+  const handleResolveTableCalls = async (e: React.MouseEvent, tableNum: string) => {
+    e.stopPropagation();
+    try {
+      await tableCallsApi.resolveCallsForTable(tableNum);
+      toast.success(`تم تأكيد تلبية نداء الطاولة ${tableNum}`);
+      await refetchCalls();
+    } catch {
+      toast.error('تعذر تحديث حالة النداء');
     }
   };
 
@@ -500,6 +529,12 @@ export function PosTablesFloorPlanDialog({
                     <span>طلبات QR نشطة: <strong>{qrOrdersMap.size}</strong></span>
                   </div>
                 )}
+                {pendingCalls.length > 0 && (
+                  <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#92400e', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <BellIcon size={14} color="#b45309" />
+                    <span>نداءات واستدعاءات نشطة: <strong>{pendingCalls.length}</strong></span>
+                  </div>
+                )}
                 {nonTableDrafts.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />
@@ -708,6 +743,9 @@ export function PosTablesFloorPlanDialog({
                 const occupied = occupiedMap.get(tableNum);
                 const qrOrder = qrOrdersMap.get(tableNum);
                 const kdsTicket = kdsTableMap.get(tableNum);
+                const tableCalls = pendingCallsByTable.get(tableNum) || [];
+                const hasActiveCall = tableCalls.length > 0;
+                const isBillCall = tableCalls.some((c) => c.call_type === 'bill');
                 const isCurrent = currentTableNumber === tableNum;
                 const hasLiveCart = isCurrent && currentCartItemsCount > 0;
 
@@ -715,7 +753,11 @@ export function PosTablesFloorPlanDialog({
                 let bgColor = '#ffffff';
                 let dotColor = '#10b981';
 
-                if (hasLiveCart) {
+                if (hasActiveCall) {
+                  borderColor = isBillCall ? '#f87171' : '#fbbf24';
+                  bgColor = isBillCall ? '#fef2f2' : '#fffbeb';
+                  dotColor = isBillCall ? '#dc2626' : '#d97706';
+                } else if (hasLiveCart) {
                   borderColor = '#170e5e';
                   bgColor = '#eff6ff';
                   dotColor = '#170e5e';
@@ -853,6 +895,55 @@ export function PosTablesFloorPlanDialog({
                     ) : (
                       <div style={{ fontSize: '11px', color: isCurrent ? '#475569' : '#16a34a', fontWeight: 700 }}>
                         {isCurrent ? 'شاغرة (محددة)' : 'شاغرة (متاحة)'}
+                      </div>
+                    )}
+
+                    {/* Active Service Call Badge (Waiter / Bill) */}
+                    {hasActiveCall && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '4px',
+                          width: '100%',
+                          background: isBillCall ? '#fee2e2' : '#fef3c7',
+                          border: `1px solid ${isBillCall ? '#fca5a5' : '#fde68a'}`,
+                          borderRadius: '6px',
+                          padding: '2px 5px',
+                          margin: '2px 0',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            color: isBillCall ? '#991b1b' : '#92400e',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          <BellIcon size={10} color={isBillCall ? '#991b1b' : '#92400e'} />
+                          <span>{isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => void handleResolveTableCalls(e, tableNum)}
+                          style={{
+                            fontSize: '8.5px',
+                            fontWeight: 800,
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            background: isBillCall ? '#dc2626' : '#b45309',
+                            color: '#ffffff',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                          title="تأكيد تلبية واستجابة النداء"
+                        >
+                          تم
+                        </button>
                       </div>
                     )}
 

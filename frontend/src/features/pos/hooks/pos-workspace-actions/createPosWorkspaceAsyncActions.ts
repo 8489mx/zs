@@ -280,6 +280,7 @@ export function createPosWorkspaceAsyncActions(
         deliveryRepId: params.deliveryRepId,
         collectionStatus: params.collectionStatus,
         deliveryFeeMode: params.deliveryFeeMode,
+        tipAmount: Number(params.tipAmount || 0),
         // O62: tells the server this cart is a storefront order, so it re-approves that order's own
         // coupon discount and line prices instead of treating them as a cashier discount (which asks
         // a cashier without canDiscount for a manager PIN).

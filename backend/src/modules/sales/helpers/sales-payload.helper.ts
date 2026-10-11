@@ -89,6 +89,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     discount: Number(payload.discount || 0),
     deliveryFee: Number(payload.deliveryFee || 0),
     serviceCharge: Number(payload.serviceCharge || 0),
+    tipAmount: Number(payload.tipAmount || 0),
     guestCount: Math.max(1, Number(payload.guestCount || 1)),
     taxRate: Number(payload.taxRate || 0),
     pricesIncludeTax: Boolean(payload.pricesIncludeTax),

@@ -136,6 +136,12 @@ export class UpsertSaleDto {
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  tipAmount?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
   @Min(1)
   guestCount?: number;
 
@@ -278,6 +284,7 @@ export type NormalizedSalePayload = {
   discount: number;
   deliveryFee: number;
   serviceCharge?: number;
+  tipAmount?: number;
   guestCount?: number;
   taxRate: number;
   pricesIncludeTax: boolean;

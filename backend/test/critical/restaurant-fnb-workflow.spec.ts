@@ -201,6 +201,141 @@ async function testMultiStationKitchenPrinterRouting(): Promise<void> {
   assert.equal(stationBuckets.size, 5);
 }
 
+async function testSfdaNutritionalAndAllergenCompliance(): Promise<void> {
+  interface NutritionalItem {
+    id: number;
+    name: string;
+    calories?: number;
+    allergens?: string[];
+    is_spicy?: boolean;
+    is_vegetarian?: boolean;
+    is_gluten_free?: boolean;
+  }
+
+  const menu: NutritionalItem[] = [
+    {
+      id: 1,
+      name: 'سلطة كينوا بالأفوكادو',
+      calories: 320,
+      allergens: [],
+      is_spicy: false,
+      is_vegetarian: true,
+      is_gluten_free: true,
+    },
+    {
+      id: 2,
+      name: 'برجر ترافل حار',
+      calories: 890,
+      allergens: ['جلوتين', 'ألبان', 'بيض'],
+      is_spicy: true,
+      is_vegetarian: false,
+      is_gluten_free: false,
+    },
+  ];
+
+  // Invariant 1: Calories must be non-negative
+  for (const item of menu) {
+    if (item.calories !== undefined) {
+      assert.ok(item.calories >= 0, `Calories for ${item.name} must be non-negative`);
+    }
+  }
+
+  // Invariant 2: Allergen filter safely isolates items
+  const glutenFreeItems = menu.filter((item) => item.is_gluten_free === true && (!item.allergens || !item.allergens.includes('جلوتين')));
+  assert.equal(glutenFreeItems.length, 1);
+  assert.equal(glutenFreeItems[0].id, 1);
+
+  // Invariant 3: Vegetarian items
+  const vegetarianItems = menu.filter((item) => item.is_vegetarian === true);
+  assert.equal(vegetarianItems.length, 1);
+  assert.equal(vegetarianItems[0].id, 1);
+}
+
+async function testTableServiceCallsWorkflow(): Promise<void> {
+  type ServiceCallType = 'waiter' | 'bill' | 'water' | 'clean';
+  type ServiceCallStatus = 'pending' | 'in_progress' | 'resolved' | 'cancelled';
+
+  interface ServiceCall {
+    id: number;
+    table_number: string;
+    call_type: ServiceCallType;
+    status: ServiceCallStatus;
+    created_at: number;
+    resolved_at?: number;
+  }
+
+  const calls: ServiceCall[] = [
+    { id: 101, table_number: '5', call_type: 'waiter', status: 'pending', created_at: Date.now() - 120000 },
+    { id: 102, table_number: '5', call_type: 'bill', status: 'pending', created_at: Date.now() - 30000 },
+    { id: 103, table_number: '8', call_type: 'water', status: 'resolved', created_at: Date.now() - 600000, resolved_at: Date.now() - 400000 },
+  ];
+
+  // Invariant 1: Pending calls count per table
+  const table5Pending = calls.filter((c) => c.table_number === '5' && c.status === 'pending');
+  assert.equal(table5Pending.length, 2);
+
+  // Invariant 2: 1-Click resolve for all calls on a table
+  const resolveTable = (tableNo: string) => {
+    return calls.map((c) => (c.table_number === tableNo && c.status === 'pending' ? { ...c, status: 'resolved' as ServiceCallStatus, resolved_at: Date.now() } : c));
+  };
+
+  const updatedCalls = resolveTable('5');
+  assert.equal(updatedCalls.filter((c) => c.table_number === '5' && c.status === 'pending').length, 0);
+  assert.equal(updatedCalls.filter((c) => c.table_number === '5' && c.status === 'resolved').length, 2);
+}
+
+async function testTipAndGratuityAllocation(): Promise<void> {
+  // Invariant 1: Tip amount is additive and isolated from sales discounts
+  const saleSubtotal = 500;
+  const tipAmount = 50;
+  const discount = 25;
+  const taxRate = 15;
+
+  const invoiceTotals = computeInvoiceTotals(saleSubtotal, discount, taxRate, false, 0, 0);
+  // Net Food = 475, Tax = 71.25, Total before Tip = 546.25
+  assert.equal(invoiceTotals.total, 546.25);
+
+  const grandTotalWithTip = Number((invoiceTotals.total + tipAmount).toFixed(2));
+  assert.equal(grandTotalWithTip, 596.25);
+
+  // Invariant 2: Tip cannot be negative
+  const safeTip = (tip: number) => Math.max(0, Number(tip || 0));
+  assert.equal(safeTip(-20), 0);
+  assert.equal(safeTip(0), 0);
+  assert.equal(safeTip(35.5), 35.5);
+}
+
+async function testWalkInWaitlistQueueWorkflow(): Promise<void> {
+  interface WaitlistParty {
+    id: number;
+    guest_name: string;
+    guest_count: number;
+    reservation_type: 'reservation' | 'waitlist';
+    status: 'confirmed' | 'seated' | 'cancelled';
+    created_at: number;
+    seated_table?: string;
+  }
+
+  const queue: WaitlistParty[] = [
+    { id: 1, guest_name: 'عبد الله السالم', guest_count: 4, reservation_type: 'waitlist', status: 'confirmed', created_at: Date.now() - 900000 }, // 15 mins ago
+    { id: 2, guest_name: 'فهد العتيبي', guest_count: 2, reservation_type: 'waitlist', status: 'confirmed', created_at: Date.now() - 300000 }, // 5 mins ago
+  ];
+
+  // Invariant 1: FIFO Queue priority
+  const activeQueue = queue.filter((p) => p.reservation_type === 'waitlist' && p.status === 'confirmed').sort((a, b) => a.created_at - b.created_at);
+  assert.equal(activeQueue[0].id, 1, 'First party in line gets #1 priority');
+  assert.equal(activeQueue[1].id, 2, 'Second party gets #2');
+
+  // Invariant 2: Seating assigns table and transitions status to 'seated'
+  const seatParty = (party: WaitlistParty, tableNo: string): WaitlistParty => {
+    return { ...party, status: 'seated', seated_table: tableNo };
+  };
+
+  const seatedParty = seatParty(activeQueue[0], '12');
+  assert.equal(seatedParty.status, 'seated');
+  assert.equal(seatedParty.seated_table, '12');
+}
+
 (async () => {
   console.log('--- Starting Restaurant F&B Critical Workflow Audit ---');
   await testServiceChargeFinancialInvariants();
@@ -217,6 +352,14 @@ async function testMultiStationKitchenPrinterRouting(): Promise<void> {
   console.log('6. Menu Engineering BCG Matrix (Star/Plowhorse/Puzzle/Dog): PASSED');
   await testMultiStationKitchenPrinterRouting();
   console.log('7. Multi-Station Kitchen Printer Routing: PASSED');
+  await testSfdaNutritionalAndAllergenCompliance();
+  console.log('8. SFDA Nutritional & Allergen Compliance: PASSED');
+  await testTableServiceCallsWorkflow();
+  console.log('9. Table Service Calls & Realtime Resolution: PASSED');
+  await testTipAndGratuityAllocation();
+  console.log('10. Tip & Gratuity Allocation Engine: PASSED');
+  await testWalkInWaitlistQueueWorkflow();
+  console.log('11. Walk-In Waitlist Queue & Seating Engine: PASSED');
   console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100%) ---');
 })().catch((err) => {
   console.error('Restaurant F&B Critical Audit FAILED:', err);

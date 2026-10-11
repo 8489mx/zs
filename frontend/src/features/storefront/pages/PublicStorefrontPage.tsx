@@ -16,11 +16,12 @@ import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
 import { useStorefrontSeo } from '../hooks/useStorefrontSeo';
 import { IconStore } from '../components/StorefrontIcons';
-import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
+import { UtensilsIcon, BellIcon, CreditCardIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 import { getStoreHostSlug } from '@/lib/store-public-url';
 import { applyStorefrontThemeVariables } from '../lib/storefront-theme-contrast';
+import { tableCallsApi } from '@/features/pos/api/table-calls.api';
 
 export function PublicStorefrontPage() {
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
@@ -32,6 +33,40 @@ export function PublicStorefrontPage() {
   const hostSlug = useMemo(() => (slug ? null : getStoreHostSlug()), [slug]);
   const cleanSlug = String(slug || hostSlug || 'default').trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
+  const [isCallingWaiter, setIsCallingWaiter] = useState(false);
+  const [isRequestingBill, setIsRequestingBill] = useState(false);
+
+  const handleCallWaiter = async () => {
+    if (!tableParam || isCallingWaiter) return;
+    setIsCallingWaiter(true);
+    try {
+      await tableCallsApi.createCall(
+        { tableNumber: tableParam, callType: 'waiter' },
+        info.tenantId
+      );
+      toast.success(`تم إرسال نداء استدعاء الويتر لطاولة (${tableParam}) بنجاح!`);
+    } catch {
+      toast.error('تعذر إرسال طلب استدعاء الويتر');
+    } finally {
+      setIsCallingWaiter(false);
+    }
+  };
+
+  const handleRequestBill = async () => {
+    if (!tableParam || isRequestingBill) return;
+    setIsRequestingBill(true);
+    try {
+      await tableCallsApi.createCall(
+        { tableNumber: tableParam, callType: 'bill' },
+        info.tenantId
+      );
+      toast.success(`تم إرسال طلب الحساب لطاولة (${tableParam}) بنجاح!`);
+    } catch {
+      toast.error('تعذر إرسال طلب الحساب');
+    } finally {
+      setIsRequestingBill(false);
+    }
+  };
 
   /**
    * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
@@ -311,16 +346,65 @@ export function PublicStorefrontPage() {
               </div>
             </div>
           </div>
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              padding: '4px 10px',
-              borderRadius: '20px',
-              fontSize: '11.5px',
-              fontWeight: 700,
-            }}
-          >
-            طلب صالة
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              disabled={isCallingWaiter}
+              onClick={handleCallWaiter}
+              style={{
+                background: '#ffffff',
+                color: '#15803d',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                transition: 'opacity 0.2s',
+                opacity: isCallingWaiter ? 0.7 : 1,
+              }}
+            >
+              <BellIcon size={13} color="#15803d" />
+              <span>{isCallingWaiter ? 'جارٍ الإرسال...' : 'استدعاء الويتر'}</span>
+            </button>
+            <button
+              type="button"
+              disabled={isRequestingBill}
+              onClick={handleRequestBill}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.4)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'opacity 0.2s',
+                opacity: isRequestingBill ? 0.7 : 1,
+              }}
+            >
+              <CreditCardIcon size={13} color="#ffffff" />
+              <span>{isRequestingBill ? 'جارٍ الطلب...' : 'طلب الحساب'}</span>
+            </button>
+            <div
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+              }}
+            >
+              طلب صالة
+            </div>
           </div>
         </div>
       )}

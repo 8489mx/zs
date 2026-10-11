@@ -310,6 +310,31 @@ export class UpsertProductDto {
   @IsOptional()
   @IsArray()
   comboComponents?: any[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  calories?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  allergens?: string[];
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isSpicy?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isVegetarian?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isGlutenFree?: boolean;
 }
 
 export type NormalizedProductUnit = {
@@ -380,4 +405,9 @@ export type NormalizedUpsertProduct = {
   metadata?: Record<string, any>;
   stock?: number;
   warehouseId?: number;
+  calories?: number | null;
+  allergens?: string[];
+  isSpicy?: boolean;
+  isVegetarian?: boolean;
+  isGlutenFree?: boolean;
 };

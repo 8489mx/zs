@@ -18,10 +18,11 @@ export class TableReservationsController {
     @Req() req: RequestWithAuth,
     @Query('branchId') branchId?: string,
     @Query('date') date?: string,
+    @Query('type') type?: string,
   ) {
     const scope = requireTenantScope(req.authContext!);
     const branch = branchId ? parseInt(branchId, 10) : undefined;
-    return this.service.listReservations(scope.tenantId, branch, date);
+    return this.service.listReservations(scope.tenantId, branch, date, type);
   }
 
   @Post()

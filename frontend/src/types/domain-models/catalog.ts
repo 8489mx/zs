@@ -82,6 +82,11 @@ export interface Product {
   matchedSerialNumber?: string | null;
   icon?: string | null;
   expiryDate?: string | null;
+  calories?: number | null;
+  allergens?: string[] | null;
+  isSpicy?: boolean;
+  isVegetarian?: boolean;
+  isGlutenFree?: boolean;
   metadata?: Record<string, any> | null;
 }
 

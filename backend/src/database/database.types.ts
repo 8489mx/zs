@@ -413,6 +413,11 @@ export interface ProductTable {
   metadata: any | null;
   track_serials?: boolean | null;
   kitchen_station?: string | null;
+  calories?: number | null;
+  allergens?: unknown;
+  is_spicy?: boolean | null;
+  is_vegetarian?: boolean | null;
+  is_gluten_free?: boolean | null;
 }
 
 export interface ProductSerialTable {
@@ -945,6 +950,7 @@ export interface SalesTable {
   card_scheme?: string | null;
   card_last_four?: string | null;
   service_charge?: number | null;
+  tip_amount?: number | null;
   guest_count?: number | null;
   guest_check_printed_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
 }
@@ -5063,8 +5069,20 @@ export interface RestaurantTableReservationTable {
   status: 'confirmed' | 'seated' | 'cancelled' | 'no_show';
   special_requests: string | null;
   created_by: number | null;
+  reservation_type?: 'reservation' | 'waitlist' | string;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantTableServiceCallTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  table_number: string;
+  call_type: 'waiter' | 'bill' | 'water' | 'clean' | string;
+  status: 'pending' | 'resolved';
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  resolved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
 }
 
 export interface PosKitchenPrinterTable {
@@ -5085,5 +5103,6 @@ export interface PosKitchenPrinterTable {
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
   pos_kitchen_printers: PosKitchenPrinterTable;
+  restaurant_table_service_calls: RestaurantTableServiceCallTable;
 }
 

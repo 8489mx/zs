@@ -702,6 +702,63 @@ export function PosCheckoutPaymentSection({
         </div>
       )}
 
+      {/* Gratuity / Tip Selector */}
+      {(pos.settingsQuery?.data?.restaurantModuleEnabled === true || pos.orderType === 'dine_in') && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '6px',
+          padding: '6px 10px',
+          gap: '8px',
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+            إكرامية / بقشيش (Tip):
+          </span>
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            {[0, 5, 10, 15, 20].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => pos.setTipAmount?.(preset)}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  border: (pos.tipAmount || 0) === preset ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                  background: (pos.tipAmount || 0) === preset ? '#170e5e' : '#ffffff',
+                  color: (pos.tipAmount || 0) === preset ? '#ffffff' : '#334155',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {preset === 0 ? 'بدون' : `${preset}`}
+              </button>
+            ))}
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={pos.tipAmount || ''}
+              onChange={(e) => pos.setTipAmount?.(Math.max(0, Number(e.target.value || 0)))}
+              placeholder="مخصص"
+              style={{
+                width: '55px',
+                height: '24px',
+                borderRadius: '4px',
+                border: '1px solid #cbd5e1',
+                textAlign: 'center',
+                fontSize: '11.5px',
+                fontWeight: 700,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Summary 3-Column Chips: Centered and Balanced */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
         <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

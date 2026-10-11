@@ -781,6 +781,55 @@ export function EditProductForm({
           )}
         </div>
 
+        {/* SFDA Food & Beverage Nutrition / Allergens Card */}
+        {(settingsQuery.data?.restaurantModuleEnabled === true || settingsQuery.data?.businessIndustry === 'restaurant' || settingsQuery.data?.businessIndustry === 'cafe') && (
+          <div className="product-compact-card">
+            <div className="product-compact-card-header">
+              <h3 className="product-compact-card-title">بيانات القيمة الغذائية ومسببات الحساسية (SFDA Compliance)</h3>
+            </div>
+            <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+              <Field label="السعرات الحرارية (Calories / Kcal)">
+                <input
+                  className="purchase-prototype-field-input"
+                  type="number"
+                  placeholder="مثال: 450"
+                  {...form.register('calories', { valueAsNumber: true })}
+                  disabled={isFormDisabled}
+                />
+              </Field>
+              <Field label="مسببات الحساسية (مفصولة بفواصل)">
+                <input
+                  className="purchase-prototype-field-input"
+                  type="text"
+                  placeholder="مثال: جلوتين، ألبان، مكسرات، بيض"
+                  value={Array.isArray(form.watch('allergens')) ? (form.watch('allergens') as string[]).join('، ') : ''}
+                  onChange={(e) => {
+                    const val = e.target.value.split(/[،,]/).map((s) => s.trim()).filter(Boolean);
+                    form.setValue('allergens', val, { shouldDirty: true });
+                  }}
+                  disabled={isFormDisabled}
+                />
+              </Field>
+              <Field label="الخصائص الغذائية">
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', height: '36px' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    <input type="checkbox" {...form.register('isSpicy')} disabled={isFormDisabled} />
+                    <span>حار (Spicy)</span>
+                  </label>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    <input type="checkbox" {...form.register('isVegetarian')} disabled={isFormDisabled} />
+                    <span>نباتي (Veg)</span>
+                  </label>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    <input type="checkbox" {...form.register('isGlutenFree')} disabled={isFormDisabled} />
+                    <span>خالٍ من الجلوتين</span>
+                  </label>
+                </div>
+              </Field>
+            </div>
+          </div>
+        )}
+
         {/* 3. Product Units */}
         <div className="product-compact-card">
           <div className="product-compact-card-header">

@@ -62,6 +62,7 @@ export function resetPosDraftState(params: PosWorkspaceActionParams) {
   params.setQuickCustomerPhone?.('');
   params.setQuickCustomerAddress?.('');
   params.setDiscount(0);
+  params.setTipAmount?.(0);
   params.setLoyaltyPointsRedeemed?.(0);
   params.setDeliveryFee(0);
   params.setDiscountApprovalGranted(false);

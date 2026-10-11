@@ -33,6 +33,11 @@ export const productFormSchema = z.object({
   })).optional(),
   taxCodeType: z.string().optional(),
   taxCode: z.string().optional(),
+  calories: z.coerce.number().optional().nullable(),
+  allergens: z.array(z.string()).optional(),
+  isSpicy: z.boolean().default(false),
+  isVegetarian: z.boolean().default(false),
+  isGlutenFree: z.boolean().default(false),
   metadata: z.object({
     expiryDate: z.string().optional(),
     oemNumber: z.string().optional(),
