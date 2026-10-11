@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Kysely } from '../../../database/kysely';
+import { Kysely } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { CreateKitchenPrinterDto, UpdateKitchenPrinterDto } from '../dto/kitchen-printer.dto';

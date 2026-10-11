@@ -332,6 +332,7 @@ export interface ProductCategoryTable {
   id: Generated<number>;
   name: string;
   is_active: boolean;
+  kitchen_station?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -411,6 +412,7 @@ export interface ProductTable {
   tax_code: string | null;
   metadata: any | null;
   track_serials?: boolean | null;
+  kitchen_station?: string | null;
 }
 
 export interface ProductSerialTable {

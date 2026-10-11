@@ -14,7 +14,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('port', 'integer', (col) => col.notNull().defaultTo(9100))
     .addColumn('paper_width', 'text', (col) => col.notNull().defaultTo('80mm')) // '80mm' | '58mm'
     .addColumn('is_active', 'boolean', (col) => col.notNull().defaultTo(true))
-    .addColumn('category_ids', 'jsonb', (col) => col.notNull().defaultTo('[]'))
+    .addColumn('category_ids', 'jsonb', (col) => col.notNull().defaultTo(sql`'[]'::jsonb`))
     .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
     .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
     .execute();
@@ -27,15 +27,15 @@ export async function up(db: Kysely<any>): Promise<void> {
     .columns(['tenant_id', 'branch_id'])
     .execute();
 
-  // 3. Add kitchen_station column to categories and products if not present
+  // 3. Add kitchen_station column to product_categories and products if not present
   await sql`
     DO $$
     BEGIN
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'categories' AND column_name = 'kitchen_station'
+        WHERE table_name = 'product_categories' AND column_name = 'kitchen_station'
       ) THEN
-        ALTER TABLE categories ADD COLUMN kitchen_station varchar(50) DEFAULT 'kitchen';
+        ALTER TABLE product_categories ADD COLUMN kitchen_station varchar(50) DEFAULT 'kitchen';
       END IF;
 
       IF NOT EXISTS (
@@ -51,7 +51,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('pos_kitchen_printers').ifExists().execute();
   await sql`
-    ALTER TABLE categories DROP COLUMN IF EXISTS kitchen_station;
+    ALTER TABLE product_categories DROP COLUMN IF EXISTS kitchen_station;
     ALTER TABLE products DROP COLUMN IF EXISTS kitchen_station;
   `.execute(db);
 }
