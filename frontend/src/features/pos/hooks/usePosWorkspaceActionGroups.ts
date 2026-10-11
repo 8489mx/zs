@@ -49,6 +49,12 @@ export interface PosWorkspaceActionParams {
   locationId: string;
   tableNumber: string;
   setTableNumber: Dispatch<SetStateAction<string>>;
+  diningCourse?: string;
+  setDiningCourse?: Dispatch<SetStateAction<any>>;
+  guestCount?: number;
+  setGuestCount?: Dispatch<SetStateAction<number>>;
+  guestCheckPrintedAt?: string | null;
+  setGuestCheckPrintedAt?: Dispatch<SetStateAction<string | null>>;
   orderType: string;
   setOrderType: Dispatch<SetStateAction<string>>;
   deliveryFeeMode: 'freelance_courier' | 'store_fleet';
@@ -74,6 +80,15 @@ export interface PosWorkspaceActionParams {
   setLastSale: Dispatch<SetStateAction<Sale | null>>;
   postSaleSaleKey: string;
   setPostSaleSaleKey: Dispatch<SetStateAction<string>>;
+  terminalPaymentDetails?: {
+    terminalId?: string;
+    authCode?: string;
+    rrn?: string;
+    cardScheme?: string;
+    cardLastFour?: string;
+    provider?: string;
+  } | null;
+  setTerminalPaymentDetails?: Dispatch<SetStateAction<any>>;
   requestBarcodeFocus: () => void;
   lastSale: Sale | null;
   products: Product[];
@@ -82,7 +97,16 @@ export interface PosWorkspaceActionParams {
   currentBranch: { id: string | number } | null;
   currentLocation: { id: string | number } | null;
   settings?: Partial<AppSettings> | null;
-  totals: { discountValue: number; deliveryFee: number; taxRate: number; pricesIncludeTax: boolean; total: number };
+  totals: {
+    discountValue: number;
+    deliveryFee: number;
+    taxRate: number;
+    pricesIncludeTax: boolean;
+    total: number;
+    serviceCharge?: number;
+    serviceChargePercent?: number;
+    subTotal?: number;
+  };
   paidAmount: number;
   hasOperationalSetup: boolean;
   hasCatalogReady: boolean;

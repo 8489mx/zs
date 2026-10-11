@@ -225,6 +225,12 @@ export function buildSettingsUpdatePayload(
     restaurantTablesCount: values.restaurantTablesCount !== undefined
       ? Math.min(200, Math.max(1, Math.floor(Number(values.restaurantTablesCount || 12))))
       : Math.min(200, Math.max(1, Math.floor(Number(current?.restaurantTablesCount || 12)))),
+    restaurantServiceChargeEnabled: values.restaurantServiceChargeEnabled !== undefined
+      ? values.restaurantServiceChargeEnabled === true
+      : current?.restaurantServiceChargeEnabled === true,
+    restaurantServiceChargePercent: values.restaurantServiceChargePercent !== undefined
+      ? Math.min(100, Math.max(0, Number(values.restaurantServiceChargePercent ?? 12)))
+      : Math.min(100, Math.max(0, Number(current?.restaurantServiceChargePercent ?? 12))),
     posMaxDiscountThresholdEnabled: values.posMaxDiscountThresholdEnabled !== undefined
       ? values.posMaxDiscountThresholdEnabled === true
       : current?.posMaxDiscountThresholdEnabled === true,
@@ -345,6 +351,12 @@ export function buildSettingsUpdatePayload(
     posTerminalPort: values.posTerminalPort !== undefined
       ? Number(values.posTerminalPort || 8080)
       : Number(current?.posTerminalPort || 8080),
+    posTerminalProtocol: values.posTerminalProtocol !== undefined
+      ? values.posTerminalProtocol
+      : (current?.posTerminalProtocol || 'tcp_ip'),
+    posTerminalAutoFinalize: values.posTerminalAutoFinalize !== undefined
+      ? values.posTerminalAutoFinalize === true
+      : current?.posTerminalAutoFinalize === true,
     contractingRetentionPercent: values.contractingRetentionPercent !== undefined
       ? Number(values.contractingRetentionPercent ?? 5)
       : Number(current?.contractingRetentionPercent ?? 5),

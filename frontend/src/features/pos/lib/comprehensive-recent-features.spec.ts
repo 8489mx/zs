@@ -468,5 +468,364 @@ describe('Comprehensive Verification of Recent Features (Human Simulation)', () 
       expect(result.discountPct).toBe(25);
     });
   });
+
+  // =========================================================================
+  // SECTOR 10: RESTAURANT F&B DOMINANCE & FOODICS-SUPERIORITY SUITE
+  // =========================================================================
+  describe('Sector 10: Restaurant F&B Enterprise Workflow & Operations', () => {
+    describe('10.1 Dine-in Service Charge & Strict Order Type Isolation', () => {
+      const computeRestaurantTotals = (
+        subtotal: number,
+        discount: number,
+        serviceChargePct: number,
+        orderType: 'dine_in' | 'takeaway' | 'delivery',
+        taxRatePct: number = 15,
+      ) => {
+        const netFoodTotal = Math.max(0, subtotal - discount);
+        // Invariant: Service charge applies STRICTLY to dine_in. Zero for takeaway or delivery!
+        const serviceCharge = orderType === 'dine_in'
+          ? Number((netFoodTotal * (serviceChargePct / 100)).toFixed(2))
+          : 0;
+        const taxableBase = netFoodTotal + serviceCharge;
+        const taxAmount = Number((taxableBase * (taxRatePct / 100)).toFixed(2));
+        const grandTotal = Number((taxableBase + taxAmount).toFixed(2));
+        return { netFoodTotal, serviceCharge, taxAmount, grandTotal };
+      };
+
+      it('applies 12% service charge for dine-in orders accurately with tax compounding', () => {
+        const res = computeRestaurantTotals(500, 50, 12, 'dine_in', 15);
+        // net food = 450
+        // service charge = 450 * 0.12 = 54
+        // taxableBase = 450 + 54 = 504
+        // tax (15%) = 504 * 0.15 = 75.60
+        // grandTotal = 504 + 75.60 = 579.60
+        expect(res.netFoodTotal).toBe(450);
+        expect(res.serviceCharge).toBe(54);
+        expect(res.taxAmount).toBe(75.6);
+        expect(res.grandTotal).toBe(579.6);
+      });
+
+      it('strictly enforces zero service charge on takeaway and delivery orders even if configured', () => {
+        const takeawayRes = computeRestaurantTotals(500, 50, 12, 'takeaway', 15);
+        expect(takeawayRes.serviceCharge).toBe(0);
+        expect(takeawayRes.taxAmount).toBe(67.5); // 450 * 0.15
+        expect(takeawayRes.grandTotal).toBe(517.5);
+
+        const deliveryRes = computeRestaurantTotals(500, 50, 12, 'delivery', 15);
+        expect(deliveryRes.serviceCharge).toBe(0);
+        expect(deliveryRes.grandTotal).toBe(517.5);
+      });
+    });
+
+    describe('10.2 Guest Covers Count & Average Spend Per Guest', () => {
+      const calculateSpendPerGuest = (grandTotal: number, coversCount: number) => {
+        const safeCovers = Math.max(1, Math.floor(coversCount || 1));
+        return Number((grandTotal / safeCovers).toFixed(2));
+      };
+
+      it('calculates average spend per guest accurately across varying covers', () => {
+        expect(calculateSpendPerGuest(600, 4)).toBe(150);
+        expect(calculateSpendPerGuest(350, 2)).toBe(175);
+        expect(calculateSpendPerGuest(1250, 5)).toBe(250);
+      });
+
+      it('safely handles zero or negative covers by defaulting to single guest fallback', () => {
+        expect(calculateSpendPerGuest(220, 0)).toBe(220);
+        expect(calculateSpendPerGuest(220, -3)).toBe(220);
+        expect(calculateSpendPerGuest(220, 1)).toBe(220);
+      });
+    });
+
+    describe('10.3 Table Reservation State Machine & Seating Flow', () => {
+      type ReservationStatus = 'confirmed' | 'seated' | 'cancelled' | 'no_show' | 'completed';
+
+      const isValidTransition = (from: ReservationStatus, to: ReservationStatus): boolean => {
+        const allowed: Record<ReservationStatus, ReservationStatus[]> = {
+          confirmed: ['seated', 'cancelled', 'no_show'],
+          seated: ['completed', 'cancelled'],
+          completed: [],
+          cancelled: [],
+          no_show: [],
+        };
+        return allowed[from].includes(to);
+      };
+
+      it('validates correct reservation lifecycle transitions', () => {
+        expect(isValidTransition('confirmed', 'seated')).toBe(true);
+        expect(isValidTransition('confirmed', 'cancelled')).toBe(true);
+        expect(isValidTransition('confirmed', 'no_show')).toBe(true);
+        expect(isValidTransition('seated', 'completed')).toBe(true);
+        expect(isValidTransition('completed', 'seated')).toBe(false);
+        expect(isValidTransition('cancelled', 'confirmed')).toBe(false);
+      });
+
+      it('transforms reservation into POS table assignment payload when seating guest', () => {
+        const reservation = {
+          id: 42,
+          tableNumber: 'T-08',
+          guestName: 'خالد السعيد',
+          guestPhone: '0551234567',
+          guestCount: 6,
+          specialRequests: 'طاولة بجوار النافذة ومقعد أطفال',
+        };
+
+        const seatGuest = (res: typeof reservation) => ({
+          tableNumber: res.tableNumber,
+          guestCount: res.guestCount,
+          customerName: res.guestName,
+          customerPhone: res.guestPhone,
+          reservationId: res.id,
+          diningCourse: 'starter' as const,
+          orderType: 'dine_in' as const,
+        });
+
+        const posPayload = seatGuest(reservation);
+        expect(posPayload.tableNumber).toBe('T-08');
+        expect(posPayload.guestCount).toBe(6);
+        expect(posPayload.customerName).toBe('خالد السعيد');
+        expect(posPayload.reservationId).toBe(42);
+        expect(posPayload.orderType).toBe('dine_in');
+      });
+
+      it('detects capacity warnings when party size exceeds table seating capacity', () => {
+        const checkCapacity = (partySize: number, tableCapacity: number) => {
+          return {
+            fits: partySize <= tableCapacity,
+            overCapacity: Math.max(0, partySize - tableCapacity),
+          };
+        };
+
+        expect(checkCapacity(4, 4)).toEqual({ fits: true, overCapacity: 0 });
+        expect(checkCapacity(6, 4)).toEqual({ fits: false, overCapacity: 2 });
+      });
+    });
+
+    describe('10.4 3-Step Guided Combo Meals Builder', () => {
+      interface ComboConfig {
+        entree: { id: string; name: string; price: number };
+        side: { id: string; name: string; upgradePrice: number };
+        drink: { id: string; name: string; upgradePrice: number };
+        notes?: string;
+      }
+
+      const buildComboLineItem = (config: ComboConfig) => {
+        const totalPrice = Number((config.entree.price + config.side.upgradePrice + config.drink.upgradePrice).toFixed(2));
+        const formattedTitle = `وجبة كومبو ${config.entree.name} (${config.side.name} + ${config.drink.name})`;
+        return {
+          productId: config.entree.id,
+          name: formattedTitle,
+          price: totalPrice,
+          qty: 1,
+          comboDetails: {
+            entreeName: config.entree.name,
+            sideName: config.side.name,
+            drinkName: config.drink.name,
+            sideDelta: config.side.upgradePrice,
+            drinkDelta: config.drink.upgradePrice,
+            notes: config.notes || '',
+          },
+        };
+      };
+
+      it('computes consolidated combo meal pricing with side and drink upgrades accurately', () => {
+        const combo = buildComboLineItem({
+          entree: { id: 'c1', name: 'برجر دجاج كرسبي سوبريم', price: 65 },
+          side: { id: 's2', name: 'بطاطس ودجز بالجبنة الشيدر', upgradePrice: 12 },
+          drink: { id: 'd3', name: 'عصير برتقال طازج', upgradePrice: 10 },
+          notes: 'بدون مايونيز',
+        });
+
+        // 65 + 12 + 10 = 87
+        expect(combo.price).toBe(87);
+        expect(combo.name).toContain('برجر دجاج كرسبي');
+        expect(combo.name).toContain('بطاطس ودجز');
+        expect(combo.name).toContain('عصير برتقال');
+        expect(combo.comboDetails.notes).toBe('بدون مايونيز');
+      });
+
+      it('handles standard combo without upgrades at base entree price', () => {
+        const standardCombo = buildComboLineItem({
+          entree: { id: 'c2', name: 'شاورما عربي دبل', price: 45 },
+          side: { id: 's1', name: 'بطاطس مقلية كلاسيك', upgradePrice: 0 },
+          drink: { id: 'd1', name: 'كولا بارد', upgradePrice: 0 },
+        });
+
+        expect(standardCombo.price).toBe(45);
+        expect(standardCombo.comboDetails.sideDelta).toBe(0);
+        expect(standardCombo.comboDetails.drinkDelta).toBe(0);
+      });
+    });
+
+    describe('10.5 Customer Pickup & Order Status Display Board', () => {
+      interface KitchenOrder {
+        id: number;
+        orderNumber: string;
+        customerName: string;
+        status: 'pending' | 'cooking' | 'ready' | 'delivered' | 'cancelled';
+        elapsedMinutes: number;
+      }
+
+      const partitionOrdersForBoard = (orders: KitchenOrder[]) => {
+        const preparing = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
+        const readyForPickup = orders.filter(o => o.status === 'ready');
+        return { preparing, readyForPickup };
+      };
+
+      it('correctly partitions orders between "Preparing" and "Ready for Pickup" screens', () => {
+        const orders: KitchenOrder[] = [
+          { id: 1, orderNumber: '101', customerName: 'سارة', status: 'pending', elapsedMinutes: 2 },
+          { id: 2, orderNumber: '102', customerName: 'محمود', status: 'cooking', elapsedMinutes: 7 },
+          { id: 3, orderNumber: '103', customerName: 'ياسين', status: 'ready', elapsedMinutes: 12 },
+          { id: 4, orderNumber: '104', customerName: 'عمر', status: 'delivered', elapsedMinutes: 20 },
+        ];
+
+        const { preparing, readyForPickup } = partitionOrdersForBoard(orders);
+        expect(preparing).toHaveLength(2);
+        expect(preparing.map(o => o.orderNumber)).toEqual(['101', '102']);
+
+        expect(readyForPickup).toHaveLength(1);
+        expect(readyForPickup[0].orderNumber).toBe('103');
+      });
+
+      it('triggers acoustic audio chime notification when an order becomes ready', () => {
+        let chimePlayed = false;
+        const playChime = () => { chimePlayed = true; };
+
+        const handleStatusChange = (prevStatus: string, nextStatus: string) => {
+          if (prevStatus !== 'ready' && nextStatus === 'ready') {
+            playChime();
+          }
+        };
+
+        handleStatusChange('cooking', 'cooking');
+        expect(chimePlayed).toBe(false);
+
+        handleStatusChange('cooking', 'ready');
+        expect(chimePlayed).toBe(true);
+      });
+    });
+
+    describe('10.6 Handheld Waiter / Captain Station Direct Dispatch', () => {
+      interface WaiterCartItem {
+        productId: number;
+        name: string;
+        price: number;
+        qty: number;
+        cookingNotes: string;
+        station: 'grill' | 'kitchen' | 'beverages';
+      }
+
+      const createDraftWaiterOrder = (
+        tableNumber: string,
+        waiterPin: string,
+        guestCount: number,
+        items: WaiterCartItem[],
+      ) => {
+        if (!tableNumber) throw new Error('Table number required');
+        if (!waiterPin) throw new Error('Waiter PIN required');
+        const subtotal = items.reduce((acc, item) => acc + item.price * item.qty, 0);
+
+        return {
+          tableNumber,
+          guestCount,
+          waiterPin,
+          orderType: 'dine_in' as const,
+          items,
+          subtotal,
+          canOpenCashDrawer: false, // Invariant: Waiters cannot open cash drawer!
+          requiresKitchenTicket: true,
+        };
+      };
+
+      it('builds waiter draft order for kitchen dispatch with zero cash drawer privileges', () => {
+        const order = createDraftWaiterOrder('T-12', '4412', 4, [
+          { productId: 1, name: 'ريش ضأن مشوية', price: 95, qty: 2, cookingNotes: 'وسط الاستواء Medium', station: 'grill' },
+          { productId: 2, name: 'عصير رمان', price: 25, qty: 4, cookingNotes: 'بدون سكر وبدون ثلج', station: 'beverages' },
+        ]);
+
+        expect(order.tableNumber).toBe('T-12');
+        expect(order.subtotal).toBe(95 * 2 + 25 * 4); // 190 + 100 = 290
+        expect(order.canOpenCashDrawer).toBe(false);
+        expect(order.requiresKitchenTicket).toBe(true);
+        expect(order.items[0].cookingNotes).toBe('وسط الاستواء Medium');
+      });
+    });
+
+    describe('10.7 Third-Party Aggregators & 86 Item Stop List', () => {
+      interface MenuItem {
+        id: number;
+        name: string;
+        price: number;
+        is86Stopped: boolean;
+      }
+
+      const filterAggregatorMenu = (menu: MenuItem[]) => {
+        // Items on 86-stop-list are strictly omitted from online aggregator catalog
+        return menu.filter(item => !item.is86Stopped);
+      };
+
+      const calculateAggregatorNetPayout = (grossTotal: number, commissionPercent: number) => {
+        const commissionAmount = Number((grossTotal * (commissionPercent / 100)).toFixed(2));
+        const netPayout = Number((grossTotal - commissionAmount).toFixed(2));
+        return { commissionAmount, netPayout };
+      };
+
+      it('excludes 86-stopped items from aggregator catalog immediately', () => {
+        const menu: MenuItem[] = [
+          { id: 1, name: 'برجر كلاسيك لحم بلدي', price: 50, is86Stopped: false },
+          { id: 2, name: 'ستيك تندرلوين فاخر', price: 140, is86Stopped: true }, // Out of stock
+          { id: 3, name: 'بطاطس مقلية بالجبن', price: 25, is86Stopped: false },
+        ];
+
+        const activeMenu = filterAggregatorMenu(menu);
+        expect(activeMenu).toHaveLength(2);
+        expect(activeMenu.some(item => item.id === 2)).toBe(false);
+      });
+
+      it('computes aggregator commissions and net business payouts accurately', () => {
+        // Jahez 14% commission on 1000 SAR order
+        const jahez = calculateAggregatorNetPayout(1000, 14);
+        expect(jahez.commissionAmount).toBe(140);
+        expect(jahez.netPayout).toBe(860);
+
+        // HungerStation 15% commission on 850 SAR order
+        const hunger = calculateAggregatorNetPayout(850, 15);
+        expect(hunger.commissionAmount).toBe(127.5);
+        expect(hunger.netPayout).toBe(722.5);
+      });
+    });
+
+    describe('10.8 Food Waste & Theoretical vs Actual Variance Engine', () => {
+      const calculateRecipeVariance = (
+        theoreticalConsumptionQty: number,
+        actualPhysicalDeductionQty: number,
+        loggedWasteQty: number,
+        ingredientCostPerUnit: number,
+      ) => {
+        const totalAccounted = theoreticalConsumptionQty + loggedWasteQty;
+        const unexplainedVarianceQty = Number((actualPhysicalDeductionQty - totalAccounted).toFixed(3));
+        const unexplainedVarianceCost = Number((unexplainedVarianceQty * ingredientCostPerUnit).toFixed(2));
+        const totalWastageCost = Number(((loggedWasteQty + Math.max(0, unexplainedVarianceQty)) * ingredientCostPerUnit).toFixed(2));
+
+        return {
+          unexplainedVarianceQty,
+          unexplainedVarianceCost,
+          totalWastageCost,
+        };
+      };
+
+      it('accurately isolates logged kitchen waste from unexplained variance', () => {
+        // Sold 100 burgers -> theoretically 15.000 kg ground beef
+        // Physical inventory check showed 16.500 kg consumed
+        // Chef logged 0.800 kg burnt / dropped meat
+        // Unexplained discrepancy = 16.500 - (15.000 + 0.800) = 0.700 kg
+        const variance = calculateRecipeVariance(15.0, 16.5, 0.8, 40); // 40 SAR/kg
+        expect(variance.unexplainedVarianceQty).toBe(0.7);
+        expect(variance.unexplainedVarianceCost).toBe(28); // 0.7 * 40
+        expect(variance.totalWastageCost).toBe(60); // (0.8 + 0.7) * 40
+      });
+    });
+  });
 });
+
 

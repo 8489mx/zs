@@ -99,6 +99,9 @@ export const ProductModifiersPage: FC = () => {
         name: opt.name.trim(),
         price: Number(opt.price || 0),
         costPrice: Number(opt.costPrice || 0),
+        componentProductId: opt.componentProductId ? Number(opt.componentProductId) : null,
+        consumptionQty: opt.consumptionQty !== null && opt.consumptionQty !== undefined && opt.consumptionQty !== '' ? Number(opt.consumptionQty) : null,
+        unitName: opt.unitName ? opt.unitName.trim() : null,
       }));
 
     if (cleanOptions.length === 0) {

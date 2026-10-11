@@ -88,6 +88,8 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     paymentChannel,
     discount: Number(payload.discount || 0),
     deliveryFee: Number(payload.deliveryFee || 0),
+    serviceCharge: Number(payload.serviceCharge || 0),
+    guestCount: Math.max(1, Number(payload.guestCount || 1)),
     taxRate: Number(payload.taxRate || 0),
     pricesIncludeTax: Boolean(payload.pricesIncludeTax),
     storeCreditUsed: Number(payload.storeCreditUsed || 0),
@@ -101,6 +103,12 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     tenderedAmount: Number(payload.tenderedAmount || 0),
     tableNumber: typeof payload.tableNumber === 'string' ? payload.tableNumber.trim() : null,
     orderType: typeof payload.orderType === 'string' ? payload.orderType.trim() : null,
+    diningCourse: typeof payload.diningCourse === 'string' ? payload.diningCourse.trim() : null,
+    terminalId: payload.terminalId ? String(payload.terminalId).trim() : null,
+    terminalAuthCode: payload.terminalAuthCode ? String(payload.terminalAuthCode).trim() : null,
+    terminalRrn: payload.terminalRrn ? String(payload.terminalRrn).trim() : null,
+    cardScheme: payload.cardScheme ? String(payload.cardScheme).trim() : null,
+    cardLastFour: payload.cardLastFour ? String(payload.cardLastFour).trim() : null,
     items: payload.items
       .map((item) => ({
         productId: Number(item.productId || 0),

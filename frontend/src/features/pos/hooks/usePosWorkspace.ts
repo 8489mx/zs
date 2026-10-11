@@ -45,6 +45,9 @@ export interface PosDraftSnapshot {
   branchId: string;
   locationId: string;
   tableNumber: string;
+  diningCourse?: string;
+  guestCount?: number;
+  guestCheckPrintedAt?: string | null;
   orderType: string;
   deliveryRepId?: string;
   collectionStatus?: string;
@@ -144,6 +147,8 @@ export function usePosWorkspace() {
     search: state.search,
     priceType: state.priceType,
     tableNumber: state.tableNumber,
+    guestCount: state.guestCount,
+    guestCheckPrintedAt: state.guestCheckPrintedAt,
     orderType: state.orderType,
     deliveryRepId: state.deliveryRepId,
     collectionStatus: state.collectionStatus,
@@ -273,6 +278,8 @@ export function usePosWorkspace() {
     setWholesaleApprovalGranted: state.setWholesaleApprovalGranted,
     wholesaleApprovalSecret: state.wholesaleApprovalSecret,
     setWholesaleApprovalSecret: state.setWholesaleApprovalSecret,
+    terminalPaymentDetails: state.terminalPaymentDetails,
+    setTerminalPaymentDetails: state.setTerminalPaymentDetails,
     cashAmount: state.cashAmount,
     setCashAmount: state.setCashAmount,
     cardAmount: state.cardAmount,
@@ -293,6 +300,12 @@ export function usePosWorkspace() {
     locationId: operationalContext.locationId,
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
+    diningCourse: state.diningCourse,
+    setDiningCourse: state.setDiningCourse,
+    guestCount: state.guestCount,
+    setGuestCount: state.setGuestCount,
+    guestCheckPrintedAt: state.guestCheckPrintedAt,
+    setGuestCheckPrintedAt: state.setGuestCheckPrintedAt,
     orderType: state.orderType,
     setOrderType: handleSetOrderType,
     deliveryFeeMode: state.deliveryFeeMode,
@@ -385,6 +398,8 @@ export function usePosWorkspace() {
     setWholesaleApprovalGranted: state.setWholesaleApprovalGranted,
     wholesaleApprovalSecret: state.wholesaleApprovalSecret,
     setWholesaleApprovalSecret: state.setWholesaleApprovalSecret,
+    terminalPaymentDetails: state.terminalPaymentDetails,
+    setTerminalPaymentDetails: state.setTerminalPaymentDetails,
     paidAmount,
     cashAmount: state.cashAmount,
     setCashAmount: state.setCashAmount,
@@ -400,6 +415,12 @@ export function usePosWorkspace() {
     setNote: state.setNote,
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
+    diningCourse: state.diningCourse,
+    setDiningCourse: state.setDiningCourse,
+    guestCount: state.guestCount,
+    setGuestCount: state.setGuestCount,
+    guestCheckPrintedAt: state.guestCheckPrintedAt,
+    setGuestCheckPrintedAt: state.setGuestCheckPrintedAt,
     orderType: state.orderType,
     setOrderType: handleSetOrderType,
     deliveryFeeMode: state.deliveryFeeMode,

@@ -28,6 +28,9 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setLastAddedLineKey('');
   params.setSubmitMessage('');
   params.setPostSaleSaleKey('');
+  params.setTerminalPaymentDetails?.(null);
+  params.setGuestCount?.(1);
+  params.setGuestCheckPrintedAt?.(null);
   clearDraftSnapshot();
   params.requestBarcodeFocus();
 }

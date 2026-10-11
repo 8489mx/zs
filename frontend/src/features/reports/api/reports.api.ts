@@ -344,6 +344,13 @@ export const reportsApi = {
     };
     return http<CustomerRfmResponse>(`/api/reports/customers/rfm${buildQueryString(query)}`);
   },
+  foodCostVariance: (params?: { from?: string; to?: string }) => {
+    const query: Record<string, string | number | undefined | null> = {
+      ...(params?.from ? { from: params.from } : {}),
+      ...(params?.to ? { to: params.to } : {}),
+    };
+    return http<FoodCostVarianceResponse>(`/api/reports/restaurant/food-cost-variance${buildQueryString(query)}`);
+  },
 };
 
 export type CustomerRfmSegment = 'champions' | 'loyal' | 'promising' | 'at_risk' | 'lost';
@@ -469,4 +476,34 @@ export interface DemandForecastingResponse {
     overstockedCount: number;
   };
   items: DemandForecastingItem[];
+}
+
+export interface FoodCostVarianceItem {
+  productId: number;
+  productName: string;
+  sku: string;
+  unitName: string;
+  costPrice: number;
+  theoreticalQty: number;
+  theoreticalCost: number;
+  wasteQty: number;
+  wasteCost: number;
+  actualQty: number;
+  actualCost: number;
+  varianceQty: number;
+  varianceCost: number;
+  variancePct: number;
+  status: 'normal' | 'warning' | 'critical';
+}
+
+export interface FoodCostVarianceResponse {
+  range: { from: string; to: string };
+  summary: {
+    totalTheoreticalCost: number;
+    totalActualCost: number;
+    totalWasteCost: number;
+    totalVarianceCost: number;
+    overallVariancePct: number;
+  };
+  items: FoodCostVarianceItem[];
 }

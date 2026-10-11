@@ -269,7 +269,9 @@ export interface AppSettings {
   loyaltyMaxDiscountPercentage?: number;
   printShowLoyaltyPoints?: boolean;
   posTerminalEnabled?: boolean;
-  posTerminalProvider?: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'mock_sandbox' | string;
+  posTerminalProvider?: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'knet_pos' | 'mock_sandbox' | string;
+  posTerminalProtocol?: 'tcp_ip' | 'http_rest';
+  posTerminalAutoFinalize?: boolean;
   posTerminalName?: string;
   posTerminalIp?: string;
   posTerminalPort?: number;

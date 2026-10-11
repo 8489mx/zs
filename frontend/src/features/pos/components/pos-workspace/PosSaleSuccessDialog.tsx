@@ -261,10 +261,19 @@ export function PosSaleSuccessDialog({
           ) : (
             <>
               {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
-              {changeAmount > 0.009 ? (
-                <span><b>الباقي للعميل</b><strong style={{ color: '#16a34a' }}>{formatCurrency(changeAmount)}</strong></span>
-              ) : (
-                <span><b>حالة الفاتورة</b><strong style={{ color: '#16a34a' }}>مدفوعة بالكامل</strong></span>
+              {changeAmount > 0.009 && <span><b>الباقي للعميل</b><strong style={{ color: '#16a34a' }}>{formatCurrency(changeAmount)}</strong></span>}
+              <span><b>حالة الفاتورة</b><strong style={{ color: '#16a34a' }}>مدفوعة بالكامل</strong></span>
+              {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code) && (
+                <span style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '8px', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>
+                    <b>دفع شبكة إلكتروني معتمد:</b> {((sale as any).cardScheme === 'knet' ? 'كي نت (KNET)' : (sale as any).cardScheme === 'mada' ? 'مدى (Mada)' : ((sale as any).cardScheme || 'بطاقة مصرفية'))}
+                    {((sale as any).cardLastFour || (sale as any).card_last_four) ? ` (**** ${((sale as any).cardLastFour || (sale as any).card_last_four)})` : ''}
+                  </span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 800 }}>
+                    تفويض: {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code)}
+                    {((sale as any).terminalRrn || (sale as any).terminal_rrn) ? ` | مرجع: ${((sale as any).terminalRrn || (sale as any).terminal_rrn)}` : ''}
+                  </span>
+                </span>
               )}
             </>
           )}

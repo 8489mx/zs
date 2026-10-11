@@ -188,6 +188,66 @@ function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<
   `;
 }
 
+function renderEdcTerminalSlip(options: {
+  terminalId?: string | null;
+  terminalAuthCode?: string | null;
+  terminalRrn?: string | null;
+  cardScheme?: string | null;
+  cardLastFour?: string | null;
+  compact?: boolean;
+}) {
+  if (!options.terminalAuthCode) return '';
+  const schemeName = options.cardScheme === 'knet'
+    ? 'شبكة كي نت (KNET)'
+    : options.cardScheme === 'mada'
+    ? 'شبكة مدى (Mada Debit)'
+    : options.cardScheme === 'Meeza' || options.cardScheme === 'meeza'
+    ? 'شبكة ميزة (Meeza)'
+    : options.cardScheme === 'Visa' || options.cardScheme === 'visa'
+    ? 'فيزا (Visa)'
+    : options.cardScheme === 'Mastercard' || options.cardScheme === 'mastercard'
+    ? 'ماستركارد (Mastercard)'
+    : 'بطاقة مصرفية إلكترونية (POS)';
+
+  return `
+    <section class="invoice-card edc-terminal-card${options.compact ? ' compact' : ''}" style="margin: 4px 0; padding: 5px 6px; border: 1px dashed #000; border-radius: 4px; font-size: ${options.compact ? '8.5px' : '9.5px'};">
+      <div style="font-weight: 800; text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2px; margin-bottom: 3px; font-size: ${options.compact ? '9px' : '10px'};">
+        *** إيصال الدفع الإلكتروني (EDC POS Slip) ***
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+        <span style="font-weight: 600;">الشبكة / البطاقة:</span>
+        <strong style="font-weight: 800;">${escapeHtml(schemeName)}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+        <span style="font-weight: 600;">رقم التفويض (AUTH):</span>
+        <strong style="font-family: monospace; font-weight: 800;">${escapeHtml(options.terminalAuthCode)}</strong>
+      </div>
+      ${options.terminalRrn ? `
+        <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+          <span style="font-weight: 600;">رقم المرجع (RRN):</span>
+          <span style="font-family: monospace;">${escapeHtml(options.terminalRrn)}</span>
+        </div>
+      ` : ''}
+      ${options.cardLastFour ? `
+        <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+          <span style="font-weight: 600;">رقم البطاقة (PAN):</span>
+          <span style="font-family: monospace;">**** **** **** ${escapeHtml(options.cardLastFour)}</span>
+        </div>
+      ` : ''}
+      ${options.terminalId ? `
+        <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+          <span style="font-weight: 600;">الطرفية (TID):</span>
+          <span style="font-family: monospace;">${escapeHtml(options.terminalId)}</span>
+        </div>
+      ` : ''}
+      <div style="display: flex; justify-content: space-between; padding: 1px 0; border-top: 1px dotted #000; margin-top: 2px; padding-top: 2px;">
+        <span style="font-weight: 600;">حالة المعاملة:</span>
+        <strong style="font-weight: 800;">مقبولة بنجاح / APPROVED (00)</strong>
+      </div>
+    </section>
+  `;
+}
+
 function renderInvoiceBarcode(documentNumber?: string | number | null, compact = false, settings?: Partial<AppSettings> | null) {
   if (!getPrintOption(settings, 'printShowInvoiceBarcode', true)) return '';
 
@@ -224,6 +284,7 @@ function renderTotals(options: {
   subtotal: number;
   discount: number;
   deliveryFee?: number;
+  serviceCharge?: number;
   taxAmount: number;
   total: number;
   paidAmount?: number;
@@ -320,6 +381,9 @@ function renderTotals(options: {
         value: `<span style="font-size:0.86em; font-weight:700; color:#000;">تم صرف ${formatReceiptMoney(Number(options.deliveryFee || 0), options.settings)} ${getGlobalCurrencySymbol()} نقداً من الدرج</span>`,
         isHtml: true,
       }] : []),
+    ] : []),
+    ...(Number(options.serviceCharge || 0) > 0 ? [
+      { label: 'خدمة الصالة', value: formatReceiptMoney(Number(options.serviceCharge || 0), options.settings) },
     ] : []),
     ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     ...(showPaymentMethod && options.paymentText ? [{
@@ -747,6 +811,8 @@ export function buildReceiptDocument(options: {
   subtotal: number;
   discount: number;
   deliveryFee?: number;
+  serviceCharge?: number;
+  guestCount?: number;
   taxAmount: number;
   total: number;
   paidAmount?: number;
@@ -756,6 +822,11 @@ export function buildReceiptDocument(options: {
   loyaltyPointsEarned?: number;
   loyaltyPointsRedeemed?: number;
   loyaltyPointsBalance?: number;
+  terminalId?: string | null;
+  terminalAuthCode?: string | null;
+  terminalRrn?: string | null;
+  cardScheme?: string | null;
+  cardLastFour?: string | null;
   copyType?: 'customer' | 'merchant' | 'dual';
 }) {
   const compact = isCompactReceipt(options.pageSize, options.settings);
@@ -830,6 +901,7 @@ export function buildReceiptDocument(options: {
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
+    ...(Number(options.guestCount || 0) > 0 ? [{ label: 'عدد الضيوف', value: `${formatReceiptText(options.guestCount, options.settings)} فرد` }] : []),
     ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' || options.orderType === 'takeaway' ? 'تيك أواي' : (options.orderType || 'تيك أواي')) }] : []),
     ...(!detectedOnlineOrderNumber && (options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين')) ? [{ label: 'المصدر', value: 'طلب متجر أونلاين', isBadge: true }] : []),
     ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'مندوب التوصيل', value: options.deliveryRepName }] : []),
@@ -855,6 +927,7 @@ export function buildReceiptDocument(options: {
           subtotal: options.subtotal,
           discount: options.discount,
           deliveryFee: options.deliveryFee,
+          serviceCharge: options.serviceCharge,
           taxAmount: options.taxAmount,
           total: options.total,
           paidAmount: options.paidAmount,
@@ -870,6 +943,14 @@ export function buildReceiptDocument(options: {
           isMerchantCopy: isMerchant,
         })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
+        ${renderEdcTerminalSlip({
+          terminalId: options.terminalId,
+          terminalAuthCode: options.terminalAuthCode,
+          terminalRrn: options.terminalRrn,
+          cardScheme: options.cardScheme,
+          cardLastFour: options.cardLastFour,
+          compact,
+        })}
         ${renderLoyaltySummary({
           loyaltyPointsEarned: options.loyaltyPointsEarned,
           loyaltyPointsRedeemed: options.loyaltyPointsRedeemed,

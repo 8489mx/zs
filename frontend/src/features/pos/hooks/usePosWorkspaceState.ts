@@ -29,6 +29,13 @@ export function usePosWorkspaceState() {
   const [paymentChannel, setPaymentChannel] = useState<PaymentChannel>(storedDraft?.paymentChannel || 'cash');
   const [note, setNote] = useState(storedDraft?.note || '');
   const [tableNumber, setTableNumber] = useState(storedDraft?.tableNumber || '');
+  const [diningCourse, setDiningCourse] = useState<'appetizer' | 'main' | 'dessert' | 'beverage' | string>(
+    (storedDraft as any)?.diningCourse || 'main'
+  );
+  const [guestCount, setGuestCount] = useState<number>(Number((storedDraft as any)?.guestCount || 1));
+  const [guestCheckPrintedAt, setGuestCheckPrintedAt] = useState<string | null>(
+    (storedDraft as any)?.guestCheckPrintedAt || null
+  );
   const [deliveryRepId, setDeliveryRepId] = useState(storedDraft?.deliveryRepId || '');
   const [collectionStatus, setCollectionStatus] = useState(storedDraft?.collectionStatus || 'cod');
   const [deliveryFeeMode, setDeliveryFeeMode] = useState<'freelance_courier' | 'store_fleet'>((storedDraft as any)?.deliveryFeeMode || 'freelance_courier');
@@ -58,6 +65,14 @@ export function usePosWorkspaceState() {
   const [discountApprovalSecret, setDiscountApprovalSecret] = useState('');
   const [wholesaleApprovalGranted, setWholesaleApprovalGranted] = useState(false);
   const [wholesaleApprovalSecret, setWholesaleApprovalSecret] = useState('');
+  const [terminalPaymentDetails, setTerminalPaymentDetails] = useState<{
+    terminalId?: string;
+    authCode?: string;
+    rrn?: string;
+    cardScheme?: string;
+    cardLastFour?: string;
+    provider?: string;
+  } | null>(null);
 
   return {
     persistedState,
@@ -85,6 +100,12 @@ export function usePosWorkspaceState() {
     setNote,
     tableNumber,
     setTableNumber,
+    diningCourse,
+    setDiningCourse,
+    guestCount,
+    setGuestCount,
+    guestCheckPrintedAt,
+    setGuestCheckPrintedAt,
     orderType,
     setOrderType,
     deliveryRepId,
@@ -130,6 +151,8 @@ export function usePosWorkspaceState() {
     setWholesaleApprovalGranted,
     wholesaleApprovalSecret,
     setWholesaleApprovalSecret,
+    terminalPaymentDetails,
+    setTerminalPaymentDetails,
     requestBarcodeFocus: () => setBarcodeFocusTick((current) => current + 1),
   };
 }

@@ -63,4 +63,13 @@ export class KdsController {
   async recallLastServed(@Req() req: RequestWithAuth) {
     return this.kdsService.recallLastServedTicket(req.authContext!);
   }
+
+  @Post('tickets/:id/fire-course')
+  async fireCourse(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('course') course: any,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.kdsService.fireTicketCourse(req.authContext!, id, course);
+  }
 }

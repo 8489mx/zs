@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon, SlidersIcon, QrCodeIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -11,6 +11,9 @@ import {
   loadOnlineOrderIntoPosCart,
   type OnlineOrderRecord,
 } from '@/features/storefront';
+import { kdsApi, type KdsTicket } from '@/features/pos/api/kds.api';
+import { tableReservationsApi, type TableReservation } from '@/features/pos/api/table-reservations.api';
+import { PosTableReservationsModal } from './PosTableReservationsModal';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
@@ -30,6 +33,9 @@ interface PosTablesFloorPlanDialogProps {
   onTransferTable?: (fromTable: string, toTable: string) => void;
   onMergeTable?: (fromTable: string, toTable: string) => void;
   initialTab?: 'floor' | 'list';
+  isCurrentCheckPrinted?: boolean;
+  onPrintGuestCheck?: (tableNumber: string, draftId?: string) => Promise<void> | void;
+  onSeatReservation?: (tableNumber: string, guestCount: number, guestName?: string) => Promise<void> | void;
 }
 
 export function PosTablesFloorPlanDialog({
@@ -47,6 +53,9 @@ export function PosTablesFloorPlanDialog({
   onTransferTable,
   onMergeTable,
   initialTab = 'floor',
+  isCurrentCheckPrinted = false,
+  onPrintGuestCheck,
+  onSeatReservation,
 }: PosTablesFloorPlanDialogProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'floor' | 'list'>(initialTab);
@@ -56,6 +65,7 @@ export function PosTablesFloorPlanDialog({
   const [isSubmittingTable, setIsSubmittingTable] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
+  const [isReservationsModalOpen, setIsReservationsModalOpen] = useState(false);
 
   // Dynamic tables count from settings
   const configuredTablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 12));
@@ -63,6 +73,22 @@ export function PosTablesFloorPlanDialog({
   const [isEditingCount, setIsEditingCount] = useState(false);
   const [newTablesCount, setNewTablesCount] = useState(configuredTablesCount);
   const [isSavingCount, setIsSavingCount] = useState(false);
+
+  // Today's Table Reservations
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const { data: todayReservations = [] } = useQuery({
+    queryKey: ['table-reservations-floor', todayStr],
+    queryFn: () => tableReservationsApi.listReservations({ date: todayStr }),
+    enabled: open,
+    refetchInterval: 15_000,
+  });
+
+  const confirmedReservationsMap = new Map<string, TableReservation>();
+  for (const r of todayReservations) {
+    if (r.status === 'confirmed' && r.table_number) {
+      confirmedReservationsMap.set(String(r.table_number).trim(), r);
+    }
+  }
 
   // Real-time pending storefront / QR dine-in orders
   const { data: onlineOrdersData } = useQuery({
@@ -72,6 +98,40 @@ export function PosTablesFloorPlanDialog({
     refetchInterval: 8_000,
   });
   const onlineOrders = onlineOrdersData?.orders || [];
+
+
+  // Real-time KDS tickets to show active course badges and enable Course Firing
+  const { data: kdsData, refetch: refetchKds } = useQuery({
+    queryKey: ['pos-floor-kds-tickets'],
+    queryFn: () => kdsApi.getTickets({ orderType: 'dine_in' }),
+    enabled: open,
+    refetchInterval: 8_000,
+  });
+  const kdsTickets = kdsData?.tickets || [];
+  const kdsTableMap = new Map<string, KdsTicket>();
+  for (const t of kdsTickets) {
+    if (t.tableNumber && String(t.tableNumber).trim()) {
+      kdsTableMap.set(String(t.tableNumber).trim(), t);
+    }
+  }
+
+  const [firingTable, setFiringTable] = useState<string | null>(null);
+
+  const handleFireNextCourse = async (e: React.MouseEvent, tableNum: string, ticket: KdsTicket) => {
+    e.stopPropagation();
+    setFiringTable(tableNum);
+    try {
+      const nextCourse = ticket.course === 'appetizer' ? 'main' : 'dessert';
+      await kdsApi.fireCourse(ticket.id, nextCourse);
+      const courseLabel = nextCourse === 'main' ? 'الأطباق الرئيسية' : 'الحلويات والمشروبات';
+      toast.success(`تم إطلاق مسار [${courseLabel}] للمطبخ للطاولة ${tableNum}`);
+      await refetchKds();
+    } catch {
+      toast.error('تعذر إطلاق المسار للمطبخ');
+    } finally {
+      setFiringTable(null);
+    }
+  };
 
   useEffect(() => {
     setTablesCount(configuredTablesCount);
@@ -515,6 +575,29 @@ export function PosTablesFloorPlanDialog({
                   </button>
                 )}
 
+                <button
+                  type="button"
+                  onClick={() => setIsReservationsModalOpen(true)}
+                  style={{
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '8px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    color: '#1d4ed8',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="إدارة وتدفق حجوزات الطاولات والضيوف لليوم"
+                >
+                  <CalendarIcon size={13} color="#1d4ed8" />
+                  <span>حجوزات اليوم {confirmedReservationsMap.size > 0 && <strong>({confirmedReservationsMap.size})</strong>}</span>
+                </button>
+
                 {currentTableNumber && (
                   <button
                     type="button"
@@ -599,6 +682,7 @@ export function PosTablesFloorPlanDialog({
               {defaultTables.map((tableNum) => {
                 const occupied = occupiedMap.get(tableNum);
                 const qrOrder = qrOrdersMap.get(tableNum);
+                const kdsTicket = kdsTableMap.get(tableNum);
                 const isCurrent = currentTableNumber === tableNum;
                 const hasLiveCart = isCurrent && currentCartItemsCount > 0;
 
@@ -631,7 +715,8 @@ export function PosTablesFloorPlanDialog({
                     disabled={Boolean(pendingRecallId) || isSubmittingTable}
                     onClick={() => void handleTableClick(tableNum)}
                     style={{
-                      height: '92px',
+                      minHeight: kdsTicket ? '112px' : '98px',
+                      height: 'auto',
                       borderRadius: '10px',
                       border: `${hasLiveCart ? '2.5px' : isCurrent || qrOrder ? '2px' : '1.5px'} solid ${borderColor}`,
                       background: bgColor,
@@ -677,6 +762,19 @@ export function PosTablesFloorPlanDialog({
                         >
                           طلب QR
                         </span>
+                      ) : confirmedReservationsMap.has(tableNum) && !occupied ? (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          حجز
+                        </span>
                       ) : (
                         <span
                           style={{
@@ -718,9 +816,108 @@ export function PosTablesFloorPlanDialog({
                           {qrOrder.items?.length || 1} أصناف • طلب QR
                         </div>
                       </div>
+                    ) : confirmedReservationsMap.has(tableNum) ? (
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 800 }}>
+                          محجوزة ({new Date(confirmedReservationsMap.get(tableNum)!.reservation_time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })})
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
+                          {confirmedReservationsMap.get(tableNum)!.guest_name}
+                        </div>
+                      </div>
                     ) : (
                       <div style={{ fontSize: '11px', color: isCurrent ? '#475569' : '#16a34a', fontWeight: 700 }}>
                         {isCurrent ? 'شاغرة (محددة)' : 'شاغرة (متاحة)'}
+                      </div>
+                    )}
+
+                    {/* Active KDS Course & Fire Button */}
+                    {kdsTicket && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          width: '100%',
+                          margin: '2px 0',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            backgroundColor: kdsTicket.course === 'appetizer' ? '#fef3c7' : kdsTicket.course === 'main' ? '#dbeafe' : '#f3e8ff',
+                            color: kdsTicket.course === 'appetizer' ? '#92400e' : kdsTicket.course === 'main' ? '#1e40af' : '#6b21a8',
+                          }}
+                        >
+                          {kdsTicket.course === 'appetizer' ? 'مقبلات' : kdsTicket.course === 'main' ? 'طبق رئيسي' : kdsTicket.course === 'dessert' ? 'حلوى' : 'مشروب'}
+                        </span>
+                        {kdsTicket.course !== 'dessert' && (
+                          <button
+                            type="button"
+                            disabled={firingTable === tableNum}
+                            onClick={(e) => void handleFireNextCourse(e, tableNum, kdsTicket)}
+                            style={{
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: '#170e5e',
+                              color: '#ffffff',
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                            title={`إطلاق مسار ${kdsTicket.course === 'appetizer' ? 'الأطباق الرئيسية' : 'الحلويات'} للمطبخ فوراً`}
+                          >
+                            {firingTable === tableNum ? '...' : `إطلاق ${kdsTicket.course === 'appetizer' ? 'الرئيسي' : 'الحلوى'}`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Guest Check Delivered Badge & Print Button */}
+                    {(hasLiveCart || occupied) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '2px 0', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) && (
+                          <span
+                            style={{
+                              fontSize: '8.5px',
+                              background: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              fontWeight: 800,
+                            }}
+                          >
+                            تم تسليم الشيك
+                          </span>
+                        )}
+                        {onPrintGuestCheck && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void onPrintGuestCheck(tableNum, occupied?.id);
+                            }}
+                            style={{
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? '#fff7ed' : '#f1f5f9',
+                              color: Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? '#c2410c' : '#170e5e',
+                              border: Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? '1px solid #fed7aa' : '1px solid #cbd5e1',
+                              cursor: 'pointer',
+                            }}
+                            title="طباعة شيك حساب الطاولة غير المسدد للزبون"
+                          >
+                            {Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? 'إعادة طباعة الشيك' : 'طباعة شيك'}
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -934,6 +1131,21 @@ export function PosTablesFloorPlanDialog({
         onClose={() => setIsQrPrintOpen(false)}
         defaultTablesCount={tablesCount}
       />
+
+      <PosTableReservationsModal
+        open={isReservationsModalOpen}
+        onClose={() => setIsReservationsModalOpen(false)}
+        tablesCount={tablesCount}
+        onSeatGuest={async (res) => {
+          setIsReservationsModalOpen(false);
+          if (onSeatReservation) {
+            await onSeatReservation(res.table_number, res.guest_count, res.guest_name);
+          } else {
+            await onSelectTable(res.table_number);
+          }
+        }}
+      />
     </DialogShell>
   );
 }
+

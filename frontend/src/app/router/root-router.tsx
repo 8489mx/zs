@@ -373,6 +373,26 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
     element: <Navigate to="/signage" replace />,
   },
   {
+    path: '/pos/order-status',
+    element: createLazyRoute(() => import('@/features/pos/pages/OrderStatusBoardPage').then((module) => ({ default: module.OrderStatusBoardPage }))),
+  },
+  {
+    path: '/order-status',
+    element: <Navigate to="/pos/order-status" replace />,
+  },
+  {
+    path: '/pickup-board',
+    element: <Navigate to="/pos/order-status" replace />,
+  },
+  {
+    path: '/pos/waiter',
+    element: createLazyRoute(() => import('@/features/pos/pages/WaiterStationPage').then((module) => ({ default: module.WaiterStationPage }))),
+  },
+  {
+    path: '/waiter',
+    element: <Navigate to="/pos/waiter" replace />,
+  },
+  {
     path: '/punch',
     element: createLazyRoute(() => import('@/features/hr/pages/MobilePunchPage')),
   },

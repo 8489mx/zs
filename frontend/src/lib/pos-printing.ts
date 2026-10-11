@@ -163,6 +163,13 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     loyaltyPointsEarned,
     loyaltyPointsRedeemed: Number((sale as any).loyaltyPointsRedeemed || (sale as any).loyalty_points_redeemed || 0),
     loyaltyPointsBalance: (sale as any).customerLoyaltyPoints ?? (sale as any).customer?.loyaltyPoints ?? (sale as any).loyaltyPointsBalance,
+    terminalId: (sale as any).terminalId || (sale as any).terminal_id,
+    terminalAuthCode: (sale as any).terminalAuthCode || (sale as any).terminal_auth_code,
+    terminalRrn: (sale as any).terminalRrn || (sale as any).terminal_rrn,
+    cardScheme: (sale as any).cardScheme || (sale as any).card_scheme,
+    cardLastFour: (sale as any).cardLastFour || (sale as any).card_last_four,
+    serviceCharge: Number((sale as any).serviceCharge || (sale as any).service_charge || 0),
+    guestCount: Number((sale as any).guestCount || (sale as any).guest_count || 0),
     copyType: options.copyType || (options.settings?.printDualReceiptForOnlineDelivery && (sale.orderType === 'delivery' || sale.paymentChannel === 'instapay' || sale.paymentChannel === 'wallet' || sale.paymentChannel === 'card') ? 'dual' : 'customer'),
   });
 }
@@ -185,6 +192,60 @@ export function printDualPostedSaleReceipt(sale: Sale, options: PrintReceiptOpti
 
 export function printMerchantPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
   return printPostedSaleReceipt(sale, { ...options, copyType: 'merchant' });
+}
+
+export function printGuestCheck(options: {
+  tableNumber: string;
+  items: PosItem[];
+  subtotal: number;
+  discount?: number;
+  serviceCharge?: number;
+  taxAmount?: number;
+  total: number;
+  guestCount?: number;
+  customerName?: string;
+  cashierName?: string;
+  branchName?: string;
+  locationName?: string;
+  settings?: Partial<AppSettings> | null;
+}) {
+  const document = buildReceiptDocument({
+    pageSize: 'receipt',
+    settings: options.settings,
+    documentLabel: 'شيك حساب طاولة (غير مسدد)',
+    documentNumber: `طاولة #${options.tableNumber}`,
+    dateText: formatDateTime(),
+    customerName: options.customerName || `طاولة ${options.tableNumber}`,
+    paymentText: 'غير مسدد — شيك للمعاينة ومراجعة الحساب',
+    cashierName: options.cashierName || '—',
+    branchName: options.branchName || 'المتجر الرئيسي',
+    locationName: options.locationName || 'المخزن الأساسي',
+    tableNumber: options.tableNumber,
+    orderType: 'dine_in',
+    items: (options.items || []).map((item) => ({
+      name: item.name,
+      unitName: item.unitName,
+      qty: Number(item.qty || 0),
+      price: Number(item.price || 0),
+      total: Number(item.qty || 0) * (Number(item.price || 0) + (item.modifiers || []).reduce((sum: number, mod: any) => sum + Number(mod.price || 0), 0)),
+      modifiers: item.modifiers,
+    })),
+    subtotal: Number(options.subtotal || 0),
+    discount: Number(options.discount || 0),
+    serviceCharge: Number(options.serviceCharge || 0),
+    taxAmount: Number(options.taxAmount || 0),
+    total: Number(options.total || 0),
+    paidAmount: 0,
+    guestCount: options.guestCount,
+  });
+
+  openReceiptDocument(
+    `شيك طاولة ${options.tableNumber} (غير مسدد)`,
+    document.html,
+    document.compact,
+    { pageSize: 'receipt', settings: options.settings || null },
+    'شيك حساب طاولة (غير مسدد)'
+  );
 }
 
 export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';

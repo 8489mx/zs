@@ -54,6 +54,37 @@
   - معالجة تحرير المخزون المحجوز في أوامر البيع وتطابقه مع مستودع الفرع الافتراضي في `sales-orders.service.ts`.
   - ترقية أطوال حقول التجزئة والتشفير وتوافق ترميز سجلات التدقيق UTF-8 في الهجرتين 207 و 208.
 
+### قدرة: منظومة الأغذية والمشروبات التنافسية الكبرى وسحق فودكس (Foodics F&B Killer Platform) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)
+- **محرك وواجهة خصم مكونات الوجبات والموديفايرز التلقائي (F&B Recipe & Modifier Depletion Engine & UI):**
+  - دعم ربط خيارات الإضافات والمعدلات (`pos_modifier_options`) بالمواد الخام (`component_product_id`, `consumption_qty`, `unit_name`).
+  - واجهة مستخدم متكاملة في نافذة تعديل الإضافات `ModifierGroupModal.tsx` و `ProductModifiersPage.tsx` لاختيار صنف المادة الخام من المخزن وتحديد كمية ووحدة الاستهلاك.
+  - إظهار شارات الخصم المخزني التلقائي (`خصم مخزني: X [وحدة] من [المادة الخام]`) على بطاقات الإضافات في `ModifierGroupCard.tsx`.
+  - خصم المكونات لحظياً عند إتمام عملية البيع بالكاشير في `sales-write.service.ts` مع القفل القانوني المتوافق، وحساب التكلفة الفعلية للوجبات.
+  - امتصاص تكلفة الإضافات (Modifier Costs) تلقائياً في `preparedItem.costPrice` لضمان دقة قيد تكلفة البضاعة المباعة (COGS) في دفتر الأستاذ العام.
+- **بوابة مجمعات التوصيل الخليجية الموحدة (GCC Delivery Aggregators Hub & KDS Auto-Injection):**
+  - جداول `pos_delivery_aggregators` و `pos_aggregator_orders` في الهجرة `2040000000210_pos_restaurant_fnb_advanced_features.ts`.
+  - دعم منصات (جاهز، هنقرستيشن، طلبات، كيتا، دليفرو، كريم، تويو) مع حساب العمولات وصافي المستحقات.
+  - إيقاف الأصناف التلقائي الفوري عبر إشعار 86 للمنصات لمنع الغرامات (`trigger86`).
+  - واجهة تحكم متكاملة في الكاشير `PosDeliveryAggregatorsModal.tsx` وخدمات الباك إند `delivery-aggregators.service.ts` و `delivery-aggregators.controller.ts`.
+  - **الحقن التلقائي المباشر في شاشة المطبخ (KDS):** استعلام `kds.service.ts` يدمج طلبات المنصات النشطة تلقائياً مع تمييز شارة كل منصة (جاهز، هنقرستيشن، طلبات، كيتا)، ومزامنة حالة الطلب ثنائياً بين المطبخ وقاعدة البيانات.
+- **إدارة مسارات الأطباق وإطلاق الوجبات (Dining Course Firing Action & Floor Plan Sync):**
+  - دعم مسارات تقديم الوجبات (مقبلات، أطباق رئيسية، حلويات) وربطها بالفواتير وطاولات الصالة وتذاكر المطبخ.
+  - تحكم مباشر للنادل والكاشير من هيدر نقطة البيع `PosWorkspaceHeader.tsx` وخريطة الصالة `PosTablesFloorPlanDialog.tsx`.
+  - زر إطلاق المسار التالي بنقرة واحدة (1-Click Fire Next Course) يرسل إشعاراً فورياً للمطبخ ويعيد حالة التذكرة في KDS إلى الطهي (`cooking`) لتنبيه الشيف مرئياً مع شارة المسار، مع الحفاظ على التوقيت الزمني الكلي للطلب دون تصفيره.
+  - فلترة شاشة المطبخ `KitchenDisplayPage.tsx` و `KdsFilterBar.tsx` و `KdsTicketCard.tsx` حسب المسار.
+- **إدارة هدر المطبخ والتالف والقيد المحاسبي المزدوج (Food Waste & Double-Entry Ledger):**
+  - جدول `restaurant_food_waste_logs`، وخصم المواد الخام التالفة تلقائياً من المستودع بحركات `damaged`.
+  - **القيد المحاسبي المالي التلقائي:** ربط `logWaste` بدالة `postFoodWaste` في `accounting-posting.service.ts` لتوليد قيد يومية متوازن آلياً (مدين: 5300 مصروفات وخسائر وتالف الأغذية، دائن: 1140 مخزون السلع والمواد الخام).
+  - واجهة كاشير ومطبخ سريعة `PosFoodWasteModal.tsx` ومؤشرات KPI تكلفة الهدر لآخر 30 يوماً وتصنيف الأسباب في `restaurant-food-waste.service.ts`.
+- **تقرير انحراف تكلفة الطعام الفعلي مقابل النظري للمطاعم F&B (Theoretical vs. Actual Food Cost Variance Report):**
+  - قسم تقرير متخصص ومستقل `FoodCostVarianceReportSection.tsx` في مسار `/reports` (تبويب `food_cost_variance`) مدعوماً بـ `reports.service.ts` و `reports.controller.ts` و `reports.api.ts`.
+  - احتساب الاستهلاك النظري التراكمي بدقة من واقع معادلات تصنيع الوجبات المباعة (BOM Recipes) مضافاً إليها إضافات ومعدلات الأطباق (Modifiers).
+  - مقارنة الاستهلاك النظري مع الاستهلاك الفعلي للمخازن وحركات الصرف وهدر المطبخ المسجل، واستخراج الفرق الكمي والمالي ونسبة الانحراف.
+  - تصنيف تلقائي لمستوى خطورة الهدر والانحراف (عجز حرج، تحذير، مطابق) مع بطاقات KPI ملخصة لإجمالي التكلفة النظرية والفعلية ومبالغ الانحراف، وخيارات التصفية والبحث والطباعة والتصدير.
+- **تطبيق واعتماد كافة الهجرات البنيوية في قاعدة البيانات:**
+  - تطبيق الهجرة `2040000000210_pos_restaurant_fnb_advanced_features.ts` (جداول مجمعات التوصيل، طلبات المنصات، وسجل هدر الأطعمة).
+  - تطبيق الهجرة `2040000000211_pos_terminal_ecr_metadata.ts` (حقول الربط المالي المباشر ECR في `sales` و `sale_payments`).
+
 ### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
 - **المصدر الموحد للحقيقة:** محرك مركزي موحد `frontend/src/shared/verticals/vertical-scope.ts` يستنتج نمط عمل المنشأة بدقة (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `retail_general`, إلخ).
 - **التطابق الشامل (Omnichannel Parity):** عزل تام للموديولات بين سطح المكتب والموبايل. منشأة الشحن واللوجستيات لا يظهر فيها أي أثر لكاشير نقطة البيع أو جرد التجزئة أو المقاولات أو المطاعم؛ ومنشأة التجزئة تظهر نقطة البيع فوراً وتختفي موديولات الشحن والمقاولات.
@@ -160,7 +191,7 @@
 | **فك وتشفير باركود الميزان الوزني في الكاشير (Weighted Barcode Scanner Decryption)** | 🟢 | 100% | `weighted-barcode.ts`, `PosWorkspace.tsx`, `SettingsMainForm.tsx` | قراءة وتفكيك باركود الميزان الوزني الصادر من موازين السوبرماركت والمحامص (مثل `200001012500`) بدقة، استخراج كود الصنف، والوزن بالجرام/الكيلو، واحتساب السعر تلقائياً وفق إعدادات البادئة وعدد خانات الوزن والكسور العشرية المضبوطة في النظام. |
 | **إشعارات الواتساب الفورية للمالك عند إغلاق الوردية والمرتجعات (Shift Close & Refund WhatsApp Alerts)** | 🟢 | 100% | `whatsapp-gateway.service.ts`, `cash-drawer.service.ts`, `returns.service.ts` | إرسال رسالة واتساب تلقائية فورية للمالك عند إغلاق أي كاشير للوردية (تتضمن اسم الكاشير، الفرع، رصيد الافتتاح، مبيعات الكاش، العجز/الزيادة، وملاحظات الإغلاق)، بالإضافة لإشعار فوري عند إجراء أي مرتجع مبيعات نقدي. |
 | **شاشة متابعة المالك المتنقلة (Owner Mobile Companion PWA)** | 🟢 | 100% | `OwnerCompanionPage.tsx`, `app-shell.tsx` | لوحة متابعة مصممة خصيصاً لهاتف المالك لمراقبة المبيعات الحية، الورديات المفتوحة، وتنبيهات النواقص، مع دعم التثبيت المباشر كتطبيق PWA بنقرة واحدة دون الحاجة لمتاجر التطبيقات. |
-| **تكامل ماكينات الدفع البنكي الذكية في الكاشير (Smart POS Terminal Integration)** | 🟢 | 100% | `pos-terminal.service.ts`, `pos-terminal.controller.ts`, `PosCheckoutDialogSections.tsx`, `SalesInventorySettingsTab.tsx`, `pos.api.ts` | تكامل مباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob Smart POS, Fawry POS / PAX, Network International, Mock Sandbox)؛ تمرير مبلغ الفاتورة تلقائياً لشاشة الماكينة عبر الشبكة المحلية (IP / ECR Direct)، قراءة حالة العملية ومتابعة السحب بنظام Polling حي، وقيد كود التفويض البنكي (Auth Code) ورقم البطاقة آلياً في الفاتورة دون تدخل يدوي من الكاشير، مع فحص الاتصال الفعلي بالماكينة عبر الشبكة المحلية (Real LAN/Wi-Fi Ping & TCP Port Handshake) وزر اختبار لحظي يوضح استجابة الجهاز بالمللي ثانية وتشخيص المنفذ وإرشادات تفعيل وضع ECR على ماكينات PAX/فوري بدقة 100% دون حالات وهمية. |
+| **تكامل ماكينات الدفع البنكي الذكية في الكاشير وبروتوكول الربط المالي (Smart POS Terminal & ECR Financial Protocol)** | 🟢 | 100% | `pos-terminal.service.ts`, `pos-terminal.controller.ts`, `PosCheckoutDialogSections.tsx`, `PosCheckoutDialog.tsx`, `SalesInventorySettingsTab.tsx`, `pos-printing/template.ts`, `2040000000211_pos_terminal_ecr_metadata.ts` | منظومة متكاملة لبروتوكول الربط المالي المباشر (ECR Direct Protocol) مع ماكينات الدفع البنكية الذكية لكافة دول الخليج ومصر: Geidea POS (شبكة مدى / السعودية)، KNET POS (أجهزة الدفع كي نت / الكويت)، Network International (أجهزة الدفع البنكي / الإمارات)، Fawry POS / PAX و Paymob Smart POS (مصر)، ومحاكي Sandbox؛ تمرير مبالغ الفواتير آلياً لشاشة الماكينة عبر الشبكة المحلية (LAN TCP/IP Socket & HTTP REST) لمنع أخطاء الكاشير نهائياً، قراءة واعتماد الدفع اللحظي، قيد كود التفويض البنكي (AUTH Code) ورقم المرجع البنكي (RRN) ونوع شبكة البطاقة (مدى / كي نت / فيزا / ماستركارد / ميزة) وآخر 4 أرقام من البطاقة (PAN) وتخزينها في قاعدة البيانات بجدولي `sales` و `sale_payments` وسجل التدقيق `pos_audit_events`، مع طباعة إيصال الدفع الإلكتروني الرسمي (EDC Slip) على نسختي العميل والمحل في الفاتورة الحرارية، ودعم خيار الإنهاء والطباعة الآلية الفورية للفاتورة بمجرد موافقة الجهاز (Zero-Click Checkout)، مع حماية أمنية تمنع إلغاء الفاتورة بعد اعتماد الدفع دون تنبيه رسمي. |
 | **استيراد المبيعات الخارجية (Bulk Sales Import)** | 🟢 | 100% | `import-sales.service.ts`, `import-sales` | استيراد فواتير مبيعات سابقة من ملفات Excel و CSV مع التحقق والمطابقة. |
 | **هيدر الكاشير الذكي ودمج خريطة الصالة والطلبات المعلقة وتخصيص الطاولات (Unified Floor Plan, Suspended Orders Hub & Table Count Customization)** | 🟢 | 100% | `PosWorkspaceHeader.tsx`, `PosTablesFloorPlanDialog.tsx`, `PosWorkspace.tsx`, `SalesInventorySettingsTab.tsx`, `settings.service.ts` | دمج وتوحيد خريطة الصالة وإدارة الطاولات مع الفواتير المعلقة في نافذة شاملة واحدة (`PosTablesFloorPlanDialog`) بتصميم ذكي متعدد التبويبات (تبويب خريطة الصالة التفاعلية للطاولات الشاغرة والمشغولة ونقل الطاولات + تبويب قائمة الفواتير المعلقة والتيك أواي مع أزرار الاسترجاع والحذف وحذف الكل ودعم اختصارات لوحة المفاتيح)، مع إظهار شريط سريع للطلبات الخارجية والتيك أواي داخل خريطة الصالة ذاتها، وتوحيد اختصار F3 وزر الهيدر العلوي وزر الدوك السفلي ليفتحا نفس النافذة الموحدة في نمط المطاعم، مع **تخصيص عدد طاولات الصالة بالكامل (1 إلى 200 طاولة)** مركزياً من شاشة الإعدادات (`إعدادات نقطة البيع والمبيعات`) أو فورياً عبر أداة التخصيص السريع في هيدر بوب اب خريطة الصالة بنقرة واحدة مع الحفظ اللحظي بالسيرفر وتحديث الكاش، مع الحفاظ الصارم بنسبة 100% على عمل نافذة الفواتير المعلقة التقليدية السريعة (`PosHeldDraftsDialog`) بدون أي تشويش لكاشير المحلات والتجزئة العادية. |
 | **شاشة العميل الرقمية (POS Customer-Facing Display)** | 🟢 | 100% | `CustomerFacingDisplayPage.tsx`, `pos-customer-display.css`, `usePosWorkspace.ts` | شاشة مستقلة موجهة للعميل تعرض تفاصيل السلة الحالية والأسعار والعروض التسويقية وتحديث السلة آنياً بنظام البث المحلي/المزامنة. |
@@ -168,6 +199,7 @@
 | **مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (Phone Order Desk, Caller ID, Doorstep Payments & Delivery Zones)** | 🟢 | 100% | `PosPhoneOrderDialog.tsx`, `PosCallerIdFloatingAlert.tsx`, `pos-caller-id-service.ts`, `ModulesSettingsTab.tsx`, `settings.service.ts`, `partners.service.ts`, `partners.controller.ts`, `delivery-reps.api.ts` | بيئة متكاملة وشاملة لطلبات الهاتف والتوصيل السريع بمستوى كبرى سلاسل المطاعم وفق المعيار الذهبي العالمي (Foodics / Domino's Pulse / Toast): بحث تنبؤي ذكي يبدأ بعد 6 أرقام للهاتف (لتجاوز تشابه كود شركات المحمول 010/011/012/015) أو حرفين للاسم، شبكة بطاقات متطابقة لاختيار العميل بدقة دون استعجال فتح الملف، تفعيل فوري لملف العميل الكامل ومساحة العمل التشغيلية عند المطابقة التامة 1-to-1 أو الاختيار الصريح، استرجاع فوري لملف العميل ونقاط الولاء والعناوين السابقة ووسم العناوين (المنزل/العمل/أخرى)، سجل تفصيلي لآخر الطلبات مع ميزة تكرار الطلب بضغطة واحدة (1-Click Reorder)، تحديد مناطق ورسوم التوصيل ووقت الوصول التقديري (ETA)، تحديد طريقة الدفع عند الاستلام (كاش مع حساب الفكة المطلوبة للطيار / فيزا مع ماكينة POS المحمولة / إنستاباي ومحفظة)، تعيين مندوب التوصيل المتاح، سجل مباشر للمكالمات الواردة الأخيرة (Caller ID Log) مع فتح الطلب الفوري، ربط أجهزة كاشف المتصل (USB Serial Caller ID) ومحاكي الرنين مع تنبيهات صوتية ومرئية ودعم اختصار F7 المباشر و Alt+P / Alt+D، مع خيار تشغيل/إيقاف مخصص في إعدادات الموديولات (`phoneOrdersModuleEnabled`) وتفعيل ذكي تلقائي للأنشطة المعتمدة على التوصيل (مطاعم، صيدليات، سوبرماركت)، مع تصميم مضغوط عالي التوافق يلائم كافة مقاسات الشاشات من 14 بوصة إلى 32 بوصة بدون أي سكرول خارجي (Zero-Scroll Layout). |
 | **أوامر البيع وحجز المخزون (Sales Orders & Stock Reservation)** | 🟢 | 100% | `CreateSalesOrderPage.tsx`, `SalesOrdersPage.tsx`, `sales-order.service.ts` | تحويل كامل لشاشة إنشاء وتعديل أوامر البيع إلى صفحة مخصصة متكاملة وفق معيار UniversalDocumentFormTemplate بدلاً من النوافذ المنبثقة، تتضمن اختيار العميل، تواريخ التسليم والشحن، حجز المخزون التلقائي، شريط الأدوات السريع، جدول بنود تفاعلي يعرض الرصيد المتاح بالمخزن، وحسابات الإجماليات والخصم والضرائب بنظام التقسيم 60/40. |
 | **عروض أسعار العملاء (Customer Quotations)** | 🟢 | 100% | `CreateQuotationPage.tsx`, `QuotationsPage.tsx`, `quotations.service.ts` | تحويل شاشة إنشاء عروض الأسعار إلى صفحة كاملة مخصصة وفق معيار UniversalDocumentFormTemplate بدلاً من النوافذ المنبثقة، تتضمن اختيار العميل، تواريخ العرض وفترة الصلاحية، شريط الأدوات السريع، جدول بنود تفاعلي بأسعار الوحدات والضرائب والخصومات، الشروط والأحكام التعاقدية، والمرفقات مع كارت ملخص الإجماليات بنظام التقسيم 60/40. |
+| **ربط وصفات الإضافات بالمواد الخام والخصم المخزني التلقائي (F&B Modifier Recipe & Raw Material Depletion)** | 🟢 | 100% | `ModifierGroupModal.tsx`, `ProductModifiersPage.tsx`, `ModifierGroupCard.tsx`, `addons.service.ts`, `sales-write.service.ts` | ربط خيارات الإضافات والمعدلات بالمواد الخام والمستودعات في واجهة المستخدم، وتحديد كمية ووحدة الاستهلاك، مع شارات الخصم المخزني على بطاقات الإضافات، والخصم التلقائي اللحظي من المخزون مع كل بيع وامتصاص التكلفة بدفتر الأستاذ. |
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/inventory`, `backend/src/modules/catalog`, `frontend/src/features/inventory`, `frontend/src/features/products`
 * **الجداول في قاعدة البيانات:** `products`, `product_units`, `product_categories`, `warehouses`, `inventory_transactions`, `stock_adjustments`, `stock_transfers`
@@ -746,11 +778,12 @@
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
 | **سحب التذاكر اللحظي ومزامنة الصالة والدليفري** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | التقاط فوري لطلبات وفواتير الصالة وطاولات المطعم والطلبات الخارجية، وتوليد بطاقات تذاكر متجاوبة ومحدثة لحظياً كل 5 ثوانٍ. |
-| **عداد زمني ومؤشر لوني ديناميكي يرصد التأخير (Urgency Clock)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | عداد زمني حي يحسب دقائق وثواني التجهيز بدقة: 🟢 الأخضر أقل من 8 دقائق، 🟡 الأصفر 8-15 دقيقة، 🔴 الأحمر الوامض لأكثر من 15 دقيقة لتنبيه الشيف والمشرف لتفادي تأخر الزبائن. |
+| **التحكم بمسارات الأطباق وإطلاق الوجبات (Dining Course Firing Action & Floor Plan Sync)** | 🟢 | 100% | `PosWorkspaceHeader.tsx`, `PosTablesFloorPlanDialog.tsx`, `kds.service.ts`, `kds.controller.ts`, `sales-write.service.ts`, `KitchenDisplayPage.tsx` | تحكم كامل للنادل والكاشير بمسار تقديم الأطباق (مقبلات، أطباق رئيسية، حلويات) من هيدر الكاشير وخريطة الصالة التفاعلية للطاولات، مع زر إطلاق المسار التالي بنقرة واحدة (Fire Next Course) لمزامنة تذاكر المطبخ في KDS فورياً، وإعادة حالة التذكرة إلى الطهي للتنبيه دون إعادة تصفير توقيت الطلب الكلي، وتصفية التذاكر بحسب المسار. |
+| **عداد زمني ومؤشر لوني ديناميكي يرصد التأخير (Urgency Clock)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | عداد زمني حي يحسب دقائق وثواني التجهيز بدقة: الأخضر أقل من 8 دقائق، الأصفر 8-15 دقيقة، الأحمر الوامض لأكثر من 15 دقيقة لتنبيه الشيف والمشرف لتفادي تأخر الزبائن. |
 | **منبه صوتي ذكي عند ورود طلب جديد (Web Audio Chime)** | 🟢 | 100% | `KitchenDisplayPage.tsx` | رنين تنبيه موسيقي ثنائي النغمة متولد برمجياً عبر Web Audio API دون الحاجة لملفات صوت خارجية، ينبه الطهاة فورياً بمجرد إصدار تذكرة جديدة مع إمكانية الكتم والتشغيل. |
-| **آلة حالات دورة تجهيز الوجبات (KDS State Machine)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | تدرج منطقي سلس للطلب بلمسة واحدة: `ورد للتو ⏳` ➔ `بدء التجهيز 🍳` ➔ `جاهز للاستلام 🍽️` ➔ `تم التسليم بنجاح ✅` وحفظ الحالة فورياً عبر الأجهزة المختلفة. |
+| **آلة حالات دورة تجهيز الوجبات (KDS State Machine)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | تدرج منطقي سلس للطلب بلمسة واحدة: ورد للتو ➔ بدء التجهيز ➔ جاهز للاستلام ➔ تم التسليم بنجاح وحفظ الحالة فورياً عبر الأجهزة المختلفة. |
 | **فرز وتوجيه المحطات (Stations Routing & Split)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | إمكانية تصفية التذاكر والأصناف بحسب محطة العمل بالمطبخ: الكل، المطبخ الساخن، المشويات، المشروبات والبار، أو المخبوزات والحلويات لتوزيع العمل بدقة. |
-| **شطب وتجهيز الأصناف الفردية (Item Strikethrough)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | النقر على أي صنف داخل التذكرة لوضع خط شطب عليه مع شارة `✓ تم` لتنظيم تحضير الوجبات المتعددة ضمن نفس الطلب. |
+| **شطب وتجهيز الأصناف الفردية (Item Strikethrough)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | النقر على أي صنف داخل التذكرة لوضع خط شطب عليه مع شارة تم لتنظيم تحضير الوجبات المتعددة ضمن نفس الطلب. |
 | **استرجاع آخر طلب تم تسليمه (Recall Last Served Ticket)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | زر استرجاع فوري بضغطة واحدة لإعادة فتح آخر تذكرة تم تسليمها بالخطأ أو تعديلها من الأرشيف مباشرة. |
 
 ---
@@ -6510,3 +6543,193 @@
   - `backend/src/modules/storefront/controllers/marketplace-sync.controller.ts`
   - `frontend/src/features/storefront/api/marketplace-sync.api.ts`
   - `frontend/src/features/settings/components/workspace-sections/SettingsMarketplacesSection.tsx`
+
+---
+
+## 206. منظومة تقرير انحراف تكلفة الطعام الفعلي مقابل النظري للمطاعم وسحق فودكس (Restaurant Theoretical vs. Actual Food Cost Variance Report)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** `/reports` ➔ تبويب `انحراف تكلفة الطعام (مطاعم)` (`food_cost_variance`).
+* **الهدف:** تفوق مطلق على Foodics و Toast و MarketMan بتقديم تقرير تدقيق مالي وتحليلي لحظي لقطاع الأغذية والمشروبات (F&B Variance Audit) يقضي على الهدر والسرقات وانحرافات التشغيل.
+* **المحرك والميزات المنفذة:**
+  1. **الاستهلاك النظري التراكمي (Theoretical Usage):**
+     - تجميع مبيعات الوجبات والأطباق عبر فترات زمنية محددة وفك معادلات التصنيع (BOM Recipes) لمعرفة الكميات المفترضة للمواد الخام.
+     - دمج الاستهلاك الناتج عن إضافات وخيارات الوجبات (Modifiers) تلقائياً عبر `pos_modifier_options`.
+  2. **الاستهلاك الفعلي وحركات المستودعات (Actual Consumption):**
+     - قراءة صافي حركات الصرف المخزني من واقع `stock_movements`.
+     - جلب كميات الهدر والتالف المسجلة في `restaurant_food_waste_logs`.
+  3. **تحليل الانحراف المالي ومستويات الخطورة (Variance & Risk Tiers):**
+     - احتساب الفارق الكمي: `varianceQty = actualQty - theoreticalQty`.
+     - احتساب القيمة المالية للانحراف: `varianceValue = varianceQty * costPrice`.
+     - احتساب نسبة الانحراف المئوية وتصنيف البنود تلقائياً:
+       - **عجز حرج (Critical Shortage):** انحراف يتجاوز 10% أو 500 ج.م/ريال/درهم عجزاً غير مبرر.
+       - **تحذير (Warning):** انحراف بين 3% و 10%.
+       - **مطابق (Normal):** انحراف ضمن هامش التسامح الطبيعي (أقل من 3%).
+  4. **واجهة مستخدم مؤسسية راقية (Enterprise UI):**
+     - بطاقات مؤشرات أداء KPI موجزة (إجمالي التكلفة النظرية، إجمالي التكلفة الفعلية، صافي قيمة الانحراف، ونسبة الانحراف الإجمالية).
+     - محدد نطاق زمني فوري (`من` و `إلى`)، بحث سريع باسم المادة الخام أو كودها، وفلاتر حصرية لحالات الخطورة.
+     - جدول تحليلي متكامل بتنسيق أرقام دقيق وشارات خطورة لونية مؤسسية وزر تصدير وطباعة.
+* **الملفات المنفذة:**
+  - `backend/src/modules/reports/reports.service.ts`
+  - `backend/src/modules/reports/reports.controller.ts`
+  - `frontend/src/features/reports/api/reports.api.ts`
+  - `frontend/src/features/reports/pages/reports.page-config.ts`
+  - `frontend/src/features/reports/components/ReportsSectionContent.tsx`
+  - `frontend/src/features/reports/components/sections/FoodCostVarianceReportSection.tsx`
+
+---
+
+## 207. منظومة طباعة الشيك المبدئي وشارات تسليم الحساب (Guest Check / Proforma Bill & Delivered Badges)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ شريط الهيدر، خريطة الصالة والطاولات `PosTablesFloorPlanDialog`، ومحرك الطباعة الحرارية.
+* **الهدف:** تمكين طاقم الخدمة والكاشير من طباعة شيك حساب الطاولة غير المسدد بنقرة واحدة لتقديمه للزبون قبل السداد، مع وسم الطاولة فوراً بشارة مرئية "تم تسليم الشيك" لمنع تكرار طلب الحساب أو ارتباك الويترية.
+* **المحرك والميزات المنفذة:**
+  1. **طباعة الشيك المبدئي المخصص (Guest Check Thermal Engine):**
+     - قالب طباعة حراري رسمي واضح وموسوم بـ "شيك حساب طاولة (غير مسدد)" و "للمعاينة ومراجعة الحساب فقط" لمنع استخدامه كفاتورة ضريبية رسمية قبل الدفع.
+     - يتضمن تفاصيل الأصناف، الإضافات (Modifiers)، المجموع الفرعي، الخصومات، رسوم خدمة الصالة، الضريبة، والإجمالي النهائي، مع عدد الضيوف ورقم الطاولة.
+  2. **الطباعة المباشرة من خريطة الصالة (Floor Plan 1-Click Print):**
+     - توفير زر فوري على بطاقات الطاولات المشغولة في خريطة الصالة (`طباعة شيك`) يطبع الشيك المبدئي ويثبت توقيت التسليم دون الحاجة لاسترجاع الفاتورة للسلة أولاً.
+  3. **شارة حالة تسليم الحساب (Check Delivered Badge):**
+     - ظهور شارة كهرمانية أنيقة `تم تسليم الشيك` على بطاقة الطاولة في خريطة الصالة وعلى زر الهيدر فور إتمام الطباعة، مما يعطي كابتن الصالة رؤية لحظية للطاولات التي تراجع حسابها حالياً.
+* **الملفات المنفذة:**
+  - `frontend/src/lib/pos-printing.ts`
+  - `frontend/src/lib/pos-printing/template.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+  - `backend/src/database/migrations/2040000000212_restaurant_service_charge_and_guest_operations.ts`
+
+---
+
+## 208. منظومة احتساب رسوم خدمة الصالة التلقائية للطلبات الداخلية (Dine-in Service Charge System)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** `/settings` ➔ تبويب المبيعات والمخزون (Sales & Inventory) + سلة الكاشير `/pos` + احتساب الإجماليات بالباك إند والفرونت إند.
+* **الهدف:** دعم معيار المطاعم والكافيهات العالمية والخليجية والمصرية بتطبيق نسبة خدمة الصالة تلقائياً (Service Charge %) على طلبات الصالة (`dine_in`) دون تدخل يدوي من الكاشير.
+* **المحرك والميزات المنفذة:**
+  1. **تهيئة الإعدادات المركزية (Configurable Settings):**
+     - مفتاح تفعيل `restaurantServiceChargeEnabled` وحقل نسبة مئوية مرن `restaurantServiceChargePercent` (افتراضياً 12%) داخل قسم المطاعم والكافيهات.
+  2. **التطبيق الآلي الشرطي (Conditional Dine-in Application):**
+     - تُطبق الخدمة تلقائياً بمجرد اختيار نوع الطلب `صالة (dine_in)` وتُستثنى تلقائياً عند التحويل إلى `تيك أواي` أو `دليفري`.
+     - تُحسب النسبة على الصافي بعد الخصومات وقبل الضريبة: `serviceCharge = (subTotal - discount) * (serviceChargePercent / 100)`.
+  3. **المطابقة المحاسبية الثنائية (Dual Engine Totals):**
+     - تكامل متطابق 100% بين محرك الباك إند (`computeInvoiceTotals`) ومحرك الفرونت إند (`usePosWorkspaceDerived`).
+     - تخزين قيمة الخدمة في عمود مخصص `service_charge` بجدول `sales` وتضمينها في الإيصالات والفواتير المطبوعة.
+* **الملفات المنفذة:**
+  - `backend/src/common/utils/invoice-totals.ts`
+  - `backend/src/modules/sales/services/sales-write.service.ts`
+  - `backend/src/modules/sales/dto/upsert-sale.dto.ts`
+  - `backend/src/modules/sales/helpers/sales-payload.helper.ts`
+  - `frontend/src/features/settings/components/forms/tabs/SalesInventorySettingsTab.tsx`
+  - `frontend/src/features/settings/contracts.ts`
+  - `frontend/src/features/settings/schemas/settings.schema.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspaceDerived.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosCheckoutDialogSections.tsx`
+
+---
+
+## 209. عداد الضيوف ومؤشر متوسط إنفاق الفرد في قطاع المطاعم (Covers Count & Spend Per Guest KPI)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ شريط الهيدر، مسودات الطاولات المعلقة، وإدخال المبيعات.
+* **الهدف:** تمكين إدارات المطاعم ومحاسبي التكاليف من قياس إنتاجية الطاولات ومتوسط استهلاك الزبون الواحد (Average Spend per Cover / Guest) لحظياً.
+* **المحرك والميزات المنفذة:**
+  1. **عداد الضيوف المتوافق مع دستور الواجهات العربية (Strict RTL Stepper):**
+     - عداد ديناميكي مع الالتزام التام بقاعدة `[+] (العدد) [-]` (الزائد يميناً برمجياً وبصرياً، والناقص يساراً).
+     - حفظ عدد الضيوف في المسودة المحلية والمسودات المعلقة وقاعدة البيانات في عمود `sales.guest_count`.
+  2. **مؤشر متوسط إنفاق الفرد اللحظي (Spend Per Guest):**
+     - احتساب وعرض متوسط إنفاق الضيف فورياً بجوار العداد: `متوسط الفرد = إجمالي الفاتورة / عدد الضيوف`.
+     - طباعة عدد الضيوف في شيكات المعاينة المبدئية وفواتير البيع الرسمية.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/features/pos/hooks/usePosWorkspaceState.ts`
+  - `frontend/src/features/pos/lib/pos.persistence.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspaceEffects.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspace.ts`
+  - `backend/src/database/migrations/2040000000212_restaurant_service_charge_and_guest_operations.ts`
+
+---
+
+## 210. منظومة حجوزات الطاولات وإدارة تدفق الضيوف (Table Reservations & Hostess Management)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير والمخطط التفاعلي `/pos` ➔ نافذة حجوزات الصالة `PosTableReservationsModal` والـ API `/api/sales/table-reservations`.
+* **الهدف:** إدارة شاملة لحجوزات الطاولات المسبقة، منع التضارب مع زبائن الـ Walk-in، وإجلاس الضيوف بنقرة واحدة متفوقاً على تطبيق Foodics Reservations.
+* **المحرك والميزات المنفذة:**
+  1. **إدارة الحجوزات والجدول الزمني:**
+     - تسجيل الحجز: اسم الضيف، الهاتف، موعد الحجز، عدد الأفراد (RTL Stepper)، رقم الطاولة، والمناسبة/الطلبات الخاصة.
+     - حالات الحجز: مؤكد (Confirmed)، جالس بالصالة (Seated)، ملغي (Cancelled)، لم يحضر (No-Show).
+  2. **التكامل المباشر مع خريطة الصالة (Floor Plan):**
+     - تمييز الطاولات المحجوزة لليوم بشارة زرقاء مؤسسية "حجز" واسم الضيف وتوقيت الحجز.
+     - زر سريع في هيدر المخطط "حجوزات اليوم (X)" يفتح سجل الحجوزات اليومية.
+  3. **إجراء إجلاس الضيف الفوري (1-Click Seat Guest):**
+     - نقرة واحدة على "إجلاس الضيف" تحدث حالة الحجز إلى "جالس بالصالة"، وتفتح الطاولة فوراً في الكاشير بعدد الضيوف واسم العميل.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000213_restaurant_table_reservations.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/dto/table-reservation.dto.ts`
+  - `backend/src/modules/sales/services/table-reservations.service.ts`
+  - `backend/src/modules/sales/controllers/table-reservations.controller.ts`
+  - `backend/src/modules/sales/sales.module.ts`
+  - `frontend/src/features/pos/api/table-reservations.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosTableReservationsModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+
+---
+
+## 211. شاشة إعلان جاهزية الطلبات للعملاء وسائقي التوصيل (Customer Pickup / Order Status Display Board)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** `/pos/order-status` و `/order-status` و `/pickup-board` ➔ بوابة شاشات العرض `/displays`.
+* **الهدف:** شاشة تلفاز أفقية عالية الوضوح بصالة الانتظار والاستلام تعرض حالة الطلبات قيد التحضير والجاهزة للاستلام مع تنبيه صوتي فوري، موازية لشاشات ماكدونالدز وفودكس.
+* **المحرك والميزات المنفذة:**
+  1. **تقسيم الشاشة الثنائي المتوازي (Dual High-Contrast View):**
+     - عمود "قيد التجهيز (Preparing)": يعرض أرقام الطلبات الحالية بالمطبخ باللون الكهرماني.
+     - عمود "جاهز للاستلام (Ready for Pickup)": يعرض أرقام الطلبات المجهزة باللون الأخضر المتوهج.
+  2. **التنبيه الصوتي النغمي (Web Audio Acoustic Chime):**
+     - توليد نغمة ثنائية فورية متناسقة عند تحويل أي طلب إلى "جاهز للاستلام" للفت انتباه الزبائن وسائقي التوصيل (جاهز، هنقرستيشن، طلبات).
+  3. **أزرار التحكم والشاشات الذكية:**
+     - زر وضع ملء الشاشة الفوري (TV Mode) وساعة رقمية حية ومؤشر عدد الطلبات في كل قسم.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/pages/OrderStatusBoardPage.tsx`
+  - `frontend/src/features/pos/pages/DisplaysPortalPage.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/app/router/root-router.tsx`
+
+---
+
+## 212. محطة كابتن الصالة والويتر الميداني السريع (Handheld Waiter / Captain Station)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** `/pos/waiter` و `/waiter` ➔ بوابة شاشات العرض `/displays` وقائمة شاشات الهيدر.
+* **الهدف:** واجهة خفيفة ومخصصة لهواتف وأجهزة التابلت المحمولة باليد لكابتن الصالة والويتر لأخذ الطلبات من الطاولات وإرسالها للمطبخ بلحظات، مع عزل كامل لصلاحيات الصندوق والتقارير المالية.
+* **المحرك والميزات المنفذة:**
+  1. **شبكة الطاولات اللمسية السريعة:**
+     - استعراض فوري لحالة الطاولات (شاغرة ومتاحة بالأخضر، مشغولة بالأحمر مع إجمالي الحساب).
+     - عداد الضيوف المتوافق مع دستور الواجهات العربية `[+] (الضيوف) [-]`.
+  2. **أخذ الطلب وملاحظات الأطباق:**
+     - شريط تصنيفات أفقي سلس، وبطاقات وجبات كبيرة للمس السريع.
+     - نافذة ملاحظات التحضير الفردية لكل طبق (مثل "بدون بصل"، "مستوي جيداً"، "يقدم مع المقبلات").
+  3. **الإرسال الفوري للمطبخ (Send to Kitchen):**
+     - زر ضخم "إرسال الطلب للمطبخ" يحفظ مسودة الطاولة ويطلق بون المطبخ الحراري (KOT) وتذكرة شاشة المطبخ (KDS) ويعود تلقائياً لشبكة الطاولات للطاولة التالية.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/pages/WaiterStationPage.tsx`
+  - `frontend/src/features/pos/pages/DisplaysPortalPage.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/app/router/root-router.tsx`
+
+---
+
+## 213. معالج وجبات الكومبو السريعة بنظام الخطوات (Step-by-Step Combo Meals Builder)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "وجبة كومبو" في شريط الهيدر ➔ معالج الوجبات التجميعية `PosComboMealModal`.
+* **الهدف:** دعم هندسة وجبات الـ QSR ومطاعم البرجر والوجبات السريعة ببناء الوجبة التجميعية خطوة بخطوة مع فوارق الأسعار وحفظ المكونات.
+* **المحرك والميزات المنفذة:**
+  1. **المسار التسلسلي للوجبة (3-Step Guided Wizard):**
+     - **الخطوة 1:** الصنف الرئيسي (البرجر/الساندوتش).
+     - **الخطوة 2:** الصنف الجانبي (بطاطس كلاسيك مجاناً، بطاطس جبنة شيدر +12 ج.م/ريال، حلقات بصل +15 ج.م/ريال، كول سلو +8 ج.م/ريال، ويدجز +10 ج.م/ريال).
+     - **الخطوة 3:** المشروب المنعش (مشروبات غازية، مياه، عصائر طبيعية بفوارق الأسعار) وملاحظات الوجبة.
+  2. **بطاقة الملخص والتسعير اللحظي:**
+     - عرض مباشر لسعر الأساس وفوارق الأصناف والإجمالي النهائي.
+     - إضافة الصنف للسلة كبند موحد مفصل بمكوناته وإضافاته وملاحظاته يطبع في بون المطبخ وشيك الحساب.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/components/pos-workspace/PosComboMealModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+
+

@@ -40,6 +40,15 @@ export interface CreatePosSaleInput {
    * for a manager PIN just to bill an order the store already priced.
    */
   onlineOrderId?: number;
+  terminalId?: string | null;
+  terminalAuthCode?: string | null;
+  terminalRrn?: string | null;
+  cardScheme?: string | null;
+  cardLastFour?: string | null;
+  diningCourse?: 'appetizer' | 'main' | 'dessert' | 'beverage' | string | null;
+  serviceCharge?: number;
+  guestCount?: number;
+  guestCheckPrintedAt?: string | null;
 }
 
 function normalizeMoney(value: number) {
@@ -167,6 +176,16 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
     } : {}),
+    ...(input.tableNumber ? { tableNumber: input.tableNumber } : {}),
+    ...(input.diningCourse ? { diningCourse: input.diningCourse } : {}),
+    ...(input.terminalId ? { terminalId: input.terminalId } : {}),
+    ...(input.terminalAuthCode ? { terminalAuthCode: input.terminalAuthCode } : {}),
+    ...(input.terminalRrn ? { terminalRrn: input.terminalRrn } : {}),
+    ...(input.cardScheme ? { cardScheme: input.cardScheme } : {}),
+    ...(input.cardLastFour ? { cardLastFour: input.cardLastFour } : {}),
+    ...(Number(input.serviceCharge) > 0 ? { serviceCharge: normalizeMoney(Number(input.serviceCharge)) } : {}),
+    ...(Number(input.guestCount) > 0 ? { guestCount: Math.max(1, Math.round(Number(input.guestCount))) } : {}),
+    ...(input.guestCheckPrintedAt ? { guestCheckPrintedAt: input.guestCheckPrintedAt } : {}),
     items: normalizeCart(input.cart)
   };
 }
@@ -213,6 +232,8 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
     } : {}),
+    ...(Number(input.serviceCharge) > 0 ? { serviceCharge: normalizeMoney(Number(input.serviceCharge)) } : {}),
+    ...(Number(input.guestCount) > 0 ? { guestCount: Math.max(1, Math.round(Number(input.guestCount))) } : {}),
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

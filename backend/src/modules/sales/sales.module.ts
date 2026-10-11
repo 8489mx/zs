@@ -28,6 +28,12 @@ import { PriceListsController } from './controllers/price-lists.controller';
 import { PriceListsService } from './services/price-lists.service';
 import { CommercialSubscriptionController } from './controllers/commercial-subscription.controller';
 import { CommercialSubscriptionService } from './services/commercial-subscription.service';
+import { DeliveryAggregatorsController } from './controllers/delivery-aggregators.controller';
+import { DeliveryAggregatorsService } from './services/delivery-aggregators.service';
+import { RestaurantFoodWasteController } from './controllers/restaurant-food-waste.controller';
+import { RestaurantFoodWasteService } from './services/restaurant-food-waste.service';
+import { TableReservationsController } from './controllers/table-reservations.controller';
+import { TableReservationsService } from './services/table-reservations.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule, ReturnsModule],
@@ -39,6 +45,9 @@ import { CommercialSubscriptionService } from './services/commercial-subscriptio
     CustomerInstallmentsController,
     CashierFraudRadarController,
     KdsController,
+    DeliveryAggregatorsController,
+    RestaurantFoodWasteController,
+    TableReservationsController,
     CommercialSubscriptionController,
     SalesController,
   ],
@@ -55,6 +64,9 @@ import { CommercialSubscriptionService } from './services/commercial-subscriptio
     CustomerInstallmentsService,
     CashierFraudRadarService,
     KdsService,
+    DeliveryAggregatorsService,
+    RestaurantFoodWasteService,
+    TableReservationsService,
     CommercialSubscriptionService,
   ],
   exports: [
@@ -67,8 +79,12 @@ import { CommercialSubscriptionService } from './services/commercial-subscriptio
     CustomerInstallmentsService,
     CashierFraudRadarService,
     KdsService,
+    DeliveryAggregatorsService,
+    RestaurantFoodWasteService,
+    TableReservationsService,
     CommercialSubscriptionService,
   ],
 })
 export class SalesModule {}
+
 

@@ -38,6 +38,9 @@ export interface KdsTicket {
   notes?: string;
   items: KdsTicketItem[];
   urgencyLevel: KdsUrgencyLevel;
+  course?: 'appetizer' | 'main' | 'dessert' | 'beverage';
+  aggregatorChannel?: string;
+  aggregatorOrderId?: string;
 }
 
 export interface KdsSummaryStats {
@@ -196,6 +199,8 @@ export class KdsService {
         's.note',
         's.created_at',
         's.customer_name',
+        's.dining_course',
+        's.aggregator_channel',
         'c.name as customer_name_ref',
         'u.username as cashier_username',
       ])
@@ -208,25 +213,18 @@ export class KdsService {
     const salesRows = candidateRows.slice(0, 200);
     const truncated = candidateRows.length > 200;
 
-    if (!salesRows.length) {
-      return {
-        tickets: [],
-        stats: { pendingCount: 0, cookingCount: 0, readyCount: 0, criticalCount: 0, avgPrepMinutes: 0 },
-        lastServedId: runtimeState.lastServedId,
-        truncated,
-      };
-    }
-
     const saleIds = salesRows.map((s) => Number(s.id));
 
     // Fetch sale items
-    const itemRows = await this.db
-      .selectFrom('sale_items')
-      .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_name', 'modifiers', 'notes'])
-      .where('sale_id', 'in', saleIds)
-      .where(this.tenantPredicate(auth))
-      .orderBy('id', 'asc')
-      .execute();
+    const itemRows = saleIds.length > 0
+      ? await this.db
+          .selectFrom('sale_items')
+          .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_name', 'modifiers', 'notes'])
+          .where('sale_id', 'in', saleIds)
+          .where(this.tenantPredicate(auth))
+          .orderBy('id', 'asc')
+          .execute()
+      : [];
 
     const itemsBySale = new Map<number, typeof itemRows>();
     for (const item of itemRows) {
@@ -334,6 +332,93 @@ export class KdsService {
         notes: sale.note || undefined,
         items: filteredItems,
         urgencyLevel,
+        course: (sale as any).dining_course || undefined,
+        aggregatorChannel: (sale as any).aggregator_channel || undefined,
+      });
+
+      totalMinutes += elapsedMinutes;
+      countedForAvg++;
+    }
+
+    // Ingest live aggregator delivery orders (Jahez, Hungerstation, Talabat, Keeta, Deliveroo)
+    const aggOrders = await this.db
+      .selectFrom('pos_aggregator_orders as o')
+      .innerJoin('pos_delivery_aggregators as a', 'a.id', 'o.aggregator_id')
+      .select([
+        'o.id',
+        'o.display_number',
+        'o.external_order_id',
+        'o.status',
+        'o.customer_name',
+        'o.rider_name',
+        'o.order_payload',
+        'o.created_at',
+        'a.code as aggregator_code',
+        'a.name as aggregator_name',
+      ])
+      .where('o.tenant_id', '=', tenantId)
+      .where('o.created_at', '>=', fourteenHoursAgo)
+      .where('o.status', 'in', ['received', 'preparing', 'ready'])
+      .orderBy('o.created_at', 'asc')
+      .execute();
+
+    for (const agg of aggOrders) {
+      const aggTicketId = 10_000_000 + Number(agg.id);
+      const ticketStored = runtimeState.tickets[String(aggTicketId)];
+      const mappedStatus: KdsTicketStatus = ticketStored?.status
+        || (agg.status === 'received' ? 'pending' : agg.status === 'preparing' ? 'cooking' : 'ready');
+
+      if (mappedStatus === 'served' || (filters?.status && filters.status !== mappedStatus)) {
+        continue;
+      }
+
+      const rawCreatedAt = agg.created_at;
+      const createdAtMs = rawCreatedAt instanceof Date ? rawCreatedAt.getTime() : new Date(rawCreatedAt).getTime();
+      const elapsedSeconds = Math.max(0, Math.floor((now - createdAtMs) / 1000));
+      const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+
+      const payload = typeof agg.order_payload === 'string' ? JSON.parse(agg.order_payload) : (agg.order_payload || {});
+      const payloadItems = Array.isArray(payload.items) ? payload.items : [];
+      const items: KdsTicketItem[] = payloadItems.map((pi: any, idx: number) => {
+        const itemId = 1000 + idx;
+        return {
+          id: itemId,
+          productId: pi.productId ? Number(pi.productId) : undefined,
+          name: pi.name || 'صنف توصيل',
+          qty: Number(pi.qty) || 1,
+          unitName: 'وجبة',
+          modifiers: Array.isArray(pi.modifiers) ? pi.modifiers : [],
+          notes: pi.notes,
+          status: ticketStored?.itemsStatus?.[String(itemId)] || (mappedStatus === 'ready' ? 'ready' : 'pending'),
+          station: this.inferItemStation(pi.name || ''),
+        };
+      });
+
+      const stationFilter = filters?.station && filters.station !== 'all' ? filters.station : null;
+      const filteredItems = stationFilter
+        ? items.filter((it) => it.station === stationFilter)
+        : items;
+
+      if (stationFilter && !filteredItems.length) {
+        continue;
+      }
+
+      tickets.push({
+        id: aggTicketId,
+        docNo: agg.display_number || agg.external_order_id,
+        orderNumber: agg.display_number || agg.external_order_id,
+        orderType: 'delivery',
+        customerName: `${agg.aggregator_name} - ${agg.customer_name || 'عميل'} (سائق: ${agg.rider_name || 'بانتظار'})`,
+        cashierName: agg.aggregator_code,
+        status: mappedStatus,
+        elapsedMinutes,
+        elapsedSeconds,
+        createdAt: new Date(createdAtMs).toISOString(),
+        updatedAt: ticketStored?.updatedAt || new Date(createdAtMs).toISOString(),
+        items: filteredItems,
+        urgencyLevel: elapsedMinutes >= 15 ? 'critical' : elapsedMinutes >= 8 ? 'warning' : 'normal',
+        aggregatorChannel: agg.aggregator_code,
+        aggregatorOrderId: agg.external_order_id,
       });
 
       totalMinutes += elapsedMinutes;
@@ -397,6 +482,17 @@ export class KdsService {
       runtimeState.lastServedId = ticketId;
     }
 
+    if (ticketId >= 10_000_000) {
+      const realAggId = ticketId - 10_000_000;
+      const dbAggStatus = nextStatus === 'cooking' ? 'preparing' : nextStatus === 'ready' ? 'ready' : 'picked_up';
+      await this.db
+        .updateTable('pos_aggregator_orders')
+        .set({ status: dbAggStatus, updated_at: new Date() })
+        .where('id', '=', realAggId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    }
+
     await this.saveKdsStoreState(tenantId, runtimeState);
     return { ticketId, newStatus: nextStatus };
   }
@@ -422,6 +518,17 @@ export class KdsService {
 
     if (status === 'served') {
       runtimeState.lastServedId = ticketId;
+    }
+
+    if (ticketId >= 10_000_000) {
+      const realAggId = ticketId - 10_000_000;
+      const dbAggStatus = status === 'cooking' ? 'preparing' : status === 'ready' ? 'ready' : status === 'served' ? 'picked_up' : 'received';
+      await this.db
+        .updateTable('pos_aggregator_orders')
+        .set({ status: dbAggStatus, updated_at: new Date() })
+        .where('id', '=', realAggId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
     }
 
     await this.saveKdsStoreState(tenantId, runtimeState);
@@ -473,5 +580,48 @@ export class KdsService {
 
     await this.saveKdsStoreState(tenantId, runtimeState);
     return { recalled: true, ticketId: lastId, status: 'ready' };
+  }
+
+  /**
+   * Fire or advance the dining course for a ticket (Course Firing)
+   * e.g. 'appetizer' -> 'main' -> 'dessert'
+   */
+  async fireTicketCourse(
+    auth: AuthContext,
+    ticketId: number,
+    course?: 'appetizer' | 'main' | 'dessert' | 'beverage'
+  ): Promise<{ ticketId: number; course: string }> {
+    const { tenantId } = requireTenantScope(auth);
+    let targetCourse = course;
+    if (!targetCourse) {
+      const sale = await this.db
+        .selectFrom('sales')
+        .select(['dining_course'])
+        .where('id', '=', ticketId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      const current = (sale as any)?.dining_course || 'appetizer';
+      if (current === 'appetizer') targetCourse = 'main';
+      else if (current === 'main') targetCourse = 'dessert';
+      else targetCourse = 'dessert';
+    }
+
+    await this.db
+      .updateTable('sales')
+      .set({ dining_course: targetCourse } as any)
+      .where('id', '=', ticketId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const runtimeState = await this.getKdsStoreState(tenantId);
+    const existing = runtimeState.tickets[String(ticketId)];
+    runtimeState.tickets[String(ticketId)] = {
+      status: 'cooking',
+      itemsStatus: existing?.itemsStatus || {},
+      updatedAt: new Date().toISOString(),
+    };
+    await this.saveKdsStoreState(tenantId, runtimeState);
+
+    return { ticketId, course: targetCourse };
   }
 }

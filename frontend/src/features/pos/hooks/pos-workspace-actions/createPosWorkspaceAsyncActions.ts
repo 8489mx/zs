@@ -273,6 +273,10 @@ export function createPosWorkspaceAsyncActions(
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
         orderType: params.orderType,
         tableNumber: params.tableNumber,
+        diningCourse: params.diningCourse,
+        serviceCharge: params.totals.serviceCharge,
+        guestCount: params.guestCount,
+        guestCheckPrintedAt: params.guestCheckPrintedAt,
         deliveryRepId: params.deliveryRepId,
         collectionStatus: params.collectionStatus,
         deliveryFeeMode: params.deliveryFeeMode,
@@ -280,12 +284,22 @@ export function createPosWorkspaceAsyncActions(
         // coupon discount and line prices instead of treating them as a cashier discount (which asks
         // a cashier without canDiscount for a manager PIN).
         onlineOrderId: activeOnlineOrderId > 0 ? activeOnlineOrderId : undefined,
+        terminalId: params.terminalPaymentDetails?.terminalId || undefined,
+        terminalAuthCode: params.terminalPaymentDetails?.authCode || undefined,
+        terminalRrn: params.terminalPaymentDetails?.rrn || undefined,
+        cardScheme: params.terminalPaymentDetails?.cardScheme || undefined,
+        cardLastFour: params.terminalPaymentDetails?.cardLastFour || undefined,
       });
       const rawOnlineNumber = localStorage.getItem('zs_pos_online_order_number');
       const hydratedSale: Sale = {
         ...(createdSale as Sale),
         cart: params.cart,
         onlineOrderNumber: rawOnlineNumber || (createdSale as any)?.onlineOrderNumber,
+        terminalId: params.terminalPaymentDetails?.terminalId || (createdSale as any)?.terminalId,
+        terminalAuthCode: params.terminalPaymentDetails?.authCode || (createdSale as any)?.terminalAuthCode,
+        terminalRrn: params.terminalPaymentDetails?.rrn || (createdSale as any)?.terminalRrn,
+        cardScheme: params.terminalPaymentDetails?.cardScheme || (createdSale as any)?.cardScheme,
+        cardLastFour: params.terminalPaymentDetails?.cardLastFour || (createdSale as any)?.cardLastFour,
       } as any;
       params.setLastSale(hydratedSale);
       const createdSaleKey = getSaleKey(hydratedSale);

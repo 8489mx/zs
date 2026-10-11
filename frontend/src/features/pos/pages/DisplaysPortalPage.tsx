@@ -70,6 +70,26 @@ export function DisplaysPortalPage() {
       iconPath: "M18 2v8a3 3 0 0 1-3 3h-1v9h-2v-9H7a3 3 0 0 1-3-3V2h2v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2h2z",
       color: "#c2410c",
     },
+    {
+      key: "order-status-board",
+      title: "شاشة إعلان جاهزية الطلبات (Pickup Board)",
+      description: "شاشة صالة الانتظار والاستلام، تعرض الطلبات قيد التحضير والطلبات الجاهزة للاستلام للعملاء وسائقي التوصيل مع تنبيه صوتي.",
+      badge: "صالة الانتظار والتوصيل",
+      path: "/pos/order-status",
+      windowName: "OrderStatusBoardWindow",
+      iconPath: "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
+      color: "#166534",
+    },
+    {
+      key: "waiter",
+      title: "محطة الويتر وكابتن الصالة (Captain Station)",
+      description: "واجهة سريعة وخفيفة مخصصة لهواتف وأجهزة التابلت المحمولة باليد لطاقم الخدمة لأخذ الطلبات من الطاولات وإرسالها فورياً للمطبخ.",
+      badge: "طاقم الصالة والخدمة",
+      path: "/pos/waiter",
+      windowName: "WaiterStationWindow",
+      iconPath: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+      color: "#4338ca",
+    },
   ];
 
   const handleOpenNewWindow = (path: string, windowName: string) => {

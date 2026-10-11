@@ -1,4 +1,4 @@
-import { printPostedSaleReceipt, printKitchenTicket } from '@/lib/pos-printing';
+import { printPostedSaleReceipt, printKitchenTicket, printGuestCheck } from '@/lib/pos-printing';
 import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
@@ -92,6 +92,35 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
       });
   }
 
+  function printGuestCheckNow() {
+    if (!params.cart.length && !params.tableNumber) {
+      params.setSubmitMessage('لا توجد أصناف في السلة لطباعة الشيك');
+      return;
+    }
+    const cashierName = (params.ownOpenShift as any)?.openedByName || params.authUserName || '—';
+    const subtotal = params.cart.reduce((sum, item) => {
+      const modifiersTotal = (item.modifiers || []).reduce((modSum: number, mod: any) => modSum + Number(mod.price || 0), 0);
+      return sum + (item.qty * (item.price + modifiersTotal));
+    }, 0);
+    printGuestCheck({
+      tableNumber: params.tableNumber || '1',
+      items: params.cart,
+      subtotal,
+      discount: params.totals.discountValue,
+      serviceCharge: (params.totals as any).serviceCharge || 0,
+      taxAmount: params.totals.taxAmount,
+      total: params.totals.total,
+      guestCount: params.guestCount || 1,
+      customerName: params.quickCustomerName || undefined,
+      cashierName,
+      branchName: params.currentBranch?.name,
+      locationName: params.currentLocation?.name,
+      settings: params.settings || null,
+    });
+    params.setGuestCheckPrintedAt?.(new Date().toISOString());
+    params.setSubmitMessage('تمت طباعة شيك الطاولة المبدئي بنجاح');
+  }
+
   return {
     reprintLastSale,
     reprintLastSaleReceipt,
@@ -102,6 +131,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     printKitchenNow,
     printBothNow,
     exportPdfNow,
+    printGuestCheckNow,
     completePostSaleCycle,
     heldDraftSummaries: params.heldDrafts.map((draft, index) => ({
       id: draft.id,
@@ -111,6 +141,8 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
       savedAt: draft.savedAt,
       tableNumber: draft.tableNumber,
       orderType: draft.orderType as any,
+      guestCount: (draft as any).guestCount,
+      guestCheckPrintedAt: (draft as any).guestCheckPrintedAt,
     })),
   };
 }

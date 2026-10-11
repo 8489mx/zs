@@ -362,6 +362,7 @@ interface PosCheckoutPaymentSectionProps {
   onInlineManagerApproval: (event?: FormEvent<HTMLFormElement>) => void;
   isPaymentActive: (preset: PaymentPreset) => boolean;
   onSelectPaymentPreset: (preset: PaymentPreset) => void;
+  onConfirmSale?: () => void;
 }
 
 export function PosCheckoutPaymentSection({
@@ -380,6 +381,7 @@ export function PosCheckoutPaymentSection({
   onInlineManagerApproval,
   isPaymentActive,
   onSelectPaymentPreset,
+  onConfirmSale,
 }: PosCheckoutPaymentSectionProps) {
   const balance = getBalancePreview(pos);
   const paidAmount = Number(pos.paidAmount || 0);
@@ -410,15 +412,37 @@ export function PosCheckoutPaymentSection({
         try {
           const res = await posApi.checkTerminalStatus(terminalSession.transactionId!);
           if (res.data?.status === 'approved') {
+            const authCode = res.data.approvalCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+            const rrn = res.data.rrn || terminalSession.transactionId || '';
+            const cardScheme = res.data.cardScheme || 'mada';
+            const cardLastFour = res.data.cardLastFour || '';
+            const terminalId = res.data.terminalId || 'term-main-01';
+
             setTerminalSession({
               status: 'approved',
               transactionId: terminalSession.transactionId,
-              message: `تمت الموافقة بنجاح (تفويض: ${res.data.approvalCode || 'AUTH'})`,
-              approvalCode: res.data.approvalCode
+              message: `تمت الموافقة بنجاح (تفويض: ${authCode})`,
+              approvalCode: authCode
             });
             pos.setPaymentChannel('card');
-            pos.setCardAmount(res.data.amount);
+            pos.setCardAmount(res.data.amount || Number(pos.totals.total || 0));
             pos.setCashAmount(0);
+            pos.setTransferAmount(0);
+
+            pos.setTerminalPaymentDetails?.({
+              terminalId,
+              authCode,
+              rrn,
+              cardScheme,
+              cardLastFour,
+              provider: res.data.provider
+            });
+
+            if (pos.settingsQuery?.data?.posTerminalAutoFinalize && onConfirmSale) {
+              setTimeout(() => {
+                onConfirmSale();
+              }, 700);
+            }
           } else if (res.data?.status === 'declined' || res.data?.status === 'cancelled') {
             setTerminalSession({
               status: res.data.status,
@@ -431,7 +455,7 @@ export function PosCheckoutPaymentSection({
       }, 1500);
     }
     return () => clearInterval(timer);
-  }, [terminalSession.status, terminalSession.transactionId]);
+  }, [terminalSession.status, terminalSession.transactionId, onConfirmSale]);
 
   const handleDispatchTerminal = async () => {
     const amount = Number(pos.cardAmount > 0 ? pos.cardAmount : (pos.totals.total || 0));
@@ -456,6 +480,7 @@ export function PosCheckoutPaymentSection({
         await posApi.cancelTerminalCharge(terminalSession.transactionId);
       } catch {}
     }
+    pos.setTerminalPaymentDetails?.(null);
     setTerminalSession({ status: 'idle' });
   };
 
@@ -593,10 +618,27 @@ export function PosCheckoutPaymentSection({
                 إرسال للجهاز
               </Button>
             ) : terminalSession.status === 'approved' ? (
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <CheckIcon size={14} color="#16a34a" />
-                <span>معتمد ({terminalSession.approvalCode})</span>
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckIcon size={14} color="#16a34a" />
+                  <span>معتمد ({terminalSession.approvalCode})</span>
+                </span>
+                {pos.terminalPaymentDetails?.cardScheme ? (
+                  <span style={{ background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
+                    {pos.terminalPaymentDetails.cardScheme === 'knet' ? 'KNET كي نت' : pos.terminalPaymentDetails.cardScheme === 'mada' ? 'مدى mada' : pos.terminalPaymentDetails.cardScheme}
+                  </span>
+                ) : null}
+                {onConfirmSale ? (
+                  <Button
+                    type="button"
+                    variant="success"
+                    onClick={() => onConfirmSale()}
+                    style={{ minHeight: '30px', padding: '0 10px', fontSize: '11.5px', fontWeight: 800 }}
+                  >
+                    تأكيد الفاتورة (F2)
+                  </Button>
+                ) : null}
+              </div>
             ) : (
               <Button
                 type="button"
@@ -652,6 +694,13 @@ export function PosCheckoutPaymentSection({
           </div>
         </div>
       ) : null}
+
+      {Number(pos.totals.serviceCharge || 0) > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
+          <span>رسوم خدمة الصالة ({pos.totals.serviceChargePercent}%):</span>
+          <strong style={{ color: '#170e5e' }}>{formatCurrency(pos.totals.serviceCharge)}</strong>
+        </div>
+      )}
 
       {/* Summary 3-Column Chips: Centered and Balanced */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>

@@ -14,8 +14,8 @@ import {
   PosCheckoutDeliverySection,
   type PaymentPreset,
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
-import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import { summarizeCartQuantities } from '@/features/pos/lib/pos.domain';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 interface PosCheckoutDialogProps {
   open: boolean;
@@ -60,11 +60,22 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     setManagerPinDraft('');
     setManagerPinError('');
   }, []);
-  const handleDialogClose = useCallback(() => {
+  const handleDialogClose = useCallback(async () => {
     if (createSalePendingRef.current) return;
+    if (pos.terminalPaymentDetails?.authCode) {
+      const confirmClose = await systemConfirm({
+        title: 'تنبيه: عملية دفع معتمدة من جهاز الدفع',
+        message: `تم خصم المبلغ من بطاقة العميل بالفعل برقم تفويض (${pos.terminalPaymentDetails.authCode}). هل تريد بالتأكيد إغلاق الشاشة وإلغاء تسجيل الفاتورة؟`,
+        confirmText: 'نعم، إلغاء الفاتورة',
+        cancelText: 'العودة لإتمام الفاتورة',
+        variant: 'danger',
+      });
+      if (!confirmClose) return;
+      pos.setTerminalPaymentDetails?.(null);
+    }
     clearInlineManagerApproval();
     stableOnClose();
-  }, [clearInlineManagerApproval, stableOnClose]);
+  }, [clearInlineManagerApproval, pos, stableOnClose]);
   const handleConfirmSale = useCallback(() => {
     const isCod = pos.collectionStatus === 'cod';
     if (pos.orderType === 'delivery' && isCod && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
@@ -301,6 +312,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 onInlineManagerApproval={(event) => { void handleInlineManagerApproval(event); }}
                 isPaymentActive={isPaymentActive}
                 onSelectPaymentPreset={(preset) => pos.setPaymentPreset(preset)}
+                onConfirmSale={handleConfirmSale}
               />
             </div>
           </div>

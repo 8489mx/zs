@@ -46,7 +46,8 @@ interface PosWorkspaceActions {
   editSelectedQty: () => boolean;
   removeSelectedItem: () => boolean;
   selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
-  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number; savedAt: string; tableNumber?: string; orderType?: 'dine_in' | 'takeaway' | 'delivery' }>;
+  printGuestCheckNow: () => void;
+  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number; savedAt: string; tableNumber?: string; orderType?: 'dine_in' | 'takeaway' | 'delivery'; guestCount?: number; guestCheckPrintedAt?: string | null }>;
 }
 
 export function createPosWorkspaceActions(params: PosWorkspaceActionParams): PosWorkspaceActions {
@@ -159,6 +160,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     printKitchenNow: receiptActions.printKitchenNow,
     printBothNow: receiptActions.printBothNow,
     exportPdfNow: receiptActions.exportPdfNow,
+    printGuestCheckNow: receiptActions.printGuestCheckNow,
     completePostSaleCycle: receiptActions.completePostSaleCycle,
     heldDraftSummaries: receiptActions.heldDraftSummaries,
   };

@@ -33,6 +33,9 @@ export interface KdsTicket {
   notes?: string;
   items: KdsTicketItem[];
   urgencyLevel: KdsUrgencyLevel;
+  course?: 'appetizer' | 'main' | 'dessert' | 'beverage';
+  aggregatorChannel?: string;
+  aggregatorOrderId?: string;
 }
 
 export interface KdsSummaryStats {
@@ -96,6 +99,16 @@ export const kdsApi = {
     return http<{ recalled: boolean; ticketId?: number; status?: KdsTicketStatus }>(
       '/api/sales/kds/tickets/recall-last',
       { method: 'POST' }
+    );
+  },
+
+  fireCourse: async (
+    ticketId: number,
+    course?: 'appetizer' | 'main' | 'dessert' | 'beverage'
+  ): Promise<{ ticketId: number; course: string }> => {
+    return http<{ ticketId: number; course: string }>(
+      `/api/sales/kds/tickets/${ticketId}/fire-course`,
+      { method: 'POST', body: JSON.stringify({ course }) }
     );
   },
 };

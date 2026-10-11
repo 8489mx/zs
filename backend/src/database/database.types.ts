@@ -934,6 +934,17 @@ export interface SalesTable {
   is_credit_overridden?: boolean;
   credit_override_by_user_id?: number | null;
   credit_override_reason?: string | null;
+  dining_course?: string | null;
+  aggregator_channel?: string | null;
+  aggregator_order_id?: string | null;
+  terminal_id?: string | null;
+  terminal_auth_code?: string | null;
+  terminal_rrn?: string | null;
+  card_scheme?: string | null;
+  card_last_four?: string | null;
+  service_charge?: number | null;
+  guest_count?: number | null;
+  guest_check_printed_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
 }
 
 export interface SaleItemTable {
@@ -974,6 +985,11 @@ export interface SalePaymentTable {
   applied_amount?: number;
   tendered_amount?: number;
   change_amount?: number;
+  terminal_id?: string | null;
+  card_auth_code?: string | null;
+  card_rrn?: string | null;
+  card_scheme?: string | null;
+  card_last_four?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -2527,6 +2543,9 @@ export interface Database {
   pos_modifier_groups: PosModifierGroupTable;
   pos_modifier_options: PosModifierOptionTable;
   product_pos_modifiers: ProductPosModifierTable;
+  pos_delivery_aggregators: PosDeliveryAggregatorTable;
+  pos_aggregator_orders: PosAggregatorOrderTable;
+  restaurant_food_waste_logs: RestaurantFoodWasteLogTable;
   hr_end_of_service_settlements: HrEndOfServiceSettlementTable;
 }
 export interface HrEmployeeAdjustmentTable {
@@ -3352,6 +3371,9 @@ export interface PosModifierOptionTable {
   is_default: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   display_order: ColumnType<number, number | undefined, number | undefined>;
+  component_product_id: number | null | undefined;
+  consumption_qty: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  unit_name: string | null | undefined;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
@@ -3361,6 +3383,62 @@ export interface ProductPosModifierTable {
   account_id: string;
   product_id: number;
   modifier_group_id: number;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface PosDeliveryAggregatorTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  code: string;
+  name: string;
+  name_en: string | null;
+  commission_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  auto_accept_orders: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  api_key: string | null;
+  webhook_secret: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface PosAggregatorOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  aggregator_id: number;
+  external_order_id: string;
+  display_number: string | null;
+  branch_id: number | null;
+  status: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  delivery_address: string | null;
+  rider_name: string | null;
+  rider_phone: string | null;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  delivery_fee: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  aggregator_commission: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  net_payout: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  order_payload: ColumnType<any, string | Record<string, any> | undefined, string | Record<string, any> | undefined>;
+  sale_id: number | null;
+  kds_ticket_id: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantFoodWasteLogTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  branch_id: number;
+  product_id: number;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  cost_price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_cost: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  reason: string;
+  notes: string | null;
+  logged_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
@@ -4969,4 +5047,24 @@ export interface DailyCommercialRollupTable {
   net_profit: number;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantTableReservationTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  table_number: string;
+  guest_name: string;
+  guest_phone: string | null;
+  guest_count: number;
+  reservation_time: ColumnType<Date, string | Date, string | Date>;
+  status: 'confirmed' | 'seated' | 'cancelled' | 'no_show';
+  special_requests: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface Database {
+  restaurant_table_reservations: RestaurantTableReservationTable;
 }

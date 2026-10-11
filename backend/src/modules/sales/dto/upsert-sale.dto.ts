@@ -131,6 +131,18 @@ export class UpsertSaleDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  serviceCharge?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  guestCount?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   taxRate?: number;
 
   @IsOptional()
@@ -233,6 +245,30 @@ export class UpsertSaleDto {
   @IsNumber()
   @Min(0)
   tenderedAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  terminalId?: string;
+
+  @IsOptional()
+  @IsString()
+  terminalAuthCode?: string;
+
+  @IsOptional()
+  @IsString()
+  terminalRrn?: string;
+
+  @IsOptional()
+  @IsString()
+  cardScheme?: string;
+
+  @IsOptional()
+  @IsString()
+  cardLastFour?: string;
+
+  @IsOptional()
+  @IsString()
+  diningCourse?: string;
 }
 
 export type NormalizedSalePayload = {
@@ -241,6 +277,8 @@ export type NormalizedSalePayload = {
   paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   discount: number;
   deliveryFee: number;
+  serviceCharge?: number;
+  guestCount?: number;
   taxRate: number;
   pricesIncludeTax: boolean;
   storeCreditUsed: number;
@@ -255,8 +293,14 @@ export type NormalizedSalePayload = {
   tenderedAmount: number;
   tableNumber: string | null;
   orderType: string | null;
+  diningCourse?: string | null;
   deliveryRepId?: number;
   deliveryStatus?: string;
   collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
   deliveryFeeMode?: 'freelance_courier' | 'store_fleet';
+  terminalId?: string | null;
+  terminalAuthCode?: string | null;
+  terminalRrn?: string | null;
+  cardScheme?: string | null;
+  cardLastFour?: string | null;
 };

@@ -2450,6 +2450,86 @@ export class AccountingPostingService {
     }
   }
 
+  async postFoodWaste(queryable: DbOrTx, wasteLogId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const log = await queryable
+      .selectFrom('restaurant_food_waste_logs')
+      .selectAll()
+      .where('id', '=', wasteLogId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!log) return { posted: false, journalEntryId: null };
+
+    const totalCost = Number(log.total_cost || 0);
+    if (totalCost <= 0) return { posted: false, journalEntryId: null };
+
+    const amount = this.toMoney(totalCost);
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let inventoryAccountId = Number(settings?.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) {
+      inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+    }
+    const wasteExpenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5300');
+
+    const branchId = log.branch_id ? Number(log.branch_id) : null;
+    const locationId: number | null = null;
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: wasteExpenseAccountId,
+      description: `مصروف هدر وتالف مطبخ - ${log.reason}`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: inventoryAccountId,
+      description: 'نقص مخزون بسبب هدر المطبخ',
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'food_waste',
+        sourceId: wasteLogId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: log.created_at ? new Date(log.created_at) : new Date(),
+        description: `قيد هدر وتالف مطبخ - سجل #${wasteLogId}`,
+        branchId,
+        locationId,
+        createdBy: log.logged_by ? Number(log.logged_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+        const existing = await queryable
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('source_type', '=', 'food_waste')
+          .where('source_id', '=', wasteLogId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
   async postStockCount(queryable: DbOrTx, sessionId: number, auth: AuthContext, itemIds?: number[]): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);

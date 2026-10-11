@@ -13,6 +13,8 @@ export interface HeldPosDraftSummary {
   itemsCount: number;
   tableNumber?: string;
   orderType?: 'dine_in' | 'takeaway' | 'delivery';
+  guestCount?: number;
+  guestCheckPrintedAt?: string | null;
 }
 
 export interface PosCartPanelProps {

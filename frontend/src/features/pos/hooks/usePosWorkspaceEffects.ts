@@ -24,6 +24,8 @@ export function usePosWorkspaceEffects({
   search,
   priceType,
   tableNumber,
+  guestCount,
+  guestCheckPrintedAt,
   orderType,
 
   products,
@@ -67,6 +69,8 @@ export function usePosWorkspaceEffects({
   search: string;
   priceType: PosPriceType;
   tableNumber: string;
+  guestCount?: number;
+  guestCheckPrintedAt?: string | null;
   orderType: string;
   deliveryRepId?: string;
   collectionStatus?: string;
@@ -121,13 +125,15 @@ export function usePosWorkspaceEffects({
         search,
         priceType,
         tableNumber,
+        guestCount,
+        guestCheckPrintedAt,
         orderType,
         branchId: '',
         locationId: '',
       }));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [cart, customerId, quickCustomerName, quickCustomerPhone, quickCustomerAddress, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType]);
+  }, [cart, customerId, quickCustomerName, quickCustomerPhone, quickCustomerAddress, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, guestCount, guestCheckPrintedAt, orderType]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

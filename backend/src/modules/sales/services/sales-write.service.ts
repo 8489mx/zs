@@ -266,12 +266,28 @@ export class SalesWriteService {
     items: any[],
   ): Promise<void> {
     const productIds = new Set<number>();
+    const optionIds = new Set<number>();
     for (const item of items) {
       const id = Number(item.productId ?? item.product_id);
       if (id > 0) productIds.add(id);
       for (const modifier of Array.isArray(item.modifiers) ? item.modifiers : []) {
-        const modifierId = Number(modifier.productId);
+        const modifierId = Number(modifier.productId || modifier.componentProductId || modifier.component_product_id);
         if (modifierId > 0) productIds.add(modifierId);
+        const optId = Number(modifier.optionId || modifier.option_id || modifier.id);
+        if (optId > 0 && !modifierId) optionIds.add(optId);
+      }
+    }
+
+    if (optionIds.size > 0) {
+      const modOptions = await trx.selectFrom('pos_modifier_options')
+        .select(['id', 'component_product_id'])
+        .where('id', 'in', [...optionIds])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+      for (const opt of modOptions) {
+        if (opt.component_product_id && Number(opt.component_product_id) > 0) {
+          productIds.add(Number(opt.component_product_id));
+        }
       }
     }
 
@@ -1155,6 +1171,22 @@ export class SalesWriteService {
           item, 
           { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
         );
+
+        // Absorb additional modifier costs (e.g. extra cheese, bacon) into line cost for accurate COGS accounting
+        let additionalModifierCost = 0;
+        if (Array.isArray(item.modifiers) && item.modifiers.length > 0) {
+          for (const m of item.modifiers) {
+            const mCost = Number(m.costPrice || m.cost_price || 0);
+            const mQty = Number(m.qty || 1);
+            if (mCost > 0) {
+              additionalModifierCost += mCost * mQty;
+            }
+          }
+        }
+        if (additionalModifierCost > 0) {
+          preparedItem.costPrice = Number((Number(preparedItem.costPrice || 0) + additionalModifierCost).toFixed(3));
+        }
+
         subtotal += preparedItem.lineTotal;
         preparedItems.push({ ...preparedItem, isService: (product as any).item_type === 'service' });
         
@@ -1202,10 +1234,9 @@ export class SalesWriteService {
         pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
       }
 
-      const unapprovedDiscount = Math.max(0, Number((normalized.discount - Number(effectiveTerms?.approvedDiscount || 0)).toFixed(2)));
       await this.assertDiscountChangeAllowed(trx, auth, unapprovedDiscount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
-      const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee, normalized.serviceCharge);
       const allocatedLines = allocateInvoiceDiscount({
         lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
         invoiceDiscount: effectiveDiscount, invoiceTax: taxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
@@ -1345,6 +1376,10 @@ export class SalesWriteService {
       if (floorApproval) {
         saleNote = `${saleNote ? `${saleNote} | ` : ''}[اعتماد بيع تحت الحد: ${floorApproval.authorizedByName}; أصناف ${belowFloorItems.map((item) => item.productId).join(',')}]`;
       }
+      if (normalized.terminalAuthCode) {
+        const terminalTag = `[تفويض شبكة: ${normalized.cardScheme || 'بطاقة'} | ${normalized.terminalAuthCode}${normalized.terminalRrn ? ` | مرجع: ${normalized.terminalRrn}` : ''}]`;
+        saleNote = saleNote ? `${saleNote} | ${terminalTag}` : terminalTag;
+      }
 
       const saleInsert = await trx
         .insertInto('sales')
@@ -1375,11 +1410,19 @@ export class SalesWriteService {
           location_id: normalized.locationId,
           table_number: String(normalized.tableNumber || '').trim(),
           order_type: String(normalized.orderType || 'takeaway').trim(),
+          dining_course: normalized.diningCourse || null,
+          service_charge: normalized.serviceCharge || 0,
+          guest_count: normalized.guestCount || 1,
           delivery_rep_id: deliveryRepId,
           delivery_status: deliveryStatus,
           collection_status: collectionStatus,
           created_by: auth.userId,
           cancel_reason: '',
+          terminal_id: normalized.terminalId || null,
+          terminal_auth_code: normalized.terminalAuthCode || null,
+          terminal_rrn: normalized.terminalRrn || null,
+          card_scheme: normalized.cardScheme || null,
+          card_last_four: normalized.cardLastFour || null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)
@@ -1405,10 +1448,35 @@ export class SalesWriteService {
             applied_amount: payment.amount,
             tendered_amount: payment.tenderedAmount,
             change_amount: payment.changeAmount,
+            terminal_id: payment.paymentChannel === 'card' ? (normalized.terminalId || null) : null,
+            card_auth_code: payment.paymentChannel === 'card' ? (normalized.terminalAuthCode || null) : null,
+            card_rrn: payment.paymentChannel === 'card' ? (normalized.terminalRrn || null) : null,
+            card_scheme: payment.paymentChannel === 'card' ? (normalized.cardScheme || null) : null,
+            card_last_four: payment.paymentChannel === 'card' ? (normalized.cardLastFour || null) : null,
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           }))
         ).execute();
+      }
+
+      if (normalized.terminalAuthCode) {
+        await trx.insertInto('pos_audit_events').values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          event_type: 'terminal_payment_approved',
+          user_id: auth.userId,
+          sale_id: id,
+          product_id: null,
+          amount: payments.find((p) => p.paymentChannel === 'card')?.amount || total,
+          reason: `تفويض دفع إلكتروني ناجح من جهاز ${normalized.terminalId || 'EDC'} (${normalized.cardScheme || 'بطاقة'})`,
+          metadata: JSON.stringify({
+            terminalId: normalized.terminalId,
+            authCode: normalized.terminalAuthCode,
+            rrn: normalized.terminalRrn,
+            cardScheme: normalized.cardScheme,
+            cardLastFour: normalized.cardLastFour,
+          }),
+        }).execute();
       }
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
@@ -1561,21 +1629,37 @@ export class SalesWriteService {
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
-            if (mod.productId) {
-              const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
+            let rawModProductId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0);
+            let consumptionRate = Number(mod.consumptionQty || mod.consumption_qty || 1);
+
+            if (rawModProductId <= 0 && (mod.optionId || mod.option_id || mod.id)) {
+              const optId = Number(mod.optionId || mod.option_id || mod.id);
+              const optRow = await trx.selectFrom('pos_modifier_options')
+                .select(['component_product_id', 'consumption_qty'])
+                .where('id', '=', optId)
+                .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                .executeTakeFirst();
+              if (optRow?.component_product_id) {
+                rawModProductId = Number(optRow.component_product_id);
+                consumptionRate = Number(optRow.consumption_qty || 1);
+              }
+            }
+
+            if (rawModProductId > 0) {
+              const modifierQty = Number((Number(mod.qty || 1) * Number(item.qty || 1) * consumptionRate).toFixed(3));
               
               let modRemainingQty = modifierQty;
               let modAllocationOrder = 1;
               const modAllocations = [];
 
               // Same canonical lock order as the parent item (products -> product_location_stock).
-              await this.lockProductRow(trx, Number(mod.productId), scope);
+              await this.lockProductRow(trx, rawModProductId, scope);
 
               for (const loc of eligibleLocations) {
                 if (modRemainingQty <= 0) break;
                 const locStock = await trx.selectFrom('product_location_stock')
                   .select(['qty', 'reserved_qty'])
-                  .where('product_id', '=', Number(mod.productId))
+                  .where('product_id', '=', rawModProductId)
                   .where('location_id', '=', loc.id)
                   .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
                   .forUpdate()
@@ -1599,7 +1683,7 @@ export class SalesWriteService {
 
               for (const alloc of modAllocations) {
                 const modStockChange = await applyStockDelta(trx, {
-                  productId: Number(mod.productId),
+                  productId: rawModProductId,
                   delta: -alloc.qty,
                   branchId: alloc.branchId,
                   locationId: alloc.locationId,
@@ -1613,7 +1697,7 @@ export class SalesWriteService {
                 await trx
                   .insertInto('stock_movements')
                   .values({
-                    product_id: Number(mod.productId),
+                    product_id: rawModProductId,
                     movement_type: 'sale',
                     qty: -alloc.qty,
                     before_qty: modStockChange.scopeBefore,
@@ -1635,7 +1719,7 @@ export class SalesWriteService {
                    account_id: scope.accountId,
                    sale_id: id,
                    sale_line_id: saleLineId,
-                   product_id: Number(mod.productId),
+                   product_id: rawModProductId,
                    location_id: alloc.locationId as number,
                    quantity: alloc.qty,
                    allocation_order: modAllocationOrder++,

@@ -19,6 +19,7 @@ import { PosScannedInvoiceModal } from '@/features/pos/components/pos-workspace/
 import { PosRecentSalesReprintModal } from '@/features/pos/components/pos-workspace/PosRecentSalesReprintModal';
 import { PosPhoneOrderDialog } from '@/features/pos/components/pos-workspace/PosPhoneOrderDialog';
 import { PosCallerIdFloatingAlert } from '@/features/pos/components/pos-workspace/PosCallerIdFloatingAlert';
+import { PosComboMealModal } from '@/features/pos/components/pos-workspace/PosComboMealModal';
 import { salesApi } from '@/features/sales/api/sales.api';
 import {
   getSelectedCustomerName,
@@ -42,6 +43,9 @@ import {
 } from '@/features/pos/lib/pos-barcode-normalizer';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product, Sale } from '@/types/domain';
+import { printGuestCheck } from '@/lib/pos-printing';
+import { persistHeldDrafts } from '@/features/pos/lib/pos.persistence';
+import { toast } from '@/shared/components/system-alert';
 
 const LazyPosEditProductModal = lazy(() => import('@/features/pos/components/pos-workspace/PosEditProductModal').then((m) => ({ default: m.PosEditProductModal })));
 
@@ -74,6 +78,7 @@ export function PosWorkspace() {
   const [scannedSale, setScannedSale] = useState<Sale | null>(null);
   const [scannedSaleModalOpen, setScannedSaleModalOpen] = useState(false);
   const [reprintModalOpen, setReprintModalOpen] = useState(false);
+  const [comboMealModalOpen, setComboMealModalOpen] = useState(false);
   const [phoneOrderOpen, setPhoneOrderOpen] = useState(false);
   const [phoneOrderInitialPhone, setPhoneOrderInitialPhone] = useState('');
   const [phoneOrderInitialName, setPhoneOrderInitialName] = useState('');
@@ -566,6 +571,7 @@ export function PosWorkspace() {
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
         onOpenReprintModal={() => setReprintModalOpen(true)}
+        onOpenComboModal={() => setComboMealModalOpen(true)}
       />
 
       <PosWorkspaceMainContent
@@ -640,6 +646,31 @@ export function PosWorkspace() {
         onFocusBarcodeEntry={focusBarcodeEntry}
       />
 
+      <PosComboMealModal
+        open={comboMealModalOpen}
+        onClose={() => setComboMealModalOpen(false)}
+        products={pos.products || []}
+        onAddComboToCart={(combo) => {
+          const product = (pos.products || []).find((p: any) => p.id === combo.productId);
+          if (product) {
+            pos.handleAddProduct(product);
+            pos.setCart((prevCart: any[]) => {
+              const lastIdx = prevCart.length - 1;
+              if (lastIdx < 0) return prevCart;
+              const updated = [...prevCart];
+              updated[lastIdx] = {
+                ...updated[lastIdx],
+                name: combo.productName,
+                notes: combo.notes,
+                modifiers: combo.modifiers,
+              };
+              return updated;
+            });
+            toast.success(`تمت إضافة ${combo.productName} إلى السلة بنجاح`);
+          }
+        }}
+      />
+
       {/* 1. Restaurant Unified Floor & Orders Dialog (Restaurant Mode) */}
       {isRestaurantActive && (
         <PosTablesFloorPlanDialog
@@ -654,6 +685,68 @@ export function PosWorkspace() {
           currentCartTotal={Number(pos.totals?.total || 0)}
           heldDrafts={pos.heldDraftSummaries || []}
           initialTab={restaurantInitialTab}
+          isCurrentCheckPrinted={Boolean(pos.guestCheckPrintedAt)}
+          onPrintGuestCheck={async (tableNum, draftId) => {
+            if (tableNum === pos.tableNumber && pos.cart.length > 0) {
+              pos.printGuestCheckNow();
+              toast.success(`تمت طباعة شيك طاولة ${tableNum} بنجاح`);
+              return;
+            }
+            const matchingDraft = pos.heldDrafts.find((d) => String(d.id) === String(draftId) || String(d.tableNumber).trim() === String(tableNum).trim());
+            if (matchingDraft) {
+              const subtotal = (matchingDraft.cart || []).reduce((sum, item) => {
+                const modifiersTotal = (item.modifiers || []).reduce((modSum: number, mod: any) => modSum + Number(mod.price || 0), 0);
+                return sum + (item.qty * (item.price + modifiersTotal));
+              }, 0);
+              const discount = Number(matchingDraft.discount || 0);
+              const isServiceChargeActive = Boolean(
+                pos.settingsQuery.data?.restaurantServiceChargeEnabled && matchingDraft.orderType === 'dine_in'
+              );
+              const serviceChargePercent = isServiceChargeActive
+                ? Math.max(0, Number(pos.settingsQuery.data?.restaurantServiceChargePercent ?? 0))
+                : 0;
+              const discounted = Math.max(0, subtotal - discount);
+              const serviceCharge = serviceChargePercent > 0
+                ? Number(((discounted * serviceChargePercent) / 100).toFixed(2))
+                : 0;
+              const taxRate = Number(pos.settingsQuery.data?.taxRate || 0);
+              const baseBeforeTax = discounted + serviceCharge;
+              let taxAmount = 0;
+              let total = 0;
+              if (taxRate > 0) {
+                if (String(pos.settingsQuery.data?.taxMode || 'exclusive') === 'inclusive') {
+                  total = baseBeforeTax;
+                  taxAmount = Number((baseBeforeTax - (baseBeforeTax / (1 + taxRate / 100))).toFixed(2));
+                } else {
+                  taxAmount = Number((baseBeforeTax * (taxRate / 100)).toFixed(2));
+                  total = Number((baseBeforeTax + taxAmount).toFixed(2));
+                }
+              } else {
+                total = baseBeforeTax;
+              }
+
+              printGuestCheck({
+                tableNumber: tableNum,
+                items: matchingDraft.cart || [],
+                subtotal,
+                discount,
+                serviceCharge,
+                taxAmount,
+                total,
+                guestCount: (matchingDraft as any).guestCount || 1,
+                customerName: matchingDraft.customerName || matchingDraft.quickCustomerName || undefined,
+                branchName: pos.currentBranch?.name,
+                locationName: pos.currentLocation?.name,
+                settings: pos.settingsQuery.data || null,
+              });
+
+              (matchingDraft as any).guestCheckPrintedAt = new Date().toISOString();
+              const updatedHeld = pos.heldDrafts.map((d) => d.id === matchingDraft.id ? { ...matchingDraft } : d);
+              persistHeldDrafts(updatedHeld);
+              void pos.saveHeldDraftMutation?.mutateAsync?.(matchingDraft);
+              toast.success(`تمت طباعة شيك طاولة ${tableNum} بنجاح`);
+            }
+          }}
           onSelectTable={async (tableNum) => {
             if (pos.cart.length > 0) {
               await pos.holdDraft();
@@ -664,6 +757,19 @@ export function PosWorkspace() {
             pos.setQuickCustomerName('');
             pos.setQuickCustomerPhone('');
             pos.setQuickCustomerAddress('');
+          }}
+          onSeatReservation={async (tableNum, guestCount, guestName) => {
+            if (pos.cart.length > 0) {
+              await pos.holdDraft();
+            }
+            pos.setOrderType('dine_in');
+            pos.setTableNumber(tableNum);
+            pos.setGuestCount(guestCount || 1);
+            if (guestName) {
+              pos.setQuickCustomerName(guestName);
+            }
+            setRestaurantTablesOpen(false);
+            toast.success(`تم إجلاس الضيف على طاولة ${tableNum} بعدد ${guestCount} أفراد.`);
           }}
           onRecallDraft={async (draftId) => {
             if (pos.cart.length > 0) {

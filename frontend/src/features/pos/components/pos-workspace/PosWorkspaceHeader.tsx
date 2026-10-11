@@ -12,6 +12,8 @@ import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
 import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
 import { PosOfflineQueueModal } from './PosOfflineQueueModal';
 import { PosInstantExchangeDialog } from './PosInstantExchangeDialog';
+import { PosDeliveryAggregatorsModal } from './PosDeliveryAggregatorsModal';
+import { PosFoodWasteModal } from './PosFoodWasteModal';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
@@ -34,7 +36,9 @@ import {
   MenuIcon,
   ChevronDownIcon,
   PhoneCallIcon,
+  PrinterIcon,
 } from '@/shared/components/icons/AppIcons';
+import { formatCurrency } from '@/lib/format';
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
@@ -50,9 +54,10 @@ interface PosWorkspaceHeaderProps {
   onRequestOpenShift?: () => void;
   onOpenSerialLookup?: () => void;
   onOpenReprintModal?: () => void;
+  onOpenComboModal?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onOpenPhoneOrder, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onOpenPhoneOrder, onRequestOpenShift, onOpenReprintModal, onOpenComboModal }: PosWorkspaceHeaderProps) {
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isPhoneOrdersActive = settings?.phoneOrdersModuleEnabled === true || (settings?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(settings?.businessIndustry || '')));
@@ -68,6 +73,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   const [isNoSalePending, setIsNoSalePending] = useState(false);
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
+  const [isAggregatorsOpen, setIsAggregatorsOpen] = useState(false);
+  const [isFoodWasteOpen, setIsFoodWasteOpen] = useState(false);
   const [isScreensMenuOpen, setIsScreensMenuOpen] = useState(false);
   const [screensMenuStyle, setScreensMenuStyle] = useState<React.CSSProperties>({});
   const screensMenuContainerRef = useRef<HTMLDivElement>(null);
@@ -295,6 +302,210 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             </Button>
           )}
 
+          {/* Dining Course Selector for Active Table */}
+          {pos.tableNumber && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                padding: '2px',
+                gap: '2px',
+              }}
+              title="تحديد مسار تقديم الوجبة للمطبخ (Courser)"
+            >
+              {[
+                { key: 'appetizer', label: 'مقبلات' },
+                { key: 'main', label: 'رئيسي' },
+                { key: 'dessert', label: 'حلوى' },
+              ].map((c) => {
+                const active = (pos as any).diningCourse === c.key || (!pos.diningCourse && c.key === 'main');
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => (pos as any).setDiningCourse?.(c.key)}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: active ? '#170e5e' : 'transparent',
+                      color: active ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Guest Count (Covers) Stepper & Spend per guest - Strict RTL Stepper: [+] (العدد) [-] */}
+          {(pos.tableNumber || pos.orderType === 'dine_in') && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                padding: '2px 4px',
+                gap: '3px',
+                height: '30px',
+              }}
+              title="عدد الضيوف على الطاولة ومؤشر متوسط إنفاق الفرد"
+            >
+              <button
+                type="button"
+                onClick={() => (pos as any).setGuestCount?.((prev: number) => Math.min(99, (prev || 1) + 1))}
+                style={{
+                  width: '22px',
+                  height: '22px',
+                  border: 'none',
+                  background: '#f1f5f9',
+                  color: '#0f172a',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="زيادة عدد الضيوف"
+              >
+                +
+              </button>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e', minWidth: '46px', textAlign: 'center' }}>
+                {(pos as any).guestCount || 1} ضيوف
+              </span>
+              <button
+                type="button"
+                onClick={() => (pos as any).setGuestCount?.((prev: number) => Math.max(1, (prev || 1) - 1))}
+                style={{
+                  width: '22px',
+                  height: '22px',
+                  border: 'none',
+                  background: '#f1f5f9',
+                  color: '#0f172a',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="إنقاص عدد الضيوف"
+              >
+                -
+              </button>
+              {pos.cart.length > 0 && (
+                <span
+                  style={{
+                    marginRight: '4px',
+                    paddingRight: '6px',
+                    borderRight: '1px solid #e2e8f0',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    color: '#475569',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  متوسط الفرد: <strong style={{ color: '#047857' }}>{formatCurrency((pos.totals?.total || 0) / ((pos as any).guestCount || 1))}</strong>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 1-Click Print Guest Check Button for Active Table/Cart */}
+          {(pos.tableNumber || pos.orderType === 'dine_in') && pos.cart.length > 0 && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => (pos as any).printGuestCheckNow?.()}
+              style={{
+                fontWeight: 800,
+                fontSize: '11.5px',
+                height: '30px',
+                padding: '0 10px',
+                color: (pos as any).guestCheckPrintedAt ? '#92400e' : '#170e5e',
+                background: (pos as any).guestCheckPrintedAt ? '#fef3c7' : '#f8fafc',
+                border: (pos as any).guestCheckPrintedAt ? '1px solid #fde68a' : '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="طباعة شيك حساب الطاولة غير المسدد للزبون للمعاينة"
+            >
+              <PrinterIcon size={14} />
+              <span>{(pos as any).guestCheckPrintedAt ? 'تم تسليم الشيك (إعادة طباعة)' : 'طباعة الشيك المبدئي'}</span>
+            </Button>
+          )}
+
+          {/* Combo Meal Builder */}
+          {isRestaurantActive && onOpenComboModal && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onOpenComboModal}
+              style={{
+                fontWeight: 800,
+                fontSize: '11.5px',
+                height: '30px',
+                padding: '0 10px',
+                color: '#170e5e',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="بناء وجبة كومبو تجميعية سريعة خطوة بخطوة"
+            >
+              <span>وجبة كومبو</span>
+            </Button>
+          )}
+
+          {/* Delivery Aggregators Hub (Jahez, Hungerstation, Talabat, Keeta) */}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsAggregatorsOpen(true)}
+            style={{
+              fontWeight: 700,
+              color: '#170e5e',
+              background: '#eef2ff',
+              border: '1px solid #c7d2fe',
+            }}
+            title="منظومة تطبيقات التوصيل الخليجية (جاهز، هنقرستيشن، طلبات، كيتا) وإيقاف الأصناف 86"
+          >
+            منصات التوصيل
+          </Button>
+
+          {/* Kitchen Food Waste Logger */}
+          {(isRestaurantActive || ['restaurant', 'food_beverage'].includes(settings?.businessIndustry || '')) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsFoodWasteOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#991b1b',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+              }}
+              title="تسجيل هدر وتالف المطبخ والوجبات وخصم المواد الخام لحظياً"
+            >
+              هدر المطبخ
+            </Button>
+          )}
+
           {/* 5. Online Orders Smart Notification Badge (Only when Storefront is active and pending orders exist) */}
           {isStorefrontActive && pendingCount > 0 && (
             <Button
@@ -463,6 +674,74 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                     </div>
                   </button>
                 )}
+
+                {/* 4. Order Status / Pickup Board - Restaurant Mode */}
+                {isRestaurantActive && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsScreensMenuOpen(false);
+                      window.open('/pos/order-status', 'OrderStatusBoardWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      width: '100%',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <CheckCircleIcon size={17} color="#16a34a" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>شاشة جاهزية الطلبات (Pickup Board)</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>شاشة الانتظار وإعلان أرقام الطلبات للزبائن</div>
+                    </div>
+                  </button>
+                )}
+
+                {/* 5. Handheld Waiter / Captain Station */}
+                {isRestaurantActive && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsScreensMenuOpen(false);
+                      window.open('/pos/waiter', 'WaiterStationWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      width: '100%',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <UsersIcon size={17} color="#4338ca" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>محطة الويتر وكابتن الصالة (Captain Station)</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>واجهة سريعة للأجهزة المحمولة لأخذ طلبات الطاولة</div>
+                    </div>
+                  </button>
+                )}
               </div>,
               document.body
             )}
@@ -599,6 +878,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       </div>
     </DialogShell>
     <PosInstantExchangeDialog open={isExchangeOpen} onClose={() => setIsExchangeOpen(false)} pos={pos} />
+    <PosDeliveryAggregatorsModal open={isAggregatorsOpen} onClose={() => setIsAggregatorsOpen(false)} />
+    <PosFoodWasteModal open={isFoodWasteOpen} onClose={() => setIsFoodWasteOpen(false)} branchId={Number(pos.branchId) || 1} />
     </>
   );
 }

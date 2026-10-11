@@ -19,7 +19,7 @@ interface PosWorkspaceDerivedParams {
   openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number; openedByName?: string }>;
   authUserId?: string | number | null;
   authPermissions?: string[];
-  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown; posMaxDiscountThresholdEnabled?: boolean; posMaxDiscountThresholdType?: string; posMaxDiscountThresholdValue?: number; loyaltyPointRedeemValue?: number; loyaltyPointsPer100Egp?: number; loyaltyMinRedeemPoints?: number; loyaltyMaxDiscountPercentage?: number; loyaltyEnabled?: boolean } | null;
+  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown; posMaxDiscountThresholdEnabled?: boolean; posMaxDiscountThresholdType?: string; posMaxDiscountThresholdValue?: number; loyaltyPointRedeemValue?: number; loyaltyPointsPer100Egp?: number; loyaltyMinRedeemPoints?: number; loyaltyMaxDiscountPercentage?: number; loyaltyEnabled?: boolean; restaurantServiceChargeEnabled?: boolean; restaurantServiceChargePercent?: number } | null;
   heldDrafts: Array<unknown>;
   recentProductIds: string[];
   productFilter: PosProductFilter;
@@ -155,33 +155,49 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     const loyaltyDiscount = Math.max(0, Number((Number(params.loyaltyPointsRedeemed || 0) * pointRedeemValue).toFixed(2)));
     const discountValue = manualDiscount + loyaltyDiscount;
     const deliveryFee = Math.max(0, Number(params.deliveryFee || 0));
+
+    // Restaurant Dine-in Service Charge
+    const isServiceChargeActive = Boolean(
+      params.settings?.restaurantServiceChargeEnabled && params.orderType === 'dine_in'
+    );
+    const serviceChargePercent = isServiceChargeActive
+      ? Math.max(0, Number(params.settings?.restaurantServiceChargePercent ?? 0))
+      : 0;
+    const discounted = Math.max(0, subTotal - discountValue);
+    const serviceCharge = serviceChargePercent > 0
+      ? Number(((discounted * serviceChargePercent) / 100).toFixed(2))
+      : 0;
+
+    const baseBeforeTax = Number((discounted + serviceCharge).toFixed(2));
     const taxRate = Number(params.settings?.taxRate || 0);
     const pricesIncludeTax = String(params.settings?.taxMode || 'exclusive') === 'inclusive';
     let taxAmount = 0;
-    let total = Math.max(0, subTotal - discountValue);
+    let total = 0;
     if (taxRate > 0) {
       if (pricesIncludeTax) {
-        total = Number((total + deliveryFee).toFixed(2));
-        taxAmount = Number((total - (total / (1 + taxRate / 100))).toFixed(2));
+        total = Number((baseBeforeTax + deliveryFee).toFixed(2));
+        taxAmount = Number((baseBeforeTax - (baseBeforeTax / (1 + taxRate / 100))).toFixed(2));
       } else {
-        taxAmount = Number((total * (taxRate / 100)).toFixed(2));
-        total = Number((total + taxAmount + deliveryFee).toFixed(2));
+        taxAmount = Number((baseBeforeTax * (taxRate / 100)).toFixed(2));
+        total = Number((baseBeforeTax + taxAmount + deliveryFee).toFixed(2));
       }
     } else {
-      total = Number((total + deliveryFee).toFixed(2));
+      total = Number((baseBeforeTax + deliveryFee).toFixed(2));
     }
     return {
       subTotal: Number(subTotal.toFixed(2)),
       discountValue: Number(discountValue.toFixed(2)),
       manualDiscount: Number(manualDiscount.toFixed(2)),
       loyaltyDiscount: Number(loyaltyDiscount.toFixed(2)),
+      serviceCharge,
+      serviceChargePercent,
       deliveryFee: Number(deliveryFee.toFixed(2)),
       taxRate,
       pricesIncludeTax,
       taxAmount,
       total,
     };
-  }, [params.cart, params.discount, params.loyaltyPointsRedeemed, params.deliveryFee, params.settings]);
+  }, [params.cart, params.discount, params.loyaltyPointsRedeemed, params.deliveryFee, params.settings, params.orderType]);
 
   const changeAmount = useMemo(() => Math.max(0, Number(params.paidAmount || 0) - totals.total), [params.paidAmount, totals.total]);
   const amountDue = useMemo(() => Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0)), [params.paidAmount, totals.total]);

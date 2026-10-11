@@ -6,6 +6,8 @@ interface KdsFilterBarProps {
   onSelectStation: (station: KdsStation) => void;
   selectedOrderType: string;
   onSelectOrderType: (orderType: string) => void;
+  selectedCourse?: string;
+  onSelectCourse?: (course: string) => void;
 }
 
 const STATIONS: { key: KdsStation; label: string }[] = [
@@ -23,11 +25,20 @@ const ORDER_TYPES = [
   { key: 'delivery', label: 'دليفري' },
 ];
 
+const COURSES = [
+  { key: 'all', label: 'كل الأطباق' },
+  { key: 'appetizer', label: 'مقبلات' },
+  { key: 'main', label: 'أطباق رئيسية' },
+  { key: 'dessert', label: 'حلويات' },
+];
+
 export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
   selectedStation,
   onSelectStation,
   selectedOrderType,
   onSelectOrderType,
+  selectedCourse = 'all',
+  onSelectCourse,
 }) => {
   return (
     <div
@@ -62,7 +73,6 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
                 backgroundColor: isActive ? '#170e5e' : '#ffffff',
                 color: isActive ? '#ffffff' : '#334155',
                 boxShadow: isActive ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
-                transition: 'all 0.15s ease',
               }}
             >
               {s.label}
@@ -70,6 +80,35 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
           );
         })}
       </div>
+
+      {/* Course Filter Pills */}
+      {onSelectCourse && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>المسار:</span>
+          {COURSES.map((c) => {
+            const isActive = selectedCourse === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => onSelectCourse(c.key)}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: `1px solid ${isActive ? '#047857' : '#cbd5e1'}`,
+                  backgroundColor: isActive ? '#047857' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#334155',
+                }}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Order Type Filter Pills */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -91,7 +130,6 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
                 backgroundColor: isActive ? '#170e5e' : '#ffffff',
                 color: isActive ? '#ffffff' : '#334155',
                 boxShadow: isActive ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
-                transition: 'all 0.15s ease',
               }}
             >
               {ot.label}

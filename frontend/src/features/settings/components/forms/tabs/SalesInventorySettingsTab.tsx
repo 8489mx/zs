@@ -106,6 +106,16 @@ function RestaurantTablesIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function RestaurantServiceChargeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+      <path d="M16 11l2 2 4-4" />
+    </svg>
+  );
+}
+
 function CourierCommissionIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1317,6 +1327,47 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   </div>
                 </div>
               )}
+
+              {/* Card 10: Restaurant Service Charge (Only for Restaurants & Cafes) */}
+              {isRestaurantVertical && (
+                <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={iconBadgeStyle}>
+                      <RestaurantServiceChargeIcon size={20} />
+                    </div>
+                    <div style={premiumCardTextStyle}>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم خدمة الصالة التلقائية (Service Charge)</strong>
+                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        إضافة نسبة مئوية لخدمة الصالة تلقائياً عند اختيار طلب صالة (Dine-in)
+                      </small>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-label="تفعيل رسوم خدمة الصالة"
+                      {...form.register('restaurantServiceChargeEnabled')}
+                      disabled={disabled}
+                      style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        {...form.register('restaurantServiceChargePercent')}
+                        disabled={disabled || !form.watch('restaurantServiceChargeEnabled')}
+                        placeholder="12"
+                        style={{ width: '70px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                      />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1358,16 +1409,33 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   value={form.watch('posTerminalProvider') || 'mock_sandbox'}
                   onChange={(val) => form.setValue('posTerminalProvider', val as any, { shouldDirty: true, shouldValidate: true })}
                   options={[
-                    { value: 'geidea', label: 'Geidea POS (جيديا - السعودية / مصر)' },
+                    { value: 'geidea', label: 'Geidea POS (جيديا - شبكة مدى / السعودية)' },
+                    { value: 'network_international', label: 'Network International (NI - الإمارات)' },
+                    { value: 'knet_pos', label: 'KNET POS (كي نت - أجهزة الدفع بالكويت)' },
+                    { value: 'fawry', label: 'Fawry POS / PAX (فوري - أجهزة PAX الذكية بمصر)' },
                     { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
-                    { value: 'fawry', label: 'Fawry POS / PAX (فوري نقاط البيع - أجهزة PAX الذكية)' },
-                    { value: 'network_international', label: 'Network International (NI)' },
                     { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
                   ]}
                   disabled={disabled || !form.watch('posTerminalEnabled')}
                 />
                 <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
                   يدعم الربط الشبكي بروتوكول TCP/IP و ECR عبر الشبكة المحلية (LAN/Wi-Fi).
+                </span>
+              </div>
+
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    {...form.register('posTerminalAutoFinalize')}
+                    disabled={disabled || !form.watch('posTerminalEnabled')}
+                  />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
+                    إتمام وطباعة الفاتورة تلقائياً بمجرد موافقة ماكينة الدفع (Zero-Click Checkout)
+                  </span>
+                </label>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', display: 'block', paddingRight: '22px' }}>
+                  يغلق الفاتورة ويطبع إيصال مدى / كي نت آلياً فور اعتماد العميل لسحب البطاقة دون أي نقرات إضافية.
                 </span>
               </div>
             </div>

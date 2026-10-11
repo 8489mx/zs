@@ -1,10 +1,11 @@
-export type ReportsSectionKey = 'overview' | 'sales' | 'purchases' | 'inventory' | 'balances' | 'treasury' | 'employees' | 'aging' | 'forecasting' | 'customers';
+export type ReportsSectionKey = 'overview' | 'sales' | 'purchases' | 'inventory' | 'food_cost_variance' | 'balances' | 'treasury' | 'employees' | 'aging' | 'forecasting' | 'customers';
 
 export const reportsSections: Array<{ key: ReportsSectionKey; label: string; description?: string }> = [
   { key: 'overview', label: 'نظرة عامة' },
   { key: 'sales', label: 'المبيعات' },
   { key: 'treasury', label: 'الخزنة والربحية' },
   { key: 'inventory', label: 'المخزون' },
+  { key: 'food_cost_variance', label: 'تكاليف الأغذية وانحراف الهدر (F&B)' },
   { key: 'balances', label: 'الذمم' },
   { key: 'customers', label: 'سلوك العملاء (RFM)' },
   { key: 'aging', label: 'أعمار الديون' },

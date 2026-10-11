@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { productsApi } from '@/features/products/api/products.api';
 import type { ModifierGroup, ModifierOption } from '@/shared/api/addons.api';
 
 interface ModifierGroupModalProps {
@@ -51,6 +53,21 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
   modalFeedback,
   onSave,
 }) => {
+  const { data: rawProducts = [] } = useQuery({
+    queryKey: ['products-for-modifiers'],
+    queryFn: () => productsApi.list(),
+    enabled: isOpen,
+    staleTime: 60_000,
+  });
+
+  const productOptions = useMemo(() => [
+    { value: '', label: '— بدون خصم مخزني مباشر —' },
+    ...rawProducts.map((p) => ({
+      value: String(p.id),
+      label: `${p.name}${p.sku ? ` (${p.sku})` : ''}`,
+    })),
+  ], [rawProducts]);
+
   return (
     <StandardDialog
       open={isOpen}
@@ -58,8 +75,8 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
         if (!saving) onClose();
       }}
       title={editingGroup ? 'تعديل مجموعة الإضافات والخيارات' : 'إضافة مجموعة خيارات جديدة'}
-      subtitle="تحديد نوع الاختيار، قواعد الإلزام، والخيارات الإضافية وأسعارها"
-      maxWidth="680px"
+      subtitle="تحديد نوع الاختيار، قواعد الإلزام، وربط الخيارات بالمواد الخام للاستنزاف التلقائي للمخزون"
+      maxWidth="780px"
       footerActions={
         <StandardDialogFooter
           cancelText="إلغاء"
@@ -71,7 +88,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
         />
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
         {modalFeedback && (
           <div
             style={{
@@ -91,7 +108,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. بيانات المجموعة والقواعد (Group Details & Rules)</span>
+            <span>1. بيانات المجموعة والقواعد (Group Rules & Details)</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', marginBottom: '10px' }}>
@@ -136,18 +153,23 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
           </div>
         </div>
 
-        {/* 2. قائمة الخيارات والإضافات */}
+        {/* 2. قائمة الخيارات والإضافات وربط المكونات */}
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
-              <AppIcons.Package size={15} />
-              <span>2. قائمة الخيارات والإضافات (Options & Prices)</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
+                <AppIcons.Package size={15} />
+                <span>2. قائمة الخيارات والإضافات وربط استهلاك المواد الخام</span>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+                يمكنك ربط كل إضافة بمادة خام من المخزن لتُخصم كميتها تلقائياً وتُحسب تكلفتها عند اختيار العميل لها
+              </p>
             </div>
             <button
               type="button"
               onClick={onAddOptionRow}
               style={{
-                padding: '3px 10px',
+                padding: '4px 12px',
                 borderRadius: '6px',
                 border: '1px solid #170e5e',
                 backgroundColor: '#ffffff',
@@ -161,50 +183,105 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
             {formOptions.map((opt, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto auto', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  value={opt.name}
-                  onChange={(e) => onOptionChange(idx, 'name', e.target.value)}
-                  placeholder="اسم الخيار (مثل: جبنة إضافية)..."
-                  style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={opt.price}
-                  onChange={(e) => onOptionChange(idx, 'price', parseFloat(e.target.value) || 0)}
-                  placeholder="السعر الإضافي..."
-                  style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
-                />
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', color: '#64748b' }}>
+              <div
+                key={idx}
+                style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                {/* السطر الأول: الاسم والسعر وحالة الافتراضي والحذف */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto auto', gap: '8px', alignItems: 'center' }}>
                   <input
-                    type="checkbox"
-                    checked={Boolean(opt.isDefault)}
-                    onChange={(e) => onOptionChange(idx, 'isDefault', e.target.checked)}
+                    type="text"
+                    value={opt.name}
+                    onChange={(e) => onOptionChange(idx, 'name', e.target.value)}
+                    placeholder="اسم الخيار (مثل: شريحة جبنة شيدر)..."
+                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
                   />
-                  <span>افتراضي</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onRemoveOptionRow(idx)}
-                  disabled={formOptions.length <= 1}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: '#fef2f2',
-                    color: '#dc2626',
-                    cursor: formOptions.length > 1 ? 'pointer' : 'not-allowed',
-                    opacity: formOptions.length > 1 ? 1 : 0.4,
-                  }}
-                  title="حذف الخيار"
-                >
-                  <AppIcons.Trash size={14} />
-                </button>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={opt.price}
+                    onChange={(e) => onOptionChange(idx, 'price', parseFloat(e.target.value) || 0)}
+                    placeholder="السعر الإضافي..."
+                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
+                  />
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', color: '#64748b' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(opt.isDefault)}
+                      onChange={(e) => onOptionChange(idx, 'isDefault', e.target.checked)}
+                    />
+                    <span>افتراضي</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveOptionRow(idx)}
+                    disabled={formOptions.length <= 1}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: '#fef2f2',
+                      color: '#dc2626',
+                      cursor: formOptions.length > 1 ? 'pointer' : 'not-allowed',
+                      opacity: formOptions.length > 1 ? 1 : 0.4,
+                    }}
+                    title="حذف الخيار"
+                  >
+                    <AppIcons.Trash size={14} />
+                  </button>
+                </div>
+
+                {/* السطر الثاني: استنزاف المخزون والمادة الخام */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '6px 8px', borderRadius: '6px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
+                      المادة الخام المستنزفة (مخزون)
+                    </label>
+                    <CustomSelect
+                      value={opt.componentProductId ? String(opt.componentProductId) : ''}
+                      options={productOptions}
+                      onChange={(val) => onOptionChange(idx, 'componentProductId', val ? Number(val) : null)}
+                      placeholder="— بدون خصم مخزني —"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
+                      كمية الخصم
+                    </label>
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="any"
+                      value={opt.consumptionQty ?? ''}
+                      onChange={(e) => onOptionChange(idx, 'consumptionQty', e.target.value === '' ? null : parseFloat(e.target.value) || 0)}
+                      placeholder="1"
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
+                      الوحدة
+                    </label>
+                    <input
+                      type="text"
+                      value={opt.unitName || ''}
+                      onChange={(e) => onOptionChange(idx, 'unitName', e.target.value)}
+                      placeholder="حبة / جرام / مل..."
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           </div>

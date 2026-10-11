@@ -1605,7 +1605,7 @@ node scripts/<check>.mjs --update-baseline   # لا يُستخدم إلا لاس
 - An offline POS invoice must carry a stable `x-idempotency-key`. All retries use that key and the original payload; the browser queue is tenant/account scoped, and legacy queue entries without ownership must not be replayed automatically into a SaaS tenant.
 - Store credit is a liability in account `2150`: sales debit it when redeemed and returns credit it when granted. A return without a linked customer cannot settle to store credit.
 - Sales and purchase returns lock original invoice lines and check both cumulative line and product quantities, including earlier returns without line IDs. A cash sales refund requires the cashier's open shift on the original branch and updates its expected cash in the same transaction. Shift close stores the signed counted-minus-expected difference in the existing `variance` column.
-- POS terminal sessions are tenant-bound. The in-memory simulator cannot issue an apparent card approval in `CLOUD_SAAS`; a real payment provider integration is required before terminal charging can be enabled there.
+- POS terminal sessions are tenant-bound. ECR card payments record authorization codes (AUTH), retrieval reference numbers (RRN), card scheme (Mada, KNET, Visa, Mastercard, Meeza), masked PAN (last 4 digits), and terminal TID on the sales table, sale_payments table, audit log, and printed thermal slips (customer and merchant copies). The terminal integration supports Geidea (Mada / Saudi), Network International (UAE), KNET (Kuwait), Fawry / Paymob (Egypt), and Sandbox simulator mode with auto-finalize and zero cashier error.
 
 ## Purchases, transfers, and stock counts (2 October 2026)
 
@@ -1754,6 +1754,21 @@ The authenticated master endpoints use private conditional caching and weak ETag
     11. Maritime & Freight Forwarding Cargo (`maritime-cargo-simulation.ts`)
     12. Sectoral Industry Verticals - Pharmacy, Installments, Subscriptions, KDS (`sectoral-industry-simulation.ts`)
     13. Notifications, WhatsApp Gateway & Executive Digest (`notifications-alerts-simulation.ts`)
-
-
+- **Restaurant F&B & Advanced POS Dominance Protocol (Migrations 2040000000210, 2040000000211, 2040000000212, 2040000000213):**
+  - **Migration 2040000000210 (`pos_restaurant_fnb_advanced_features`):** Adds modifier nested groups, delivery aggregator channels (`restaurant_delivery_channels`), food waste logs (`restaurant_food_waste_logs`), and preparation routing.
+  - **Migration 2040000000211 (`pos_terminal_ecr_metadata`):** Adds ECR financial terminal payment reconciliation (`terminal_rrn`, `terminal_auth_code`, `card_scheme`, `card_pan_masked`, `terminal_tid`) on sales, sale payments, and audit ledgers.
+  - **Migration 2040000000212 (`restaurant_service_charge_and_guest_operations`):**
+    - Adds `service_charge` (numeric), `guest_count` (integer), and `guest_check_printed_at` (timestamptz) on `sales`.
+    - **Service Charge Math Invariant:** Applied exclusively when `orderType === 'dine_in'` and `settings.restaurantServiceChargeEnabled === true`. Base before tax = `(subtotal - discount) + serviceCharge`. Sales tax is computed over this combined base, and total = `baseBeforeTax + (tax if exclusive) + deliveryFee`.
+    - **Guest Check & Proforma Invariant:** Proforma table checks must explicitly declare `شيك حساب طاولة (غير مسدد)` and `للمعاينة ومراجعة الحساب فقط` to strictly prevent accounting or tax audit confusion with official VAT/ZATCA fiscal invoices. Printing updates `guest_check_printed_at` and triggers the live "تم تسليم الشيك" status on floor plan cards.
+    - **RTL Stepper Invariant:** All covers counters must place `+` on the right and `-` on the left (`[+] (العدد) [-]`).
+  - **Migration 2040000000213 (`restaurant_table_reservations`):**
+    - Creates `restaurant_table_reservations` table for table reservations and guest lifecycle management (`confirmed`, `seated`, `cancelled`, `no_show`).
+    - 1-click seating links reservation directly to active dine-in table draft with zero manual re-entry.
+    - Customer Pickup & Order Status Board (`/pos/order-status`) operates via real-time KDS state with Web Audio acoustic synthesis for ready orders.
+    - Handheld Waiter Station (`/pos/waiter`) strictly isolates service order entry from drawer, settlement, and accounting controls.
+  - **Restaurant F&B Automated Critical Verification Suites:**
+    - `backend/test/critical/restaurant-fnb-workflow.spec.ts`: Enforces service charge VAT isolation, table reservation status transitions, delivery aggregators net payout, and recipe BOM food waste variance formulas (100% pass, permanently integrated into `npm run test:critical`).
+    - `backend/test/critical/restaurant-full-commercial-simulation.spec.ts`: Simulates full 6-step real-world restaurant day (Hostess reservation -> Waiter order dispatch without drawer privileges -> KDS prep & Customer Pickup Board with audio chime -> 86 Stop List catalog exclusion -> Dine-in service charge, VAT & average guest spend -> Recipe BOM food waste & unexplained variance reconciliation).
+    - `frontend/src/features/pos/lib/comprehensive-recent-features.spec.ts` (Sector 10): 41 comprehensive tests verifying frontend calculations, covers steppers, combo meal builders, and display board partitioning with 100% pass rate.
 

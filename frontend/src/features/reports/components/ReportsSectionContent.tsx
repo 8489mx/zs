@@ -9,6 +9,7 @@ import { EmployeesReportSection } from '@/features/reports/components/sections/E
 import { DebtAgingReportSection } from '@/features/reports/components/sections/DebtAgingReportSection';
 import { DemandForecastingReportSection } from '@/features/reports/components/sections/DemandForecastingReportSection';
 import { CustomerRfmReportSection } from '@/features/reports/components/sections/CustomerRfmReportSection';
+import { FoodCostVarianceReportSection } from '@/features/reports/components/sections/FoodCostVarianceReportSection';
 
 export function ReportsSectionContent(props: ReportsSectionContentProps) {
   // Legacy regression guard: section === 'inventory' and sibling sections are delegated below.
@@ -19,6 +20,8 @@ export function ReportsSectionContent(props: ReportsSectionContentProps) {
       return <PurchasesReportSection {...props} />;
     case 'inventory':
       return <InventoryReportSection {...props} />;
+    case 'food_cost_variance':
+      return <FoodCostVarianceReportSection from={props.from} to={props.to} />;
     case 'balances':
       return <BalancesReportSection {...props} />;
     case 'customers':

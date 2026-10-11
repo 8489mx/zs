@@ -18,6 +18,7 @@ export function KitchenDisplayPage() {
   const queryClient = useQueryClient();
   const [selectedStation, setSelectedStation] = useState<KdsStation>('all');
   const [selectedOrderType, setSelectedOrderType] = useState<string>('all');
+  const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -202,6 +203,8 @@ export function KitchenDisplayPage() {
         onSelectStation={setSelectedStation}
         selectedOrderType={selectedOrderType}
         onSelectOrderType={setSelectedOrderType}
+        selectedCourse={selectedCourse}
+        onSelectCourse={setSelectedCourse}
       />
 
       {/* Alert toast for recall or info */}
@@ -250,17 +253,22 @@ export function KitchenDisplayPage() {
               alignItems: 'start',
             }}
           >
-            {tickets.map((ticket) => (
-              <KdsTicketCard
-                key={ticket.id}
-                ticket={ticket}
-                onAdvanceStatus={(id) => advanceMutation.mutate(id)}
-                isAdvancing={advanceMutation.isPending}
-                onItemStatusChange={(tId, iId, status) =>
-                  itemStatusMutation.mutate({ ticketId: tId, itemId: iId, status })
-                }
-              />
-            ))}
+            {tickets
+              .filter((ticket) => {
+                if (selectedCourse === 'all') return true;
+                return ticket.course === selectedCourse;
+              })
+              .map((ticket) => (
+                <KdsTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  onAdvanceStatus={(id) => advanceMutation.mutate(id)}
+                  isAdvancing={advanceMutation.isPending}
+                  onItemStatusChange={(tId, iId, status) =>
+                    itemStatusMutation.mutate({ ticketId: tId, itemId: iId, status })
+                  }
+                />
+              ))}
           </div>
         )}
       </main>

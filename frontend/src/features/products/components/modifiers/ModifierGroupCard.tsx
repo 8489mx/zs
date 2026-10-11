@@ -112,9 +112,16 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
                 fontSize: '12.5px',
               }}
             >
-              <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                {opt.name} {opt.isDefault ? '(افتراضي)' : ''}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                  {opt.name} {opt.isDefault ? '(افتراضي)' : ''}
+                </span>
+                {opt.componentProductName && (
+                  <span style={{ fontSize: '10.5px', color: '#6366f1', fontWeight: 600 }}>
+                    خصم مخزني: {opt.consumptionQty || 1} {opt.unitName || 'وحدة'} من [{opt.componentProductName}]
+                  </span>
+                )}
+              </div>
               <span style={{ fontWeight: 700, color: Number(opt.price) > 0 ? '#059669' : '#64748b' }}>
                 {Number(opt.price) > 0 ? `+${formatCurrency(opt.price)}` : 'مجاناً'}
               </span>

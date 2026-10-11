@@ -113,12 +113,29 @@ export class AddonsService {
     let options: any[] = [];
     if (groupIds.length > 0) {
       options = await this.db
-        .selectFrom('pos_modifier_options')
-        .selectAll()
-        .where('tenant_id', '=', scope.tenantId)
-        .where('group_id', 'in', groupIds)
-        .orderBy('display_order', 'asc')
-        .orderBy('id', 'asc')
+        .selectFrom('pos_modifier_options as pmo')
+        .leftJoin('products as p', (join) =>
+          join.onRef('p.id', '=', 'pmo.component_product_id').onRef('p.tenant_id', '=', 'pmo.tenant_id')
+        )
+        .select([
+          'pmo.id',
+          'pmo.group_id',
+          'pmo.name',
+          'pmo.name_en',
+          'pmo.price',
+          'pmo.cost_price',
+          'pmo.is_default',
+          'pmo.is_active',
+          'pmo.display_order',
+          'pmo.component_product_id',
+          'pmo.consumption_qty',
+          'pmo.unit_name',
+          'p.name as component_product_name',
+        ])
+        .where('pmo.tenant_id', '=', scope.tenantId)
+        .where('pmo.group_id', 'in', groupIds)
+        .orderBy('pmo.display_order', 'asc')
+        .orderBy('pmo.id', 'asc')
         .execute();
     }
 
@@ -145,6 +162,10 @@ export class AddonsService {
             isDefault: Boolean(opt.is_default),
             isActive: Boolean(opt.is_active),
             displayOrder: Number(opt.display_order || 0),
+            componentProductId: opt.component_product_id ? Number(opt.component_product_id) : null,
+            componentProductName: opt.component_product_name || null,
+            consumptionQty: opt.consumption_qty !== null && opt.consumption_qty !== undefined ? Number(opt.consumption_qty) : null,
+            unitName: opt.unit_name || null,
           })),
       })),
     };
@@ -187,6 +208,9 @@ export class AddonsService {
               is_default: Boolean(opt.isDefault),
               is_active: opt.isActive !== false,
               display_order: opt.displayOrder !== undefined ? Number(opt.displayOrder) : idx,
+              component_product_id: opt.componentProductId ? Number(opt.componentProductId) : null,
+              consumption_qty: opt.consumptionQty !== null && opt.consumptionQty !== undefined && opt.consumptionQty !== '' ? Number(opt.consumptionQty) : null,
+              unit_name: opt.unitName ? String(opt.unitName).trim() : null,
             }))
           )
           .execute();
@@ -242,6 +266,9 @@ export class AddonsService {
                 is_default: Boolean(opt.isDefault),
                 is_active: opt.isActive !== false,
                 display_order: opt.displayOrder !== undefined ? Number(opt.displayOrder) : idx,
+                component_product_id: opt.componentProductId ? Number(opt.componentProductId) : null,
+                consumption_qty: opt.consumptionQty !== null && opt.consumptionQty !== undefined && opt.consumptionQty !== '' ? Number(opt.consumptionQty) : null,
+                unit_name: opt.unitName ? String(opt.unitName).trim() : null,
               }))
             )
             .execute();
@@ -308,12 +335,27 @@ export class AddonsService {
     let options: any[] = [];
     if (groupIds.length > 0) {
       options = await this.db
-        .selectFrom('pos_modifier_options')
-        .selectAll()
-        .where('tenant_id', '=', scope.tenantId)
-        .where('group_id', 'in', groupIds)
-        .where('is_active', '=', true)
-        .orderBy('display_order', 'asc')
+        .selectFrom('pos_modifier_options as pmo')
+        .leftJoin('products as p', (join) =>
+          join.onRef('p.id', '=', 'pmo.component_product_id').onRef('p.tenant_id', '=', 'pmo.tenant_id')
+        )
+        .select([
+          'pmo.id',
+          'pmo.group_id',
+          'pmo.name',
+          'pmo.name_en',
+          'pmo.price',
+          'pmo.cost_price',
+          'pmo.is_default',
+          'pmo.component_product_id',
+          'pmo.consumption_qty',
+          'pmo.unit_name',
+          'p.name as component_product_name',
+        ])
+        .where('pmo.tenant_id', '=', scope.tenantId)
+        .where('pmo.group_id', 'in', groupIds)
+        .where('pmo.is_active', '=', true)
+        .orderBy('pmo.display_order', 'asc')
         .execute();
     }
 
@@ -336,6 +378,10 @@ export class AddonsService {
             price: Number(opt.price || 0),
             costPrice: Number(opt.cost_price || 0),
             isDefault: Boolean(opt.is_default),
+            componentProductId: opt.component_product_id ? Number(opt.component_product_id) : null,
+            componentProductName: opt.component_product_name || null,
+            consumptionQty: opt.consumption_qty !== null && opt.consumption_qty !== undefined ? Number(opt.consumption_qty) : null,
+            unitName: opt.unit_name || null,
           })),
       })),
     };

@@ -67,6 +67,8 @@ export interface AppSettings {
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   restaurantTablesCount?: number;
+  restaurantServiceChargeEnabled?: boolean;
+  restaurantServiceChargePercent?: number;
   phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   printDeliveryRepOnReceipt?: boolean;
@@ -118,7 +120,9 @@ export interface AppSettings {
   hrDelayPenalty3rd?: number;
   hrDelayPenalty4th?: number;
   posTerminalEnabled?: boolean;
-  posTerminalProvider?: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'mock_sandbox' | string;
+  posTerminalProvider?: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'knet_pos' | 'mock_sandbox' | string;
+  posTerminalProtocol?: 'tcp_ip' | 'http_rest';
+  posTerminalAutoFinalize?: boolean;
   posTerminalName?: string;
   posTerminalIp?: string;
   posTerminalPort?: number;

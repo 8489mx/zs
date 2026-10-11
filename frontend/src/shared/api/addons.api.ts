@@ -19,6 +19,10 @@ export interface ModifierOption {
   isDefault?: boolean;
   isActive?: boolean;
   displayOrder?: number;
+  componentProductId?: number | null;
+  componentProductName?: string | null;
+  consumptionQty?: number | null;
+  unitName?: string | null;
 }
 
 export interface ModifierGroup {

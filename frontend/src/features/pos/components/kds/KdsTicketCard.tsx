@@ -46,7 +46,21 @@ const getUrgencyBadge = (level: 'normal' | 'warning' | 'critical', elapsedMins: 
   };
 };
 
-const getOrderTypeBadge = (type: string, tableNumber?: string) => {
+const getOrderTypeBadge = (type: string, tableNumber?: string, aggregatorChannel?: string) => {
+  if (aggregatorChannel) {
+    const chName = aggregatorChannel === 'jahez' ? 'جاهز'
+      : aggregatorChannel === 'hungerstation' ? 'هنقرستيشن'
+      : aggregatorChannel === 'talabat' ? 'طلبات'
+      : aggregatorChannel === 'keeta' ? 'كيتا'
+      : aggregatorChannel === 'deliveroo' ? 'دليفرو'
+      : aggregatorChannel.toUpperCase();
+    return {
+      label: `توصيل (${chName})`,
+      bg: '#fdf2f8',
+      border: '#fbcfe8',
+      text: '#9d174d',
+    };
+  }
   if (type === 'dine_in') {
     return {
       label: tableNumber ? `طاولة ${tableNumber}` : 'صالة',
@@ -78,7 +92,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
   onItemStatusChange,
 }) => {
   const urgency = getUrgencyBadge(ticket.urgencyLevel, ticket.elapsedMinutes);
-  const orderType = getOrderTypeBadge(ticket.orderType, ticket.tableNumber);
+  const orderType = getOrderTypeBadge(ticket.orderType, ticket.tableNumber, ticket.aggregatorChannel);
 
   return (
     <div
@@ -138,6 +152,21 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
             >
               {orderType.label}
             </span>
+            {ticket.course && (
+              <span
+                style={{
+                  backgroundColor: ticket.course === 'appetizer' ? '#fef3c7' : ticket.course === 'main' ? '#dbeafe' : '#f3e8ff',
+                  border: '1px solid #cbd5e1',
+                  color: '#0f172a',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                {ticket.course === 'appetizer' ? 'مقبلات' : ticket.course === 'main' ? 'طبق رئيسي' : ticket.course === 'dessert' ? 'حلوى' : 'مشروب'}
+              </span>
+            )}
           </div>
           <div
             style={{
