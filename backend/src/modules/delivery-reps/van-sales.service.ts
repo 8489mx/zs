@@ -1017,6 +1017,7 @@ export class VanSalesService {
       throw new AppError('البيع الآجل أو المجزأ يتطلب تحديد أو إدخال اسم العميل / المحل', 'CREDIT_REQUIRES_CUSTOMER', 400);
     }
 
+    let isNewCustomer = false;
     if (!resolvedCustomerId && payload.customerName && payload.customerName.trim() && payload.customerName !== 'عميل نقدي ميداني') {
       const existing = await this.anyDb
         .selectFrom('customers')
@@ -1029,6 +1030,7 @@ export class VanSalesService {
         resolvedCustomerId = Number(existing.id);
         customerName = existing.name;
       } else {
+        isNewCustomer = true;
         const [newCust] = await this.anyDb
           .insertInto('customers')
           .values({
@@ -1088,6 +1090,31 @@ export class VanSalesService {
         }
       }
 
+      // Security Invariant: Pre-resolve supervisor authorization if PIN is provided
+      let supervisorUser: any = null;
+      let supervisorOverrideApproved = false;
+      let overrideSupervisorName = '';
+      let overrideSupervisorId: number | null = null;
+
+      if (payload.supervisorOverridePin) {
+        supervisorUser = await trxAny
+          .selectFrom('users')
+          .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
+          .where('tenant_id', '=', tenantId)
+          .where('is_active', '=', true)
+          .where(sql<boolean>`(role in ('admin', 'supervisor', 'super_admin') or permissions_json::text ilike '%deliveryReps%' or permissions_json::text ilike '%sales%')`)
+          .where(sql<boolean>`(pin = ${payload.supervisorOverridePin} or pin_hash = ${payload.supervisorOverridePin})`)
+          .executeTakeFirst();
+
+        if (supervisorUser) {
+          supervisorOverrideApproved = true;
+          overrideSupervisorId = Number(supervisorUser.id);
+          overrideSupervisorName = supervisorUser.name;
+        } else {
+          throw new AppError('رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بالاعتماد الاستثنائي', 'INVALID_SUPERVISOR_PIN', 403);
+        }
+      }
+
       for (const item of sortedItems) {
         const pid = Number(item.productId);
         const inputQty = Number(item.qty || 0);
@@ -1110,6 +1137,21 @@ export class VanSalesService {
 
         if (!prod) {
           throw new AppError(`الصنف رقم #${pid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+        }
+
+        const activeOffers = offersByProduct.get(pid) || [];
+
+        // Security Invariant: Gated Bonus Items
+        // Free bonus items cannot be arbitrarily flipped by the driver unless an active promotion allows it or supervisor PIN is provided
+        if (isBonus) {
+          const hasActiveBogoOffer = activeOffers.some((o: any) => o.offer_type === 'bogo');
+          if (!hasActiveBogoOffer && !supervisorOverrideApproved) {
+            throw new AppError(
+              `صرف الصنف "${prod.name || pid}" كبونص عيني مجاني يتطلب عرضاً ترويجياً نشطاً أو اعتماد المشرف برمز PIN`,
+              'BONUS_REQUIRES_SUPERVISOR_PIN',
+              403,
+            );
+          }
         }
 
         const vanStock = await trxAny
@@ -1152,15 +1194,14 @@ export class VanSalesService {
           ? Number(prod.credit_price)
           : Number(prod.retail_price || 0);
 
-        let unitPrice = item.unitPrice ? Number(item.unitPrice) : defaultBasePrice * multiplier;
+        let systemAuthorizedPrice = Number((defaultBasePrice * multiplier).toFixed(2));
         let pricingTierType: 'cash' | 'credit' | 'offer' | 'bonus' = isBonus ? 'bonus' : (isCreditSale ? 'credit' : 'cash');
         let unitOfferSavings = 0;
 
         if (isBonus) {
-          unitPrice = 0;
+          systemAuthorizedPrice = 0;
           pricingTierType = 'bonus';
-        } else if (!item.unitPrice) {
-          const activeOffers = offersByProduct.get(pid) || [];
+        } else {
           const getMinQty = (o: any) => o.offer_type === 'bogo' ? (Number(o.bogo_buy_qty || 1) + Number(o.bogo_get_qty || 1)) : Math.max(1, Number(o.min_qty || 1));
           const matchingOffer = activeOffers
             .filter((off) => baseQty >= getMinQty(off))
@@ -1170,26 +1211,26 @@ export class VanSalesService {
             const offerVal = Number(matchingOffer.value || 0);
             if (matchingOffer.offer_type === 'percent' && offerVal > 0) {
               const discountedBase = Math.max(0, Number((defaultBasePrice * (1 - offerVal / 100)).toFixed(2)));
-              unitPrice = Number((discountedBase * multiplier).toFixed(2));
+              systemAuthorizedPrice = Number((discountedBase * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - systemAuthorizedPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'fixed' && offerVal > 0) {
               const discountedBase = Math.max(0, Number((defaultBasePrice - offerVal).toFixed(2)));
-              unitPrice = Number((discountedBase * multiplier).toFixed(2));
+              systemAuthorizedPrice = Number((discountedBase * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - systemAuthorizedPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'price' && offerVal > 0) {
-              unitPrice = Number((offerVal * multiplier).toFixed(2));
+              systemAuthorizedPrice = Number((offerVal * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - systemAuthorizedPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'bundle' && offerVal > 0) {
               const minQ = Math.max(1, Number(matchingOffer.min_qty || 1));
               const bundles = Math.floor(inputQty / minQ);
               const rem = inputQty % minQ;
               const bundleTotal = (bundles * offerVal) + (rem * defaultBasePrice);
-              unitPrice = Number(((bundleTotal / inputQty) * multiplier).toFixed(2));
+              systemAuthorizedPrice = Number(((bundleTotal / inputQty) * multiplier).toFixed(2));
               pricingTierType = 'offer';
-              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
+              unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - systemAuthorizedPrice).toFixed(2)));
             } else if (matchingOffer.offer_type === 'bogo') {
               const buyQ = Math.max(1, Number(matchingOffer.bogo_buy_qty || 1));
               const getQ = Math.max(1, Number(matchingOffer.bogo_get_qty || 1));
@@ -1201,11 +1242,34 @@ export class VanSalesService {
                 const freeUnits = (fullCycles * getQ) + Math.max(0, rem - buyQ);
                 const discAmt = freeUnits * defaultBasePrice * (discPct / 100);
                 const netTot = Math.max(0, (inputQty * defaultBasePrice) - discAmt);
-                unitPrice = Number(((netTot / inputQty) * multiplier).toFixed(2));
+                systemAuthorizedPrice = Number(((netTot / inputQty) * multiplier).toFixed(2));
                 pricingTierType = 'offer';
-                unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - unitPrice).toFixed(2)));
+                unitOfferSavings = Math.max(0, Number(((defaultBasePrice * multiplier) - systemAuthorizedPrice).toFixed(2)));
               }
             }
+          }
+        }
+
+        let unitPrice = systemAuthorizedPrice;
+
+        // Security Invariant: Price Integrity Guard against Client Tampering
+        if (!isBonus && item.unitPrice != null && Number(item.unitPrice) > 0) {
+          const clientPrice = Number(Number(item.unitPrice).toFixed(2));
+          if (Math.abs(clientPrice - systemAuthorizedPrice) <= 0.05) {
+            unitPrice = clientPrice;
+          } else if (clientPrice < systemAuthorizedPrice - 0.05) {
+            // Price is lower than authorized system price — requires supervisor PIN
+            if (!supervisorOverrideApproved) {
+              throw new AppError(
+                `سعر البيع المحدد للصنف "${prod.name || pid}" (${clientPrice} ج.م) أقل من السعر المعتمد (${systemAuthorizedPrice} ج.م). تعديل أو خفض الأسعار يتطلب اعتماد المشرف برمز PIN`,
+                'PRICE_DISCOUNT_REQUIRES_SUPERVISOR_PIN',
+                403,
+              );
+            }
+            unitPrice = clientPrice;
+          } else {
+            // Higher price accepted
+            unitPrice = clientPrice;
           }
         }
 
@@ -1269,6 +1333,16 @@ export class VanSalesService {
       let creditOverrideReason: string | null = null;
 
       if ((isCredit || isSplit) && creditOwed > 0 && resolvedCustomerId) {
+        // Security Invariant: Phantom Credit Prevention
+        // Rep cannot sell on credit to an ad-hoc unregistered customer without supervisor PIN
+        if (isNewCustomer && !supervisorOverrideApproved) {
+          throw new AppError(
+            `البيع الآجل لعميل جديد ("${customerName}") غير مسجل مسبقاً يتطلب اعتماد المشرف برمز PIN لمنع المديونيات الوهمية`,
+            'NEW_CUSTOMER_CREDIT_REQUIRES_SUPERVISOR_PIN',
+            403,
+          );
+        }
+
         const custRecord = await trxAny
           .selectFrom('customers')
           .select(['id', 'name', 'balance', 'credit_limit', 'is_credit_blocked', 'credit_block_reason'])
@@ -1278,29 +1352,6 @@ export class VanSalesService {
           .executeTakeFirst();
 
         if (custRecord) {
-          let supervisorOverrideApproved = false;
-          let overrideSupervisorName = '';
-          let overrideSupervisorId: number | null = null;
-
-          if (payload.supervisorOverridePin) {
-            const supervisorUser = await trxAny
-              .selectFrom('users')
-              .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
-              .where('tenant_id', '=', tenantId)
-              .where('is_active', '=', true)
-              .where(sql<boolean>`(role in ('admin', 'supervisor', 'super_admin') or permissions_json::text ilike '%deliveryReps%' or permissions_json::text ilike '%sales%')`)
-              .where(sql<boolean>`(pin = ${payload.supervisorOverridePin} or pin_hash = ${payload.supervisorOverridePin})`)
-              .executeTakeFirst();
-
-            if (supervisorUser) {
-              supervisorOverrideApproved = true;
-              overrideSupervisorId = Number(supervisorUser.id);
-              overrideSupervisorName = supervisorUser.name;
-            } else {
-              throw new AppError('رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بتجاوز الائتمان', 'INVALID_SUPERVISOR_PIN', 403);
-            }
-          }
-
           const creditCheck = evaluateCreditLimitCheck({
             customerId: resolvedCustomerId,
             customerName: custRecord.name || customerName,
@@ -1571,7 +1622,7 @@ export class VanSalesService {
       gpsLng?: number;
       clientTxId?: string;
     },
-  ): Promise<{ ok: boolean; receiptNo: string; amount: number; customerName: string; newBalance: number }> {
+  ): Promise<{ ok: boolean; receiptNo: string; amount: number; customerName: string; previousBalance: number; newBalance: number }> {
     const amount = Number(payload.amount || 0);
     if (amount <= 0) throw new AppError('المبلغ المحصل يجب أن يكون أكبر من صفر', 'INVALID_AMOUNT', 400);
 
@@ -1581,13 +1632,13 @@ export class VanSalesService {
     const trip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
       .leftJoin('stock_locations as van', 'van.id', 'vt.van_location_id')
-      .select(['vt.id', 'vt.van_location_id', 'van.branch_id as vanBranchId'])
+      .select(['vt.id', 'vt.status', 'vt.settlement_status', 'vt.van_location_id', 'van.branch_id as vanBranchId'])
       .where('vt.id', '=', payload.tripId)
       .where('vt.tenant_id', '=', tenantId)
       .where('vt.rep_id', '=', repId)
       .executeTakeFirst();
 
-    if (!trip) throw new AppError('رحلة التوزيع المحددة غير صالحة', 'INVALID_TRIP', 400);
+    if (!trip || trip.status !== 'open') throw new AppError('رحلة التوزيع المحددة مغلقة أو تمت تصفيتها، ولا يمكن تسجيل تحصيل جديد عليها', 'INVALID_TRIP', 400);
 
     const cust = await this.anyDb.selectFrom('customers').select(['id', 'name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
@@ -1608,6 +1659,7 @@ export class VanSalesService {
           receiptNo: existingPayment.note?.match(/#([A-Z0-9-]+)/)?.[1] || 'COL-SYNCED',
           amount: Number(existingPayment.amount),
           customerName: cust.name,
+          previousBalance: 0,
           newBalance: 0,
         };
       }
@@ -1699,6 +1751,7 @@ export class VanSalesService {
       receiptNo,
       amount,
       customerName: cust.name,
+      previousBalance: Number((finalBalance + amount).toFixed(2)),
       newBalance: finalBalance,
     };
   }

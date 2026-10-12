@@ -23,6 +23,8 @@ import { vanOfflineDb } from '../offline/van-sales-offline.db';
 import { vanSyncEngine } from '../offline/van-sync.engine';
 import { VanSalesLogin } from '../components/VanSalesLogin';
 import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
+import { VanCollectionReceiptModal } from '../components/VanCollectionReceiptModal';
+import { VanCollectionReceiptData } from '../utils/van-collection-receipt.utils';
 import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
 import { VanSaleCheckoutModal } from '../components/VanSaleCheckoutModal';
@@ -419,6 +421,7 @@ export default function VanSalesMobilePage() {
 
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lastSaleReceipt, setLastSaleReceipt] = useState<any | null>(null);
+  const [lastCollectionReceipt, setLastCollectionReceipt] = useState<VanCollectionReceiptData | null>(null);
   const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
   const [inventorySubMode, setInventorySubMode] = useState<'stock' | 'requisitions'>('stock');
   const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
@@ -472,6 +475,9 @@ export default function VanSalesMobilePage() {
       prev.map((c) => {
         if (c.productId === productId) {
           const nextBonus = !c.isBonus;
+          if (nextBonus) {
+            showAlert('info', 'تم تحديد الصنف كبونص مجاني. سيتطلب اعتماد المشرف برمز PIN عند إتمام الفاتورة ما لم يتوفر عرض ترويجي نشط.');
+          }
           return {
             ...c,
             isBonus: nextBonus,
@@ -757,9 +763,33 @@ export default function VanSalesMobilePage() {
       } else {
         showAlert('success', `تم تسجيل تحصيل ${res.amount} ${getGlobalCurrencySymbol()} من "${res.customerName}"، الرصيد المتبقي: ${res.newBalance} ${getGlobalCurrencySymbol()}`);
       }
+
+      const matchedCust = allAvailableCustomers.find((c) => String(c.id) === String(colCustomerId));
+      const amountNum = Number(res?.amount || colAmount || 0);
+      const newBalNum = Number(res?.newBalance ?? Math.max(0, Number(matchedCust?.balance || 0) - amountNum));
+      const prevBalNum = Number(res?.previousBalance ?? (matchedCust?.balance != null ? Number(matchedCust.balance) : (newBalNum + amountNum)));
+
+      setLastCollectionReceipt({
+        receiptNo: res?.receiptNo || `REC-${Date.now().toString().slice(-6)}`,
+        amount: amountNum,
+        previousBalance: prevBalNum,
+        newBalance: newBalNum,
+        customerName: res?.customerName || matchedCust?.name || 'العميل',
+        customerPhone: matchedCust?.phone || '',
+        customerCode: matchedCust?.customerCode || '',
+        customerAddress: (matchedCust as any)?.district || (matchedCust as any)?.route || (matchedCust as any)?.address || '',
+        repName: data?.trip?.repName || (session?.rep as any)?.name || 'مندوب التوزيع',
+        vehiclePlate: data?.assignedVehicle?.plateNumber || data?.trip?.vehiclePlate || '',
+        warehouseName: data?.trip?.sourceWarehouseName || '',
+        date: new Date().toISOString(),
+        isOffline: Boolean(res?.isOffline),
+      });
+
       setColAmount('');
       setColCustomerId('');
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] });
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل تسجيل التحصيل'),
   });
@@ -2977,13 +3007,32 @@ export default function VanSalesMobilePage() {
                   onCountedCashChange={setCountedCash}
                   unloadRemaining={unloadRemaining}
                   onUnloadRemainingChange={setUnloadRemaining}
-                  onSubmitSettle={() => {
+                  onSubmitSettle={async () => {
                     const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
                     const finalCountedCash = countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash;
                     if (finalCountedCash === '') {
                       showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك');
                       return;
                     }
+
+                    // Security Invariant: Outbox Zero-Debt Settlement Gate
+                    // Block trip settlement if there are unsynced sales or collections in local storage
+                    try {
+                      const pendingOutbox = await vanOfflineDb.getPendingOutbox();
+                      if (pendingOutbox && pendingOutbox.length > 0) {
+                        showAlert('warning', `توجد ${pendingOutbox.length} حركة مبيعات أو تحصيل معلقة في ذاكرة الهاتف. جاري محاولة المزامنة مع السيرفر أولاً...`);
+                        await vanSyncEngine.syncAll();
+                        const remaining = await vanOfflineDb.getPendingOutbox();
+                        if (remaining && remaining.length > 0) {
+                          showAlert('error', `تعذر إتمام التصفية: توجد ${remaining.length} حركة بيع أو تحصيل معلقة لم يتم ترحيلها للسيرفر بعد. يرجى التأكد من اتصال الإنترنت ثم الضغط على "مزامنة العمليات المعلقة" قبل تسليم العهدة.`);
+                          return;
+                        }
+                        showAlert('success', 'تمت مزامنة العمليات المعلقة بنجاح، جاري استكمال تصفية اليومية...');
+                      }
+                    } catch (err) {
+                      console.warn('[SettlementGate] Outbox verification error:', err);
+                    }
+
                     const activeCustId = activeVisit?.customerId;
                     settleTripMutation.mutate({
                       tripId: data.trip!.id,
@@ -3098,6 +3147,15 @@ export default function VanSalesMobilePage() {
           receipt={lastSaleReceipt}
           onClose={() => setLastSaleReceipt(null)}
           storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
+        />
+      )}
+
+      {/* Field Collection Receipt Modal */}
+      {lastCollectionReceipt && (
+        <VanCollectionReceiptModal
+          receipt={lastCollectionReceipt}
+          onClose={() => setLastCollectionReceipt(null)}
+          storeName={data?.trip?.sourceWarehouseName || 'إدارة التوزيع والتحصيل الميداني'}
         />
       )}
 

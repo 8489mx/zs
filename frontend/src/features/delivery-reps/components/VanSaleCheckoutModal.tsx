@@ -9,6 +9,7 @@ import {
   PackageIcon,
   AlertTriangleIcon,
   SlidersIcon,
+  EditIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export type VanPaymentMethod = 'cash' | 'credit' | 'card' | 'split';
@@ -85,6 +86,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const [validationError, setValidationError] = useState<string>('');
   const [supervisorPin, setSupervisorPin] = useState<string>('');
   const [supervisorReason, setSupervisorReason] = useState<string>('');
+  const [showSignaturePad, setShowSignaturePad] = useState<boolean>(false);
+  const [isDrawing, setIsDrawing] = useState<boolean>(false);
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -94,8 +98,59 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       setLocalNotes(propNotes);
       setSupervisorPin('');
       setSupervisorReason('');
+      setShowSignaturePad(false);
+      setIsDrawing(false);
     }
   }, [open, cartTotal, propNotes]);
+
+  const handleStartDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    ctx.beginPath();
+    ctx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    setIsDrawing(true);
+  };
+
+  const handleDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    ctx.stroke();
+  };
+
+  const handleEndDraw = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      onDeliveryProofPhotoChange(dataUrl);
+    } catch {}
+  };
+
+  const clearCanvasSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onDeliveryProofPhotoChange('');
+  };
 
   const hasCustomer = Boolean(customer?.id || (newCustomerName && newCustomerName.trim()));
   const customerDisplayName = customer?.name || newCustomerName || 'عميل نقدي عام';
@@ -149,6 +204,15 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     return customerBalanceAfter > customer.creditLimit;
   }, [paymentMethod, customer?.creditLimit, customerBalanceAfter]);
 
+  const isNewCustomerCredit = useMemo(() => {
+    const isCredit = paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
+    return isCredit && !customer?.id && Boolean(newCustomerName && newCustomerName.trim());
+  }, [paymentMethod, splitCreditDebt, customer?.id, newCustomerName]);
+
+  const hasBonusItems = useMemo(() => {
+    return Boolean(cart && cart.some((c) => c.isBonus));
+  }, [cart]);
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -190,14 +254,28 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       return;
     }
 
+    if (isNewCustomerCredit && !supervisorPin.trim()) {
+      setValidationError('البيع الآجل لعميل جديد غير مسجل مسبقاً يتطلب إدخال الرمز السري للمشرف (PIN) لمنع المديونيات الوهمية.');
+      return;
+    }
+
+    if (hasBonusItems && !supervisorPin.trim()) {
+      setValidationError('الفاتورة تحتوي على أصناف بونص عيني مجاني. يتطلب إدخال الرمز السري للمشرف (PIN) لتوثيق المصادقة الرقابية.');
+      return;
+    }
+
     onConfirmCheckout({
       paymentMethod,
       paidAmount: paymentMethod === 'cash' ? cartTotal : (paymentMethod === 'split' ? cashPaid : (paymentMethod === 'card' ? cartTotal : 0)),
       notes: localNotes,
       cartonsCount: Number(cartonsCount) || undefined,
       deliveryProofPhoto: deliveryProofPhoto || undefined,
-      supervisorOverridePin: isCreditExceeded && supervisorPin.trim() ? supervisorPin.trim() : undefined,
-      supervisorOverrideReason: isCreditExceeded && supervisorReason.trim() ? supervisorReason.trim() : undefined,
+      supervisorOverridePin: supervisorPin.trim() ? supervisorPin.trim() : undefined,
+      supervisorOverrideReason: supervisorReason.trim()
+        ? supervisorReason.trim()
+        : isNewCustomerCredit
+        ? 'اعتماد بيع آجل لعميل جديد'
+        : (hasBonusItems ? 'اعتماد صرف بونص عيني مجاني' : undefined),
     });
   };
 
@@ -685,8 +763,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           )}
         </div>
 
-        {/* Supervisor Credit Limit Override Block */}
-        {isCreditExceeded && (
+        {/* Supervisor Credit Limit, New Customer Credit, or Bonus Authorization Block */}
+        {(isCreditExceeded || isNewCustomerCredit || hasBonusItems) && (
           <div
             style={{
               backgroundColor: '#fff7ed',
@@ -701,11 +779,19 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c2410c', fontWeight: 800, fontSize: '12px' }}>
               <AlertTriangleIcon size={16} color="#ea580c" />
               <span>
-                تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة ({customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح ({customer?.creditLimit?.toFixed(2)} ج.م)
+                {isCreditExceeded
+                  ? `تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة (${customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح (${customer?.creditLimit?.toFixed(2)} ج.م)`
+                  : isNewCustomerCredit
+                  ? `اعتماد المشرف مطلوب: بيع آجل لعميل جديد ("${newCustomerName}") غير مسجل مسبقاً`
+                  : 'اعتماد المشرف مطلوب: تحتوي الفاتورة على أصناف بونص عيني مجاني'}
               </span>
             </div>
             <div style={{ fontSize: '11px', color: '#9a3412', lineHeight: 1.4 }}>
-              يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.
+              {isCreditExceeded
+                ? 'يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.'
+                : isNewCustomerCredit
+                ? 'يتطلب فتح حساب آجل جديد في الميدان إدخال الرمز السري للمشرف (Supervisor PIN) لحماية الحسابات من المديونيات الوهمية.'
+                : 'يتطلب صرف البونص العيني إدخال الرمز السري للمشرف (Supervisor PIN) لتوثيق المصادقة الرقابية.'}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
               <input
@@ -729,7 +815,13 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 type="text"
                 value={supervisorReason}
                 onChange={(e) => setSupervisorReason(e.target.value)}
-                placeholder="سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)"
+                placeholder={
+                  isCreditExceeded
+                    ? 'سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)'
+                    : isNewCustomerCredit
+                    ? 'سبب فتح الآجل (مثال: موافقة المشرف على عميل جديد)'
+                    : 'سبب صرف البونص (مثال: حملة ترويجية معتمدة)'
+                }
                 style={{
                   height: '36px',
                   borderRadius: '6px',
@@ -818,52 +910,134 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               </span>
             </div>
 
-            {/* Proof Photo Button / Preview */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Proof Photo & Touch Signature Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               {deliveryProofPhoto ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <img
                     src={deliveryProofPhoto}
                     alt="Proof"
-                    style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                    style={{ width: '40px', height: '28px', borderRadius: '4px', objectFit: 'contain', border: '1px solid #cbd5e1', backgroundColor: '#ffffff' }}
                   />
+                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800 }}>تم توثيق الاستلام</span>
                   <button
                     type="button"
-                    onClick={() => onDeliveryProofPhotoChange('')}
+                    onClick={() => {
+                      onDeliveryProofPhotoChange('');
+                      clearCanvasSignature();
+                    }}
                     style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
                   >
-                    حذف الصورة
+                    حذف
                   </button>
                 </div>
               ) : (
-                <label
-                  style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    padding: '4px 8px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: '#170e5e',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <CameraIcon size={13} color="#170e5e" />
-                  <span>+ صورة التسليم</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handlePhotoUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                <>
+                  <label
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#170e5e',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <CameraIcon size={13} color="#170e5e" />
+                    <span>+ صورة التسليم</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSignaturePad((prev) => !prev)}
+                    style={{
+                      backgroundColor: showSignaturePad ? '#eef2ff' : '#ffffff',
+                      border: showSignaturePad ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#170e5e',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <EditIcon size={13} color="#170e5e" />
+                    <span>{showSignaturePad ? 'إلغاء التوقيع' : '+ توقيع العميل (لمس)'}</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
+
+          {/* Interactive Touch Signature Pad */}
+          {showSignaturePad && !deliveryProofPhoto && (
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>
+                  توقيع المستلم / صاحب المحل بيده على الشاشة:
+                </span>
+                <button
+                  type="button"
+                  onClick={clearCanvasSignature}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  مسح
+                </button>
+              </div>
+              <canvas
+                ref={canvasRef}
+                width={400}
+                height={85}
+                onPointerDown={handleStartDraw}
+                onPointerMove={handleDraw}
+                onPointerUp={handleEndDraw}
+                style={{
+                  width: '100%',
+                  height: '85px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '6px',
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                }}
+              />
+              <span style={{ fontSize: '10px', color: '#64748b' }}>
+                وقع بإصبعك أو القلم في المربع لتوثيق استلام البضاعة الآجلة قانونياً.
+              </span>
+            </div>
+          )}
 
           {/* Notes Input */}
           <input
