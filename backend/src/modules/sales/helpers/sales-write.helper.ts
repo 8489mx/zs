@@ -127,7 +127,7 @@ function todayLocalIsoDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-function isOfferActive(offer: SaleProductOfferRow, todayIso: string, now: Date = new Date()): boolean {
+export function isOfferActive(offer: SaleProductOfferRow, todayIso: string, now: Date = new Date()): boolean {
   const from = normalizeDateOnly(offer.start_date);
   const to = normalizeDateOnly(offer.end_date);
   if (from && from > todayIso) return false;
@@ -161,7 +161,7 @@ function isOfferActive(offer: SaleProductOfferRow, todayIso: string, now: Date =
   return true;
 }
 
-function getOfferEffectiveMinQty(offer: SaleProductOfferRow): number {
+export function getOfferEffectiveMinQty(offer: SaleProductOfferRow): number {
   if (offer.offer_type === 'bogo') {
     const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
     const getQ = Math.max(1, Number(offer.bogo_get_qty || 1));
@@ -170,7 +170,9 @@ function getOfferEffectiveMinQty(offer: SaleProductOfferRow): number {
   return Math.max(1, Number(offer.min_qty || 1));
 }
 
-function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1): number {
+export const getOfferMinQty = getOfferEffectiveMinQty;
+
+export function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1): number {
   const offerValue = Number(offer.value || 0);
   if (!(offerValue > 0) && offer.offer_type !== 'price' && offer.offer_type !== 'bundle' && offer.offer_type !== 'bogo') {
     return roundCurrency(basePrice);
@@ -206,7 +208,7 @@ function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferR
   return roundCurrency(basePrice);
 }
 
-function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number, now: Date = new Date()): SaleProductOfferRow | null {
+export function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number, now: Date = new Date()): SaleProductOfferRow | null {
   const normalizedQty = Math.max(1, Number(qty || 1));
   const applicableOffers = offers.filter((offer) => isOfferActive(offer, todayIso, now) && normalizedQty >= getOfferEffectiveMinQty(offer));
   if (!applicableOffers.length) return null;

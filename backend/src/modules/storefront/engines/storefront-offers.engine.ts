@@ -9,7 +9,7 @@ export interface RawStorefrontOffer {
   id?: number | string;
   product_id?: number | string;
   offer_type: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo' | string;
-  value: number | string;
+  value?: number | string | null;
   start_date?: string | Date | null;
   end_date?: string | Date | null;
   min_qty?: number | string | null;

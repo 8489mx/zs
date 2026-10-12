@@ -294,6 +294,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       {
         id: 10,
         offer_type: 'bogo',
+        value: 100,
         bogo_buy_qty: 1,
         bogo_get_qty: 1,
         bogo_discount_percent: 100,

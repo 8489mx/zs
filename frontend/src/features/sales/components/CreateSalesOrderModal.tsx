@@ -12,7 +12,7 @@ import { OrderItemProductPicker } from './OrderItemProductPicker';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
 import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 import type { Product } from '@/types/domain';
-import { getProductPrice } from '@/features/pos/lib/pos.domain';
+import { getProductPrice } from '@/features/pos';
 import type { CreateSalesOrderPayload, SalesOrderItem } from '../api/sales-orders.api';
 
 interface SalesOrderItemFormRow extends SalesOrderItem {
