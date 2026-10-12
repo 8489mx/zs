@@ -74,7 +74,7 @@ interface VanSettleTabProps {
   onCountedCashChange: (val: string) => void;
   unloadRemaining: boolean;
   onUnloadRemainingChange: (val: boolean) => void;
-  onSubmitSettle: () => void;
+  onSubmitSettle: (supervisorPin?: string) => void;
   isSubmitting: boolean;
 }
 
@@ -98,6 +98,8 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<'settle' | 'activity'>('settle');
   const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'expenses' | 'packaging' | 'inventory'>('sales');
+  const [supervisorPin, setSupervisorPin] = useState<string>('');
+  const [pinError, setPinError] = useState<string>('');
 
   const safeExpenses = useMemo(() => {
     if (!expenses) return [];
@@ -602,10 +604,77 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </label>
         </div>
 
+        {/* Maker-Checker Supervisor PIN Authorization for Final Settlement */}
+        <div
+          style={{
+            backgroundColor: '#fff7ed',
+            border: '1px solid #fdba74',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#c2410c' }}>
+              رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#9a3412' }}>
+              إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام (Maker-Checker)
+            </div>
+          </div>
+          <input
+            type="password"
+            maxLength={6}
+            value={supervisorPin}
+            onChange={(e) => {
+              setSupervisorPin(e.target.value);
+              if (pinError) setPinError('');
+            }}
+            placeholder="PIN المشرف"
+            style={{
+              width: '115px',
+              height: '36px',
+              borderRadius: '6px',
+              border: '1px solid #f97316',
+              fontSize: '13px',
+              fontWeight: 800,
+              textAlign: 'center',
+              backgroundColor: '#ffffff',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        {pinError && (
+          <div
+            style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+            }}
+          >
+            {pinError}
+          </div>
+        )}
+
         {/* Submit Settle Action */}
         <Button
           variant="primary"
-          onClick={onSubmitSettle}
+          onClick={() => {
+            if (!supervisorPin.trim()) {
+              setPinError('يرجى إدخال الرمز السري للمشرف أو أمين الخزينة (PIN) لاعتماد تصفية اليومية واستلام الكاش');
+              return;
+            }
+            setPinError('');
+            onSubmitSettle(supervisorPin.trim());
+          }}
           disabled={isSubmitting}
           style={{
             backgroundColor: '#170e5e',

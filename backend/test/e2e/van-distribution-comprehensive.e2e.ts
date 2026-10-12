@@ -230,6 +230,7 @@ async function runVanDistributionCompleteSuite(): Promise<void> {
       tripId: loadResult.tripId,
       customerId: Number(customerB.id),
       paymentMethod: 'cash',
+      supervisorOverridePin: '1234',
       items: [
         {
           productId: Number(productJuice.id),

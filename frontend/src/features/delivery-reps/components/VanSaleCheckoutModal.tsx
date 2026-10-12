@@ -204,10 +204,17 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     return customerBalanceAfter > customer.creditLimit;
   }, [paymentMethod, customer?.creditLimit, customerBalanceAfter]);
 
+  const isCashOnlyCustomerCredit = useMemo(() => {
+    const isCredit = paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
+    return isCredit && Boolean(customer?.id) && (!customer?.creditLimit || Number(customer.creditLimit) <= 0);
+  }, [paymentMethod, splitCreditDebt, customer?.id, customer?.creditLimit]);
+
   const isNewCustomerCredit = useMemo(() => {
     const isCredit = paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
     return isCredit && !customer?.id && Boolean(newCustomerName && newCustomerName.trim());
   }, [paymentMethod, splitCreditDebt, customer?.id, newCustomerName]);
+
+  const isCardPayment = paymentMethod === 'card';
 
   const hasBonusItems = useMemo(() => {
     return Boolean(cart && cart.some((c) => c.isBonus));
@@ -254,9 +261,25 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       return;
     }
 
+    if (isCashOnlyCustomerCredit && !supervisorPin.trim()) {
+      setValidationError('هذا العميل مصنف كعميل نقدي (سقف الائتمان = 0.00). البيع الآجل له يتطلب إدخال الرمز السري للمشرف (PIN) أو تخصيص سقف ائتمان من الإدارة.');
+      return;
+    }
+
     if (isNewCustomerCredit && !supervisorPin.trim()) {
       setValidationError('البيع الآجل لعميل جديد غير مسجل مسبقاً يتطلب إدخال الرمز السري للمشرف (PIN) لمنع المديونيات الوهمية.');
       return;
+    }
+
+    if (isCardPayment) {
+      if (!supervisorPin.trim()) {
+        setValidationError('الدفع بالشبكة أو التحويل البنكي في الميدان يتطلب إدخال الرمز السري للمشرف (PIN) لتأكيد وصول الإشعار البنكي.');
+        return;
+      }
+      if (supervisorReason.trim().length < 3) {
+        setValidationError('يرجى تدوين رقم مرجع إيصال الشبكة أو الحوالة البنكية (3 أحرف/أرقام على الأقل).');
+        return;
+      }
     }
 
     if (hasBonusItems && !supervisorPin.trim()) {
@@ -275,6 +298,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
         ? supervisorReason.trim()
         : isNewCustomerCredit
         ? 'اعتماد بيع آجل لعميل جديد'
+        : isCashOnlyCustomerCredit
+        ? 'اعتماد بيع آجل لعميل نقدي'
         : (hasBonusItems ? 'اعتماد صرف بونص عيني مجاني' : undefined),
     });
   };
@@ -763,8 +788,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           )}
         </div>
 
-        {/* Supervisor Credit Limit, New Customer Credit, or Bonus Authorization Block */}
-        {(isCreditExceeded || isNewCustomerCredit || hasBonusItems) && (
+        {/* Supervisor Credit Limit, Cash-Only Customer, New Customer Credit, Card Payment, or Bonus Authorization Block */}
+        {(isCreditExceeded || isCashOnlyCustomerCredit || isNewCustomerCredit || isCardPayment || hasBonusItems) && (
           <div
             style={{
               backgroundColor: '#fff7ed',
@@ -781,16 +806,24 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               <span>
                 {isCreditExceeded
                   ? `تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة (${customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح (${customer?.creditLimit?.toFixed(2)} ج.م)`
+                  : isCashOnlyCustomerCredit
+                  ? `اعتماد المشرف مطلوب: العميل "${customerDisplayName}" مصنف نقدي (سقف الائتمان = 0.00 ج.م)`
                   : isNewCustomerCredit
                   ? `اعتماد المشرف مطلوب: بيع آجل لعميل جديد ("${newCustomerName}") غير مسجل مسبقاً`
+                  : isCardPayment
+                  ? 'اعتماد المشرف ورقم إيصال الشبكة مطلوبان للدفع بالبطاقة / التحويل البنكي'
                   : 'اعتماد المشرف مطلوب: تحتوي الفاتورة على أصناف بونص عيني مجاني'}
               </span>
             </div>
             <div style={{ fontSize: '11px', color: '#9a3412', lineHeight: 1.4 }}>
               {isCreditExceeded
                 ? 'يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.'
+                : isCashOnlyCustomerCredit
+                ? 'العملاء المضافون ميدانياً أو المصنفون نقداً لا يُسمح بالبيع الآجل لهم إلا برمز المشرف (PIN) أو بعد تخصيص سقف ائتمان من الإدارة.'
                 : isNewCustomerCredit
                 ? 'يتطلب فتح حساب آجل جديد في الميدان إدخال الرمز السري للمشرف (Supervisor PIN) لحماية الحسابات من المديونيات الوهمية.'
+                : isCardPayment
+                ? 'لتسجيل الفاتورة على حساب البنك مباشرة ومنع التلاعب بالنقدية، يرجى إدخال رمز المشرف (PIN) ورقم مرجع إيصال الشبكة أو الحوالة.'
                 : 'يتطلب صرف البونص العيني إدخال الرمز السري للمشرف (Supervisor PIN) لتوثيق المصادقة الرقابية.'}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
@@ -818,8 +851,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 placeholder={
                   isCreditExceeded
                     ? 'سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)'
+                    : isCashOnlyCustomerCredit
+                    ? 'سبب الاعتماد (مثال: موافقة المشرف على فاتورة آجلة)'
                     : isNewCustomerCredit
                     ? 'سبب فتح الآجل (مثال: موافقة المشرف على عميل جديد)'
+                    : isCardPayment
+                    ? 'رقم إيصال ماكينة الشبكة أو مرجع التحويل البنكي (إلزامي)'
                     : 'سبب صرف البونص (مثال: حملة ترويجية معتمدة)'
                 }
                 style={{

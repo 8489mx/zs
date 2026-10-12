@@ -6,6 +6,8 @@ import {
   evaluateOdometerReadings,
   evaluateMakerCheckerSettlement,
   evaluateNightStockRetention,
+  evaluateFieldCardPayment,
+  evaluateTripExpenseGovernance,
 } from '../../src/modules/delivery-reps/van-trip-reconciliation.engine';
 
 // =========================================================================
@@ -372,4 +374,160 @@ assert.equal(overrideBlocked.allowed, true);
 assert.equal(overrideBlocked.isOverridden, true);
 assert.equal(overrideBlocked.reasonCode, 'SUPERVISOR_OVERRIDE');
 
+// =========================================================================
+// 8. Cash-Only / Field-Created Customer Anti-Theft Credit Gate
+// =========================================================================
+
+// Test 8.1: Rep-created / cash-only customer (creditLimit = 0) rejected on credit sale without PIN
+const cashOnlyRejected = evaluateCreditLimitCheck({
+  customerId: 91,
+  customerName: 'كشك السلام - مضاف ميدانياً',
+  currentBalance: 0,
+  creditLimit: 0,
+  isCreditBlocked: false,
+  customerType: 'cash',
+  isFieldCreatedCustomer: true,
+  requestedCreditAmount: 1200,
+});
+assert.equal(cashOnlyRejected.allowed, false);
+assert.equal(cashOnlyRejected.reasonCode, 'CASH_ONLY_CUSTOMER');
+assert.equal(cashOnlyRejected.exceededAmount, 1200);
+
+// Test 8.2: Rep-created / cash-only customer permitted when Supervisor PIN is approved
+const cashOnlyOverridden = evaluateCreditLimitCheck({
+  customerId: 91,
+  customerName: 'كشك السلام - مضاف ميدانياً',
+  currentBalance: 0,
+  creditLimit: 0,
+  isCreditBlocked: false,
+  customerType: 'cash',
+  isFieldCreatedCustomer: true,
+  requestedCreditAmount: 1200,
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 2,
+    supervisorName: 'مشرف المنطقة',
+    reason: 'موافقة استثنائية لحين اعتماد سقف الائتمان',
+  },
+});
+assert.equal(cashOnlyOverridden.allowed, true);
+assert.equal(cashOnlyOverridden.isOverridden, true);
+assert.equal(cashOnlyOverridden.reasonCode, 'SUPERVISOR_OVERRIDE');
+
+// =========================================================================
+// 9. evaluateFieldCardPayment - Field POS / Bank Transfer Governance
+// =========================================================================
+
+// Test 9.1: Card payment without supervisor PIN rejected
+const cardNoPin = evaluateFieldCardPayment({
+  totalSaleAmount: 2500,
+  referenceReason: 'POS-998877',
+});
+assert.equal(cardNoPin.allowed, false);
+assert.equal(cardNoPin.reasonCode, 'CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN');
+
+// Test 9.2: Card payment with supervisor PIN but missing receipt/transfer reference rejected
+const cardNoRef = evaluateFieldCardPayment({
+  totalSaleAmount: 2500,
+  referenceReason: '  ',
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 2,
+    supervisorName: 'مشرف المبيعات',
+  },
+});
+assert.equal(cardNoRef.allowed, false);
+assert.equal(cardNoRef.reasonCode, 'CARD_PAYMENT_REFERENCE_REQUIRED');
+
+// Test 9.3: Card payment with supervisor PIN and valid reference approved
+const cardApproved = evaluateFieldCardPayment({
+  totalSaleAmount: 2500,
+  referenceReason: 'POS-RRN-445566',
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 2,
+    supervisorName: 'مشرف المبيعات',
+  },
+});
+assert.equal(cardApproved.allowed, true);
+assert.equal(cardApproved.reasonCode, 'SUPERVISOR_APPROVED');
+assert.equal(cardApproved.approvedReference, 'POS-RRN-445566');
+
+// =========================================================================
+// 10. evaluateTripExpenseGovernance - Field Trip Petty Cash Anti-Skimming
+// =========================================================================
+
+// Test 10.1: Expense without detailed notes rejected
+const expNoNotes = evaluateTripExpenseGovernance({
+  expenseType: 'fuel',
+  amount: 120,
+  notes: ' ',
+  existingTripExpenses: 0,
+});
+assert.equal(expNoNotes.allowed, false);
+assert.equal(expNoNotes.reasonCode, 'EXPENSE_NOTES_REQUIRED');
+
+// Test 10.2: Routine fuel expense within single (<=250) and cumulative (<=400) ceiling allowed without PIN
+const expRoutineFuel = evaluateTripExpenseGovernance({
+  expenseType: 'fuel',
+  amount: 150,
+  notes: 'بنزين 92 محطة وطنية إيصال 104',
+  existingTripExpenses: 30,
+});
+assert.equal(expRoutineFuel.allowed, true);
+assert.equal(expRoutineFuel.requiresSupervisorPin, false);
+assert.equal(expRoutineFuel.reasonCode, 'ROUTINE_PETTY_ALLOWED');
+assert.equal(expRoutineFuel.projectedTripExpenses, 180);
+
+// Test 10.3: Non-routine category (tips/maintenance/other) rejected without Supervisor PIN even for small amount
+const expTipsNoPin = evaluateTripExpenseGovernance({
+  expenseType: 'tips',
+  amount: 80,
+  notes: 'إكرامية عمال تنزيل مخزن العميل',
+  existingTripExpenses: 100,
+});
+assert.equal(expTipsNoPin.allowed, false);
+assert.equal(expTipsNoPin.requiresSupervisorPin, true);
+assert.equal(expTipsNoPin.reasonCode, 'EXPENSE_REQUIRES_SUPERVISOR_PIN');
+
+// Test 10.4: Single fuel expense exceeding 250 ceiling rejected without Supervisor PIN
+const expSingleHighNoPin = evaluateTripExpenseGovernance({
+  expenseType: 'fuel',
+  amount: 320,
+  notes: 'تموين سولار كامل للسيارة',
+  existingTripExpenses: 0,
+});
+assert.equal(expSingleHighNoPin.allowed, false);
+assert.equal(expSingleHighNoPin.requiresSupervisorPin, true);
+assert.equal(expSingleHighNoPin.reasonCode, 'EXPENSE_REQUIRES_SUPERVISOR_PIN');
+
+// Test 10.5: Cumulative routine expenses exceeding 400 ceiling rejected without Supervisor PIN
+const expCumulativeHighNoPin = evaluateTripExpenseGovernance({
+  expenseType: 'toll',
+  amount: 120,
+  notes: 'بوابات طريق الإسكندرية الصحراوي',
+  existingTripExpenses: 300,
+});
+assert.equal(expCumulativeHighNoPin.allowed, false);
+assert.equal(expCumulativeHighNoPin.requiresSupervisorPin, true);
+assert.equal(expCumulativeHighNoPin.reasonCode, 'EXPENSE_REQUIRES_SUPERVISOR_PIN');
+
+// Test 10.6: Non-routine or over-ceiling expense approved when Supervisor PIN is verified
+const expHighApproved = evaluateTripExpenseGovernance({
+  expenseType: 'maintenance',
+  amount: 450,
+  notes: 'إصلاح إطار داخلي وتغيير بلية عجل طارئ',
+  existingTripExpenses: 180,
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 2,
+    supervisorName: 'مدير الحركة',
+  },
+});
+assert.equal(expHighApproved.allowed, true);
+assert.equal(expHighApproved.requiresSupervisorPin, true);
+assert.equal(expHighApproved.reasonCode, 'SUPERVISOR_APPROVED');
+assert.equal(expHighApproved.projectedTripExpenses, 630);
+
 console.log('[OK] All VanTripReconciliationEngine critical unit tests passed 100% successfully.');
+

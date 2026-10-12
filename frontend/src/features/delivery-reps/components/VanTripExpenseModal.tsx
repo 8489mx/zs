@@ -26,9 +26,14 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
   const [expenseType, setExpenseType] = useState<string>('fuel');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [supervisorPin, setSupervisorPin] = useState<string>('');
   const [receiptPhoto, setReceiptPhoto] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  const parsedAmount = parseFloat(amount) || 0;
+  const requiresPinByRule =
+    (expenseType !== 'fuel' && expenseType !== 'toll') || parsedAmount > 250;
 
   const expenseTypes = [
     { value: 'fuel', label: 'وقود وبنزين' },
@@ -57,18 +62,28 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
       setError('يرجى إدخال مبلغ صحيح أكبر من الصفر');
       return;
     }
+    if (description.trim().length < 3) {
+      setError('يرجى تدوين البيان التفصيلي أو رقم الفاتورة/الإيصال (3 أحرف على الأقل)');
+      return;
+    }
+    if (requiresPinByRule && !supervisorPin.trim()) {
+      setError('هذا المصروف يتطلب إدخال الرمز السري للمشرف (Supervisor PIN) لاعتماد خصمه من العهدة النقدية');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await vanSalesApi.recordTripExpense(tripId, {
         expenseType,
         amount: amt,
-        description: description.trim() || undefined,
+        description: description.trim(),
         receiptPhoto: receiptPhoto || undefined,
+        supervisorOverridePin: supervisorPin.trim() || undefined,
       });
       toast.success('تم تسجيل مصروف الرحلة وخصمه من العهدة النقدية بنجاح');
       setAmount('');
       setDescription('');
+      setSupervisorPin('');
       setReceiptPhoto('');
       onSuccess();
       onClose();
@@ -159,10 +174,11 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
                   border: expenseType === type.value ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   backgroundColor: expenseType === type.value ? '#eef2ff' : '#ffffff',
                   color: expenseType === type.value ? '#170e5e' : '#334155',
-                  fontWeight: expenseType === type.value ? 800 : 600,
+                  fontWeight: 600,
                   fontSize: '11.5px',
                   cursor: 'pointer',
                   textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
               >
                 {type.label}
@@ -196,16 +212,16 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
           />
         </div>
 
-        {/* Description / Reason */}
+        {/* Description / Reason (Mandatory) */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            البيان والتفاصيل (اختياري):
+            البيان التفصيلي ورقم الإيصال (إلزامي):
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="مثال: بنزين 92 محطة وطنية / كارتة الطريق الدائري"
+            placeholder="مثال: بنزين 92 محطة وطنية إيصال #412 / كارتة الطريق الدائري"
             style={{
               width: '100%',
               height: '36px',
@@ -213,6 +229,49 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
               border: '1px solid #cbd5e1',
               fontSize: '12px',
               padding: '0 10px',
+              backgroundColor: '#ffffff',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        {/* Supervisor PIN for non-routine or >250 expenses (or optional if cumulative >400) */}
+        <div
+          style={{
+            backgroundColor: requiresPinByRule ? '#fff7ed' : '#f8fafc',
+            border: `1px solid ${requiresPinByRule ? '#fdba74' : '#e2e8f0'}`,
+            borderRadius: '8px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: requiresPinByRule ? '#c2410c' : '#334155' }}>
+              {requiresPinByRule
+                ? 'رمز اعتماد المشرف (PIN) إلزامي لهذا المصروف:'
+                : 'رمز اعتماد المشرف (عند تجاوز السقف التراكمي 400):'}
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#64748b' }}>
+              المصروفات غير الوقود/الكارتات أو التي تتجاوز 250 تتطلب موافقة المشرف
+            </div>
+          </div>
+          <input
+            type="password"
+            maxLength={6}
+            value={supervisorPin}
+            onChange={(e) => setSupervisorPin(e.target.value)}
+            placeholder="PIN المشرف"
+            style={{
+              width: '110px',
+              height: '34px',
+              borderRadius: '6px',
+              border: `1px solid ${requiresPinByRule ? '#f97316' : '#cbd5e1'}`,
+              fontSize: '12.5px',
+              fontWeight: 800,
+              textAlign: 'center',
               backgroundColor: '#ffffff',
               boxSizing: 'border-box',
             }}

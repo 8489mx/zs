@@ -317,6 +317,7 @@ export async function runVanSalesDistributionMasterSimulation(): Promise<void> {
       tripId,
       customerId: fieldCustomerId,
       paymentMethod: 'cash',
+      supervisorOverridePin: '1234',
       items: [
         { productId: pJuiceId, qty: 2, unitPrice: 220, unitName: 'كرتونة', unitMultiplier: 12 },
         { productId: pJuiceId, qty: 1, unitPrice: 0, isBonus: true, bonusReason: 'عينة ترويجية مجانية للافتتاح' },

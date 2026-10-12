@@ -112,7 +112,7 @@ async function main(): Promise<void> {
 
     const customer = await dbAny
       .insertInto('customers')
-      .values({ name: 'Returning Shop', is_active: true, tenant_id: TENANT, account_id: ACCOUNT })
+      .values({ name: 'Returning Shop', customer_type: 'credit', credit_limit: 5000, is_active: true, tenant_id: TENANT, account_id: ACCOUNT })
       .returning(['id'])
       .executeTakeFirstOrThrow();
 

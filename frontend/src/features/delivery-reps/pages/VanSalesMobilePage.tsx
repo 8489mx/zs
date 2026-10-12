@@ -3014,7 +3014,7 @@ export default function VanSalesMobilePage() {
                   onCountedCashChange={setCountedCash}
                   unloadRemaining={unloadRemaining}
                   onUnloadRemainingChange={setUnloadRemaining}
-                  onSubmitSettle={async () => {
+                  onSubmitSettle={async (supervisorPin?: string) => {
                     const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
                     const finalCountedCash = countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash;
                     if (finalCountedCash === '') {
@@ -3046,6 +3046,7 @@ export default function VanSalesMobilePage() {
                       countedCash: Number(finalCountedCash),
                       unloadRemainingToWarehouse: unloadRemaining,
                       activeVisitCustomerId: activeCustId,
+                      supervisorPin,
                     });
                   }}
                   isSubmitting={settleTripMutation.isPending}

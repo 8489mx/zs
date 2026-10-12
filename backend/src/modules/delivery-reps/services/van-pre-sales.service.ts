@@ -1358,7 +1358,7 @@ export class VanPreSalesService {
       branchId = primaryBranch ? Number(primaryBranch.id) : 1;
     }
 
-    const releaseItems = sortItemsByProductId(
+    const releaseItems = sortItemsByProductId<{ productId: number; qty: number }>(
       items
         .filter((item: any) => Number(item.reserved_quantity || 0) > 0)
         .map((item: any) => ({
