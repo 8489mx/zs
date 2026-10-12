@@ -1,7 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { storefrontApi } from '@/features/storefront/api/storefront.api';
-import { posApi } from '@/features/pos/api/pos.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
@@ -17,7 +14,7 @@ import {
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { PosSmartUpsellModal } from '@/features/pos/components/pos-workspace/PosSmartUpsellModal';
-import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
+import { useSelfOrderingKiosk } from '@/features/pos/hooks/useSelfOrderingKiosk';
 
 interface KioskCartItem {
   productId: number;
@@ -67,32 +64,8 @@ export function SelfOrderingKioskPage() {
     };
   }, [orderConfirmedData, resetCountdown]);
 
-  // Load catalog
-  const { data: catalogData, isLoading: isCatalogLoading } = useQuery({
-    queryKey: ['kiosk-catalog', storeName],
-    queryFn: async () => {
-      try {
-        const cat = await storefrontApi.getCatalog(storeName);
-        if (cat && cat.products && cat.products.length > 0) return cat;
-      } catch {
-        // Fallback to POS product catalog
-      }
-      const products = await posApi.lookupProducts({ limit: 100 });
-      return {
-        categories: [],
-        products: (products || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: Number(p.price || 0),
-          categoryId: null,
-          imageUrl: p.image_url || p.imageUrl || '',
-          description: p.description || '',
-          inStock: true,
-        })),
-      };
-    },
-    staleTime: 60_000,
-  });
+  // Load catalog & actions via feature hook
+  const { catalogData, isCatalogLoading, checkUpsell, createOrder } = useSelfOrderingKiosk(storeName);
 
   const products = catalogData?.products || [];
   const categories = catalogData?.categories || [];
@@ -104,7 +77,7 @@ export function SelfOrderingKioskPage() {
 
   const checkUpsellForProduct = async (product: any) => {
     try {
-      const rules = await restaurantAdvancedFnbApi.getUpsellRecommendations(product.id);
+      const rules = await checkUpsell(product.id);
       if (rules && rules.length > 0) {
         setUpsellTriggerItem({ id: product.id, name: product.name });
         setUpsellRules(rules);
@@ -198,7 +171,7 @@ export function SelfOrderingKioskPage() {
         paymentMethod: paymentChoice === 'card_kiosk' ? 'card' : 'cash',
       };
 
-      const res = await storefrontApi.createOrder(storeName, orderPayload as any);
+      const res = await createOrder(orderPayload as any);
       const generatedOrderNo = res?.orderNumber || `K-${Math.floor(1000 + Math.random() * 9000)}`;
 
       setOrderConfirmedData({

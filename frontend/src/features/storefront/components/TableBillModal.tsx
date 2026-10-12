@@ -1,7 +1,7 @@
 import { useState, useId } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
-import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
+import { restaurantAdvancedFnbApi } from '@/features/pos';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
