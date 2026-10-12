@@ -18,6 +18,7 @@ import { PosTableReservationsModal } from './PosTableReservationsModal';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
 import { PosKitchenPrintersModal } from './PosKitchenPrintersModal';
 import { PosTransferItemModal, type TransferableCartItem } from './PosTransferItemModal';
+import { PosVisualFloorCanvas } from './PosVisualFloorCanvas';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
@@ -69,6 +70,7 @@ export function PosTablesFloorPlanDialog({
 }: PosTablesFloorPlanDialogProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'floor' | 'list'>(initialTab);
+  const [floorViewMode, setFloorViewMode] = useState<'canvas' | 'grid'>('canvas');
   const [customInput, setCustomInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [pendingRecallId, setPendingRecallId] = useState('');
@@ -821,51 +823,105 @@ export function PosTablesFloorPlanDialog({
               </div>
             )}
 
-            {/* Multi-Zone Dining Tabs */}
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', marginLeft: '4px' }}>أجنحة الصالة:</span>
-              <button
-                type="button"
-                onClick={() => setSelectedZone('all')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  border: selectedZone === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                  background: selectedZone === 'all' ? '#170e5e' : '#fff',
-                  color: selectedZone === 'all' ? '#fff' : '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                كافة الطاولات ({defaultTables.length})
-              </button>
-              {zones.map((z) => (
+            {/* Multi-Zone Dining Tabs & View Mode Switcher */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', marginLeft: '4px' }}>أجنحة الصالة:</span>
                 <button
-                  key={z.id}
                   type="button"
-                  onClick={() => setSelectedZone(z.zone_code)}
+                  onClick={() => setSelectedZone('all')}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    border: selectedZone === z.zone_code ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                    background: selectedZone === z.zone_code ? '#170e5e' : '#fff',
-                    color: selectedZone === z.zone_code ? '#fff' : '#334155',
+                    border: selectedZone === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                    background: selectedZone === 'all' ? '#170e5e' : '#fff',
+                    color: selectedZone === 'all' ? '#fff' : '#334155',
                     cursor: 'pointer',
                   }}
                 >
-                  {z.name}
+                  كافة الطاولات ({defaultTables.length})
                 </button>
-              ))}
+                {zones.map((z) => (
+                  <button
+                    key={z.id}
+                    type="button"
+                    onClick={() => setSelectedZone(z.zone_code)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: selectedZone === z.zone_code ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                      background: selectedZone === z.zone_code ? '#170e5e' : '#fff',
+                      color: selectedZone === z.zone_code ? '#fff' : '#334155',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {z.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* View Switcher: 2D Visual Floor Canvas vs Quick Grid */}
+              <div style={{ display: 'flex', gap: '3px', background: '#f1f5f9', padding: '3px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  onClick={() => setFloorViewMode('canvas')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '5px',
+                    border: 'none',
+                    background: floorViewMode === 'canvas' ? '#170e5e' : 'transparent',
+                    color: floorViewMode === 'canvas' ? '#ffffff' : '#475569',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  مخطط الصالة 2D
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFloorViewMode('grid')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '5px',
+                    border: 'none',
+                    background: floorViewMode === 'grid' ? '#170e5e' : 'transparent',
+                    color: floorViewMode === 'grid' ? '#ffffff' : '#475569',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  شبكة الطاولات
+                </button>
+              </div>
             </div>
 
-            {/* Tables Grid */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+            {floorViewMode === 'canvas' ? (
+              <PosVisualFloorCanvas
+                branchId={activeBranch ? Number(activeBranch) : undefined}
+                tablesCount={tablesCount}
+                zones={zones}
+                selectedZone={selectedZone}
+                occupiedMap={occupiedMap}
+                currentTableNumber={currentTableNumber}
+                confirmedReservationsMap={confirmedReservationsMap}
+                pendingCallsByTable={pendingCallsByTable}
+                kdsTableMap={kdsTableMap}
+                onSelectTable={(tNum) => void handleTableClick(tNum)}
+                onRecallDraft={handleRecall}
+                onResolveCalls={handleResolveTableCalls}
+              />
+            ) : (
+              /* Tables Grid */
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
                 gap: '10px',
                 maxHeight: '340px',
                 overflowY: 'auto',
@@ -1225,6 +1281,7 @@ export function PosTablesFloorPlanDialog({
                 );
               })}
             </div>
+            )}
 
             {/* Footer: Custom table number input */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px', flexWrap: 'wrap', gap: '10px' }}>

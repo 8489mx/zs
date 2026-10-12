@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { toast } from '@/shared/components/system-alert';
 import { CheckCircleIcon, PlusCircleIcon } from '@/shared/components/icons/AppIcons';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
@@ -9,6 +9,7 @@ interface PosCustomerPunchCardModalProps {
   onClose: () => void;
   customerId: number;
   customerName?: string;
+  onBack?: () => void;
 }
 
 export function PosCustomerPunchCardModal({
@@ -16,6 +17,7 @@ export function PosCustomerPunchCardModal({
   onClose,
   customerId,
   customerName = 'العميل',
+  onBack,
 }: PosCustomerPunchCardModalProps) {
   const { data: card, refetch } = useQuery({
     queryKey: ['restaurant-stamp-card', customerId],
@@ -42,15 +44,23 @@ export function PosCustomerPunchCardModal({
   const stampSlots = Array.from({ length: target }, (_, i) => i < current);
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="كرت الأختام الرقمي للعميل (Digital Stamp Loyalty Card)"
       subtitle={`برنامج ولاء المقاهي والمطاعم المباشر للعميل: ${customerName}`}
-      width="min(560px, 94vw)"
-      compact
+      footerNote="الأختام الرقمية تتزامن فورياً مع حساب العميل وبرنامج مكافآت المتجر"
+      bodyStyle={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+      }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', padding: '10px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%', maxWidth: '480px' }}>
         {/* Visual Punch Card Simulation */}
         <div
           style={{
@@ -135,7 +145,7 @@ export function PosCustomerPunchCardModal({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Button */}
         <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '460px' }}>
           <button
             type="button"
@@ -155,29 +165,14 @@ export function PosCustomerPunchCardModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
             }}
           >
             <PlusCircleIcon size={16} />
-            <span>ختم الكرت الآن (+1 ختم)</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '8px',
-              background: '#f1f5f9',
-              color: '#334155',
-              fontSize: '13px',
-              fontWeight: 700,
-              border: '1px solid #cbd5e1',
-              cursor: 'pointer',
-            }}
-          >
-            إغلاق
+            <span>ختم الكرت الآن (+1 ختم للعميل)</span>
           </button>
         </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

@@ -134,7 +134,7 @@ export function PosTransferItemModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: '4px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
+              <h3 className="no-pseudo-bar" style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
                 نقل أصناف محددة بين الطاولات
               </h3>
             </div>

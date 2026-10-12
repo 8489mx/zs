@@ -244,6 +244,92 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
     });
   };
 
+  // Fractional Split: splits single item into N equal parts distributed across bills
+  const handleFractionalSplit = (fromBillId: string, itemLineKey: string, partsCount: 2 | 3 | 4) => {
+    setBills((prev) => {
+      const fromBill = prev.find((b) => b.id === fromBillId);
+      if (!fromBill || fromBill.isPaid) return prev;
+
+      const itemIdx = fromBill.items.findIndex((i) => i.lineKey === itemLineKey);
+      if (itemIdx === -1) return prev;
+      const targetItem = fromBill.items[itemIdx];
+
+      const totalItemVal = Number(targetItem.price || 0) * Number(targetItem.qty || 1);
+      if (totalItemVal <= 0) return prev;
+
+      // Clean base name if already fractionally split
+      const baseName = targetItem.name.replace(/\s*\((نصف حصة|حصة)\s*[\d/]+\)/g, '').trim();
+
+      // Ensure we have enough unpaid bills to distribute to
+      let currentBills = [...prev];
+      while (currentBills.filter((b) => !b.isPaid).length < partsCount) {
+        const nextIdx = currentBills.length + 1;
+        currentBills.push({
+          id: `split-${Date.now()}-${nextIdx}`,
+          name: `الشيك ${nextIdx}`,
+          items: [],
+          isPaid: false,
+        });
+      }
+
+      // Calculate parts with penny-accurate rounding
+      const unpaidBills = currentBills.filter((b) => !b.isPaid);
+      const basePartVal = Number((totalItemVal / partsCount).toFixed(2));
+      let allocated = 0;
+      const parts: number[] = [];
+
+      for (let p = 0; p < partsCount; p++) {
+        const isLast = p === partsCount - 1;
+        const val = isLast ? Number((totalItemVal - allocated).toFixed(2)) : basePartVal;
+        allocated += val;
+        parts.push(val);
+      }
+
+      // Distribute: Part 0 stays in fromBill (replacing targetItem), others go to other unpaid bills
+      const otherUnpaidBills = unpaidBills.filter((b) => b.id !== fromBillId);
+      const updatedBills = currentBills.map((b) => {
+        if (b.id === fromBillId) {
+          const newItems = [...b.items];
+          newItems[itemIdx] = {
+            ...targetItem,
+            qty: 1,
+            price: parts[0],
+            name: `${baseName} (حصة 1/${partsCount})`,
+            lineKey: `${targetItem.productId}::frac1::${Date.now()}::${Math.random()}`,
+          };
+          return { ...b, items: newItems };
+        }
+        return b;
+      });
+
+      // Distribute remaining parts to other bills
+      for (let p = 1; p < partsCount; p++) {
+        const targetBill = otherUnpaidBills[p - 1];
+        if (targetBill) {
+          const bIdx = updatedBills.findIndex((b) => b.id === targetBill.id);
+          if (bIdx !== -1) {
+            updatedBills[bIdx] = {
+              ...updatedBills[bIdx],
+              items: [
+                ...updatedBills[bIdx].items,
+                {
+                  ...targetItem,
+                  qty: 1,
+                  price: parts[p],
+                  name: `${baseName} (حصة ${p + 1}/${partsCount})`,
+                  lineKey: `${targetItem.productId}::frac${p + 1}::${Date.now()}::${Math.random()}`,
+                },
+              ],
+            };
+          }
+        }
+      }
+
+      setStatusMessage(`تمت تجزئة «${baseName}» إلى ${partsCount} حصص متساوية وتوزيعها بنجاح.`);
+      return updatedBills;
+    });
+  };
+
   // Compute total for each bill
   const getBillTotal = (items: PosItem[]) => {
     return items.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.qty || 0)), 0);
@@ -726,6 +812,64 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                           )}
                                         </div>
                                       ))}
+                                    </div>
+                                  )}
+
+                                  {/* Fractional Item Splitting */}
+                                  {!bill.isPaid && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '4px' }}>
+                                      <span style={{ fontSize: '9.5px', color: '#64748b' }}>تجزئة الصنف:</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleFractionalSplit(bill.id, item.lineKey, 2)}
+                                        title="تجزئة هذا الصنف إلى نصفين (50% / 50%) وتوزيعهما على شيكين"
+                                        style={{
+                                          background: '#eff6ff',
+                                          border: '1px solid #bfdbfe',
+                                          borderRadius: '3px',
+                                          padding: '1px 5px',
+                                          fontSize: '10px',
+                                          fontWeight: 800,
+                                          color: '#1d4ed8',
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        ½ نصفين
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleFractionalSplit(bill.id, item.lineKey, 3)}
+                                        title="تجزئة هذا الصنف إلى 3 أثلاث متساوية وتوزيعها على الشيكات"
+                                        style={{
+                                          background: '#eff6ff',
+                                          border: '1px solid #bfdbfe',
+                                          borderRadius: '3px',
+                                          padding: '1px 5px',
+                                          fontSize: '10px',
+                                          fontWeight: 800,
+                                          color: '#1d4ed8',
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        ⅓ أثلاث
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleFractionalSplit(bill.id, item.lineKey, 4)}
+                                        title="تجزئة هذا الصنف إلى 4 أرباع متساوية وتوزيعها على الشيكات"
+                                        style={{
+                                          background: '#eff6ff',
+                                          border: '1px solid #bfdbfe',
+                                          borderRadius: '3px',
+                                          padding: '1px 5px',
+                                          fontSize: '10px',
+                                          fontWeight: 800,
+                                          color: '#1d4ed8',
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        ¼ أرباع
+                                      </button>
                                     </div>
                                   )}
                                 </div>

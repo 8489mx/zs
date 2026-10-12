@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { toast } from '@/shared/components/system-alert';
 import { CheckCircleIcon, PlusCircleIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { restaurantAdvancedFnbApi, RestaurantPrepSheetItem } from '@/features/pos/api/restaurant-advanced-fnb.api';
@@ -10,12 +10,14 @@ interface KitchenDailyPrepSheetModalProps {
   open: boolean;
   onClose: () => void;
   branchId?: number | null;
+  onBack?: () => void;
 }
 
 export function KitchenDailyPrepSheetModal({
   open,
   onClose,
   branchId: _branchId,
+  onBack,
 }: KitchenDailyPrepSheetModalProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -91,13 +93,14 @@ export function KitchenDailyPrepSheetModal({
   };
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="ورقة التحضير اليومية للمطبخ المركزي (Daily Prep Sheet & Commissary)"
       subtitle="جدولة ومتابعة تحضير الأصناف نصف المصنعة (تتبيل، صوصات، عجين) لضمان جاهزية الوردية ومنع العجز"
-      width="min(1020px, 96vw)"
-      compact
+      footerNote="الكميات المحضرة تنعكس فورياً في كفاءة الشيف وسجلات المخزون المركزي."
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Top Control Bar */}
@@ -295,29 +298,7 @@ export function KitchenDailyPrepSheetModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
-            الكميات المحضرة تنعكس فورياً في كفاءة الشيف وسجلات المخزون المركزي.
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '7px 20px',
-              borderRadius: '8px',
-              background: '#170e5e',
-              color: '#fff',
-              fontSize: '13px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            إغلاق
-          </button>
-        </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

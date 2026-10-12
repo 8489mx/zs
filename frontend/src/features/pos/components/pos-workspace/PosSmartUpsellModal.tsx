@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { PlusCircleIcon, LayersIcon, XIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { PlusCircleIcon, LayersIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import type { RestaurantUpsellRule } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import type { Product } from '@/types/domain';
 
@@ -14,6 +14,7 @@ interface PosSmartUpsellModalProps {
   allProducts?: Product[];
   onAddUpsellItem?: (product: Product, discountAmount?: number) => void;
   onAcceptUpsell?: (product: any) => void;
+  onBack?: () => void;
 }
 
 export function PosSmartUpsellModal({
@@ -43,74 +44,32 @@ export function PosSmartUpsellModal({
   };
 
   return (
-    <DialogShell
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      width="min(600px, calc(100vw - 32px))"
-      zIndex={95}
-      ariaLabel="ترقية الوجبة واقتراحات المبيعات"
-    >
-      <div
-        dir="rtl"
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        {/* Header */}
-        <div
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
+      title="ترقية الطلب واقتراحات مكملة (Upsell & Cross-Sell)"
+      subtitle={`اقتراحات موصى بها تناسب طبق: ${triggerItemName || 'الوجبة الحالية'}`}
+      footerNote="الاقتراحات تعتمد على الأصناف الموجودة في سلة العميل حالياً"
+      icon={<LayersIcon size={18} color="#170e5e" />}
+      footerActions={
+        <Button
+          variant="secondary"
+          onClick={onClose}
           style={{
-            padding: '16px 20px',
-            backgroundColor: '#f8fafc',
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            padding: '6px 18px',
+            fontSize: '12px',
+            fontWeight: 700,
+            backgroundColor: '#170e5e',
+            color: '#ffffff',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: '#eff6ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <LayersIcon size={20} color="#170e5e" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                ترقية الطلب واقتراحات مكملة (Upsell)
-              </h3>
-              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-                اقتراحات موصى بها تناسب طبق <strong style={{ color: '#170e5e' }}>{triggerItemName}</strong>
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: '#64748b',
-              padding: '6px',
-              borderRadius: '8px',
-            }}
-            aria-label="إغلاق"
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
+          متابعة الطلب
+        </Button>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
         {/* Body Items List */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -203,31 +162,7 @@ export function PosSmartUpsellModal({
           })}
         </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: '12px 20px',
-            backgroundColor: '#f8fafc',
-            borderTop: '1px solid #e2e8f0',
-            display: 'flex',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            style={{
-              padding: '8px 20px',
-              fontSize: '13px',
-              fontWeight: 700,
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-            }}
-          >
-            متابعة الطلب
-          </Button>
-        </div>
       </div>
-    </DialogShell>
+    </RestaurantOperationsDialog>
   );
 }

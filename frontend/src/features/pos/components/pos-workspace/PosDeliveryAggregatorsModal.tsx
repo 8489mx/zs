@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
 import {
   RefreshCwIcon,
@@ -14,9 +14,10 @@ import { toast } from '@/shared/components/system-alert';
 interface PosDeliveryAggregatorsModalProps {
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
 }
 
-export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggregatorsModalProps) {
+export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDeliveryAggregatorsModalProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'orders' | 'platforms' | 'stock86'>('orders');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -93,14 +94,16 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
   };
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="منظومة تطبيقات التوصيل الخليجية (جاهز، هنقرستيشن، طلبات، كيتا)"
       subtitle="إدارة وتوجيه الطلبيات اللحظية، عمولات المنصات، وإيقاف الأصناف التلقائي (86 Out of Stock)"
-      width="1050px"
+      footerNote="تكامل واجهات برمجة تطبيقات التوصيل المتعددة مع منصة المطعم المركزية"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minHeight: '480px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Navigation Tabs */}
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
           <button
@@ -455,20 +458,6 @@ export function PosDeliveryAggregatorsModal({ open, onClose }: PosDeliveryAggreg
           </div>
         )}
       </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginTop: '14px',
-          borderTop: '1px solid #e2e8f0',
-          paddingTop: '10px',
-        }}
-      >
-        <Button variant="secondary" onClick={onClose} style={{ fontSize: '12px' }}>
-          إغلاق
-        </Button>
-      </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

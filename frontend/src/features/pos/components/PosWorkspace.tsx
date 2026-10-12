@@ -19,8 +19,6 @@ import { PosScannedInvoiceModal } from '@/features/pos/components/pos-workspace/
 import { PosRecentSalesReprintModal } from '@/features/pos/components/pos-workspace/PosRecentSalesReprintModal';
 import { PosPhoneOrderDialog } from '@/features/pos/components/pos-workspace/PosPhoneOrderDialog';
 import { PosCallerIdFloatingAlert } from '@/features/pos/components/pos-workspace/PosCallerIdFloatingAlert';
-import { PosComboMealModal } from '@/features/pos/components/pos-workspace/PosComboMealModal';
-import { PosManagerCompModal } from '@/features/pos/components/pos-workspace/PosManagerCompModal';
 import { printOrderCupLabels } from '@/lib/pos-printing/cup-label';
 import { salesApi } from '@/features/sales/api/sales.api';
 import {
@@ -80,11 +78,9 @@ export function PosWorkspace() {
   const [scannedSale, setScannedSale] = useState<Sale | null>(null);
   const [scannedSaleModalOpen, setScannedSaleModalOpen] = useState(false);
   const [reprintModalOpen, setReprintModalOpen] = useState(false);
-  const [comboMealModalOpen, setComboMealModalOpen] = useState(false);
   const [phoneOrderOpen, setPhoneOrderOpen] = useState(false);
   const [phoneOrderInitialPhone, setPhoneOrderInitialPhone] = useState('');
   const [phoneOrderInitialName, setPhoneOrderInitialName] = useState('');
-  const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
@@ -367,7 +363,7 @@ export function PosWorkspace() {
           const offlineItem = await lookupProductByBarcodeFromStorage(query);
           if (offlineItem) lookupProducts = [offlineItem];
         }
-        let remoteMatch = matchProductByCode(lookupProducts, query);
+        const remoteMatch = matchProductByCode(lookupProducts, query);
 
         if (remoteMatch.status !== 'matched' && remappedQuery !== query) {
           let remappedLookup: Product[] = [];
@@ -595,8 +591,6 @@ export function PosWorkspace() {
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
         onOpenReprintModal={() => setReprintModalOpen(true)}
-        onOpenComboModal={() => setComboMealModalOpen(true)}
-        onOpenManagerComp={() => setIsManagerCompOpen(true)}
         onPrintCupLabels={handlePrintCupLabels}
       />
 
@@ -670,31 +664,6 @@ export function PosWorkspace() {
         pos={pos}
         onClose={() => setWholesaleApprovalDialogOpen(false)}
         onFocusBarcodeEntry={focusBarcodeEntry}
-      />
-
-      <PosComboMealModal
-        open={comboMealModalOpen}
-        onClose={() => setComboMealModalOpen(false)}
-        products={pos.productsQuery.data || []}
-        onAddComboToCart={(combo) => {
-          const product = (pos.productsQuery.data || []).find((p: any) => p.id === combo.productId);
-          if (product) {
-            pos.handleAddProduct(product);
-            pos.setCart((prevCart: any[]) => {
-              const lastIdx = prevCart.length - 1;
-              if (lastIdx < 0) return prevCart;
-              const updated = [...prevCart];
-              updated[lastIdx] = {
-                ...updated[lastIdx],
-                name: combo.productName,
-                notes: combo.notes,
-                modifiers: combo.modifiers,
-              };
-              return updated;
-            });
-            toast.success(`تمت إضافة ${combo.productName} إلى السلة بنجاح`);
-          }
-        }}
       />
 
       {/* 1. Restaurant Unified Floor & Orders Dialog (Restaurant Mode) */}
@@ -918,20 +887,6 @@ export function PosWorkspace() {
           }}
         />
       )}
-
-      {/* Restaurant Manager Comps & VIP On-the-house Modal */}
-      <PosManagerCompModal
-        open={isManagerCompOpen}
-        onClose={() => setIsManagerCompOpen(false)}
-        currentCartTotal={Number(pos.totals?.total || 0)}
-        currentTableNumber={pos.tableNumber || undefined}
-        cartSummary={pos.cart.map((i) => `${i.qty}× ${i.name}`).join('، ')}
-        onApplyComp={async (comp) => {
-          pos.setDiscount(comp.amount);
-          pos.setNote(`ضيافة إدارة [${comp.compType}] - معتمد: ${comp.managerName}${comp.notes ? ` - ${comp.notes}` : ''}`);
-          setIsManagerCompOpen(false);
-        }}
-      />
 
       {/* 2. Standard Retail Held Drafts Dialog (Non-Restaurant Mode) */}
       <PosHeldDraftsDialog

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Card } from '@/shared/ui/card';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
@@ -9,7 +8,6 @@ import {
   ClockIcon,
   CheckCircleIcon,
   PlusCircleIcon,
-  XIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
   restaurantAdvancedFnbApi,
@@ -21,9 +19,10 @@ interface PosDriveThruModalProps {
   onClose: () => void;
   branchId?: number;
   onSelectDriveThruOrder?: (order: RestaurantDriveThruOrder) => void;
+  onBack?: () => void;
 }
 
-export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelectDriveThruOrder }: PosDriveThruModalProps) {
+export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelectDriveThruOrder, onBack }: PosDriveThruModalProps) {
   const [orders, setOrders] = useState<RestaurantDriveThruOrder[]>([]);
   const [activeCount, setActiveCount] = useState(0);
   const [averageSos, setAverageSos] = useState(0);
@@ -108,25 +107,32 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
   if (!open) return null;
 
   return (
-    <DialogShell
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      width="min(1080px, calc(100vw - 32px))"
-      zIndex={90}
-      ariaLabel="مسار طلبات السيارات ودرايف ثرو"
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
+      title="مسار طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru SOS)"
+      subtitle="متابعة طابور سيارات الخدمة ومؤشر سرعة وتوقيت الخدمة SOS"
+      badge={
+        activeCount > 0 ? (
+          <span
+            style={{
+              background: '#3b82f6',
+              color: '#ffffff',
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '1px 7px',
+              borderRadius: '999px',
+            }}
+          >
+            {activeCount} سيارات بالمسار
+          </span>
+        ) : undefined
+      }
+      footerNote="مسار طلبات السيارات متصل بنظام KDS وشاشات العرض الخارجية"
     >
-      <Card
-        title="مسار طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru SOS)"
-        className="dialog-card"
-        style={{
-          maxHeight: 'calc(100vh - 32px)',
-          display: 'flex',
-          flexDirection: 'column',
-          boxSizing: 'border-box',
-          padding: '16px 20px',
-        }}
-      >
-        <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Header & KPI Summary */}
           <div
             style={{
@@ -512,14 +518,7 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
             </table>
           </div>
 
-          {/* Footer Close */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-            <Button variant="secondary" onClick={onClose} style={{ padding: '6px 20px', fontSize: '12.5px' }}>
-              إغلاق
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </DialogShell>
+      </div>
+    </RestaurantOperationsDialog>
   );
 }

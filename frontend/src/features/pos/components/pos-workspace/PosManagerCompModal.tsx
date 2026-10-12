@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
-import { XIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
+import {
+  ShieldCheckIcon,
+  CheckCircleIcon,
+  UserIcon,
+  FileTextIcon,
+  LockIcon,
+} from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
@@ -10,6 +16,7 @@ import { useAuthStore } from '@/stores/auth-store';
 interface PosManagerCompModalProps {
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
   currentCartTotal: number;
   currentTableNumber?: string;
   cartSummary?: string;
@@ -24,6 +31,7 @@ interface PosManagerCompModalProps {
 export function PosManagerCompModal({
   open,
   onClose,
+  onBack,
   currentCartTotal,
   currentTableNumber,
   cartSummary,
@@ -38,7 +46,11 @@ export function PosManagerCompModal({
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const finalCompAmount = isFullComp ? currentCartTotal : Math.min(currentCartTotal, Math.max(0, Number(customAmount) || 0));
+  const finalCompAmount = isFullComp
+    ? currentCartTotal
+    : Math.min(currentCartTotal, Math.max(0, Number(customAmount) || 0));
+
+  const netPayable = Math.max(0, currentCartTotal - finalCompAmount);
 
   const handleConfirm = async () => {
     if (finalCompAmount <= 0) {
@@ -81,68 +93,70 @@ export function PosManagerCompModal({
   };
 
   return (
-    <DialogShell
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      ariaLabel="ضيافة الإدارة والخصومات الرسمية"
-      width="min(560px, 96vw)"
-      zIndex={94}
-    >
-      <div style={{ padding: '18px 22px', direction: 'rtl', fontFamily: 'inherit' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '4px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                ضيافة الإدارة (Manager Comps & House Account)
-              </h3>
-            </div>
-            <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-              اعتماد ضيافة رسمية وقيدها على حسابات الضيافة والتسويق مع التوثيق المحاسبي
-            </p>
-          </div>
-          <button
+      onBack={onBack}
+      title="ضيافة الإدارة (Manager Comps & House Account)"
+      subtitle="اعتماد ضيافة رسمية وقيدها على حسابات الضيافة والتسويق مع التوثيق المحاسبي"
+      icon={<ShieldCheckIcon size={18} color="#170e5e" />}
+      footerNote="يتم توثيق القيد وإدراجه تلقائياً في كشف ضيافات الإدارة وحسابات الأرباح والخسائر"
+      scrollableBody={false}
+      bodyStyle={{
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        boxSizing: 'border-box',
+      }}
+      footerActions={
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
             type="button"
+            variant="secondary"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#64748b' }}
+            disabled={isSubmitting}
+            style={{ minHeight: '34px', height: '34px', padding: '0 16px', fontSize: '12px' }}
           >
-            <XIcon size={18} />
-          </button>
-        </div>
-
-        {/* Body Form */}
-        <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Cart Info Card */}
-          <div
+            إلغاء
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleConfirm}
+            disabled={isSubmitting || finalCompAmount <= 0}
             style={{
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              minHeight: '34px',
+              height: '34px',
+              padding: '0 20px',
+              fontSize: '12px',
+              fontWeight: 800,
+              backgroundColor: '#170e5e',
             }}
           >
-            <div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>إجمالي الفاتورة / الطاولة:</div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                {formatCurrency(currentCartTotal)} {currentTableNumber && <span style={{ fontSize: '12px', color: '#170e5e' }}>(طاولة {currentTableNumber})</span>}
-              </div>
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>مبلغ الضيافة المعتمد:</div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
-                {formatCurrency(finalCompAmount)}
-              </div>
-            </div>
-          </div>
-
-          {/* Comp Type Selection */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-              نوع ومبرر الضيافة:
+            {isSubmitting ? 'جارٍ الاعتماد...' : `اعتماد الضيافة (${formatCurrency(finalCompAmount)})`}
+          </Button>
+        </div>
+      }
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.05fr 0.95fr',
+          gap: '16px',
+          height: '100%',
+          boxSizing: 'border-box',
+          alignItems: 'stretch',
+        }}
+      >
+        {/* Right Column: Comp Type Selection & Details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, justifyContent: 'space-between' }}>
+          {/* Box 1: Comp Type Selection */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <FileTextIcon size={14} color="#170e5e" />
+              <span>نوع ومبرر الضيافة المعتمد:</span>
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {[
@@ -150,147 +164,93 @@ export function PosManagerCompModal({
                 { key: 'customer_complaint', label: 'تعويض شكوى عميل / خدمة', desc: 'Service Recovery' },
                 { key: 'staff_meal', label: 'وجبة موظف / طاقم العمل', desc: 'Staff Meal Allowance' },
                 { key: 'promotional_tasting', label: 'تذوق ترويجي / صنف جديد', desc: 'Promotional Tasting' },
-              ].map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setCompType(t.key as any)}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: compType === t.key ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                    backgroundColor: compType === t.key ? '#eef2ff' : '#ffffff',
-                    color: compType === t.key ? '#170e5e' : '#334155',
-                    textAlign: 'right',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 800 }}>{t.label}</div>
-                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{t.desc}</div>
-                </button>
-              ))}
+              ].map((t) => {
+                const isSelected = compType === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setCompType(t.key as any)}
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: '8px',
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                      backgroundColor: isSelected ? '#eef2ff' : '#ffffff',
+                      color: isSelected ? '#170e5e' : '#334155',
+                      textAlign: 'right',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 800 }}>{t.label}</span>
+                      {isSelected && <CheckCircleIcon size={13} color="#170e5e" />}
+                    </div>
+                    <span style={{ fontSize: '10px', color: '#64748b' }}>{t.desc}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Amount Mode: Full vs Partial */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-              قيمة الضيافة:
-            </label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullComp(true);
-                  setCustomAmount(String(currentCartTotal));
-                }}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: '6px',
-                  border: isFullComp ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                  backgroundColor: isFullComp ? '#170e5e' : '#ffffff',
-                  color: isFullComp ? '#ffffff' : '#334155',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                ضيافة كاملة (100% على حساب المطعم)
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsFullComp(false)}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: '6px',
-                  border: !isFullComp ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                  backgroundColor: !isFullComp ? '#170e5e' : '#ffffff',
-                  color: !isFullComp ? '#ffffff' : '#334155',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                ضيافة جزئية بمبلغ محدد
-              </button>
-            </div>
-
-            {!isFullComp && (
-              <div style={{ marginTop: '8px' }}>
+          {/* Box 2: Manager Authorization */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+                  <UserIcon size={13} color="#170e5e" />
+                  <span>اسم المدير المعتمد:</span>
+                </label>
                 <input
-                  type="number"
-                  min="0.01"
-                  max={currentCartTotal}
-                  step="0.5"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="أدخل مبلغ الضيافة"
+                  type="text"
+                  value={managerName}
+                  onChange={(e) => setManagerName(e.target.value)}
                   style={{
                     width: '100%',
-                    height: '36px',
+                    height: '34px',
                     borderRadius: '6px',
-                    border: '1.5px solid #170e5e',
+                    border: '1px solid #cbd5e1',
                     padding: '0 10px',
-                    fontSize: '13px',
-                    fontWeight: 800,
+                    fontSize: '12px',
                     boxSizing: 'border-box',
+                    background: '#ffffff',
                   }}
                 />
               </div>
-            )}
-          </div>
-
-          {/* Manager Authorization Name & PIN */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                اسم المدير المعتمد:
-              </label>
-              <input
-                type="text"
-                value={managerName}
-                onChange={(e) => setManagerName(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '34px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 8px',
-                  fontSize: '12px',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                رمز PIN الأمني (اختياري):
-              </label>
-              <input
-                type="password"
-                maxLength={6}
-                value={managerPin}
-                onChange={(e) => setManagerPin(e.target.value)}
-                placeholder="****"
-                style={{
-                  width: '100%',
-                  height: '34px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  padding: '0 8px',
-                  fontSize: '12px',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-              />
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+                  <LockIcon size={13} color="#170e5e" />
+                  <span>رمز PIN الأمني (اختياري):</span>
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={managerPin}
+                  onChange={(e) => setManagerPin(e.target.value)}
+                  placeholder="••••"
+                  style={{
+                    width: '100%',
+                    height: '34px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 10px',
+                    fontSize: '12px',
+                    textAlign: 'center',
+                    boxSizing: 'border-box',
+                    background: '#ffffff',
+                  }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+          {/* Box 3: Notes & Audit Justification */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
               ملاحظات وتفاصيل الضيافة للتقرير المحاسبي:
             </label>
             <input
@@ -303,59 +263,160 @@ export function PosManagerCompModal({
                 height: '34px',
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
-                padding: '0 8px',
+                padding: '0 10px',
                 fontSize: '12px',
                 boxSizing: 'border-box',
+                background: '#ffffff',
               }}
             />
           </div>
         </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderTop: '1px solid #e2e8f0',
-            paddingTop: '14px',
-            marginTop: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#16a34a' }}>
-            <CheckShieldIcon size={13} color="#16a34a" />
-            <span>يتم توثيق القيد وإدراجه في كشف ضيافات الإدارة</span>
+        {/* Left Column: Financials & Authorization */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, justifyContent: 'space-between' }}>
+          {/* Cart & Financials Card */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '10px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>إجمالي الفاتورة الحالية:</div>
+                <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                  {formatCurrency(currentCartTotal)} {currentTableNumber && <span style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>(طاولة {currentTableNumber})</span>}
+                </div>
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>مبلغ الضيافة المعتمد:</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+                  {formatCurrency(finalCompAmount)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#475569' }}>
+              <span>المطلوب تحصيله بعد الضيافة:</span>
+              <span style={{ fontWeight: 800, color: netPayable > 0 ? '#ea580c' : '#16a34a' }}>
+                {netPayable === 0 ? '0.00 ج.م (إعفاء تام)' : formatCurrency(netPayable)}
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-              style={{ minHeight: '34px', height: '34px', padding: '0 14px', fontSize: '12px' }}
-            >
-              إلغاء
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleConfirm}
-              disabled={isSubmitting || finalCompAmount <= 0}
-              style={{
-                minHeight: '34px',
-                height: '34px',
-                padding: '0 18px',
-                fontSize: '12px',
-                fontWeight: 800,
-                backgroundColor: '#170e5e',
-              }}
-            >
-              {isSubmitting ? 'جارٍ الاعتماد...' : `اعتماد الضيافة (${formatCurrency(finalCompAmount)})`}
-            </Button>
+          {/* Amount Mode: Full 100% vs Partial */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
+              تحديد نسبة وقيمة الضيافة:
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFullComp(true);
+                  setCustomAmount(String(currentCartTotal));
+                }}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: isFullComp ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  backgroundColor: isFullComp ? '#170e5e' : '#ffffff',
+                  color: isFullComp ? '#ffffff' : '#334155',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                ضيافة كاملة (100% إعفاء)
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFullComp(false)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: !isFullComp ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  backgroundColor: !isFullComp ? '#170e5e' : '#ffffff',
+                  color: !isFullComp ? '#ffffff' : '#334155',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                ضيافة جزئية بمبلغ محدد
+              </button>
+            </div>
+
+            {!isFullComp && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="number"
+                    min="0.01"
+                    max={currentCartTotal}
+                    step="0.5"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="أدخل مبلغ الضيافة"
+                    style={{
+                      flex: 1,
+                      height: '34px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #170e5e',
+                      padding: '0 10px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      boxSizing: 'border-box',
+                      background: '#ffffff',
+                    }}
+                  />
+                  {[25, 50, 75].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setCustomAmount(String(Number((currentCartTotal * (pct / 100)).toFixed(2))))}
+                      style={{
+                        padding: '0 10px',
+                        height: '34px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#475569',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      %{pct}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Security & Audit Box */}
+          <div
+            style={{
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <ShieldCheckIcon size={20} color="#16a34a" />
+            <div style={{ fontSize: '11px', color: '#166534', lineHeight: 1.45 }}>
+              <strong>الرقابة المحاسبية:</strong> يُرحّل القيد تلقائياً إلى حساب مصروفات الضيافة والتسويق مع توثيق اسم المدير ورقم الطاولة لمنع أي تلاعب مالي.
+            </div>
           </div>
         </div>
       </div>
-    </DialogShell>
+    </RestaurantOperationsDialog>
   );
 }

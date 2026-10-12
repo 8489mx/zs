@@ -366,5 +366,33 @@ export const restaurantAdvancedFnbApi = {
   }): Promise<{ success: boolean; rule: RestaurantUpsellRule; message: string }> => {
     return apiPost('/api/sales/restaurant/upsell', dto);
   },
+
+  // 12. Visual Floor Plan Canvas & Table Layouts
+  getTableLayouts: async (branchId?: number): Promise<TableLayout[]> => {
+    const params = branchId ? { branchId } : undefined;
+    return apiGet<TableLayout[]>('/api/sales/restaurant/table-layouts', params);
+  },
+
+  saveTableLayouts: async (layouts: TableLayout[], branchId?: number): Promise<TableLayout[]> => {
+    return apiPost<TableLayout[]>('/api/sales/restaurant/table-layouts', { layouts, branchId });
+  },
+
+  deleteTableLayout: async (id: number): Promise<{ success: boolean }> => {
+    return apiPost<{ success: boolean }>(`/api/sales/restaurant/table-layouts/${id}/delete`, {});
+  },
 };
+
+export interface TableLayout {
+  id?: number;
+  table_number: string;
+  zone_code?: string;
+  shape: 'square' | 'round' | 'rectangle' | 'booth';
+  x_pos: number;
+  y_pos: number;
+  width?: number;
+  height?: number;
+  seats: number;
+  rotation?: number;
+  is_active?: boolean;
+}
 

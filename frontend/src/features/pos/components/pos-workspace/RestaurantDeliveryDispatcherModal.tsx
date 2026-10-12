@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
@@ -12,18 +12,19 @@ import {
   MapPinIcon,
   CheckShieldIcon,
   CheckCircleIcon,
-  XIcon,
   SendIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface RestaurantDeliveryDispatcherModalProps {
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
 }
 
 export function RestaurantDeliveryDispatcherModal({
   open,
   onClose,
+  onBack,
 }: RestaurantDeliveryDispatcherModalProps) {
   const queryClient = useQueryClient();
   const currencySymbol = getGlobalCurrencySymbol();
@@ -97,64 +98,17 @@ export function RestaurantDeliveryDispatcherModal({
   );
 
   return (
-    <DialogShell
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      width="min(980px, 96vw)"
-      ariaLabel="لوحة إسناد وتوجيه طلبات الدليفري"
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
+      title="لوحة توجيه وإسناد طلبات الدليفري (Restaurant Dispatcher)"
+      subtitle="توجيه الطلبات الجاهزة لكباتن المطعم بنقرة واحدة مع إشعارات واتساب فورية للعملاء"
+      footerNote="توجيه الطلبات يرسل إشعارات واتساب تلقائية للعملاء مع بيانات السائق"
+      icon={<TruckIcon size={18} color="#170e5e" />}
     >
-      <div style={{ padding: '20px 24px', direction: 'rtl', fontFamily: 'inherit' }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingBottom: '14px',
-            borderBottom: '1px solid #e2e8f0',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '10px',
-                background: '#eef2ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <TruckIcon size={20} color="#170e5e" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#0f172a' }}>
-                لوحة توجيه وإسناد طلبات الدليفري (Restaurant Dispatcher)
-              </h3>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                توجيه الطلبات الجاهزة لكباتن المطعم بنقرة واحدة مع إشعارات واتساب فورية للعملاء
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <XIcon size={16} color="#64748b" />
-          </button>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
         {/* Notifications Bar (if just dispatched) */}
         {recentNotifications.length > 0 && (
@@ -477,6 +431,6 @@ export function RestaurantDeliveryDispatcherModal({
           </div>
         </div>
       </div>
-    </DialogShell>
+    </RestaurantOperationsDialog>
   );
 }

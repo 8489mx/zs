@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
 import {
   PlusCircleIcon,
@@ -15,9 +15,10 @@ interface PosFoodWasteModalProps {
   open: boolean;
   onClose: () => void;
   branchId?: number;
+  onBack?: () => void;
 }
 
-export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteModalProps) {
+export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFoodWasteModalProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'log' | 'history'>('log');
   const [productId, setProductId] = useState('');
@@ -92,14 +93,16 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteM
   };
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="إدارة وتوثيق هدر المطبخ والتالف (Kitchen Food Waste & Spoilage)"
       subtitle="توثيق هدر وتالف المواد الغذائية والوجبات وخصمها من المستودع مع تحليل التكلفة"
-      width="900px"
+      footerNote="تسجيل التالف يخصم الكميات من المخزون المركزي ويحسب التكلفة تلقائياً"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minHeight: '440px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div
@@ -359,20 +362,6 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1 }: PosFoodWasteM
           </div>
         )}
       </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginTop: '12px',
-          borderTop: '1px solid #e2e8f0',
-          paddingTop: '8px',
-        }}
-      >
-        <Button variant="secondary" onClick={onClose} style={{ fontSize: '12px' }}>
-          إغلاق
-        </Button>
-      </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

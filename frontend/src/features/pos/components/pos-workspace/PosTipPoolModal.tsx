@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { toast } from '@/shared/components/system-alert';
 import { PlusCircleIcon, TrashIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
@@ -13,6 +13,7 @@ interface PosTipPoolModalProps {
   currency?: string;
   initialCashTips?: number;
   initialCardTips?: number;
+  onBack?: () => void;
 }
 
 interface StaffMember {
@@ -30,6 +31,7 @@ export function PosTipPoolModal({
   currency = 'ج.م',
   initialCashTips = 0,
   initialCardTips = 0,
+  onBack,
 }: PosTipPoolModalProps) {
   const queryClient = useQueryClient();
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -142,13 +144,37 @@ export function PosTipPoolModal({
   };
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="مجمع الإكراميات وتوزيع حصص الوردية (Tip Pooling & Distribution Engine)"
       subtitle="حساب وتوزيع إكراميات الكاشير والبطاقات على طاقم الصالة والمطبخ وفق معايير Toast و Foodics العالمية"
-      width="min(1040px, 96vw)"
-      compact
+      footerNote="سيتم ترحيل مستحقات كل موظف وإمكانية طباعة إيصالات الصرف الحرارية فور الاعتماد."
+      footerActions={
+        <button
+          type="button"
+          onClick={() => calculateMutation.mutate()}
+          disabled={calculateMutation.isPending || totalTips <= 0 || staffList.length === 0}
+          style={{
+            padding: '5px 16px',
+            borderRadius: '7px',
+            background: '#170e5e',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 800,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+          }}
+        >
+          <CheckCircleIcon size={14} />
+          <span>اعتماد وصرف الإكراميات</span>
+        </button>
+      }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Top Summary Cards */}
@@ -331,53 +357,7 @@ export function PosTipPoolModal({
             </table>
           </div>
         </div>
-
-        {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
-            سيتم ترحيل مستحقات كل موظف وإمكانية طباعة إيصالات الصرف الحرارية فور الاعتماد.
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '7px 16px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#fff',
-                color: '#475569',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              إلغاء
-            </button>
-            <button
-              type="button"
-              onClick={() => calculateMutation.mutate()}
-              disabled={calculateMutation.isPending || totalTips <= 0 || staffList.length === 0}
-              style={{
-                padding: '7px 20px',
-                borderRadius: '8px',
-                background: '#170e5e',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 800,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <CheckCircleIcon size={15} />
-              <span>اعتماد وصرف الإكراميات</span>
-            </button>
-          </div>
-        </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

@@ -397,6 +397,18 @@ body.dialog-shell-open #root {
   width: 4px;
 }
 
+/* Prevent duplicate / redundant pseudo bars when an explicit bar, icon, or unified shell already exists */
+.dialog-shell .pos-restaurant-unified-shell h3::before,
+.pos-restaurant-unified-shell h3::before,
+.dialog-shell h3.no-pseudo-bar::before,
+.dialog-shell .no-pseudo-bar::before,
+.no-pseudo-bar::before {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .dialog-shell p.muted,
 .dialog-shell p.text-muted-foreground,
 .dialog-shell .dialog-description {
@@ -596,4 +608,41 @@ body.dialog-shell-open #root {
     transform: translateY(0) scale(1);
   }
 }
+
+/* POS Restaurant Operations Hub Zero-Scroll Modal Standard */
+.dialog-shell.pos-restaurant-ops-shell {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  max-height: calc(100vh - 24px) !important;
+  padding: 0 !important;
+}
+
+.dialog-shell.pos-restaurant-ops-shell > div {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* POS Unified Restaurant Operations Workstation Standard (Strict Fixed Canvas) */
+.dialog-shell.pos-restaurant-unified-shell {
+  width: min(1060px, calc(100vw - 32px)) !important;
+  max-width: min(1060px, calc(100vw - 32px)) !important;
+  height: min(580px, calc(100vh - 32px)) !important;
+  min-height: min(580px, calc(100vh - 32px)) !important;
+  max-height: min(580px, calc(100vh - 32px)) !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.35) !important;
+}
+
+.dialog-shell.pos-restaurant-unified-shell > div {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 

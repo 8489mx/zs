@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { RefreshCwIcon, AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import { formatCurrency } from '@/lib/format';
@@ -9,12 +9,14 @@ interface PosPlateCostRadarModalProps {
   open: boolean;
   onClose: () => void;
   currency?: string;
+  onBack?: () => void;
 }
 
 export function PosPlateCostRadarModal({
   open,
   onClose,
   currency = 'ج.م',
+  onBack,
 }: PosPlateCostRadarModalProps) {
   const [filterAlertsOnly, setFilterAlertsOnly] = useState(false);
 
@@ -31,13 +33,30 @@ export function PosPlateCostRadarModal({
   const alertCount = radarItems.filter((i) => i.isAlert).length;
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="رادار تذبذب تكلفة الأطباق وهوامش الربح (Plate Cost & Inflation Radar)"
       subtitle="رصد لحظي لتأثير ارتفاع أسعار الخامات والمشتريات على هامش ربح الوجبات مع اقتراح أسعار البيع المثالية"
-      width="min(1060px, 96vw)"
-      compact
+      badge={
+        alertCount > 0 ? (
+          <span
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '1px 7px',
+              borderRadius: '999px',
+            }}
+          >
+            {alertCount} وجبات حرجة
+          </span>
+        ) : undefined
+      }
+      footerNote="الرادار يقيس التكلفة الحية من واقع آخر فواتير استلام المخزون وعقود الموردين."
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip */}
@@ -195,29 +214,7 @@ export function PosPlateCostRadarModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
-            الرادار يقيس التكلفة الحية من واقع آخر فواتير استلام المخزون وعقود الموردين.
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '7px 20px',
-              borderRadius: '8px',
-              background: '#170e5e',
-              color: '#fff',
-              fontSize: '13px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            إغلاق
-          </button>
-        </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

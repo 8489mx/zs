@@ -80,6 +80,7 @@ export function PosWorkspaceConfirmDialogs({
 
           {/* Title */}
           <h3
+            className="no-pseudo-bar"
             style={{
               margin: '0 0 10px',
               fontSize: '1.25rem',

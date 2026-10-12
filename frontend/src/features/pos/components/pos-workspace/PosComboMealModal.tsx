@@ -1,7 +1,15 @@
 import { useState, useMemo } from 'react';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import {
+  LayersIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  UtensilsIcon,
+  SearchIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface ComboOption {
   id: string;
@@ -12,6 +20,7 @@ interface ComboOption {
 interface PosComboMealModalProps {
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
   products: any[];
   onAddComboToCart: (comboItem: {
     productId: number;
@@ -25,10 +34,12 @@ interface PosComboMealModalProps {
 export function PosComboMealModal({
   open,
   onClose,
+  onBack,
   products,
   onAddComboToCart,
 }: PosComboMealModalProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [mainSearch, setMainSearch] = useState('');
 
   // Step 1: Main Entree Selection
   const [selectedMain, setSelectedMain] = useState<any>(null);
@@ -56,11 +67,13 @@ export function PosComboMealModal({
 
   const [comboNotes, setComboNotes] = useState('');
 
-  // Available Main Entrees (Products from catalog or category)
+  // Available Main Entrees
   const mainEntrees = useMemo(() => {
     if (!products.length) return [];
-    return products.slice(0, 30);
-  }, [products]);
+    if (!mainSearch.trim()) return products.slice(0, 36);
+    const q = mainSearch.toLowerCase().trim();
+    return products.filter((p: any) => String(p?.name || '').toLowerCase().includes(q)).slice(0, 36);
+  }, [products, mainSearch]);
 
   // Set initial main when opening
   if (!selectedMain && mainEntrees.length > 0) {
@@ -87,90 +100,199 @@ export function PosComboMealModal({
     });
 
     onClose();
-    // Reset state
     setCurrentStep(1);
     setComboNotes('');
   };
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
       title="معالج وجبات الكومبو السريعة (Combo Meal Builder)"
       subtitle="بناء وجبة متكاملة خطوة بخطوة: الصنف الرئيسي ➔ الطبق الجانبي ➔ المشروب"
-      width="880px"
-      bodyStyle={{ padding: '16px 20px', minHeight: '480px', maxHeight: '80vh', overflowY: 'auto' }}
+      icon={<LayersIcon size={18} color="#170e5e" />}
+      footerNote="تُجمع بنود الوجبة في صنف واحد موحد بالسلة مع تفاصيل المكونات والإضافات للطلب والمطبخ"
+      scrollableBody={false}
+      bodyStyle={{
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        boxSizing: 'border-box',
+      }}
+      footerActions={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '10px' }}>
+          <div>
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setCurrentStep((s) => (s - 1) as any)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '34px',
+                  minHeight: '34px',
+                  padding: '0 14px',
+                  fontSize: '12px',
+                }}
+              >
+                <ArrowRightIcon size={14} />
+                <span>الخطوة السابقة</span>
+              </Button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              style={{ height: '34px', minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
+            >
+              إلغاء
+            </Button>
+            {currentStep < 3 ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setCurrentStep((s) => (s + 1) as any)}
+                disabled={!selectedMain}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '34px',
+                  minHeight: '34px',
+                  padding: '0 18px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  backgroundColor: '#170e5e',
+                }}
+              >
+                <span>الخطوة التالية</span>
+                <ArrowLeftIcon size={14} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleConfirmCombo}
+                disabled={!selectedMain}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '34px',
+                  minHeight: '34px',
+                  padding: '0 20px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  backgroundColor: '#16a34a',
+                }}
+              >
+                <CheckCircleIcon size={14} color="#ffffff" />
+                <span>إضافة وجبة الكومبو بالسلة ({formatCurrency(totalComboPrice)})</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      }
     >
-      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
         {/* Step Progress Indicators */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => setCurrentStep(1)}
-            style={{
-              background: currentStep === 1 ? '#170e5e' : currentStep > 1 ? '#e0e7ff' : '#f8fafc',
-              color: currentStep === 1 ? '#ffffff' : currentStep > 1 ? '#3730a3' : '#64748b',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
-          >
-            1. الصنف الرئيسي (البرجر/الساندوتش)
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentStep(2)}
-            style={{
-              background: currentStep === 2 ? '#170e5e' : currentStep > 2 ? '#e0e7ff' : '#f8fafc',
-              color: currentStep === 2 ? '#ffffff' : currentStep > 2 ? '#3730a3' : '#64748b',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
-          >
-            2. الصنف الجانبي (البطاطس والمقبلات)
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentStep(3)}
-            style={{
-              background: currentStep === 3 ? '#170e5e' : '#f8fafc',
-              color: currentStep === 3 ? '#ffffff' : '#64748b',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
-          >
-            3. المشروب والملاحظات
-          </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', flexShrink: 0 }}>
+          {[
+            { step: 1, title: '1. الصنف الرئيسي (البرجر/الساندوتش)', desc: selectedMain ? selectedMain.name : 'اختر الصنف' },
+            { step: 2, title: '2. الصنف الجانبي (البطاطس والمقبلات)', desc: selectedSide.name },
+            { step: 3, title: '3. المشروب والملاحظات', desc: selectedDrink.name },
+          ].map((s) => {
+            const isActive = currentStep === s.step;
+            const isCompleted = currentStep > s.step;
+            return (
+              <button
+                key={s.step}
+                type="button"
+                onClick={() => setCurrentStep(s.step as any)}
+                style={{
+                  background: isActive ? '#170e5e' : isCompleted ? '#eef2ff' : '#f8fafc',
+                  color: isActive ? '#ffffff' : isCompleted ? '#170e5e' : '#64748b',
+                  border: isActive ? '1.5px solid #170e5e' : isCompleted ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'right',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  transition: 'all 0.15s ease',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{s.title}</span>
+                  {isCompleted && <CheckCircleIcon size={13} color="#170e5e" />}
+                </div>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    color: isActive ? '#cbd5e1' : '#64748b',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {s.desc}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* STEP 1: MAIN ENTREE */}
         {currentStep === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              اختر الصنف الرئيسي للوجبة:
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                اختر الصنف الرئيسي للوجبة ({mainEntrees.length} صنف متاح):
+              </div>
+              <div style={{ position: 'relative', width: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="بحث في الأصناف..."
+                  value={mainSearch}
+                  onChange={(e) => setMainSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 26px 0 8px',
+                    fontSize: '11.5px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <SearchIcon size={13} color="#94a3b8" style={{ position: 'absolute', right: '8px', top: '9px' }} />
+              </div>
             </div>
+
             <div
+              className="thin-scrollbar"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-                gap: '10px',
-                maxHeight: '260px',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: '8px',
+                maxHeight: '235px',
+                height: '235px',
                 overflowY: 'auto',
-                padding: '4px',
+                padding: '2px',
+                boxSizing: 'border-box',
               }}
             >
               {mainEntrees.map((prod) => {
@@ -181,20 +303,28 @@ export function PosComboMealModal({
                     type="button"
                     onClick={() => setSelectedMain(prod)}
                     style={{
-                      background: isSelected ? '#eff6ff' : '#ffffff',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: isSelected ? '#eef2ff' : '#ffffff',
+                      border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
                       borderRadius: '10px',
-                      padding: '12px 10px',
-                      textAlign: 'center',
+                      padding: '10px 12px',
+                      textAlign: 'right',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      minHeight: '80px',
+                      minHeight: '70px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(23, 14, 94, 0.08)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{prod.name}</div>
-                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#170e5e', marginTop: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {prod.name}
+                      </span>
+                      {isSelected && <CheckCircleIcon size={14} color="#170e5e" />}
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#170e5e', marginTop: '4px' }}>
                       {formatCurrency(prod.price || prod.retail_price || 0)}
                     </div>
                   </button>
@@ -206,11 +336,23 @@ export function PosComboMealModal({
 
         {/* STEP 2: SIDE DISH */}
         {currentStep === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
               اختر الصنف الجانبي (بطاطس ومقبلات):
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+            <div
+              className="thin-scrollbar"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                gap: '10px',
+                maxHeight: '235px',
+                height: '235px',
+                overflowY: 'auto',
+                padding: '2px',
+                boxSizing: 'border-box',
+              }}
+            >
               {defaultSides.map((side) => {
                 const isSelected = selectedSide.id === side.id;
                 return (
@@ -219,19 +361,26 @@ export function PosComboMealModal({
                     type="button"
                     onClick={() => setSelectedSide(side)}
                     style={{
-                      background: isSelected ? '#eff6ff' : '#ffffff',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: isSelected ? '#eef2ff' : '#ffffff',
+                      border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
                       borderRadius: '10px',
-                      padding: '14px 12px',
-                      textAlign: 'center',
+                      padding: '12px 14px',
+                      textAlign: 'right',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '6px',
+                      justifyContent: 'space-between',
+                      minHeight: '75px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(23, 14, 94, 0.08)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{side.name}</div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: side.priceDelta > 0 ? '#ea580c' : '#16a34a' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{side.name}</span>
+                      {isSelected && <CheckCircleIcon size={14} color="#170e5e" />}
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: side.priceDelta > 0 ? '#ea580c' : '#16a34a', marginTop: '4px' }}>
                       {side.priceDelta > 0 ? `+ ${formatCurrency(side.priceDelta)}` : 'مشمول بالوجبة (0 ج.م)'}
                     </div>
                   </button>
@@ -243,11 +392,23 @@ export function PosComboMealModal({
 
         {/* STEP 3: DRINK & NOTES */}
         {currentStep === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              اختر المشروب المنعش:
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+              اختر المشروب المنعش وتفضيلات التحضير:
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+            <div
+              className="thin-scrollbar"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                gap: '8px',
+                maxHeight: '170px',
+                height: '170px',
+                overflowY: 'auto',
+                padding: '2px',
+                boxSizing: 'border-box',
+              }}
+            >
               {defaultDrinks.map((drink) => {
                 const isSelected = selectedDrink.id === drink.id;
                 return (
@@ -256,19 +417,26 @@ export function PosComboMealModal({
                     type="button"
                     onClick={() => setSelectedDrink(drink)}
                     style={{
-                      background: isSelected ? '#eff6ff' : '#ffffff',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: isSelected ? '#eef2ff' : '#ffffff',
+                      border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
                       borderRadius: '10px',
-                      padding: '14px 12px',
-                      textAlign: 'center',
+                      padding: '10px 12px',
+                      textAlign: 'right',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '6px',
+                      justifyContent: 'space-between',
+                      minHeight: '65px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(23, 14, 94, 0.08)' : '0 1px 2px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{drink.name}</div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: drink.priceDelta > 0 ? '#ea580c' : '#16a34a' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{drink.name}</span>
+                      {isSelected && <CheckCircleIcon size={14} color="#170e5e" />}
+                    </div>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: drink.priceDelta > 0 ? '#ea580c' : '#16a34a', marginTop: '3px' }}>
                       {drink.priceDelta > 0 ? `+ ${formatCurrency(drink.priceDelta)}` : 'مشمول بالوجبة (0 ج.م)'}
                     </div>
                   </button>
@@ -276,16 +444,25 @@ export function PosComboMealModal({
               })}
             </div>
 
-            <div style={{ marginTop: '8px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                ملاحظات وتخصيص الوجبة (اختياري)
+            <div style={{ marginTop: '2px' }}>
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                ملاحظات وتخصيص الوجبة للمطبخ (اختياري):
               </label>
               <input
                 type="text"
                 placeholder="مثال: بدون بصل / صوص باربيكيو جانبي / بدون ثلج في المشروب"
                 value={comboNotes}
                 onChange={(e) => setComboNotes(e.target.value)}
-                style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '12.5px', boxSizing: 'border-box' }}
+                style={{
+                  width: '100%',
+                  height: '32px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 10px',
+                  fontSize: '12px',
+                  boxSizing: 'border-box',
+                  background: '#ffffff',
+                }}
               />
             </div>
           </div>
@@ -295,96 +472,34 @@ export function PosComboMealModal({
         <div
           style={{
             background: '#f8fafc',
-            border: '1px solid #cbd5e1',
+            border: '1px solid #e2e8f0',
             borderRadius: '10px',
-            padding: '12px 16px',
+            padding: '10px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
+            flexShrink: 0,
+            gap: '12px',
           }}
         >
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>مكونات الوجبة المختارة:</div>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-              {selectedMain?.name || '—'} + {selectedSide.name} + {selectedDrink.name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <UtensilsIcon size={16} color="#170e5e" />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>مكونات الوجبة المختارة:</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {selectedMain?.name || '—'} + {selectedSide.name} + {selectedDrink.name}
+              </div>
             </div>
           </div>
 
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي سعر الوجبة:</div>
+          <div style={{ textAlign: 'left', flexShrink: 0 }}>
+            <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>إجمالي سعر الوجبة:</div>
             <div style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>
               {formatCurrency(totalComboPrice)}
             </div>
           </div>
         </div>
-
-        {/* Navigation & Confirmation Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-          <div>
-            {currentStep > 1 && (
-              <button
-                type="button"
-                onClick={() => setCurrentStep((s) => (s - 1) as any)}
-                style={{
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                ← الخطوة السابقة
-              </button>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {currentStep < 3 ? (
-              <button
-                type="button"
-                onClick={() => setCurrentStep((s) => (s + 1) as any)}
-                style={{
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 20px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                الخطوة التالية →
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleConfirmCombo}
-                style={{
-                  background: '#16a34a',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 24px',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <CheckCircleIcon size={14} color="#ffffff" />
-                <span>إضافة وجبة الكومبو للسلة</span>
-              </button>
-            )}
-          </div>
-        </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { toast } from '@/shared/components/system-alert';
 import { BanIcon, SearchIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { restaurantAdvancedFnbApi, Restaurant86Item } from '@/features/pos/api/restaurant-advanced-fnb.api';
@@ -11,6 +11,7 @@ interface Pos86ItemsModalProps {
   onClose: () => void;
   products: Product[];
   branchId?: number | null;
+  onBack?: () => void;
 }
 
 export function Pos86ItemsModal({
@@ -18,6 +19,7 @@ export function Pos86ItemsModal({
   onClose,
   products = [],
   branchId,
+  onBack,
 }: Pos86ItemsModalProps) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,15 +80,32 @@ export function Pos86ItemsModal({
   const active86Count = items86Map.size;
 
   return (
-    <StandardDialog
+    <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
+      onBack={onBack}
+      backText="الرجوع لعمليات المطعم"
       title="إدارة الأصناف المستبعدة والنافذة بالمطبخ (86'd Items Engine)"
       subtitle="استبعاد وإيقاف بيع الأصناف والمكونات النافذة لحظياً عبر الكاشير، المطبخ KDS، وباركود الطاولات"
-      width="min(980px, 96vw)"
-      compact
+      badge={
+        active86Count > 0 ? (
+          <span
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '1px 7px',
+              borderRadius: '999px',
+            }}
+          >
+            86: {active86Count} أصناف نافذة
+          </span>
+        ) : undefined
+      }
+      footerNote="ملاحظة: الأصناف الموسومة بـ 86 تُحجب فورياً في الكاشير وطلبات الطاولات وتذاكر المطبخ."
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minHeight: '480px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip & Fast Configuration */}
         <div
           style={{
@@ -301,30 +320,7 @@ export function Pos86ItemsModal({
             </div>
           )}
         </div>
-
-        {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
-            ملاحظة: الأصناف الموسومة بـ <strong>86</strong> تُحجب فورياً في الكاشير وطلبات الطاولات وتذاكر المطبخ.
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '7px 20px',
-              borderRadius: '8px',
-              background: '#170e5e',
-              color: '#fff',
-              fontSize: '13px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            إغلاق
-          </button>
-        </div>
       </div>
-    </StandardDialog>
+    </RestaurantOperationsDialog>
   );
 }

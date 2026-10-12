@@ -266,4 +266,47 @@ export class RestaurantAdvancedFnbController {
     const scope = requireTenantScope(req.authContext!);
     return this.service.createUpsellRule(scope, dto);
   }
+
+  // 12. Visual Floor Plan Canvas Layouts
+  @Get('table-layouts')
+  async getTableLayouts(
+    @Req() req: RequestWithAuth,
+    @Query('branchId') branchId?: string,
+  ) {
+    const scope = requireTenantScope(req.authContext!);
+    const branch = branchId ? parseInt(branchId, 10) : undefined;
+    return this.service.getTableLayouts(scope, branch);
+  }
+
+  @Post('table-layouts')
+  async saveTableLayouts(
+    @Req() req: RequestWithAuth,
+    @Body() dto: {
+      layouts: Array<{
+        id?: number;
+        table_number: string;
+        zone_code?: string;
+        shape?: 'square' | 'round' | 'rectangle' | 'booth';
+        x_pos: number;
+        y_pos: number;
+        width?: number;
+        height?: number;
+        seats?: number;
+        rotation?: number;
+      }>;
+      branchId?: number;
+    },
+  ) {
+    const scope = requireTenantScope(req.authContext!);
+    return this.service.saveTableLayouts(scope, dto.layouts, dto.branchId);
+  }
+
+  @Post('table-layouts/:id/delete')
+  async deleteTableLayout(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const scope = requireTenantScope(req.authContext!);
+    return this.service.deleteTableLayout(scope, id);
+  }
 }

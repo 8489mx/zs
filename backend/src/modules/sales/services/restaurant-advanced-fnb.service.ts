@@ -977,4 +977,121 @@ export class RestaurantAdvancedFnbService {
 
     return { success: true, rule, message: 'تم حفظ قاعدة الاقتراح الذكي بنجاح' };
   }
+
+  // ==========================================
+  // 12. VISUAL FLOOR PLAN CANVAS & TABLE LAYOUTS
+  // ==========================================
+
+  async getTableLayouts(scope: TenantScope, branchId?: number | null) {
+    let query = this.db
+      .selectFrom('restaurant_table_layouts')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .where('is_active', '=', true);
+
+    if (branchId) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('branch_id', '=', branchId),
+          eb('branch_id', 'is', null),
+        ])
+      );
+    }
+
+    const layouts = await query.orderBy('id', 'asc').execute();
+    return layouts.map((l) => ({
+      ...l,
+      x_pos: Number(l.x_pos || 10),
+      y_pos: Number(l.y_pos || 10),
+      width: Number(l.width || 80),
+      height: Number(l.height || 80),
+      seats: Number(l.seats || 4),
+      rotation: Number(l.rotation || 0),
+    }));
+  }
+
+  async saveTableLayouts(
+    scope: TenantScope,
+    layouts: Array<{
+      id?: number;
+      table_number: string;
+      zone_code?: string;
+      shape?: 'square' | 'round' | 'rectangle' | 'booth';
+      x_pos: number;
+      y_pos: number;
+      width?: number;
+      height?: number;
+      seats?: number;
+      rotation?: number;
+    }>,
+    branchId?: number | null,
+  ) {
+    if (!Array.isArray(layouts)) return [];
+
+    return await this.db.transaction().execute(async (trx) => {
+      const saved: any[] = [];
+      for (const item of layouts) {
+        if (!item.table_number) continue;
+
+        const existing = await trx
+          .selectFrom('restaurant_table_layouts')
+          .select(['id'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('table_number', '=', String(item.table_number).trim())
+          .executeTakeFirst();
+
+        if (existing) {
+          const [updated] = await trx
+            .updateTable('restaurant_table_layouts')
+            .set({
+              zone_code: item.zone_code || 'main',
+              shape: item.shape || 'square',
+              x_pos: Number(item.x_pos || 10),
+              y_pos: Number(item.y_pos || 10),
+              width: Number(item.width || 80),
+              height: Number(item.height || 80),
+              seats: Number(item.seats || 4),
+              rotation: Number(item.rotation || 0),
+              updated_at: new Date(),
+            })
+            .where('id', '=', existing.id)
+            .returningAll()
+            .execute();
+          saved.push(updated);
+        } else {
+          const [created] = await trx
+            .insertInto('restaurant_table_layouts')
+            .values({
+              tenant_id: scope.tenantId,
+              branch_id: branchId ? Number(branchId) : null,
+              table_number: String(item.table_number).trim(),
+              zone_code: item.zone_code || 'main',
+              shape: item.shape || 'square',
+              x_pos: Number(item.x_pos || 10),
+              y_pos: Number(item.y_pos || 10),
+              width: Number(item.width || 80),
+              height: Number(item.height || 80),
+              seats: Number(item.seats || 4),
+              rotation: Number(item.rotation || 0),
+              is_active: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            })
+            .returningAll()
+            .execute();
+          saved.push(created);
+        }
+      }
+      return saved;
+    });
+  }
+
+  async deleteTableLayout(scope: TenantScope, id: number) {
+    await this.db
+      .deleteFrom('restaurant_table_layouts')
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', '=', id)
+      .execute();
+    return { success: true };
+  }
 }

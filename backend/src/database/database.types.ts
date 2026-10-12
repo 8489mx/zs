@@ -5279,6 +5279,24 @@ export interface RestaurantUpsellRuleTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
+export interface RestaurantTableLayoutTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  table_number: string;
+  zone_code: string | null;
+  shape: string; // 'square', 'round', 'rectangle', 'booth'
+  x_pos: number;
+  y_pos: number;
+  width: number | null;
+  height: number | null;
+  seats: number;
+  rotation: number | null;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
   pos_kitchen_printers: PosKitchenPrinterTable;
@@ -5294,6 +5312,7 @@ export interface Database {
   restaurant_table_ratings: RestaurantTableRatingTable;
   restaurant_drive_thru_orders: RestaurantDriveThruOrderTable;
   restaurant_upsell_rules: RestaurantUpsellRuleTable;
+  restaurant_table_layouts: RestaurantTableLayoutTable;
 }
 
 

@@ -110,7 +110,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                   display: 'inline-block',
                 }}
               />
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
+              <h3 className="no-pseudo-bar" style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
                 طلبات المتجر الإلكتروني الواردة
               </h3>
               <span

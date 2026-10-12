@@ -7,7 +7,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
 export type KdsTicketStatus = 'pending' | 'cooking' | 'ready' | 'served';
 export type KdsItemStatus = 'pending' | 'cooking' | 'ready';
-export type KdsStation = 'all' | 'kitchen' | 'grill' | 'beverages' | 'bakery' | 'general';
+export type KdsStation = 'all' | 'kitchen' | 'grill' | 'beverages' | 'bakery' | 'general' | 'expo';
 export type KdsUrgencyLevel = 'normal' | 'warning' | 'critical';
 
 export interface KdsTicketItem {
@@ -295,7 +295,7 @@ export class KdsService {
       });
 
       // Filter items by station if requested
-      const stationFilter = filters?.station && filters.station !== 'all' ? filters.station : null;
+      const stationFilter = filters?.station && filters.station !== 'all' && filters.station !== 'expo' ? filters.station : null;
       const filteredItems = stationFilter
         ? parsedItems.filter((it) => it.station === stationFilter)
         : parsedItems;
@@ -394,7 +394,7 @@ export class KdsService {
         };
       });
 
-      const stationFilter = filters?.station && filters.station !== 'all' ? filters.station : null;
+      const stationFilter = filters?.station && filters.station !== 'all' && filters.station !== 'expo' ? filters.station : null;
       const filteredItems = stationFilter
         ? items.filter((it) => it.station === stationFilter)
         : items;

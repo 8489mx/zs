@@ -1,12 +1,14 @@
 import { type ReactNode, type CSSProperties } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
 
 export interface StandardDialogProps {
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
+  onBack?: () => void;
+  backText?: string;
   title: ReactNode;
   /** Widened to match `title`: callers (e.g. job detail headers) compose rich content here, such
    * as a status badge next to the descriptive text, not just plain text. */
@@ -46,6 +48,8 @@ export function StandardDialog({
   open,
   isOpen,
   onClose,
+  onBack,
+  backText,
   title,
   subtitle,
   badge,
@@ -172,16 +176,53 @@ export function StandardDialog({
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="standard-dialog-close-btn"
-            aria-label="إغلاق النافذة"
-            title="إغلاق"
-            style={{ flexShrink: 0 }}
-          >
-            <XIcon size={18} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="standard-dialog-back-btn"
+                aria-label={backText || 'الرجوع لعمليات المطعم'}
+                title={backText || 'الرجوع لمركز عمليات المطعم'}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '28px',
+                  padding: '0 9px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#170e5e',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#eef2ff';
+                  e.currentTarget.style.borderColor = '#170e5e';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }}
+              >
+                <ArrowRightIcon size={13} color="#170e5e" />
+                <span>{backText || 'رجوع لعمليات المطعم'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="standard-dialog-close-btn"
+              aria-label="إغلاق النافذة"
+              title="إغلاق"
+              style={{ flexShrink: 0 }}
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -254,6 +295,8 @@ export interface StandardDialogFooterProps {
   className?: string;
   onCancel?: () => void;
   onClose?: () => void;
+  onBack?: () => void;
+  backText?: string;
   onSubmit?: (e?: any) => void | Promise<void>;
   onConfirm?: (e?: any) => void | Promise<void>;
   cancelText?: string;
@@ -284,6 +327,8 @@ export interface StandardDialogFooterProps {
 export function StandardDialogFooter({
   onCancel,
   onClose,
+  onBack,
+  backText,
   onSubmit,
   onConfirm,
   onPrimary,
@@ -326,6 +371,17 @@ export function StandardDialogFooter({
   return (
     <div className={`standard-dialog-footer ${className || ''}`.trim()} style={style}>
       {extraActions}
+      {onBack && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onBack}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+        >
+          <ArrowRightIcon size={14} color="#170e5e" />
+          <span>{backText || 'الرجوع لعمليات المطعم'}</span>
+        </Button>
+      )}
       {handleCancel && (
         <Button
           type="button"
