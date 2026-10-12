@@ -1235,11 +1235,28 @@ export function DriverNewLoadRequisitionView({
                 </span>
               </div>
 
-              {/* Row 2: Price & Warehouse Stock */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                <span style={{ color: '#170e5e', fontWeight: 800 }}>
-                  سعر: {prod.retailPrice.toFixed(2)} <CurrencySymbol />
-                </span>
+              {/* Row 2: Price, FEFO Expiry & Warehouse Stock */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', flexWrap: 'wrap', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ color: '#170e5e', fontWeight: 800 }}>
+                    سعر: {prod.retailPrice.toFixed(2)} <CurrencySymbol />
+                  </span>
+                  {prod.expiryStatus === 'expired' && (
+                    <span style={{ fontSize: '9.5px', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                      منتهي الصلاحية ({prod.earliestExpiryDate})
+                    </span>
+                  )}
+                  {prod.expiryStatus === 'near_expiry' && (
+                    <span style={{ fontSize: '9.5px', backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                      FEFO قريب الانتهاء ({prod.daysToExpiry} يوم)
+                    </span>
+                  )}
+                  {prod.expiryStatus === 'valid' && prod.earliestExpiryDate && (
+                    <span style={{ fontSize: '9.5px', backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                      صلاحية: {prod.earliestExpiryDate}
+                    </span>
+                  )}
+                </div>
 
                 <span
                   style={{

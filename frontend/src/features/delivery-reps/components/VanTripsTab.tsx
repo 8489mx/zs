@@ -520,22 +520,33 @@ export function VanTripsTab() {
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                             {s.deliveryGpsLat && s.deliveryGpsLng ? (
-                              <button
-                                type="button"
-                                onClick={() => openGoogleMaps(s.deliveryGpsLat!, s.deliveryGpsLng!)}
-                                style={{
-                                  background: '#eff6ff',
-                                  color: '#1d4ed8',
-                                  border: '1px solid #bfdbfe',
-                                  borderRadius: '6px',
-                                  padding: '3px 8px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                خريطة الموقع ({s.deliveryGpsLat.toFixed(4)}, {s.deliveryGpsLng.toFixed(4)}) ↗
-                              </button>
+                              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openGoogleMaps(s.deliveryGpsLat!, s.deliveryGpsLng!)}
+                                  style={{
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    border: '1px solid #bfdbfe',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  خريطة الموقع ({s.deliveryGpsLat.toFixed(4)}, {s.deliveryGpsLng.toFixed(4)}) ↗
+                                </button>
+                                {s.geofenceStatus === 'within_range' ? (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                                    ضمن النطاق ({s.distanceMeters}م)
+                                  </span>
+                                ) : s.geofenceStatus === 'out_of_range' ? (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#b91c1c', backgroundColor: '#fee2e2', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                                    خارج النطاق ({s.distanceMeters}م)
+                                  </span>
+                                ) : null}
+                              </div>
                             ) : (
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون GPS</span>
                             )}
@@ -554,7 +565,7 @@ export function VanTripsTab() {
                     سندات التحصيل النقدية ({tripDetails.collections.length} سند)
                   </strong>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    موضحاً إحداثيات GPS لموقع الاستلام
+                    موضحاً إحداثيات GPS والنطاق الجغرافي لموقع الاستلام
                   </span>
                 </div>
                 {tripDetails.collections.length === 0 ? (
@@ -569,7 +580,7 @@ export function VanTripsTab() {
                         <th style={{ padding: '8px 12px', fontWeight: 700 }}>العميل</th>
                         <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>المبلغ المحصل</th>
                         <th style={{ padding: '8px 12px', fontWeight: 700 }}>الوقت والبيان</th>
-                        <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>موقع GPS</th>
+                        <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>موقع GPS والنطاق</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -586,22 +597,33 @@ export function VanTripsTab() {
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                             {c.gpsLat && c.gpsLng ? (
-                              <button
-                                type="button"
-                                onClick={() => openGoogleMaps(c.gpsLat!, c.gpsLng!)}
-                                style={{
-                                  background: '#f0fdf4',
-                                  color: '#15803d',
-                                  border: '1px solid #bbf7d0',
-                                  borderRadius: '6px',
-                                  padding: '3px 8px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                خريطة التحصيل ({c.gpsLat.toFixed(4)}, {c.gpsLng.toFixed(4)}) ↗
-                              </button>
+                              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openGoogleMaps(c.gpsLat!, c.gpsLng!)}
+                                  style={{
+                                    background: '#f0fdf4',
+                                    color: '#15803d',
+                                    border: '1px solid #bbf7d0',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  خريطة التحصيل ({c.gpsLat.toFixed(4)}, {c.gpsLng.toFixed(4)}) ↗
+                                </button>
+                                {c.geofenceStatus === 'within_range' ? (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                                    ضمن النطاق ({c.distanceMeters}م)
+                                  </span>
+                                ) : c.geofenceStatus === 'out_of_range' ? (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#b91c1c', backgroundColor: '#fee2e2', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                                    خارج النطاق ({c.distanceMeters}م)
+                                  </span>
+                                ) : null}
+                              </div>
                             ) : (
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون GPS</span>
                             )}

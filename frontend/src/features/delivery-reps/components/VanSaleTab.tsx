@@ -706,6 +706,21 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                         <span style={{ fontSize: '11px', color: '#64748b' }}>
                           المتاح: {item.qty} {item.unitName || 'قطعة'}
                         </span>
+                        {item.expiryStatus === 'expired' && (
+                          <span style={{ fontSize: '9.5px', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            منتهي الصلاحية ({item.earliestExpiryDate})
+                          </span>
+                        )}
+                        {item.expiryStatus === 'near_expiry' && (
+                          <span style={{ fontSize: '9.5px', backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            FEFO قريب الانتهاء ({item.daysToExpiry} يوم • {item.earliestExpiryDate})
+                          </span>
+                        )}
+                        {item.expiryStatus === 'valid' && item.earliestExpiryDate && (
+                          <span style={{ fontSize: '9.5px', backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                            صلاحية: {item.earliestExpiryDate}
+                          </span>
+                        )}
                       </div>
                     </div>
 

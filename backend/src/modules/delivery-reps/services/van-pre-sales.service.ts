@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -6,6 +6,8 @@ import { AppError } from '../../../common/errors/app-error';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { reserveLocationStock, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
 import { sortItemsByProductId, generateDailySequenceNumber } from './van-common.util';
+import { SalesService } from '../../sales/sales.service';
+import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 
 export interface PreSalesCatalogItem {
   id: number;
@@ -73,7 +75,10 @@ export interface CreatePreSalesOrderDto {
 
 @Injectable()
 export class VanPreSalesService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    @Optional() private readonly salesService?: SalesService,
+  ) {}
 
   private get anyDb(): any {
     return this.db as any;
@@ -999,4 +1004,494 @@ export class VanPreSalesService {
 
     return { ok: true, status: 'rejected' };
   }
+
+  /**
+   * Consolidates multiple approved Pre-Sales orders into a single Morning Van Load Requisition (VL-YYMMDD-XXXX)
+   * for a target delivery representative. Atomically releases the order-level warehouse reservation
+   * so that approving/dispatching the load requisition can cleanly move physical stock into the van,
+   * and marks the source Pre-Sales orders as 'converted'.
+   */
+  async consolidatePreSalesOrdersToRequisition(
+    tenantId: string,
+    accountId: string,
+    supervisorUserId: number,
+    payload: {
+      orderIds: number[];
+      targetRepId: number;
+      sourceWarehouseId?: number;
+      notes?: string;
+    },
+  ): Promise<{
+    ok: boolean;
+    requisitionId: number;
+    docNo: string;
+    consolidatedOrdersCount: number;
+    itemsCount: number;
+    targetRepId: number;
+    targetRepName: string;
+  }> {
+    const rawOrderIds = Array.isArray(payload?.orderIds) ? payload.orderIds : [];
+    const uniqueOrderIds = Array.from(
+      new Set(rawOrderIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)),
+    );
+
+    if (uniqueOrderIds.length === 0) {
+      throw new AppError('يرجى تحديد طلب حجز واحد على الأقل للتجميع في إذن التحميل', 'NO_ORDERS_SELECTED', 400);
+    }
+
+    const targetRepId = Number(payload?.targetRepId || 0);
+    if (!targetRepId || targetRepId <= 0) {
+      throw new AppError('يرجى تحديد المندوب / السيارة المستهدفة لتحميل البضاعة', 'TARGET_REP_REQUIRED', 400);
+    }
+
+    return await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+
+      const rep = await trxAny
+        .selectFrom('delivery_representatives')
+        .select(['id', 'name', 'is_active'])
+        .where('id', '=', targetRepId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (!rep) {
+        throw new AppError('مندوب التوزيع المحدد غير موجود', 'REP_NOT_FOUND', 404);
+      }
+
+      const orders = await trxAny
+        .selectFrom('sales_orders')
+        .select([
+          'id',
+          'order_number',
+          'status',
+          'warehouse_location_id',
+          'customer_name',
+          'notes',
+        ])
+        .where('id', 'in', uniqueOrderIds)
+        .where('tenant_id', '=', tenantId)
+        .where('order_source', '=', 'van_presales')
+        .forUpdate()
+        .execute();
+
+      if (orders.length !== uniqueOrderIds.length) {
+        throw new AppError('بعض طلبات الحجز المحددة غير موجودة أو لا تنتمي لهذه المنشأة', 'ORDERS_NOT_FOUND', 404);
+      }
+
+      const nonApproved = orders.filter((o: any) => o.status !== 'approved');
+      if (nonApproved.length > 0) {
+        const nums = nonApproved.map((o: any) => o.order_number).join('، ');
+        throw new AppError(
+          `يجب أن تكون كافة الطلبات المحددة في حالة (معتمد) قبل التجميع. الطلبات غير المعتمدة: ${nums}`,
+          'ORDERS_NOT_APPROVED',
+          400,
+        );
+      }
+
+      const orderItems = await trxAny
+        .selectFrom('sales_order_items')
+        .select([
+          'id',
+          'sales_order_id',
+          'product_id',
+          'product_name',
+          'unit_name',
+          'quantity',
+          'reserved_quantity',
+          'unit_multiplier',
+        ])
+        .where('sales_order_id', 'in', uniqueOrderIds)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      if (!orderItems || orderItems.length === 0) {
+        throw new AppError('طلبات الحجز المحددة لا تحتوي على أصناف لتحميلها', 'EMPTY_ORDER_ITEMS', 400);
+      }
+
+      const orderById = new Map<number, any>();
+      for (const ord of orders) {
+        orderById.set(Number(ord.id), ord);
+      }
+
+      // 1. Group reserved stock releases by warehouse_location_id and release in canonical lock order
+      const releasesByLocation = new Map<number, Map<number, number>>();
+      const consolidatedMap = new Map<
+        number,
+        {
+          productId: number;
+          productName: string;
+          requestedQty: number;
+          approvedQty: number;
+          sourceOrders: Set<string>;
+        }
+      >();
+
+      for (const item of orderItems) {
+        const pid = Number(item.product_id);
+        const ord = orderById.get(Number(item.sales_order_id));
+        const whLocId = Number(ord?.warehouse_location_id || 0);
+        const reservedQty = Number(item.reserved_quantity || 0);
+
+        if (reservedQty > 0) {
+          if (!releasesByLocation.has(whLocId)) {
+            releasesByLocation.set(whLocId, new Map<number, number>());
+          }
+          const locMap = releasesByLocation.get(whLocId)!;
+          locMap.set(pid, Number(((locMap.get(pid) || 0) + reservedQty).toFixed(4)));
+        }
+
+        const multiplier = Math.max(0.0001, Number(item.unit_multiplier || 1));
+        const baseQty =
+          reservedQty > 0
+            ? reservedQty
+            : Number((Number(item.quantity || 0) * multiplier).toFixed(4));
+
+        if (baseQty > 0) {
+          const existing = consolidatedMap.get(pid);
+          if (existing) {
+            existing.requestedQty = Number((existing.requestedQty + baseQty).toFixed(4));
+            existing.approvedQty = existing.requestedQty;
+            if (ord?.order_number) existing.sourceOrders.add(String(ord.order_number));
+          } else {
+            const sourceSet = new Set<string>();
+            if (ord?.order_number) sourceSet.add(String(ord.order_number));
+            consolidatedMap.set(pid, {
+              productId: pid,
+              productName: String(item.product_name || `صنف #${pid}`),
+              requestedQty: baseQty,
+              approvedQty: baseQty,
+              sourceOrders: sourceSet,
+            });
+          }
+        }
+      }
+
+      for (const [locId, prodMap] of releasesByLocation.entries()) {
+        const itemsToRelease = sortItemsByProductId(
+          Array.from(prodMap.entries()).map(([productId, qty]) => ({ productId, qty })),
+        );
+        if (itemsToRelease.length > 0) {
+          await releaseLocationStock(trx as any, {
+            tenantId,
+            accountId,
+            locationId: locId > 0 ? locId : null,
+            items: itemsToRelease,
+          });
+        }
+      }
+
+      // 2. Resolve source warehouse for the consolidated Van Load Requisition
+      const firstOrderWarehouseId = Number(
+        orders.find((o: any) => Number(o.warehouse_location_id || 0) > 0)?.warehouse_location_id || 0,
+      );
+      const resolvedWarehouseId =
+        Number(payload.sourceWarehouseId || 0) ||
+        firstOrderWarehouseId ||
+        (await this.resolveDefaultWarehouseLocationId(
+          tenantId,
+          undefined,
+          Array.from(consolidatedMap.keys()),
+        )) ||
+        1;
+
+      const consolidatedItems = sortItemsByProductId(
+        Array.from(consolidatedMap.values()).map((entry) => ({
+          productId: entry.productId,
+          productName: entry.productName,
+          requestedQty: entry.requestedQty,
+          approvedQty: entry.approvedQty,
+          sourceOrders: Array.from(entry.sourceOrders),
+        })),
+      );
+
+      const docNo = await generateDailySequenceNumber(
+        trxAny,
+        this.db,
+        'van_load_requisitions',
+        'doc_no',
+        'VL',
+        tenantId,
+      );
+
+      const orderNumbersList = orders.map((o: any) => o.order_number).join('، ');
+      const autoNotes = [
+        `تجميع آلي لطلبات الحجز المسبق (${orders.length}): ${orderNumbersList}`,
+        payload.notes ? String(payload.notes).trim() : '',
+      ]
+        .filter(Boolean)
+        .join(' — ');
+
+      const insertedReq = await trxAny
+        .insertInto('van_load_requisitions')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          doc_no: docNo,
+          rep_id: targetRepId,
+          source_warehouse_id: resolvedWarehouseId,
+          status: 'pending',
+          requested_items: JSON.stringify(consolidatedItems),
+          notes: autoNotes,
+        })
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      // 3. Mark source Pre-Sales orders as converted and clear reserved_quantity
+      await trxAny
+        .updateTable('sales_order_items')
+        .set((eb: any) => ({
+          reserved_quantity: 0,
+          delivered_quantity: eb.ref('quantity'),
+        }))
+        .where('sales_order_id', 'in', uniqueOrderIds)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      for (const ord of orders) {
+        const updatedNote = [
+          ord.notes ? String(ord.notes).trim() : '',
+          `[تم التجميع في إذن تحميل رقم ${docNo} للمندوب ${rep.name}]`,
+        ]
+          .filter(Boolean)
+          .join(' | ');
+
+        await trxAny
+          .updateTable('sales_orders')
+          .set({
+            status: 'converted',
+            notes: updatedNote,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', Number(ord.id))
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      return {
+        ok: true,
+        requisitionId: Number(insertedReq.id),
+        docNo,
+        consolidatedOrdersCount: orders.length,
+        itemsCount: consolidatedItems.length,
+        targetRepId,
+        targetRepName: String(rep.name || ''),
+      };
+    });
+  }
+
+  /**
+   * Directly converts an approved Pre-Sales order into an official Wholesale Sale Invoice,
+   * releasing the Pre-Sales stock reservation and posting the sale from the order's warehouse.
+   */
+  async convertPreSalesOrderToInvoice(
+    orderId: number,
+    auth: AuthContext,
+    payload?: {
+      paymentType?: 'cash' | 'credit';
+      paidAmount?: number;
+      notes?: string;
+    },
+  ): Promise<{
+    ok: boolean;
+    orderId: number;
+    saleId: number;
+    docNo: string | null;
+  }> {
+    const tenantId = auth.tenantId || 'default';
+    const accountId = auth.accountId || 'default';
+
+    if (!this.salesService) {
+      throw new AppError('خدمة الفواتير غير متاحة حالياً', 'SALES_SERVICE_UNAVAILABLE', 500);
+    }
+
+    const order = await this.anyDb
+      .selectFrom('sales_orders')
+      .selectAll()
+      .where('id', '=', orderId)
+      .where('tenant_id', '=', tenantId)
+      .where('order_source', '=', 'van_presales')
+      .executeTakeFirst();
+
+    if (!order) {
+      throw new AppError('طلب الحجز غير موجود', 'ORDER_NOT_FOUND', 404);
+    }
+
+    if (order.status === 'converted' && order.sale_id) {
+      throw new AppError('تم تحويل طلب الحجز إلى فاتورة مبيعات مسبقاً', 'ORDER_ALREADY_CONVERTED', 400);
+    }
+
+    if (order.status !== 'approved') {
+      throw new AppError('يجب اعتماد طلب الحجز أولاً قبل تحويله إلى فاتورة مبيعات', 'ORDER_NOT_APPROVED', 400);
+    }
+
+    const items = await this.anyDb
+      .selectFrom('sales_order_items')
+      .selectAll()
+      .where('sales_order_id', '=', orderId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    if (!items || items.length === 0) {
+      throw new AppError('لا يمكن تحويل طلب حجز فارغ إلى فاتورة', 'EMPTY_ORDER_ITEMS', 400);
+    }
+
+    const whLocId = order.warehouse_location_id ? Number(order.warehouse_location_id) : null;
+    let branchId = order.branch_id ? Number(order.branch_id) : null;
+
+    if (!branchId && whLocId) {
+      const locRow = await this.anyDb
+        .selectFrom('stock_locations')
+        .select(['branch_id'])
+        .where('id', '=', whLocId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (locRow?.branch_id) branchId = Number(locRow.branch_id);
+    }
+
+    if (!branchId) {
+      const primaryBranch = await this.anyDb
+        .selectFrom('branches')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .orderBy('id', 'asc')
+        .executeTakeFirst();
+      branchId = primaryBranch ? Number(primaryBranch.id) : 1;
+    }
+
+    const releaseItems = sortItemsByProductId(
+      items
+        .filter((item: any) => Number(item.reserved_quantity || 0) > 0)
+        .map((item: any) => ({
+          productId: Number(item.product_id),
+          qty: Number(item.reserved_quantity),
+        })),
+    );
+
+    // 1. Release order reservation before calling createSale
+    if (releaseItems.length > 0) {
+      await this.db.transaction().execute(async (trx) => {
+        await releaseLocationStock(trx as any, {
+          tenantId,
+          accountId,
+          branchId,
+          locationId: whLocId,
+          items: releaseItems,
+        });
+      });
+    }
+
+    const paymentType: 'cash' | 'credit' =
+      payload?.paymentType || (order.payment_terms === 'credit' ? 'credit' : 'cash');
+    const totalAmount = Number(order.total_amount || 0);
+    const paidAmount =
+      payload?.paidAmount !== undefined && payload?.paidAmount !== null
+        ? Math.max(0, Number(payload.paidAmount))
+        : paymentType === 'cash'
+          ? totalAmount
+          : 0;
+
+    const approvedUnitPrices: Record<number, number> = {};
+    const saleItems = items.map((item: any) => {
+      const pid = Number(item.product_id);
+      const unitPrice = Number(item.unit_price || 0);
+      approvedUnitPrices[pid] = unitPrice;
+      return {
+        productId: pid,
+        qty: Number(item.quantity),
+        unitPrice,
+        price: unitPrice,
+        discount: Number(item.discount || 0),
+        unitName: item.unit_name || undefined,
+        priceType: 'wholesale' as const,
+      };
+    });
+
+    const salePayload: any = {
+      branchId,
+      locationId: whLocId || undefined,
+      customerId: order.customer_id ? Number(order.customer_id) : undefined,
+      customerName: order.customer_name || undefined,
+      customerPhone: order.customer_phone || undefined,
+      deliveryRepId: order.rep_id ? Number(order.rep_id) : undefined,
+      note: [
+        `فاتورة جملة محولة من طلب حجز مسبق #${order.order_number}`,
+        order.notes ? String(order.notes).trim() : '',
+        payload?.notes ? String(payload.notes).trim() : '',
+      ]
+        .filter(Boolean)
+        .join(' — '),
+      items: saleItems,
+      discount: Number(order.discount_amount || 0),
+      paymentType,
+      paymentChannel: paymentType === 'credit' && paidAmount <= 0 ? 'credit' : 'cash',
+      paidAmount,
+      source: 'dashboard',
+      payments:
+        paidAmount > 0
+          ? [
+              {
+                paymentChannel: 'cash',
+                amount: paidAmount,
+              },
+            ]
+          : [],
+    };
+
+    let saleResult: any;
+    try {
+      saleResult = await this.salesService.createSale(salePayload, auth, {
+        approvedDiscount: Number(order.discount_amount || 0),
+        approvedUnitPrices,
+      });
+    } catch (err) {
+      // Compensate: restore stock reservation if sale creation fails
+      if (releaseItems.length > 0) {
+        await this.db.transaction().execute(async (trx) => {
+          await reserveLocationStock(trx as any, {
+            tenantId,
+            accountId,
+            branchId,
+            locationId: whLocId,
+            items: releaseItems,
+          });
+        });
+      }
+      throw err;
+    }
+
+    const saleId = Number(saleResult?.sale?.id || saleResult?.id || 0);
+    const docNo = String(saleResult?.sale?.docNo || saleResult?.sale?.doc_no || saleResult?.docNo || '') || null;
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+      await trxAny
+        .updateTable('sales_orders')
+        .set({
+          status: 'converted',
+          sale_id: saleId > 0 ? saleId : null,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', orderId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      await trxAny
+        .updateTable('sales_order_items')
+        .set((eb: any) => ({
+          reserved_quantity: 0,
+          delivered_quantity: eb.ref('quantity'),
+        }))
+        .where('sales_order_id', '=', orderId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    });
+
+    return {
+      ok: true,
+      orderId,
+      saleId,
+      docNo,
+    };
+  }
 }
+

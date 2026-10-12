@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
 import { generateDailySequenceNumber } from './van-common.util';
+import { evaluateBatchExpiryStatus } from '../rep-target.engine';
 
 @Injectable()
 export class VanRequisitionsService {
@@ -459,6 +460,7 @@ export class VanRequisitionsService {
         's.name as supplier_name',
         'p.category_id',
         'pc.name as category_name',
+        'p.metadata',
       ])
       .where('p.tenant_id', '=', tenantId)
       .where('p.is_active', '=', true)
@@ -501,15 +503,39 @@ export class VanRequisitionsService {
       packagingUnit?: { name: string; multiplier: number };
       isWeight: boolean;
     }>();
+    const fefoBatchMap = new Map<number, { batchNumber: string | null; expiryDate: string }>();
 
     if (productIds.length > 0) {
-      const unitRows = await this.anyDb
-        .selectFrom('product_units')
-        .select(['product_id', 'name', 'multiplier', 'is_base_unit'])
-        .where('tenant_id', '=', tenantId)
-        .where('product_id', 'in', productIds)
-        .orderBy('multiplier', 'desc')
-        .execute();
+      const [unitRows, batchRows] = await Promise.all([
+        this.anyDb
+          .selectFrom('product_units')
+          .select(['product_id', 'name', 'multiplier', 'is_base_unit'])
+          .where('tenant_id', '=', tenantId)
+          .where('product_id', 'in', productIds)
+          .orderBy('multiplier', 'desc')
+          .execute(),
+        this.anyDb
+          .selectFrom('pharmacy_batches')
+          .select(['product_id', 'batch_number', 'expiry_date', 'quantity', 'location_id'])
+          .where('tenant_id', '=', tenantId)
+          .where('product_id', 'in', productIds)
+          .where(sql<boolean>`cast(coalesce(quantity, 0) as numeric) > 0`)
+          .orderBy('expiry_date', 'asc')
+          .execute()
+          .catch(() => []),
+      ]);
+
+      for (const b of batchRows || []) {
+        const pid = Number(b.product_id);
+        if (!pid || !b.expiry_date) continue;
+        if (warehouseId && b.location_id && Number(b.location_id) !== Number(warehouseId)) continue;
+        if (!fefoBatchMap.has(pid)) {
+          fefoBatchMap.set(pid, {
+            batchNumber: b.batch_number ? String(b.batch_number) : null,
+            expiryDate: String(b.expiry_date),
+          });
+        }
+      }
 
       for (const u of unitRows) {
         const pid = Number(u.product_id);
@@ -545,6 +571,7 @@ export class VanRequisitionsService {
     }
 
     const targetWhId = warehouseId && Number(warehouseId) > 0 ? Number(warehouseId) : undefined;
+    const nowRef = new Date();
 
     return products.map((p: any) => {
       const pId = Number(p.id);
@@ -555,6 +582,20 @@ export class VanRequisitionsService {
       const unitInfo = unitsMap.get(pId);
       const baseUnit = unitInfo?.baseUnitName || 'قطعة';
       const isWeight = Boolean(unitInfo?.isWeight || /كجم|كيلو|جرام|جم|وزن|kg/i.test(p.name || ''));
+
+      let metaObj: any = null;
+      if (p.metadata) {
+        if (typeof p.metadata === 'string') {
+          try { metaObj = JSON.parse(p.metadata); } catch { metaObj = null; }
+        } else if (typeof p.metadata === 'object') {
+          metaObj = p.metadata;
+        }
+      }
+
+      const fefoBatch = fefoBatchMap.get(pId);
+      const rawExpiry = fefoBatch?.expiryDate || metaObj?.expiry_date || metaObj?.expiryDate || null;
+      const rawBatchNo = fefoBatch?.batchNumber || metaObj?.batch_number || metaObj?.batchNumber || null;
+      const expiryInfo = evaluateBatchExpiryStatus(rawExpiry, nowRef, 60);
 
       return {
         id: pId,
@@ -571,6 +612,10 @@ export class VanRequisitionsService {
         supplierName: (p.supplier_name || '').trim() || 'الشركة العامة',
         categoryId: p.category_id ? Number(p.category_id) : undefined,
         categoryName: (p.category_name || '').trim() || undefined,
+        earliestExpiryDate: expiryInfo.earliestExpiryDate,
+        batchNumber: rawBatchNo ? String(rawBatchNo) : null,
+        expiryStatus: expiryInfo.status,
+        daysToExpiry: expiryInfo.daysRemaining,
       };
     });
   }

@@ -22,7 +22,16 @@ export function VanRepTargetsAdminTab() {
   const [targetAmountInput, setTargetAmountInput] = useState<string>('');
   const [collectionTargetInput, setCollectionTargetInput] = useState<string>('');
   const [visitsTargetInput, setVisitsTargetInput] = useState<string>('');
+  const [salesCommRateInput, setSalesCommRateInput] = useState<string>('1');
+  const [collectionCommRateInput, setCollectionCommRateInput] = useState<string>('0.5');
+  const [targetBonusRateInput, setTargetBonusRateInput] = useState<string>('1');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Commission Settlement Modal State
+  const [settlingCommissionRep, setSettlingCommissionRep] = useState<RepTargetSummary | null>(null);
+  const [settleAmountInput, setSettleAmountInput] = useState<string>('');
+  const [settlePaymentMethod, setSettlePaymentMethod] = useState<'cash' | 'bank_transfer'>('cash');
+  const [settleNotesInput, setSettleNotesInput] = useState<string>('');
 
   const {
     data: targets = [],
@@ -41,7 +50,7 @@ export function VanRepTargetsAdminTab() {
         refetch(),
       ]);
       await new Promise((r) => setTimeout(r, 450));
-      toast.success('تم تحديث مستهدفات المناديب بنجاح');
+      toast.success('تم تحديث مستهدفات وعمولات المناديب بنجاح');
     } catch {
       toast.error('حدث خطأ أثناء تحديث البيانات');
     } finally {
@@ -53,6 +62,8 @@ export function VanRepTargetsAdminTab() {
   const totalActualSales = targets.reduce((sum, t) => sum + (t.actualSales || 0), 0);
   const overallAchievementRate = totalTargetAmount > 0 ? (totalActualSales / totalTargetAmount) * 100 : 0;
   const achievedRepsCount = targets.filter((t) => t.isTargetAchieved).length;
+  const totalCommissionsEarned = targets.reduce((sum, t) => sum + (t.totalCommissionEarned || 0), 0);
+  const totalRemainingCommissions = targets.reduce((sum, t) => sum + (t.remainingCommissionPayable || 0), 0);
 
   const setTargetMutation = useMutation({
     mutationFn: ({
@@ -61,15 +72,21 @@ export function VanRepTargetsAdminTab() {
       targetAmount,
       collectionTarget,
       visitsTarget,
+      commissionRates,
     }: {
       repId: number;
       month: string;
       targetAmount: number;
       collectionTarget?: number | null;
       visitsTarget?: number | null;
-    }) => vanSalesApi.setRepTarget(repId, month, targetAmount, collectionTarget, visitsTarget),
+      commissionRates?: {
+        salesCommissionRate?: number;
+        collectionCommissionRate?: number;
+        targetBonusRate?: number;
+      };
+    }) => vanSalesApi.setRepTarget(repId, month, targetAmount, collectionTarget, visitsTarget, commissionRates),
     onSuccess: () => {
-      toast.success('تم حفظ وتحديث مستهدفات المندوب بنجاح');
+      toast.success('تم حفظ وتحديث مستهدفات ونسب عمولات المندوب بنجاح');
       queryClient.invalidateQueries({ queryKey: ['van-admin-rep-targets'] });
       setEditingTargetRep(null);
       setTargetAmountInput('');
@@ -81,11 +98,57 @@ export function VanRepTargetsAdminTab() {
     },
   });
 
+  const settleCommissionMutation = useMutation({
+    mutationFn: (payload: {
+      repId: number;
+      month: string;
+      amount: number;
+      paymentMethod: 'cash' | 'bank_transfer';
+      notes?: string;
+    }) => vanSalesApi.settleRepCommission(payload),
+    onSuccess: (res) => {
+      toast.success(`تم صرف وتسوية عمولة المندوب بقيمة ${Number(res.settledAmount).toFixed(2)} وتسجيل القيد المحاسبي بنجاح!`);
+      queryClient.invalidateQueries({ queryKey: ['van-admin-rep-targets'] });
+      setSettlingCommissionRep(null);
+      setSettleAmountInput('');
+      setSettleNotesInput('');
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر صرف عمولة المندوب');
+    },
+  });
+
   const openSetTargetModal = (rep: RepTargetSummary) => {
     setEditingTargetRep(rep);
     setTargetAmountInput(rep.targetAmount ? String(rep.targetAmount) : '');
     setCollectionTargetInput(rep.collectionTarget ? String(rep.collectionTarget) : '');
     setVisitsTargetInput(rep.visitsTarget ? String(rep.visitsTarget) : '');
+    setSalesCommRateInput(rep.salesCommissionRate !== undefined ? String(rep.salesCommissionRate) : '1');
+    setCollectionCommRateInput(rep.collectionCommissionRate !== undefined ? String(rep.collectionCommissionRate) : '0.5');
+    setTargetBonusRateInput(rep.targetBonusRate !== undefined ? String(rep.targetBonusRate) : '1');
+  };
+
+  const openSettleCommissionModal = (rep: RepTargetSummary) => {
+    setSettlingCommissionRep(rep);
+    setSettleAmountInput(String(Number(rep.remainingCommissionPayable || 0).toFixed(2)));
+    setSettlePaymentMethod('cash');
+    setSettleNotesInput('');
+  };
+
+  const handleConfirmSettleCommission = () => {
+    if (!settlingCommissionRep) return;
+    const amt = parseFloat(settleAmountInput);
+    if (isNaN(amt) || amt <= 0) {
+      toast.warning('يرجى إدخال قيمة العمولة المراد صرفها بشكل صحيح');
+      return;
+    }
+    settleCommissionMutation.mutate({
+      repId: settlingCommissionRep.repId,
+      month: selectedMonth,
+      amount: amt,
+      paymentMethod: settlePaymentMethod,
+      notes: settleNotesInput.trim() || undefined,
+    });
   };
 
   const handleSaveTarget = () => {
@@ -106,45 +169,59 @@ export function VanRepTargetsAdminTab() {
       return;
     }
 
+    const salesRate = salesCommRateInput.trim() !== '' ? parseFloat(salesCommRateInput) : 1;
+    const colRate = collectionCommRateInput.trim() !== '' ? parseFloat(collectionCommRateInput) : 0.5;
+    const bonusRate = targetBonusRateInput.trim() !== '' ? parseFloat(targetBonusRateInput) : 1;
+
     setTargetMutation.mutate({
       repId: editingTargetRep.repId,
       month: selectedMonth,
       targetAmount: amount,
       collectionTarget: colAmount,
       visitsTarget: visAmount,
+      commissionRates: {
+        salesCommissionRate: isNaN(salesRate) ? 1 : Math.max(0, salesRate),
+        collectionCommissionRate: isNaN(colRate) ? 0.5 : Math.max(0, colRate),
+        targetBonusRate: isNaN(bonusRate) ? 1 : Math.max(0, bonusRate),
+      },
     });
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
-        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
+        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>إجمالي مستهدف مبيعات الشهر</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#312e81', display: 'block', marginTop: '4px' }}>
+          <span style={{ fontSize: '20px', fontWeight: 800, color: '#312e81', display: 'block', marginTop: '4px' }}>
             {Math.round(totalTargetAmount).toLocaleString()} <span style={{ fontSize: '13px', color: '#a5b4fc' }}><CurrencySymbol /></span>
           </span>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>المبيعات الفعلية المحققة حتى الآن</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
+          <span style={{ fontSize: '20px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
             {totalActualSales % 1 === 0 ? Math.round(totalActualSales).toLocaleString() : totalActualSales.toFixed(2)} <span style={{ fontSize: '13px', color: '#86efac' }}><CurrencySymbol /></span>
           </span>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', display: 'block' }}>نسبة تحقيق المستهدف العام</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#0369a1', display: 'block', marginTop: '4px' }}>
-            {overallAchievementRate.toFixed(1)}%
+          <span style={{ fontSize: '20px', fontWeight: 800, color: '#0369a1', display: 'block', marginTop: '4px' }}>
+            {overallAchievementRate.toFixed(1)}% <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>({achievedRepsCount}/{targets.length} محقق)</span>
           </span>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', display: 'block' }}>المناديب المحققين للتارجت</span>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#b45309', display: 'block', marginTop: '4px' }}>
-            {achievedRepsCount} <span style={{ fontSize: '13px', color: '#f59e0b' }}>من أصل {targets.length}</span>
+        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#7c3aed', display: 'block' }}>إجمالي العمولات والحوافز المكتسبة</span>
+          <span style={{ fontSize: '20px', fontWeight: 800, color: '#5b21b6', display: 'block', marginTop: '4px' }}>
+            {totalCommissionsEarned.toFixed(2)} <span style={{ fontSize: '13px', color: '#a78bfa' }}><CurrencySymbol /></span>
           </span>
+          {totalRemainingCommissions > 0 && (
+            <span style={{ fontSize: '10.5px', color: '#b45309', fontWeight: 700 }}>
+              متبقي للصرف: {totalRemainingCommissions.toFixed(2)} <CurrencySymbol />
+            </span>
+          )}
         </div>
       </div>
 
@@ -164,7 +241,7 @@ export function VanRepTargetsAdminTab() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-            شهر التارجت والمبيعات:
+            شهر التارجت والمبيعات والعمولات:
           </label>
           <input
             type="month"
@@ -227,7 +304,7 @@ export function VanRepTargetsAdminTab() {
       >
         {isLoading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-            جاري احتساب مستهدفات ومبيعات المناديب...
+            جاري احتساب مستهدفات ومبيعات وعمولات المناديب...
           </div>
         ) : targets.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
@@ -244,14 +321,15 @@ export function VanRepTargetsAdminTab() {
             }}
           >
             <colgroup>
-              <col style={{ width: '16%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
               <col style={{ width: '14%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '9%' }} />
+              <col style={{ width: '8%' }} />
               <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '11%' }} />
               <col style={{ width: '10%' }} />
             </colgroup>
             <thead>
@@ -264,6 +342,7 @@ export function VanRepTargetsAdminTab() {
                 <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المتبقي</th>
                 <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>أيام متبقية</th>
                 <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المطلوب يومياً</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>العمولة والحوافز</th>
                 <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
               </tr>
             </thead>
@@ -286,7 +365,7 @@ export function VanRepTargetsAdminTab() {
                     <td style={{ padding: '8px 6px' }}>
                       {t.vehiclePlate ? (
                         <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          لوحة: {t.vehiclePlate}
+                          {t.vehiclePlate}
                         </span>
                       ) : (
                         <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون سيارة</span>
@@ -399,15 +478,45 @@ export function VanRepTargetsAdminTab() {
                         </div>
                       ) : null}
                     </td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 800, color: '#5b21b6' }}>
+                        {Number(t.totalCommissionEarned || 0).toFixed(2)} <CurrencySymbol />
+                      </div>
+                      {(t.targetBonusEarned || 0) > 0 && (
+                        <div style={{ fontSize: '9.5px', color: '#15803d', fontWeight: 700 }}>
+                          شامل بونص هدف: {Number(t.targetBonusEarned).toFixed(2)}
+                        </div>
+                      )}
+                      {t.isCommissionSettled ? (
+                        <span style={{ fontSize: '9.5px', backgroundColor: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                          تم الصرف بالكامل
+                        </span>
+                      ) : (t.remainingCommissionPayable || 0) > 0 ? (
+                        <div style={{ fontSize: '9.5px', color: '#b45309', fontWeight: 700 }}>
+                          مستحق: {Number(t.remainingCommissionPayable).toFixed(2)}
+                        </div>
+                      ) : null}
+                    </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                      <Button
-                        variant="secondary"
-                        style={{ fontSize: '11px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
-                        onClick={() => openSetTargetModal(t)}
-                      >
-                        <SlidersIcon size={11} />
-                        ضبط التارجت
-                      </Button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                        <Button
+                          variant="secondary"
+                          style={{ fontSize: '10.5px', padding: '2px 7px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
+                          onClick={() => openSetTargetModal(t)}
+                        >
+                          <SlidersIcon size={11} />
+                          ضبط التارجت
+                        </Button>
+                        {(t.remainingCommissionPayable || 0) > 0 && (
+                          <Button
+                            variant="primary"
+                            style={{ fontSize: '10.5px', padding: '2px 7px', backgroundColor: '#170e5e', color: '#ffffff', whiteSpace: 'nowrap' }}
+                            onClick={() => openSettleCommissionModal(t)}
+                          >
+                            صرف العمولة
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -417,112 +526,174 @@ export function VanRepTargetsAdminTab() {
         )}
       </div>
 
-      {/* Set Target Modal */}
+      {/* Set Target & Commission Rates Modal */}
       {editingTargetRep && (
         <StandardDialog
           open={Boolean(editingTargetRep)}
           onClose={() => setEditingTargetRep(null)}
-          title={`تحديد مستهدفات المندوب (المبيعات والتحصيل والزيارات)`}
+          title={`تحديد مستهدفات ونسب عمولات المندوب`}
           subtitle={`المندوب: ${editingTargetRep.repName} • شهر: ${selectedMonth}`}
-          maxWidth="480px"
+          maxWidth="540px"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ fontSize: '12.5px', color: '#334155' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+            <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#334155' }}>
                 <strong>المبيعات الفعلية حتى اليوم:</strong> {editingTargetRep.actualSales.toFixed(2)} <CurrencySymbol />
               </div>
               {editingTargetRep.actualCollections !== undefined && editingTargetRep.actualCollections > 0 && (
-                <div style={{ fontSize: '12.5px', color: '#334155' }}>
+                <div style={{ fontSize: '12px', color: '#334155' }}>
                   <strong>التحصيل النقدي الفعلي:</strong> {editingTargetRep.actualCollections.toFixed(2)} <CurrencySymbol />
                 </div>
               )}
-              {editingTargetRep.actualVisits !== undefined && editingTargetRep.actualVisits > 0 && (
-                <div style={{ fontSize: '12.5px', color: '#334155' }}>
-                  <strong>الزيارات الميدانية الفعلية:</strong> {editingTargetRep.actualVisits} زيارة
-                </div>
-              )}
-              <div style={{ fontSize: '12px', color: '#64748b' }}>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
                 أيام العمل المتبقية بالشهر (باستثناء الجمع والعطلات): <strong>{editingTargetRep.remainingWorkingDays} يوم</strong>
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                مستهدف المبيعات الشهري ({selectedMonth}) <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <div style={{ position: 'relative' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  مستهدف المبيعات <span style={{ color: '#dc2626' }}>*</span>
+                </label>
                 <input
                   type="number"
                   min="0"
                   step="100"
-                  placeholder="مثال: 50000"
+                  placeholder="50000"
                   value={targetAmountInput}
                   onChange={(e) => setTargetAmountInput(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '9px 12px',
+                    padding: '7px 10px',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: 800,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  مستهدف التحصيل
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder="40000"
+                  value={collectionTargetInput}
+                  onChange={(e) => setCollectionTargetInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  مستهدف الزيارات
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="150"
+                  value={visitsTargetInput}
+                  onChange={(e) => setVisitsTargetInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    fontWeight: 700,
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
             </div>
 
-            {/* Optional Field: Collection Target */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مستهدف التحصيل النقدي <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>(اختياري - ج.م)</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                placeholder="اختياري - مثلاً: 40000"
-                value={collectionTargetInput}
-                onChange={(e) => setCollectionTargetInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  boxSizing: 'border-box',
-                }}
-              />
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
-                إجمالي النقدية المستهدف تحصيلها من المبيعات وسندات القبض الميدانية
-              </span>
-            </div>
-
-            {/* Optional Field: Visits Target */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مستهدف الزيارات الميدانية <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>(اختياري - زيارة)</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                placeholder="اختياري - مثلاً: 150"
-                value={visitsTargetInput}
-                onChange={(e) => setVisitsTargetInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  boxSizing: 'border-box',
-                }}
-              />
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
-                إجمالي الزيارات الميدانية المستهدفة للعملاء خلال الشهر
-              </span>
+            {/* Commission Rates Section */}
+            <div style={{ backgroundColor: '#faf5ff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#5b21b6', marginBottom: '8px' }}>
+                معادلة احتساب العمولات والحوافز للمندوب (%)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
+                    عمولة المبيعات (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={salesCommRateInput}
+                    onChange={(e) => setSalesCommRateInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #c4b5fd',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
+                    عمولة التحصيل النقدي (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={collectionCommRateInput}
+                    onChange={(e) => setCollectionCommRateInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #c4b5fd',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
+                    مكافأة تحقيق التارجت (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={targetBonusRateInput}
+                    onChange={(e) => setTargetBonusRateInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #c4b5fd',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Live Required Daily Pacing Preview (Sales, Collection, Visits) */}
@@ -534,13 +705,13 @@ export function VanRepTargetsAdminTab() {
               <div
                 style={{
                   backgroundColor: '#f8fafc',
-                  padding: '12px',
+                  padding: '10px 12px',
                   borderRadius: '10px',
                   border: '1px solid #cbd5e1',
                   fontSize: '12px',
                 }}
               >
-                <div style={{ fontWeight: 800, color: '#170e5e', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 800, color: '#170e5e', marginBottom: '6px' }}>
                   المطلوب تحقيقه يومياً للمندوب خلال الأيام المتبقية ({editingTargetRep.remainingWorkingDays} يوم عمل):
                 </div>
                 <div
@@ -551,9 +722,9 @@ export function VanRepTargetsAdminTab() {
                   }}
                 >
                   {parseFloat(targetAmountInput) > 0 && (
-                    <div style={{ backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
                       <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', fontWeight: 600 }}>مبيعات يومية:</span>
-                      <strong style={{ fontSize: '13px', color: '#1d4ed8' }}>
+                      <strong style={{ fontSize: '12.5px', color: '#1d4ed8' }}>
                         {Math.ceil(
                           Math.max(
                             0,
@@ -566,9 +737,9 @@ export function VanRepTargetsAdminTab() {
                   )}
 
                   {parseFloat(collectionTargetInput) > 0 && (
-                    <div style={{ backgroundColor: '#f0fdf4', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ backgroundColor: '#f0fdf4', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                       <span style={{ fontSize: '11px', color: '#166534', display: 'block', fontWeight: 600 }}>تحصيل يومي:</span>
-                      <strong style={{ fontSize: '13px', color: '#15803d' }}>
+                      <strong style={{ fontSize: '12.5px', color: '#15803d' }}>
                         {Math.ceil(
                           Math.max(
                             0,
@@ -581,9 +752,9 @@ export function VanRepTargetsAdminTab() {
                   )}
 
                   {parseFloat(visitsTargetInput) > 0 && (
-                    <div style={{ backgroundColor: '#faf5ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+                    <div style={{ backgroundColor: '#faf5ff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
                       <span style={{ fontSize: '11px', color: '#6b21a8', display: 'block', fontWeight: 600 }}>زيارات يومية:</span>
-                      <strong style={{ fontSize: '13px', color: '#7c3aed' }}>
+                      <strong style={{ fontSize: '12.5px', color: '#7c3aed' }}>
                         {Math.ceil(
                           Math.max(
                             0,
@@ -598,7 +769,7 @@ export function VanRepTargetsAdminTab() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
               <Button variant="secondary" onClick={() => setEditingTargetRep(null)}>
                 إلغاء
               </Button>
@@ -608,7 +779,117 @@ export function VanRepTargetsAdminTab() {
                 onClick={handleSaveTarget}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {setTargetMutation.isPending ? 'جاري الحفظ...' : 'حفظ المستهدفات'}
+                {setTargetMutation.isPending ? 'جاري الحفظ...' : 'حفظ المستهدفات ونسب العمولة'}
+              </Button>
+            </div>
+          </div>
+        </StandardDialog>
+      )}
+
+      {/* Settle / Disburse Commission Modal */}
+      {settlingCommissionRep && (
+        <StandardDialog
+          open={Boolean(settlingCommissionRep)}
+          onClose={() => setSettlingCommissionRep(null)}
+          title={`صرف وتسوية عمولة المندوب`}
+          subtitle={`المندوب: ${settlingCommissionRep.repName} • شهر: ${selectedMonth}`}
+          maxWidth="460px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+            <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: '#64748b' }}>عمولة المبيعات ({settlingCommissionRep.salesCommissionRate ?? 1}%):</span>
+                <strong>{Number(settlingCommissionRep.salesCommissionEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: '#64748b' }}>عمولة التحصيل ({settlingCommissionRep.collectionCommissionRate ?? 0.5}%):</span>
+                <strong>{Number(settlingCommissionRep.collectionCommissionEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: '#64748b' }}>مكافأة تحقيق الهدف ({settlingCommissionRep.targetBonusRate ?? 1}%):</span>
+                <strong style={{ color: '#15803d' }}>{Number(settlingCommissionRep.targetBonusEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
+              </div>
+              <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '6px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+                <span style={{ color: '#170e5e' }}>صافي العمولة المتبقية للصرف:</span>
+                <span style={{ color: '#170e5e', fontSize: '13.5px' }}>{Number(settlingCommissionRep.remainingCommissionPayable || 0).toFixed(2)} <CurrencySymbol /></span>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                المبلغ المراد صرفه الآن <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={settleAmountInput}
+                onChange={(e) => setSettleAmountInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                طريقة الصرف من الخزينة / البنك
+              </label>
+              <select
+                value={settlePaymentMethod}
+                onChange={(e) => setSettlePaymentMethod(e.target.value as 'cash' | 'bank_transfer')}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  padding: '0 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12.5px',
+                  color: '#0f172a',
+                }}
+              >
+                <option value="cash">صرف نقدي من الخزينة (Cash)</option>
+                <option value="bank_transfer">تحويل بنكي (Bank Transfer)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                بيان / ملاحظات سند الصرف (اختياري)
+              </label>
+              <input
+                type="text"
+                value={settleNotesInput}
+                onChange={(e) => setSettleNotesInput(e.target.value)}
+                placeholder="مثال: صرف عمولة وحافز مبيعات الشهر..."
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '12.5px',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+              <Button variant="secondary" onClick={() => setSettlingCommissionRep(null)}>
+                إلغاء
+              </Button>
+              <Button
+                variant="primary"
+                disabled={settleCommissionMutation.isPending}
+                onClick={handleConfirmSettleCommission}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
+              >
+                {settleCommissionMutation.isPending ? 'جاري الصرف والترحيل...' : 'تأكيد صرف العمولة وترحيل القيد'}
               </Button>
             </div>
           </div>

@@ -287,7 +287,7 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
       return false;
     }
     if (key.includes('storefront') || key.includes('marketplaces')) {
-      if (vertical !== 'retail_general' && vertical !== 'wholesale_van') {
+      if (vertical !== 'retail_general') {
         return settings?.storefrontModuleEnabled === true;
       }
     }

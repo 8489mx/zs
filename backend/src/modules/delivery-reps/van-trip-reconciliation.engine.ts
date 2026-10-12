@@ -79,6 +79,8 @@ export interface CreditLimitEvaluationParams {
   creditLimit: number;
   isCreditBlocked: boolean;
   creditBlockReason?: string | null;
+  customerType?: string | null;
+  isFieldCreatedCustomer?: boolean;
   requestedCreditAmount: number;
   supervisorOverride?: {
     approved: boolean;
@@ -92,13 +94,53 @@ export interface CreditLimitEvaluationResult {
   allowed: boolean;
   isOverridden?: boolean;
   overrideReason?: string;
-  reasonCode?: 'CUSTOMER_BLOCKED' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST' | 'SUPERVISOR_OVERRIDE';
+  reasonCode?: 'CUSTOMER_BLOCKED' | 'CASH_ONLY_CUSTOMER' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST' | 'SUPERVISOR_OVERRIDE';
   errorMessageAr?: string;
   currentBalance: number;
   creditLimit: number;
   requestedCreditAmount: number;
   projectedBalance: number;
   exceededAmount: number;
+}
+
+export interface FieldCardPaymentEvaluationParams {
+  totalSaleAmount: number;
+  referenceReason?: string | null;
+  supervisorOverride?: {
+    approved: boolean;
+    supervisorId?: number;
+    supervisorName?: string;
+    reason?: string;
+  };
+}
+
+export interface FieldCardPaymentEvaluationResult {
+  allowed: boolean;
+  reasonCode?: 'CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN' | 'CARD_PAYMENT_REFERENCE_REQUIRED' | 'SUPERVISOR_APPROVED';
+  errorMessageAr?: string;
+  approvedReference?: string;
+}
+
+export interface TripExpenseGovernanceParams {
+  expenseType: string;
+  amount: number;
+  notes?: string | null;
+  existingTripExpenses: number;
+  maxSinglePettyExpense?: number;
+  maxCumulativePettyExpenses?: number;
+  supervisorOverride?: {
+    approved: boolean;
+    supervisorId?: number;
+    supervisorName?: string;
+  };
+}
+
+export interface TripExpenseGovernanceResult {
+  allowed: boolean;
+  requiresSupervisorPin: boolean;
+  reasonCode?: 'INVALID_AMOUNT' | 'EXPENSE_NOTES_REQUIRED' | 'EXPENSE_REQUIRES_SUPERVISOR_PIN' | 'SUPERVISOR_APPROVED' | 'ROUTINE_PETTY_ALLOWED';
+  errorMessageAr?: string;
+  projectedTripExpenses: number;
 }
 
 export interface OdometerEvaluationParams {
@@ -313,6 +355,37 @@ export function evaluateCreditLimitCheck(params: CreditLimitEvaluationParams): C
     };
   }
 
+  const isCashOnlyOrFieldCustomer =
+    (String(params.customerType || '').toLowerCase() === 'cash' || Boolean(params.isFieldCreatedCustomer)) &&
+    creditLimit <= 0;
+
+  if (isCashOnlyOrFieldCustomer) {
+    if (params.supervisorOverride?.approved) {
+      return {
+        allowed: true,
+        isOverridden: true,
+        overrideReason:
+          params.supervisorOverride.reason || 'اعتماد استثنائي من المشرف للبيع الآجل لعميل نقدي بدون سقف ائتماني',
+        reasonCode: 'SUPERVISOR_OVERRIDE',
+        currentBalance,
+        creditLimit,
+        requestedCreditAmount,
+        projectedBalance,
+        exceededAmount: requestedCreditAmount,
+      };
+    }
+    return {
+      allowed: false,
+      reasonCode: 'CASH_ONLY_CUSTOMER',
+      errorMessageAr: `العميل "${params.customerName}" مصنف كعميل نقدي (سقف الائتمان = 0.00)؛ لا يُسمح بالبيع الآجل أو الجزئي له إلا بعد تخصيص سقف ائتمان من الإدارة أو إدخال رمز اعتماد المشرف (Supervisor PIN)`,
+      currentBalance,
+      creditLimit,
+      requestedCreditAmount,
+      projectedBalance,
+      exceededAmount: requestedCreditAmount,
+    };
+  }
+
   if (creditLimit > 0 && projectedBalance > creditLimit) {
     const exceededAmount = Number((projectedBalance - creditLimit).toFixed(2));
     if (params.supervisorOverride?.approved) {
@@ -437,3 +510,100 @@ export function evaluateNightStockRetention(params: NightStockEvaluationParams):
     status: 'unloaded_to_warehouse',
   };
 }
+
+/**
+ * Evaluates field card/bank transfer payment governance.
+ * Prevents a field rep from collecting cash from a customer while marking the invoice as "card"
+ * without a verified POS receipt/bank transfer reference and Supervisor PIN authorization.
+ */
+export function evaluateFieldCardPayment(params: FieldCardPaymentEvaluationParams): FieldCardPaymentEvaluationResult {
+  const reference = String(params.referenceReason || params.supervisorOverride?.reason || '').trim();
+
+  if (!params.supervisorOverride?.approved) {
+    return {
+      allowed: false,
+      reasonCode: 'CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN',
+      errorMessageAr: 'الدفع بالشبكة أو التحويل البنكي في الميدان يتطلب إدخال رمز اعتماد المشرف (Supervisor PIN) للتحقق من وصول الإشعار البنكي ومنع التلاعب بالنقدية المحصلة',
+    };
+  }
+
+  if (reference.length < 3) {
+    return {
+      allowed: false,
+      reasonCode: 'CARD_PAYMENT_REFERENCE_REQUIRED',
+      errorMessageAr: 'يرجى تدوين رقم مرجع إيصال الشبكة أو الحوالة البنكية (3 أحرف/أرقام على الأقل) لاعتماد عملية الدفع بالبطاقة',
+    };
+  }
+
+  return {
+    allowed: true,
+    reasonCode: 'SUPERVISOR_APPROVED',
+    approvedReference: reference,
+  };
+}
+
+/**
+ * Evaluates field trip operational expense governance.
+ * Enforces mandatory justification notes, routine petty ceilings (fuel & toll up to 250 single / 400 cumulative),
+ * and requires Supervisor PIN for non-routine categories (maintenance, tips, meals, other) or amounts exceeding ceilings.
+ */
+export function evaluateTripExpenseGovernance(params: TripExpenseGovernanceParams): TripExpenseGovernanceResult {
+  const amount = Number((Number(params.amount) || 0).toFixed(2));
+  const existing = Number((Number(params.existingTripExpenses) || 0).toFixed(2));
+  const projectedTripExpenses = Number((existing + amount).toFixed(2));
+  const maxSingle = params.maxSinglePettyExpense ?? 250;
+  const maxCumulative = params.maxCumulativePettyExpenses ?? 400;
+  const trimmedNotes = String(params.notes || '').trim();
+  const normalizedType = String(params.expenseType || '').trim().toLowerCase();
+
+  if (amount <= 0) {
+    return {
+      allowed: false,
+      requiresSupervisorPin: false,
+      reasonCode: 'INVALID_AMOUNT',
+      errorMessageAr: 'مبلغ المصروف يجب أن يكون أكبر من الصفر',
+      projectedTripExpenses,
+    };
+  }
+
+  if (trimmedNotes.length < 3) {
+    return {
+      allowed: false,
+      requiresSupervisorPin: false,
+      reasonCode: 'EXPENSE_NOTES_REQUIRED',
+      errorMessageAr: 'يجب تدوين البيان التفصيلي أو رقم الفاتورة/الإيصال لكل مصروف ميداني (3 أحرف على الأقل) لضبط الرقابة المالية',
+      projectedTripExpenses,
+    };
+  }
+
+  const isRoutinePettyCategory = normalizedType === 'fuel' || normalizedType === 'toll';
+  const exceedsSingleCeiling = amount > maxSingle;
+  const exceedsCumulativeCeiling = projectedTripExpenses > maxCumulative;
+  const requiresSupervisorPin = !isRoutinePettyCategory || exceedsSingleCeiling || exceedsCumulativeCeiling;
+
+  if (requiresSupervisorPin && !params.supervisorOverride?.approved) {
+    let reasonDetail = '';
+    if (!isRoutinePettyCategory) {
+      reasonDetail = `تصنيف المصروف (${normalizedType}) غير روتيني`;
+    } else if (exceedsSingleCeiling) {
+      reasonDetail = `المبلغ (${amount.toFixed(2)}) يتجاوز السقف المسموح للمصروف النثري المفرد (${maxSingle.toFixed(2)})`;
+    } else {
+      reasonDetail = `إجمالي مصروفات الرحلة (${projectedTripExpenses.toFixed(2)}) يتجاوز السقف التراكمي النثري للرحلة (${maxCumulative.toFixed(2)})`;
+    }
+    return {
+      allowed: false,
+      requiresSupervisorPin: true,
+      reasonCode: 'EXPENSE_REQUIRES_SUPERVISOR_PIN',
+      errorMessageAr: `تسجيل هذا المصروف يتطلب رمز اعتماد المشرف (Supervisor PIN) لأن ${reasonDetail}، وذلك لمنع اقتطاع مبالغ غير معتمدة من عهدة النقدية`,
+      projectedTripExpenses,
+    };
+  }
+
+  return {
+    allowed: true,
+    requiresSupervisorPin,
+    reasonCode: params.supervisorOverride?.approved ? 'SUPERVISOR_APPROVED' : 'ROUTINE_PETTY_ALLOWED',
+    projectedTripExpenses,
+  };
+}
+
