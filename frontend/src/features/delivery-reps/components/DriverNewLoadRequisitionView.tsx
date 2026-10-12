@@ -23,6 +23,7 @@ import {
   BoxesIcon,
   BuildingIcon,
 } from '@/shared/components/icons/AppIcons';
+import { VanFloatingActionBar } from './VanFloatingActionBar';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
@@ -2645,6 +2646,17 @@ export function DriverNewLoadRequisitionView({
           </div>
         </section>
       </div>
+
+      {/* Floating Action Button (FAB) on the left for load requisition */}
+      <VanFloatingActionBar
+        visible={activeViewTab === 'catalog' && distinctItemsCount > 0}
+        itemCount={distinctItemsCount}
+        actionText="مراجعة الإذن"
+        onAction={() => {
+          setActiveViewTab('selected');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }

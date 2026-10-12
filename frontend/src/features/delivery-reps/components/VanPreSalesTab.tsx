@@ -20,6 +20,8 @@ import {
   vanSalesApi,
   PreSalesCatalogItem,
 } from '../api/van-sales.api';
+import { VanFloatingActionBar } from './VanFloatingActionBar';
+import { VanInvoiceReviewModal } from './VanInvoiceReviewModal';
 
 interface CustomerOption {
   id: number;
@@ -214,6 +216,7 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [allCategoriesModalOpen, setAllCategoriesModalOpen] = useState(false);
   const [categoryModalSearch, setCategoryModalSearch] = useState('');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   // Horizontal categories drag-to-scroll & mouse wheel ref
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
@@ -669,7 +672,8 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
       return;
     }
 
-    createOrderMutation.mutate();
+    // Open pre-confirmation review modal first
+    setIsReviewModalOpen(true);
   };
 
   const getOrderStatusBadge = (status: string) => {
@@ -1964,6 +1968,63 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
           </div>
         </StandardDialog>
       )}
+
+      {/* 6. ORDER PREVIEW & CONFIRMATION MODAL */}
+      <VanInvoiceReviewModal
+        open={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onConfirm={() => {
+          setIsReviewModalOpen(false);
+          createOrderMutation.mutate();
+        }}
+        isSubmitting={createOrderMutation.isPending}
+        customer={customers.find((c) => c.id === selectedCustomerId) || null}
+        paymentTerms={paymentTerms}
+        deliveryDate={deliveryDate}
+        bookingNotes={bookingNotes}
+        items={cart.map((line) => ({
+          productId: line.productId,
+          productName: line.productName,
+          unitName: line.unitName,
+          cartons: line.cartons,
+          pieces: line.pieces,
+          totalPieces: line.quantity,
+          cartonUnitPrice: line.cartonUnitPrice,
+          pieceUnitPrice: line.pieceUnitPrice,
+          unitPrice: line.unitPrice,
+          subtotal:
+            line.cartonMultiplier > 1 && (line.cartons > 0 || line.pieces > 0)
+              ? line.cartons * line.cartonUnitPrice + line.pieces * line.pieceUnitPrice
+              : line.quantity * line.pieceUnitPrice,
+          warehouseAvailable: line.warehouseAvailable,
+        }))}
+        totalAmount={cartNetTotal}
+        subtotal={cartGrossSubtotal}
+        totalDiscount={cartDiscountAmount}
+        title="معاينة تفاصيل الطلبية قبل الاعتماد النهائي"
+        subtitle="راجع الأصناف والكميات والأسعار بعناية، يمكنك التعديل أو التأكيد النهائي"
+        confirmButtonText="تأكيد نهائي لحجز الطلبية"
+        editButtonText="تعديل الأصناف والكميات"
+      />
+
+      {/* 7. FLOATING ACTION BUTTON (FAB) FOR PRE-SALES */}
+      <VanFloatingActionBar
+        visible={activeSubTab === 'new-booking' && cart.length > 0}
+        itemCount={cart.length}
+        actionText={selectedCustomerId ? 'تأكيد الحجز' : 'اختر العميل'}
+        onAction={() => {
+          if (!selectedCustomerId) {
+            toast.warning('يرجى اختيار العميل المطلوب حجز الطلبية له أولاً');
+            const el = document.getElementById('cart-customer-select');
+            if (el) {
+              el.focus();
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          } else {
+            setIsReviewModalOpen(true);
+          }
+        }}
+      />
     </div>
   );
 

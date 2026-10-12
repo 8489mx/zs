@@ -11,6 +11,7 @@ import {
   ReceiptIcon,
   CreditCardIcon,
 } from '@/shared/components/icons/AppIcons';
+import { VanFloatingActionBar } from './VanFloatingActionBar';
 
 export interface CartItem {
   productId: number;
@@ -524,7 +525,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
       </div>
 
       {cart.length > 0 && (
-        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div id="van-sale-checkout-card" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Cart Quick Summary Strip */}
           <div
             style={{
@@ -786,6 +787,14 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           </div>
         </div>
       </StandardDialog>
+
+      {/* Floating Action Button (FAB) on the left for direct van sale */}
+      <VanFloatingActionBar
+        visible={cart.length > 0}
+        itemCount={cart.length}
+        actionText="إتمام البيع"
+        onAction={onSubmitSale}
+      />
     </div>
   );
 };

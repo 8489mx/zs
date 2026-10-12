@@ -8,6 +8,7 @@ import {
   CameraIcon,
   PackageIcon,
   AlertTriangleIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export type VanPaymentMethod = 'cash' | 'credit' | 'card' | 'split';
@@ -20,6 +21,16 @@ export interface VanSaleCheckoutModalProps {
   cartDiscount?: number;
   cartItemsCount: number;
   cartTotalPieces: number;
+  cart?: Array<{
+    productId: number;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    unitName?: string;
+    isBonus?: boolean;
+    bonusReason?: string;
+    originalPrice?: number;
+  }>;
   customer?: {
     id: number;
     name: string;
@@ -56,6 +67,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   cartDiscount,
   cartItemsCount,
   cartTotalPieces,
+  cart,
   customer,
   newCustomerName,
   cartonsCount,
@@ -199,15 +211,37 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       width="min(560px, 96vw)"
       minHeight="480px"
       footer={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%', gap: '10px' }}>
+        <div
+          dir="rtl"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
           <Button
             type="button"
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
-            style={{ minHeight: '40px', fontSize: '13px', padding: '0 18px' }}
+            style={{
+              minHeight: '40px',
+              fontSize: '13px',
+              fontWeight: 700,
+              padding: '0 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+            }}
           >
-            إلغاء
+            <SlidersIcon size={15} color="#475569" />
+            <span>تعديل الأصناف / الفاتورة</span>
           </Button>
 
           <Button
@@ -225,10 +259,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
+              boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
             }}
           >
             <CheckCircleIcon size={16} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الإصدار والخصم...' : 'تأكيد وإصدار الفاتورة'}</span>
+            <span>{isSubmitting ? 'جاري الإصدار والخصم...' : 'تأكيد نهائي للفاتورة'}</span>
           </Button>
         </div>
       }
@@ -284,6 +319,92 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Itemized Invoice Preview Section */}
+        {cart && cart.length > 0 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                padding: '6px 10px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <PackageIcon size={13} color="#170e5e" />
+                <span>معاينة الأصناف والأسعار بالفاتورة:</span>
+              </span>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b' }}>
+                {cartItemsCount} أصناف • {cartTotalPieces} قطعة
+              </span>
+            </div>
+
+            <div style={{ maxHeight: '135px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '5px 8px', fontWeight: 700 }}>الصنف</th>
+                    <th style={{ padding: '5px 6px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
+                    <th style={{ padding: '5px 6px', fontWeight: 700, textAlign: 'center' }}>السعر</th>
+                    <th style={{ padding: '5px 8px', fontWeight: 700, textAlign: 'left' }}>الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map((item, idx) => {
+                    const lineTotal = item.qty * item.unitPrice;
+                    return (
+                      <tr
+                        key={`${item.productId}-${idx}`}
+                        style={{
+                          borderBottom: idx === cart.length - 1 ? 'none' : '1px solid #f1f5f9',
+                          backgroundColor: idx % 2 === 1 ? '#fafafa' : '#ffffff',
+                        }}
+                      >
+                        <td style={{ padding: '5px 8px', verticalAlign: 'middle' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a' }}>{item.name}</span>
+                          {item.isBonus && (
+                            <span
+                              style={{
+                                marginRight: '4px',
+                                fontSize: '9px',
+                                backgroundColor: '#dcfce7',
+                                color: '#15803d',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
+                                fontWeight: 800,
+                              }}
+                            >
+                              هدية مجانية
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '5px 6px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, color: '#170e5e' }}>
+                          {item.qty} {item.unitName || 'قطعة'}
+                        </td>
+                        <td style={{ padding: '5px 6px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap', color: '#334155' }}>
+                          {item.unitPrice.toFixed(2)}
+                        </td>
+                        <td style={{ padding: '5px 8px', textAlign: 'left', verticalAlign: 'middle', whiteSpace: 'nowrap', fontWeight: 900, color: '#0f172a' }}>
+                          {lineTotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Validation Error Banner */}
         {validationError && (

@@ -3028,6 +3028,7 @@ export default function VanSalesMobilePage() {
         <VanSaleCheckoutModal
           open={checkoutModalOpen}
           onClose={() => setCheckoutModalOpen(false)}
+          cart={cart}
           cartTotal={cartTotal}
           cartSubtotal={cartSubtotal}
           cartDiscount={cartDiscount}
