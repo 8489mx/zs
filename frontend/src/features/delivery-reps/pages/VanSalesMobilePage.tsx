@@ -419,14 +419,14 @@ export default function VanSalesMobilePage() {
   const [countedCash, setCountedCash] = useState<string>('');
   const [unloadRemaining, setUnloadRemaining] = useState<boolean>(true);
 
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [alert, setAlert] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
   const [lastSaleReceipt, setLastSaleReceipt] = useState<any | null>(null);
   const [lastCollectionReceipt, setLastCollectionReceipt] = useState<VanCollectionReceiptData | null>(null);
   const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
   const [inventorySubMode, setInventorySubMode] = useState<'stock' | 'requisitions'>('stock');
   const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
 
-  const showAlert = (type: 'success' | 'error', message: string) => {
+  const showAlert = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 5000);
   };
@@ -1112,7 +1112,14 @@ export default function VanSalesMobilePage() {
       {alert && (
         <div
           style={{
-            backgroundColor: alert.type === 'success' ? '#10b981' : '#ef4444',
+            backgroundColor:
+              alert.type === 'success'
+                ? '#10b981'
+                : alert.type === 'warning'
+                ? '#f59e0b'
+                : alert.type === 'info'
+                ? '#3b82f6'
+                : '#ef4444',
             color: '#ffffff',
             padding: '10px 16px',
             fontSize: '12.5px',
