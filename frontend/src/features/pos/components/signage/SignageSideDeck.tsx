@@ -1,6 +1,6 @@
 import React from 'react';
 import { SignagePromoItem } from './types';
-import { FlameIcon, TagIcon, AwardIcon, QrCodeIcon } from '@/shared/components/icons/AppIcons';
+import { TagIcon, AwardIcon, QrCodeIcon } from '@/shared/components/icons/AppIcons';
 
 interface SignageSideDeckProps {
   promoItems: SignagePromoItem[];

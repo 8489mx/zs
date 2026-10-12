@@ -177,7 +177,6 @@ describe('POS stock handling', () => {
     };
 
     // Tuesday at 15:00 (inside window and valid day)
-    const validTime = new Date('2026-04-14T15:00:00'); // Tuesday
     const cartValid = addPosItem([], scheduledProduct, { priceType: 'retail' });
     // repricing with time
     const repricedValid = repriceCartLine(cartValid[0], scheduledProduct, 1);

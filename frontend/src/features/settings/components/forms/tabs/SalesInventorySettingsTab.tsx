@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useMemo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, StarIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -760,8 +760,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   // Dedicated local state for terminals to guarantee instant reactivity on add, update, remove, and default change
   const [terminalsList, setTerminalsList] = useState<PosTerminalDeviceConfig[]>(() => {
     const fromForm = form.getValues('posTerminals');
-    if (Array.isArray(fromForm) && fromForm.length > 0) return fromForm;
-    if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) return settings.posTerminals;
+    if (Array.isArray(fromForm) && fromForm.length > 0) return fromForm as PosTerminalDeviceConfig[];
+    if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) return settings.posTerminals as PosTerminalDeviceConfig[];
     return [
       {
         id: 'term-1',
@@ -778,14 +778,14 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   // Keep terminals in sync if settings loads from API
   useEffect(() => {
     if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) {
-      setTerminalsList(settings.posTerminals);
-      form.setValue('posTerminals', settings.posTerminals);
+      setTerminalsList(settings.posTerminals as PosTerminalDeviceConfig[]);
+      form.setValue('posTerminals', settings.posTerminals as any);
     }
   }, [settings?.posTerminals]);
 
   const syncTerminalsAndPrimary = (next: PosTerminalDeviceConfig[]) => {
     setTerminalsList(next);
-    form.setValue('posTerminals', next, { shouldDirty: true, shouldValidate: true });
+    form.setValue('posTerminals', next as any, { shouldDirty: true, shouldValidate: true });
     const defaultTerm = next.find((t) => t.isDefault) || next[0];
     if (defaultTerm) {
       form.setValue('posTerminalName', defaultTerm.name, { shouldDirty: true });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { SignagePromoItem } from './types';
-import { FlameIcon, TagIcon, AwardIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { TagIcon, AwardIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
 
 interface SignageHeroCardProps {
   activeItem: SignagePromoItem;

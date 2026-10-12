@@ -150,6 +150,7 @@ const baseSettingsMutationValues = {
   posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
   posTerminalIp: '192.168.1.150',
   posTerminalPort: 8080,
+  posTerminals: [],
   restaurantTablesCount: 12,
   contractingRetentionPercent: 5,
   contractingAdvanceRecoveryMode: 'proportional' as const,

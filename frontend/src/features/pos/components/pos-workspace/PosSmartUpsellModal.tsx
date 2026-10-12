@@ -25,6 +25,7 @@ export function PosSmartUpsellModal({
   allProducts = [],
   onAddUpsellItem,
   onAcceptUpsell,
+  onBack,
 }: PosSmartUpsellModalProps) {
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
 

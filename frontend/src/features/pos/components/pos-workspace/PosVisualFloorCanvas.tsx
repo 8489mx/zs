@@ -12,11 +12,7 @@ import {
   PlusIcon,
   TrashIcon,
   RotateCcwIcon,
-  CheckIcon,
-  UsersIcon,
   BellIcon,
-  CreditCardIcon,
-  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import type { TableReservation } from '@/features/pos/api/table-reservations.api';
 import type { TableServiceCall } from '@/features/pos/api/table-calls.api';
@@ -40,13 +36,13 @@ interface PosVisualFloorCanvasProps {
 export function PosVisualFloorCanvas({
   branchId,
   tablesCount,
-  zones,
+  zones: _zones,
   selectedZone,
   occupiedMap,
   currentTableNumber,
   confirmedReservationsMap,
   pendingCallsByTable,
-  kdsTableMap,
+  kdsTableMap: _kdsTableMap,
   onSelectTable,
   onRecallDraft,
   onResolveCalls,
@@ -61,7 +57,7 @@ export function PosVisualFloorCanvas({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // Fetch table layouts from server
-  const { data: serverLayouts = [], isLoading } = useQuery({
+  const { data: serverLayouts = [] } = useQuery({
     queryKey: ['restaurant-table-layouts', branchId],
     queryFn: () => restaurantAdvancedFnbApi.getTableLayouts(branchId),
     staleTime: 30_000,
@@ -570,7 +566,6 @@ export function PosVisualFloorCanvas({
           const reservation = confirmedReservationsMap.get(tNum);
           const calls = pendingCallsByTable.get(tNum) || [];
           const hasCalls = calls.length > 0;
-          const kdsTicket = kdsTableMap.get(tNum);
           const isPaidOnline = calls.some((c) => c.call_type === 'bill_paid');
           const isSelectedInDesigner = isDesignMode && activeTableId === tNum;
 
@@ -588,7 +583,6 @@ export function PosVisualFloorCanvas({
           // Status Theme Colors
           let bgColor = '#ffffff';
           let borderColor = '#cbd5e1';
-          let textColor = '#0f172a';
 
           if (isCurrent) {
             borderColor = '#170e5e';
@@ -616,7 +610,7 @@ export function PosVisualFloorCanvas({
             <div
               key={tbl.table_number}
               onPointerDown={(e) => handlePointerDown(e, tbl)}
-              onClick={(e) => {
+              onClick={() => {
                 if (isDesignMode) {
                   setActiveTableId(tNum);
                 } else {
