@@ -139,6 +139,17 @@ export const settingsFormSchema = z.object({
   posTerminalName: z.string().optional().default('جهاز الكاشير الرئيسي (EDC)'),
   posTerminalIp: z.string().optional().default('192.168.1.150'),
   posTerminalPort: z.coerce.number().int().min(1).max(65535).optional().default(8080),
+  posTerminals: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string().default('جهاز الدفع الإلكتروني'),
+      provider: z.enum(['geidea', 'paymob', 'fawry', 'network_international', 'mock_sandbox']).default('fawry'),
+      ip: z.string().default('192.168.1.150'),
+      port: z.coerce.number().int().min(1).max(65535).default(8080),
+      enabled: z.boolean().default(true),
+      isDefault: z.boolean().optional().default(false),
+    })
+  ).optional().default([]),
 
   // Contracting & Projects Dedicated Settings
   contractingRetentionPercent: z.coerce.number().min(0).max(100).default(5),

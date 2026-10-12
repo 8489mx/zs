@@ -834,11 +834,5 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
   if (prev.activeTab !== 'printing' && next.activeTab !== 'printing') {
     return true;
   }
-  return (
-    prev.disabled === next.disabled &&
-    prev.activeTab === next.activeTab &&
-    prev.settings === next.settings &&
-    prev.systemPrinters === next.systemPrinters &&
-    prev.form === next.form
-  );
+  return false;
 });

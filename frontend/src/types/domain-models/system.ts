@@ -275,6 +275,7 @@ export interface AppSettings {
   posTerminalName?: string;
   posTerminalIp?: string;
   posTerminalPort?: number;
+  posTerminals?: import('./settings').PosTerminalDeviceConfig[];
 }
 
 export interface ExpenseRecord {

@@ -357,6 +357,11 @@ export function buildSettingsUpdatePayload(
     posTerminalAutoFinalize: values.posTerminalAutoFinalize !== undefined
       ? values.posTerminalAutoFinalize === true
       : current?.posTerminalAutoFinalize === true,
+    posTerminals: Array.isArray(values.posTerminals)
+      ? values.posTerminals
+      : Array.isArray(current?.posTerminals)
+      ? current.posTerminals
+      : [],
     contractingRetentionPercent: values.contractingRetentionPercent !== undefined
       ? Number(values.contractingRetentionPercent ?? 5)
       : Number(current?.contractingRetentionPercent ?? 5),

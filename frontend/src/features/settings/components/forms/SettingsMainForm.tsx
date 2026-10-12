@@ -299,6 +299,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
       posTerminalIp: '192.168.1.150',
       posTerminalPort: 8080,
+      posTerminals: [],
       contractingRetentionPercent: 5,
       contractingAdvanceRecoveryMode: 'proportional',
       contractingDefaultProfitMargin: 15,
@@ -555,6 +556,27 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       posTerminalName: settings.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
       posTerminalIp: settings.posTerminalIp || '192.168.1.150',
       posTerminalPort: Number(settings.posTerminalPort || 8080),
+      posTerminals: (Array.isArray(settings.posTerminals) && settings.posTerminals.length > 0)
+        ? settings.posTerminals.map((t: any, idx: number) => ({
+            id: t.id || `term-${idx + 1}`,
+            name: t.name || `ماكينة ${idx + 1}`,
+            provider: (['geidea', 'paymob', 'fawry', 'network_international', 'mock_sandbox'].includes(t.provider) ? t.provider : 'fawry') as any,
+            ip: t.ip || '192.168.1.150',
+            port: Number(t.port || 8080),
+            enabled: t.enabled !== false,
+            isDefault: t.isDefault ?? (idx === 0),
+          }))
+        : [
+            {
+              id: 'term-1',
+              name: settings.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
+              provider: (['geidea', 'paymob', 'fawry', 'network_international', 'mock_sandbox'].includes(settings.posTerminalProvider as any) ? settings.posTerminalProvider : 'fawry') as any,
+              ip: settings.posTerminalIp || '192.168.1.150',
+              port: Number(settings.posTerminalPort || 8080),
+              enabled: settings.posTerminalEnabled !== false,
+              isDefault: true,
+            },
+          ],
       contractingRetentionPercent: Number((settings as any).contractingRetentionPercent ?? 5),
       contractingAdvanceRecoveryMode: ((settings as any).contractingAdvanceRecoveryMode as any) || 'proportional',
       contractingDefaultProfitMargin: Number((settings as any).contractingDefaultProfitMargin ?? 15),

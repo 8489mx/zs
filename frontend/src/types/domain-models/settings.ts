@@ -126,4 +126,15 @@ export interface AppSettings {
   posTerminalName?: string;
   posTerminalIp?: string;
   posTerminalPort?: number;
+  posTerminals?: PosTerminalDeviceConfig[];
+}
+
+export interface PosTerminalDeviceConfig {
+  id: string;
+  name: string;
+  provider: 'geidea' | 'paymob' | 'fawry' | 'network_international' | 'mock_sandbox' | string;
+  ip: string;
+  port: number;
+  enabled: boolean;
+  isDefault?: boolean;
 }

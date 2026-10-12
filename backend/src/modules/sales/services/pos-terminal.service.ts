@@ -16,6 +16,7 @@ export interface PosTerminalInfo {
   status: 'online' | 'busy' | 'offline';
   ipAddress?: string;
   provider?: string;
+  isDefault?: boolean;
 }
 
 export interface TerminalPaymentRequest {
@@ -109,11 +110,6 @@ export class PosTerminalService {
         return [];
       }
 
-      const name = settingsMap.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)';
-      const provider = settingsMap.posTerminalProvider || 'mock_sandbox';
-      const ipAddress = settingsMap.posTerminalIp || '192.168.1.150';
-      const port = Number(settingsMap.posTerminalPort || 8080);
-
       const providerDisplayNames: Record<string, string> = {
         geidea: 'Geidea POS (جيديا - شبكة مدى / السعودية)',
         paymob: 'Paymob Smart POS (باي موب)',
@@ -123,16 +119,49 @@ export class PosTerminalService {
         mock_sandbox: 'محاكي نقاط البيع التجريبي (Simulator)',
       };
 
-      return [
-        {
-          id: 'term-main-01',
-          name: `${name} - ${providerDisplayNames[provider] || provider}`,
-          type: 'edc_standalone',
-          status: 'online',
-          provider: providerDisplayNames[provider] || provider,
-          ipAddress: `${ipAddress}:${port}`,
-        },
-      ];
+      let terminalsList: PosTerminalInfo[] = [];
+
+      // Check if multi-terminal posTerminals array is configured
+      if (Array.isArray(settingsMap.posTerminals) && settingsMap.posTerminals.length > 0) {
+        terminalsList = settingsMap.posTerminals
+          .filter((t: any) => t && t.enabled !== false)
+          .map((t: any, idx: number) => {
+            const providerKey = t.provider || 'fawry';
+            const tIp = String(t.ip || '192.168.1.150').trim();
+            const tPort = Number(t.port || 8080);
+            return {
+              id: String(t.id || `term-${idx + 1}`),
+              name: `${t.name || `ماكينة ${idx + 1}`} - ${providerDisplayNames[providerKey] || providerKey}`,
+              type: 'edc_standalone' as const,
+              status: 'online' as const,
+              provider: providerDisplayNames[providerKey] || providerKey,
+              ipAddress: `${tIp}:${tPort}`,
+              isDefault: Boolean(t.isDefault),
+            };
+          });
+      }
+
+      // Fallback to legacy single terminal
+      if (terminalsList.length === 0) {
+        const name = settingsMap.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)';
+        const provider = settingsMap.posTerminalProvider || 'mock_sandbox';
+        const ipAddress = settingsMap.posTerminalIp || '192.168.1.150';
+        const port = Number(settingsMap.posTerminalPort || 8080);
+
+        terminalsList = [
+          {
+            id: 'term-main-01',
+            name: `${name} - ${providerDisplayNames[provider] || provider}`,
+            type: 'edc_standalone',
+            status: 'online',
+            provider: providerDisplayNames[provider] || provider,
+            ipAddress: `${ipAddress}:${port}`,
+            isDefault: true,
+          },
+        ];
+      }
+
+      return terminalsList;
     } catch (err) {
       this.logger.error(`Error loading terminals for tenant ${tenantId}:`, err);
       return [
@@ -143,6 +172,7 @@ export class PosTerminalService {
           status: 'online',
           provider: 'Geidea / KNET / Network International / Fawry',
           ipAddress: '192.168.1.150:8080',
+          isDefault: true,
         },
       ];
     }
@@ -161,7 +191,7 @@ export class PosTerminalService {
       throw new BadRequestException('خدمة ماكينات نقاط البيع (POS Terminal) غير مفعلة في إعدادات المنشأة');
     }
 
-    const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals[0];
+    const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals.find(t => t.isDefault) || terminals[0];
     this.pruneExpiredSessions();
     const transactionId = `EDC-${randomUUID()}`;
 

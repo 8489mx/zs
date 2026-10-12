@@ -1,6 +1,6 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
-import { useState, useEffect, type FormEvent, type RefObject } from 'react';
+import { useState, useEffect, useMemo, type FormEvent, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customersApi } from '@/shared/api/customers.api';
 import { posApi } from '@/features/pos/api/pos.api';
@@ -398,6 +398,23 @@ export function PosCheckoutPaymentSection({
     }
   }, [pos.discount, pos.totals.subTotal, isPercentFocused]);
 
+  const activeTerminals = useMemo(() => {
+    const list = pos.settingsQuery?.data?.posTerminals;
+    if (Array.isArray(list) && list.length > 0) {
+      return list.filter((t) => t.enabled !== false);
+    }
+    return [];
+  }, [pos.settingsQuery?.data?.posTerminals]);
+
+  const [selectedTerminalId, setSelectedTerminalId] = useState<string>('');
+
+  useEffect(() => {
+    if (activeTerminals.length > 0 && !selectedTerminalId) {
+      const defaultTerm = activeTerminals.find((t) => t.isDefault) || activeTerminals[0];
+      if (defaultTerm) setSelectedTerminalId(defaultTerm.id);
+    }
+  }, [activeTerminals, selectedTerminalId]);
+
   const [terminalSession, setTerminalSession] = useState<{
     status: 'idle' | 'initiating' | 'waiting' | 'approved' | 'declined' | 'cancelled';
     transactionId?: string;
@@ -463,7 +480,10 @@ export function PosCheckoutPaymentSection({
 
     setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بجهاز الدفع...' });
     try {
-      const res = await posApi.initiateTerminalCharge({ amount });
+      const res = await posApi.initiateTerminalCharge({
+        amount,
+        terminalId: selectedTerminalId || undefined,
+      });
       setTerminalSession({
         status: 'waiting',
         transactionId: res.data.transactionId,
@@ -594,14 +614,47 @@ export function PosCheckoutPaymentSection({
           border: '1px dashed #cbd5e1',
           display: 'flex',
           flexDirection: 'column',
-          gap: '6px'
+          gap: '8px'
         }}>
+          {/* Active Terminal Selector if multiple terminals exist */}
+          {activeTerminals.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>ماكينة الدفع:</span>
+              {activeTerminals.map((term) => {
+                const isSelected = (selectedTerminalId || activeTerminals[0].id) === term.id;
+                return (
+                  <button
+                    key={term.id}
+                    type="button"
+                    onClick={() => setSelectedTerminalId(term.id)}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      border: isSelected ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                      background: isSelected ? '#ede9fe' : '#ffffff',
+                      color: isSelected ? '#170e5e' : '#475569',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {term.name || term.provider}
+                    {term.isDefault && <span style={{ fontSize: '9px', opacity: 0.8 }}>(افتراضية)</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CreditCardIcon size={18} color="#170e5e" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  {pos.settingsQuery?.data?.posTerminalName || 'جهاز نقاط البيع (EDC / مدى / فيزا)'}
+                  {activeTerminals.find((t) => t.id === selectedTerminalId)?.name || pos.settingsQuery?.data?.posTerminalName || 'جهاز نقاط البيع (EDC / مدى / فيزا)'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b' }}>
                   إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة الجهاز آلياً

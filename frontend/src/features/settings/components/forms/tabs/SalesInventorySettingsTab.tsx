@@ -1,11 +1,12 @@
-import { useState, memo } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, StarIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
+import type { PosTerminalDeviceConfig } from '@/types/domain-models/settings';
 import { FormSection } from '@/shared/components/form-section';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -294,8 +295,436 @@ const fieldControlStyle: React.CSSProperties = {
   border: '1px solid #cbd5e1',
   borderRadius: '8px',
   boxSizing: 'border-box',
-  lineHeight: '38px',
 };
+
+interface PosTerminalTestResult {
+  reachable: boolean;
+  pingSucceeded: boolean;
+  portOpen: boolean;
+  ip: string;
+  port: number;
+  latencyMs?: number;
+  message: string;
+  details?: string;
+  provider?: string;
+  timestamp?: number;
+}
+
+interface PosTerminalCardProps {
+  terminal: PosTerminalDeviceConfig;
+  index: number;
+  totalCount: number;
+  disabled: boolean;
+  isMasterEnabled: boolean;
+  onUpdate: (updated: PosTerminalDeviceConfig) => void;
+  onRemove: (id: string) => void;
+  onSetDefault: (id: string) => void;
+  onTest: (term: PosTerminalDeviceConfig) => void;
+  isTesting: boolean;
+  testResult?: PosTerminalTestResult | null;
+}
+
+const PosTerminalCard = memo(function PosTerminalCard({
+  terminal,
+  index,
+  totalCount,
+  disabled,
+  isMasterEnabled,
+  onUpdate,
+  onRemove,
+  onSetDefault,
+  onTest,
+  isTesting,
+  testResult,
+}: PosTerminalCardProps) {
+  const providerDisplayMap: Record<string, { label: string; badgeBg: string; badgeColor: string; borderColor: string }> = {
+    geidea: { label: 'Geidea POS (جيديا)', badgeBg: '#f3e8ff', badgeColor: '#6b21a8', borderColor: '#e9d5ff' },
+    paymob: { label: 'Paymob Smart POS (باي موب)', badgeBg: '#e0f2fe', badgeColor: '#0369a1', borderColor: '#bae6fd' },
+    fawry: { label: 'Fawry POS / PAX (فوري / باكس)', badgeBg: '#fef3c7', badgeColor: '#92400e', borderColor: '#fde68a' },
+    network_international: { label: 'Network International (NI)', badgeBg: '#dcfce7', badgeColor: '#166534', borderColor: '#bbf7d0' },
+    mock_sandbox: { label: 'محاكي تجريبي (Simulator)', badgeBg: '#f1f5f9', badgeColor: '#475569', borderColor: '#cbd5e1' },
+  };
+
+  const providerInfo = providerDisplayMap[terminal.provider] || providerDisplayMap.fawry;
+  const isCardDisabled = disabled || !isMasterEnabled || !terminal.enabled;
+
+  return (
+    <div
+      style={{
+        background: '#ffffff',
+        border: terminal.isDefault ? '2px solid #170e5e' : '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '16px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        boxShadow: terminal.isDefault ? '0 2px 6px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+        position: 'relative',
+        transition: 'all 0.15s ease',
+        opacity: (!isMasterEnabled || !terminal.enabled) ? 0.72 : 1,
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: terminal.isDefault ? '#ede9fe' : '#f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: terminal.isDefault ? '#170e5e' : '#475569',
+              flexShrink: 0,
+            }}
+          >
+            <PosTerminalIcon size={18} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                {terminal.name || `ماكينة ${index + 1}`}
+              </strong>
+              {terminal.isDefault && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    background: '#ede9fe',
+                    color: '#170e5e',
+                    border: '1px solid #ddd6fe',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  <StarIcon size={11} filled color="#170e5e" />
+                  <span>الافتراضية</span>
+                </span>
+              )}
+            </div>
+            <span
+              style={{
+                display: 'inline-block',
+                marginTop: '2px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                background: providerInfo.badgeBg,
+                color: providerInfo.badgeColor,
+                border: `1px solid ${providerInfo.borderColor}`,
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              {providerInfo.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Header Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Active Toggle */}
+          <label
+            title={terminal.enabled ? 'الماكينة نشطة' : 'الماكينة معطلة'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              color: terminal.enabled ? '#166534' : '#64748b',
+              cursor: disabled || !isMasterEnabled ? 'not-allowed' : 'pointer',
+              userSelect: 'none',
+              background: terminal.enabled ? '#f0fdf4' : '#f8fafc',
+              border: `1px solid ${terminal.enabled ? '#bbf7d0' : '#e2e8f0'}`,
+              padding: '3px 8px',
+              borderRadius: '6px',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={terminal.enabled}
+              disabled={disabled || !isMasterEnabled}
+              onChange={(e) => onUpdate({ ...terminal, enabled: e.target.checked })}
+              style={{ margin: 0, width: '14px', height: '14px', accentColor: '#170e5e', cursor: 'pointer' }}
+            />
+            <span>{terminal.enabled ? 'مفعلة' : 'معطلة'}</span>
+          </label>
+
+          {/* Set Default Button */}
+          {!terminal.isDefault && (
+            <button
+              type="button"
+              disabled={disabled || !isMasterEnabled}
+              onClick={() => onSetDefault(terminal.id)}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#170e5e',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '3px 8px',
+                cursor: (disabled || !isMasterEnabled) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              تعيين كافتراضية
+            </button>
+          )}
+
+          {/* Delete Button (if > 1 terminal) */}
+          {totalCount > 1 && (
+            <button
+              type="button"
+              disabled={disabled || !isMasterEnabled}
+              onClick={() => onRemove(terminal.id)}
+              title="إزالة هذه الماكينة"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                borderRadius: '6px',
+                cursor: (disabled || !isMasterEnabled) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Trash2Icon size={14} color="#dc2626" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Inputs Form */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+        {/* Terminal Name */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            اسم الماكينة
+          </label>
+          <input
+            className="purchase-prototype-field-input"
+            value={terminal.name}
+            onChange={(e) => onUpdate({ ...terminal, name: e.target.value })}
+            disabled={isCardDisabled}
+            placeholder={`ماكينة ${index + 1}`}
+            style={fieldControlStyle}
+          />
+        </div>
+
+        {/* Provider */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            مزود الخدمة
+          </label>
+          <CustomSelect
+            value={terminal.provider}
+            onChange={(val) => onUpdate({ ...terminal, provider: val as any })}
+            options={[
+              { value: 'fawry', label: 'Fawry POS / PAX (فوري - أجهزة باكس PAX)' },
+              { value: 'geidea', label: 'Geidea POS (جيديا - السعودية / مصر)' },
+              { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
+              { value: 'network_international', label: 'Network International (NI)' },
+              { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
+            ]}
+            disabled={isCardDisabled}
+          />
+        </div>
+
+        {/* IP Address */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            عنوان IP الماكينة (Local IP)
+          </label>
+          <input
+            className="purchase-prototype-field-input"
+            value={terminal.ip}
+            onChange={(e) => onUpdate({ ...terminal, ip: e.target.value })}
+            disabled={isCardDisabled}
+            placeholder="192.168.1.150"
+            dir="ltr"
+            style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
+          />
+        </div>
+
+        {/* Port */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            المنفذ (Port)
+          </label>
+          <input
+            type="number"
+            className="purchase-prototype-field-input"
+            value={terminal.port}
+            onChange={(e) => onUpdate({ ...terminal, port: Number(e.target.value || 8080) })}
+            disabled={isCardDisabled}
+            placeholder="8080"
+            dir="ltr"
+            style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
+          />
+        </div>
+      </div>
+
+      {/* Action Button: Ping & ECR Handshake */}
+      <div>
+        <button
+          type="button"
+          onClick={() => onTest(terminal)}
+          disabled={isCardDisabled || isTesting}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            width: '100%',
+            minHeight: '36px',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            background: '#170e5e',
+            color: '#ffffff',
+            border: 'none',
+            cursor: (isCardDisabled || isTesting) ? 'not-allowed' : 'pointer',
+            opacity: (isCardDisabled || isTesting) ? 0.65 : 1,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <RotateCcwIcon size={14} style={{ animation: isTesting ? 'spin 1s linear infinite' : 'none' }} />
+          <span>
+            {isTesting
+              ? `جاري فحص الاتصال بـ (${terminal.ip || '192.168.1.150'})...`
+              : `فحص الاتصال الفعلي بالماكينة (${terminal.name || `ماكينة ${index + 1}`})`}
+          </span>
+        </button>
+      </div>
+
+      {/* Diagnostic Card */}
+      {testResult && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            border: `1px solid ${
+              testResult.portOpen
+                ? '#bbf7d0'
+                : testResult.pingSucceeded
+                ? '#fde68a'
+                : '#fecaca'
+            }`,
+            background: testResult.portOpen
+              ? '#f0fdf4'
+              : testResult.pingSucceeded
+              ? '#fffbeb'
+              : '#fef2f2',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {testResult.portOpen ? (
+                <CheckIcon size={16} color="#16a34a" />
+              ) : testResult.pingSucceeded ? (
+                <InfoIcon size={16} color="#d97706" />
+              ) : (
+                <ShieldAlertIcon size={16} color="#dc2626" />
+              )}
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  color: testResult.portOpen
+                    ? '#166534'
+                    : testResult.pingSucceeded
+                    ? '#92400e'
+                    : '#991b1b',
+                }}
+              >
+                {testResult.message}
+              </span>
+            </div>
+            {testResult.latencyMs != null && (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: testResult.portOpen ? '#dcfce7' : '#fef3c7',
+                  color: testResult.portOpen ? '#166534' : '#92400e',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {testResult.latencyMs}ms
+              </span>
+            )}
+          </div>
+          {testResult.details && (
+            <div
+              style={{
+                fontSize: '0.74rem',
+                lineHeight: 1.5,
+                color: testResult.portOpen
+                  ? '#15803d'
+                  : testResult.pingSucceeded
+                  ? '#78350f'
+                  : '#b91c1c',
+              }}
+            >
+              {testResult.details}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Live Status Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: !terminal.enabled || !isMasterEnabled
+                ? '#94a3b8'
+                : testResult?.portOpen
+                ? '#10b981'
+                : testResult?.pingSucceeded
+                ? '#f59e0b'
+                : testResult
+                ? '#ef4444'
+                : '#3b82f6',
+              display: 'inline-block',
+            }}
+          />
+          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155' }}>
+            {!isMasterEnabled || !terminal.enabled
+              ? 'الماكينة معطلة'
+              : testResult?.portOpen
+              ? 'متصلة وجاهزة للعمليات'
+              : testResult?.pingSucceeded
+              ? 'أونلاين (المنفذ مغلق أو يحتاج تفعيل ECR)'
+              : testResult
+              ? 'غير متصلة (فشل الوصول للـ IP)'
+              : 'في انتظار الفحص الشبكي'}
+          </span>
+        </div>
+        <span style={{ fontSize: '0.71rem', color: '#64748b', fontFamily: 'monospace' }}>
+          {terminal.ip}:{terminal.port}
+        </span>
+      </div>
+    </div>
+  );
+});
 
 export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab({
   form,
@@ -317,40 +746,115 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
   const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
   const [isChangingPin, setIsChangingPin] = useState(false);
-  const [isTestingTerminal, setIsTestingTerminal] = useState(false);
-  const [terminalTestResult, setTerminalTestResult] = useState<{
-    reachable: boolean;
-    pingSucceeded: boolean;
-    portOpen: boolean;
-    ip: string;
-    port: number;
-    latencyMs?: number;
-    message: string;
-    details?: string;
-    timestamp?: number;
-  } | null>(null);
+  const [testingTerminalId, setTestingTerminalId] = useState<string | null>(null);
+  const [terminalTestResults, setTerminalTestResults] = useState<Record<string, PosTerminalTestResult>>({});
 
-  const handleTestTerminal = async () => {
-    const rawIp = form.getValues('posTerminalIp') || '192.168.1.150';
-    const rawPort = Number(form.getValues('posTerminalPort') || 8080);
-    const provider = form.getValues('posTerminalProvider') || 'fawry';
+  const [isMasterPosTerminalEnabled, setIsMasterPosTerminalEnabled] = useState<boolean>(() => form.getValues('posTerminalEnabled') !== false);
 
-    setIsTestingTerminal(true);
-    setTerminalTestResult(null);
+  useEffect(() => {
+    if (settings?.posTerminalEnabled !== undefined) {
+      setIsMasterPosTerminalEnabled(settings.posTerminalEnabled !== false);
+    }
+  }, [settings?.posTerminalEnabled]);
 
+  // Dedicated local state for terminals to guarantee instant reactivity on add, update, remove, and default change
+  const [terminalsList, setTerminalsList] = useState<PosTerminalDeviceConfig[]>(() => {
+    const fromForm = form.getValues('posTerminals');
+    if (Array.isArray(fromForm) && fromForm.length > 0) return fromForm;
+    if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) return settings.posTerminals;
+    return [
+      {
+        id: 'term-1',
+        name: form.getValues('posTerminalName') || settings?.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
+        provider: (form.getValues('posTerminalProvider') || settings?.posTerminalProvider || 'geidea') as any,
+        ip: form.getValues('posTerminalIp') || settings?.posTerminalIp || '192.168.1.150',
+        port: Number(form.getValues('posTerminalPort') || settings?.posTerminalPort || 8080),
+        enabled: form.getValues('posTerminalEnabled') !== false,
+        isDefault: true,
+      },
+    ];
+  });
+
+  // Keep terminals in sync if settings loads from API
+  useEffect(() => {
+    if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) {
+      setTerminalsList(settings.posTerminals);
+      form.setValue('posTerminals', settings.posTerminals);
+    }
+  }, [settings?.posTerminals]);
+
+  const syncTerminalsAndPrimary = (next: PosTerminalDeviceConfig[]) => {
+    setTerminalsList(next);
+    form.setValue('posTerminals', next, { shouldDirty: true, shouldValidate: true });
+    const defaultTerm = next.find((t) => t.isDefault) || next[0];
+    if (defaultTerm) {
+      form.setValue('posTerminalName', defaultTerm.name, { shouldDirty: true });
+      form.setValue('posTerminalProvider', defaultTerm.provider as any, { shouldDirty: true });
+      form.setValue('posTerminalIp', defaultTerm.ip, { shouldDirty: true });
+      form.setValue('posTerminalPort', defaultTerm.port, { shouldDirty: true });
+    }
+  };
+
+  const handleUpdateTerminal = (updated: PosTerminalDeviceConfig) => {
+    const next = terminalsList.map((t) => (t.id === updated.id ? updated : t));
+    syncTerminalsAndPrimary(next);
+  };
+
+  const handleAddTerminal = () => {
+    const nextIdx = terminalsList.length + 1;
+    const newTerminal: PosTerminalDeviceConfig = {
+      id: `term-${Date.now()}`,
+      name: `ماكينة ${nextIdx}`,
+      provider: nextIdx === 2 ? 'geidea' : nextIdx === 3 ? 'paymob' : 'fawry',
+      ip: `192.168.1.${150 + nextIdx - 1}`,
+      port: 8080,
+      enabled: true,
+      isDefault: false,
+    };
+    const next = [...terminalsList, newTerminal];
+    syncTerminalsAndPrimary(next);
+    toast.success(`تمت إضافة ${newTerminal.name} بنجاح`);
+  };
+
+  const handleRemoveTerminal = (id: string) => {
+    if (terminalsList.length <= 1) {
+      toast.warning('يجب الإبقاء على ماكينة دفع واحدة على الأقل');
+      return;
+    }
+    let next = terminalsList.filter((t) => t.id !== id);
+    if (!next.some((t) => t.isDefault) && next.length > 0) {
+      next = next.map((t, idx) => (idx === 0 ? { ...t, isDefault: true } : t));
+    }
+    syncTerminalsAndPrimary(next);
+    toast.info('تمت إزالة الماكينة');
+  };
+
+  const handleSetDefaultTerminal = (id: string) => {
+    const next = terminalsList.map((t) => ({
+      ...t,
+      isDefault: t.id === id,
+    }));
+    syncTerminalsAndPrimary(next);
+    const target = next.find((t) => t.id === id);
+    toast.success(`تم تعيين (${target?.name || 'الماكينة'}) كافتراضية`);
+  };
+
+  const handleTestTerminalDevice = async (term: PosTerminalDeviceConfig) => {
+    setTestingTerminalId(term.id);
     try {
       const res = await posApi.testTerminalConnection({
-        ip: rawIp,
-        port: rawPort,
-        provider,
+        ip: term.ip || '192.168.1.150',
+        port: Number(term.port || 8080),
+        provider: term.provider || 'fawry',
       });
-
       if (res.data) {
-        setTerminalTestResult({
-          ...res.data,
-          timestamp: Date.now(),
-        });
-
+        setTerminalTestResults((prev) => ({
+          ...prev,
+          [term.id]: {
+            ...res.data,
+            timestamp: Date.now(),
+          },
+        }));
         if (res.data.portOpen) {
           toast.success(res.data.message);
         } else if (res.data.pingSucceeded) {
@@ -360,20 +864,23 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
         }
       }
     } catch (err: any) {
-      const fallbackResult = {
+      const fallbackResult: PosTerminalTestResult = {
         reachable: false,
         pingSucceeded: false,
         portOpen: false,
-        ip: rawIp,
-        port: rawPort,
+        ip: term.ip,
+        port: term.port,
         message: err?.message || 'فشل الاتصال بالماكينة',
-        details: 'حدث خطأ أثناء محاولة فحص الاتصال بالماكينة. يرجى التأكد من تشغيل الماكينة واتصالها بالشبكة.',
+        details: 'حدث خطأ أثناء محاولة فحص الاتصال بالماكينة. يرجى التأكد من تشغيلها واتصالها بنفس الشبكة.',
         timestamp: Date.now(),
       };
-      setTerminalTestResult(fallbackResult);
+      setTerminalTestResults((prev) => ({
+        ...prev,
+        [term.id]: fallbackResult,
+      }));
       toast.error(fallbackResult.message);
     } finally {
-      setIsTestingTerminal(false);
+      setTestingTerminalId(null);
     }
   };
 
@@ -1374,61 +1881,112 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       </FormSection>
       )}
 
-      {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية ===== */}
+      {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals) ===== */}
       {showPosSettings && (
         <FormSection
           title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
-          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Fawry, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
+          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Fawry / PAX, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي. يمكنك ربط عدة ماكينات دفع في نفس الوقت وتعيين الماكينة الافتراضية للكاشير."
         >
-          <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
-            {/* Card 1: Activation Toggle & Provider Selection */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <label style={{ ...premiumCardStyle, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={iconBadgeStyle}>
-                    <PosTerminalIcon size={20} />
-                  </div>
-                  <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل ربط ماكينات الدفع (POS Terminal)</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار خيار إرسال المبلغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة</small>
-                  </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Top Control Bar: Master Toggle + Add Button + Terminal Count */}
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              }}
+            >
+              {/* Master Toggle */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <div style={iconBadgeStyle}>
+                  <PosTerminalIcon size={20} />
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                    تفعيل خدمة ربط ماكينات الدفع الإلكتروني (POS Terminals)
+                  </strong>
+                  <small style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    إظهار خيار إرسال المبالغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة
+                  </small>
                 </div>
                 <input
                   type="checkbox"
-                  style={premiumCheckboxInputStyle}
-                  {...form.register('posTerminalEnabled')}
+                  style={{ ...premiumCheckboxInputStyle, marginRight: '12px' }}
+                  checked={isMasterPosTerminalEnabled}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setIsMasterPosTerminalEnabled(val);
+                    form.setValue('posTerminalEnabled', val, { shouldDirty: true });
+                  }}
                   disabled={disabled}
                 />
               </label>
 
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مزود خدمة ماكينة الدفع البنكي
-                </label>
-                <CustomSelect
-                  value={form.watch('posTerminalProvider') || 'mock_sandbox'}
-                  onChange={(val) => form.setValue('posTerminalProvider', val as any, { shouldDirty: true, shouldValidate: true })}
-                  options={[
-                    { value: 'geidea', label: 'Geidea POS (جيديا - شبكة مدى / السعودية)' },
-                    { value: 'network_international', label: 'Network International (NI - الإمارات)' },
-                    { value: 'knet_pos', label: 'KNET POS (كي نت - أجهزة الدفع بالكويت)' },
-                    { value: 'fawry', label: 'Fawry POS / PAX (فوري - أجهزة PAX الذكية بمصر)' },
-                    { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
-                    { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
-                  ]}
-                  disabled={disabled || !form.watch('posTerminalEnabled')}
-                />
-                <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  يدعم الربط الشبكي بروتوكول TCP/IP و ECR عبر الشبكة المحلية (LAN/Wi-Fi).
-                </span>
+                {/* Actions & Count */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      color: isMasterPosTerminalEnabled ? '#170e5e' : '#64748b',
+                      background: isMasterPosTerminalEnabled ? '#f5f3ff' : '#f1f5f9',
+                      border: `1px solid ${isMasterPosTerminalEnabled ? '#ddd6fe' : '#e2e8f0'}`,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    إجمالي الماكينات: {terminalsList.length}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={disabled || !isMasterPosTerminalEnabled}
+                    onClick={handleAddTerminal}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      height: '36px',
+                      padding: '0 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      cursor: (disabled || !isMasterPosTerminalEnabled) ? 'not-allowed' : 'pointer',
+                      opacity: (disabled || !isMasterPosTerminalEnabled) ? 0.6 : 1,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <PlusCircleIcon size={16} />
+                    <span>إضافة ماكينة دفع إضافية</span>
+                  </button>
+                </div>
               </div>
 
+              {/* Zero-Click Checkout Auto Finalize */}
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled || !isMasterPosTerminalEnabled ? 'not-allowed' : 'pointer' }}>
                   <input
                     type="checkbox"
                     {...form.register('posTerminalAutoFinalize')}
-                    disabled={disabled || !form.watch('posTerminalEnabled')}
+                    disabled={disabled || !isMasterPosTerminalEnabled}
                   />
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
                     إتمام وطباعة الفاتورة تلقائياً بمجرد موافقة ماكينة الدفع (Zero-Click Checkout)
@@ -1440,202 +1998,60 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
               </div>
             </div>
 
-            {/* Card 2: Terminal Details & IP Configuration */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            {/* Quick Helper Banner */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                fontSize: '0.74rem',
+                color: '#475569',
+                lineHeight: 1.6,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+              }}
+            >
+              <InfoIcon size={16} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  اسم الجهاز / الماكينة
-                </label>
-                <input
-                  className="purchase-prototype-field-input"
-                  {...form.register('posTerminalName')}
-                  disabled={disabled || !form.watch('posTerminalEnabled')}
-                  placeholder="مثال: جهاز الكاشير الرئيسي (EDC)"
-                  style={fieldControlStyle}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'end' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    عنوان IP الماكينة (Local IP)
-                  </label>
-                  <input
-                    className="purchase-prototype-field-input"
-                    {...form.register('posTerminalIp')}
-                    disabled={disabled || !form.watch('posTerminalEnabled')}
-                    placeholder="192.168.1.150"
-                    dir="ltr"
-                    style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    المنفذ (Port)
-                  </label>
-                  <input
-                    type="number"
-                    className="purchase-prototype-field-input"
-                    {...form.register('posTerminalPort')}
-                    disabled={disabled || !form.watch('posTerminalEnabled')}
-                    placeholder="8080"
-                    dir="ltr"
-                    style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
-                  />
-                </div>
-              </div>
-
-              {/* Action Button: Real Network Ping / ECR Handshake Test */}
-              <div>
-                <button
-                  type="button"
-                  onClick={handleTestTerminal}
-                  disabled={disabled || !form.watch('posTerminalEnabled') || isTestingTerminal}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    minHeight: '38px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    background: '#170e5e',
-                    color: '#ffffff',
-                    border: 'none',
-                    cursor: (disabled || !form.watch('posTerminalEnabled') || isTestingTerminal) ? 'not-allowed' : 'pointer',
-                    opacity: (disabled || !form.watch('posTerminalEnabled') || isTestingTerminal) ? 0.65 : 1,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <RotateCcwIcon size={15} style={{ animation: isTestingTerminal ? 'spin 1s linear infinite' : 'none' }} />
-                  <span>
-                    {isTestingTerminal
-                      ? 'جاري فحص الاتصال بالماكينة...'
-                      : 'فحص الاتصال الفعلي بالماكينة (Ping / ECR Test)'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Real Connection Diagnostic Card */}
-              {terminalTestResult && (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: `1px solid ${
-                      terminalTestResult.portOpen
-                        ? '#bbf7d0'
-                        : terminalTestResult.pingSucceeded
-                        ? '#fde68a'
-                        : '#fecaca'
-                    }`,
-                    background: terminalTestResult.portOpen
-                      ? '#f0fdf4'
-                      : terminalTestResult.pingSucceeded
-                      ? '#fffbeb'
-                      : '#fef2f2',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {terminalTestResult.portOpen ? (
-                        <CheckIcon size={16} color="#16a34a" />
-                      ) : terminalTestResult.pingSucceeded ? (
-                        <InfoIcon size={16} color="#d97706" />
-                      ) : (
-                        <ShieldAlertIcon size={16} color="#dc2626" />
-                      )}
-                      <span
-                        style={{
-                          fontSize: '0.78rem',
-                          fontWeight: 800,
-                          color: terminalTestResult.portOpen
-                            ? '#166534'
-                            : terminalTestResult.pingSucceeded
-                            ? '#92400e'
-                            : '#991b1b',
-                        }}
-                      >
-                        {terminalTestResult.message}
-                      </span>
-                    </div>
-                    {terminalTestResult.latencyMs != null && (
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          background: terminalTestResult.portOpen ? '#dcfce7' : '#fef3c7',
-                          color: terminalTestResult.portOpen ? '#166534' : '#92400e',
-                          fontFamily: 'monospace',
-                        }}
-                      >
-                        {terminalTestResult.latencyMs}ms
-                      </span>
-                    )}
-                  </div>
-                  {terminalTestResult.details && (
-                    <div
-                      style={{
-                        fontSize: '0.74rem',
-                        lineHeight: 1.5,
-                        color: terminalTestResult.portOpen
-                          ? '#15803d'
-                          : terminalTestResult.pingSucceeded
-                          ? '#78350f'
-                          : '#b91c1c',
-                      }}
-                    >
-                      {terminalTestResult.details}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Live Status Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: !form.watch('posTerminalEnabled')
-                        ? '#94a3b8'
-                        : terminalTestResult?.portOpen
-                        ? '#10b981'
-                        : terminalTestResult?.pingSucceeded
-                        ? '#f59e0b'
-                        : terminalTestResult
-                        ? '#ef4444'
-                        : '#3b82f6',
-                      display: 'inline-block',
-                    }}
-                  ></span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
-                    {!form.watch('posTerminalEnabled')
-                      ? 'الخدمة معطلة'
-                      : terminalTestResult?.portOpen
-                      ? 'متصل وجاهز للعمليات'
-                      : terminalTestResult?.pingSucceeded
-                      ? 'الماكينة أونلاين (المنفذ يحتاج تفعيل)'
-                      : terminalTestResult
-                      ? 'غير متصل (فشل الوصول)'
-                      : 'في انتظار الفحص الشبكي'}
-                  </span>
-                </div>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  بروتوكول ECR / IP Direct
+                <strong style={{ color: '#1e293b' }}>إرشادات الربط مع الماكينات (ECR / LAN Direct):</strong>
+                <span style={{ display: 'block', marginTop: '2px' }}>
+                  • <strong>جيديا (Geidea):</strong> ادخل على إعدادات الماكينة أو تطبيق نقطة البيع &gt; تفعيل ECR / LAN &gt; المنفذ الافتراضي غالبًا <strong>8080</strong> أو <strong>8081</strong>.
+                </span>
+                <span style={{ display: 'block' }}>
+                  • <strong>باكس وفوري (PAX A960 / Fawry):</strong> افتح تطبيق الكاشير أو تطبيق ECR على الماكينة (أو MaxStore) لتفعيل استقبال مبالغ الكاشير &gt; المنفذ الافتراضي <strong>8080</strong> أو <strong>10009</strong>.
+                </span>
+                <span style={{ display: 'block' }}>
+                  • تأكد من اتصال جهاز الكمبيوتر وماكينة الدفع بنفس شبكة الـ Wi-Fi / الراوتر المحلي، ثم اضغط <strong>«فحص الاتصال الفعلي»</strong> للتأكد من وصول البينج واستجابة المنفذ.
                 </span>
               </div>
+            </div>
+
+            {/* Terminals Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: terminalsList.length > 1 ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr',
+                gap: '14px',
+              }}
+            >
+              {terminalsList.map((term, index) => (
+                <PosTerminalCard
+                  key={term.id}
+                  terminal={term}
+                  index={index}
+                  totalCount={terminalsList.length}
+                  disabled={disabled}
+                  isMasterEnabled={isMasterPosTerminalEnabled}
+                  onUpdate={handleUpdateTerminal}
+                  onRemove={handleRemoveTerminal}
+                  onSetDefault={handleSetDefaultTerminal}
+                  onTest={handleTestTerminalDevice}
+                  isTesting={testingTerminalId === term.id}
+                  testResult={terminalTestResults[term.id]}
+                />
+              ))}
             </div>
           </div>
         </FormSection>
@@ -2037,13 +2453,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
     </div>
   );
 }, (prev, next) => {
+  // Freeze inactive tab to preserve 0ms switching performance
   if (prev.activeTab !== 'sales_inventory' && next.activeTab !== 'sales_inventory') {
     return true;
   }
-  return (
-    prev.disabled === next.disabled &&
-    prev.activeTab === next.activeTab &&
-    prev.settings === next.settings &&
-    prev.form === next.form
-  );
+  return false;
 });

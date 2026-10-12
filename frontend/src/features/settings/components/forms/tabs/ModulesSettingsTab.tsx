@@ -1884,5 +1884,5 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   if (prev.activeTab !== 'modules' && next.activeTab !== 'modules') {
     return true;
   }
-  return prev.disabled === next.disabled && prev.activeTab === next.activeTab && prev.form === next.form;
+  return false;
 });

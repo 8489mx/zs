@@ -1098,23 +1098,5 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
   if (prev.activeTab !== 'general' && next.activeTab !== 'general') {
     return true;
   }
-  return (
-    prev.disabled === next.disabled &&
-    prev.activeTab === next.activeTab &&
-    prev.branchQuery === next.branchQuery &&
-    prev.selectedBranch === next.selectedBranch &&
-    prev.stockMode === next.stockMode &&
-    prev.defaultStockLocationId === next.defaultStockLocationId &&
-    prev.allowExternalSalesStock === next.allowExternalSalesStock &&
-    prev.branchStockSaving === next.branchStockSaving &&
-    prev.branchStockSaved === next.branchStockSaved &&
-    prev.branchStockError === next.branchStockError &&
-    prev.branchStockDirty === next.branchStockDirty &&
-    prev.branchMenuOpen === next.branchMenuOpen &&
-    prev.branchMenuHasContent === next.branchMenuHasContent &&
-    prev.branchCreateOptionVisible === next.branchCreateOptionVisible &&
-    prev.branches === next.branches &&
-    prev.locations === next.locations &&
-    prev.form === next.form
-  );
+  return false;
 });
