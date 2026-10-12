@@ -4196,4 +4196,223 @@ export class StorefrontService {
       conversionRate,
     };
   }
+
+  /**
+   * Next-Gen F&B: Get active table check / bill for Pay-at-Table via QR code
+   */
+  async getActiveTableBill(slug: string, tableNumber: string) {
+    const cleanSlug = String(slug || '').trim().toLowerCase();
+    const cleanTable = String(tableNumber || '').trim();
+    const tenant = await this.getTenantBySlug(cleanSlug);
+
+    // 1. Look for active held sale draft for this table
+    const heldSale = await this.db
+      .selectFrom('held_sales as hs')
+      .select([
+        'hs.id',
+        'hs.table_number',
+        'hs.order_type',
+        'hs.discount',
+        'hs.note',
+        'hs.delivery_fee',
+        'hs.paid_online',
+        'hs.paid_online_amount',
+        'hs.paid_online_ref',
+        'hs.created_at',
+      ])
+      .where(sql<boolean>`hs.tenant_id = ${tenant.id}`)
+      .where('hs.table_number', '=', cleanTable)
+      .orderBy('hs.id', 'desc')
+      .executeTakeFirst();
+
+    if (!heldSale) {
+      // Also check if there is an active unpaid dine-in sale in sales
+      const activeSale = await this.db
+        .selectFrom('sales as s')
+        .select([
+          's.id',
+          's.doc_no',
+          's.table_number',
+          's.total',
+          's.subtotal',
+          's.tax_amount',
+          's.discount',
+          's.service_charge',
+          's.tip_amount',
+          's.status',
+          's.created_at',
+        ])
+        .where(sql<boolean>`s.tenant_id = ${tenant.id}`)
+        .where('s.table_number', '=', cleanTable)
+        .where('s.order_type', '=', 'dine_in')
+        .where('s.status', 'not in', ['cancelled', 'completed'])
+        .orderBy('s.id', 'desc')
+        .executeTakeFirst();
+
+      if (!activeSale) {
+        return {
+          hasActiveBill: false,
+          tableNumber: cleanTable,
+          message: 'لا توجد فواتير أو طلبات نشطة مسجلة على هذه الطاولة حالياً.',
+        };
+      }
+
+      const saleItems = await this.db
+        .selectFrom('sale_items')
+        .select(['id', 'product_name', 'qty', 'unit_price', 'line_total', 'notes'])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('sale_id', '=', activeSale.id)
+        .execute();
+
+      return {
+        hasActiveBill: true,
+        source: 'sale',
+        billId: Number(activeSale.id),
+        invoiceNo: activeSale.doc_no || `SALE-${activeSale.id}`,
+        tableNumber: cleanTable,
+        isPaidOnline: false,
+        paidOnlineAmount: 0,
+        paidOnlineRef: null,
+        items: saleItems.map((it) => ({
+          name: it.product_name,
+          qty: Number(it.qty),
+          unitPrice: Number(it.unit_price),
+          total: Number(it.line_total),
+          notes: it.notes || '',
+        })),
+        subtotal: Number(activeSale.subtotal || 0),
+        discount: Number(activeSale.discount || 0),
+        serviceCharge: Number(activeSale.service_charge || 0),
+        tax: Number(activeSale.tax_amount || 0),
+        total: Number(activeSale.total || 0),
+        currency: (tenant as any).currency || 'SAR',
+      };
+    }
+
+    // Held draft found
+    const items = await this.db
+      .selectFrom('held_sale_items')
+      .select(['id', 'product_name', 'qty', 'unit_price', 'modifiers'])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('held_sale_id', '=', heldSale.id)
+      .execute();
+
+    const formattedItems = items.map((it) => {
+      let mods: any[] = [];
+      try {
+        if (typeof it.modifiers === 'string' && it.modifiers.trim()) {
+          mods = JSON.parse(it.modifiers);
+        } else if (Array.isArray(it.modifiers)) {
+          mods = it.modifiers;
+        }
+      } catch {}
+      const itemTotal = Number(it.qty) * Number(it.unit_price);
+      return {
+        name: it.product_name,
+        qty: Number(it.qty),
+        unitPrice: Number(it.unit_price),
+        total: itemTotal,
+        modifiers: mods,
+      };
+    });
+
+    const subtotal = formattedItems.reduce((acc, it) => acc + it.total, 0);
+    const discount = Number(heldSale.discount || 0);
+
+    // Read settings to check service charge and tax
+    const settings = await this.getTenantSettingsMap(tenant.id);
+    const serviceChargeEnabled = settings.get('restaurant_service_charge_enabled') === 'true' || settings.get('restaurantServiceChargeEnabled') === 'true';
+    const serviceChargePercent = Number(settings.get('restaurant_service_charge_rate') || settings.get('restaurantServiceChargePercent') || 12);
+    const serviceCharge = serviceChargeEnabled ? Math.round(((subtotal - discount) * (serviceChargePercent / 100)) * 100) / 100 : 0;
+
+    const taxRate = Number(settings.get('tax_rate') || settings.get('taxRate') || 0);
+    const taxableBase = Math.max(0, subtotal - discount + serviceCharge);
+    const tax = taxRate > 0 ? Math.round((taxableBase * (taxRate / 100)) * 100) / 100 : 0;
+    const grandTotal = Math.round((taxableBase + tax) * 100) / 100;
+
+    return {
+      hasActiveBill: true,
+      source: 'held_draft',
+      billId: Number(heldSale.id),
+      tableNumber: cleanTable,
+      isPaidOnline: Boolean(heldSale.paid_online),
+      paidOnlineAmount: Number(heldSale.paid_online_amount || 0),
+      paidOnlineRef: heldSale.paid_online_ref || null,
+      items: formattedItems,
+      subtotal,
+      discount,
+      serviceCharge,
+      tax,
+      total: grandTotal,
+      currency: (tenant as any).currency || 'SAR',
+    };
+  }
+
+  /**
+   * Next-Gen F&B: Pay active table check / bill via QR online checkout
+   */
+  async payActiveTableBill(
+    slug: string,
+    tableNumber: string,
+    dto: { tipAmount?: number; paymentMethod?: string; guestName?: string; guestPhone?: string },
+  ) {
+    const cleanSlug = String(slug || '').trim().toLowerCase();
+    const cleanTable = String(tableNumber || '').trim();
+    const tenant = await this.getTenantBySlug(cleanSlug);
+
+    const bill = await this.getActiveTableBill(cleanSlug, cleanTable);
+    if (!bill.hasActiveBill) {
+      throw new BadRequestException('لا يوجد شيك مفتوح حالياً لهذه الطاولة');
+    }
+
+    const tipAmount = Math.max(0, Number(dto?.tipAmount || 0));
+    const billAmount = Number(bill.total || 0);
+    const totalWithTip = Math.round((billAmount + tipAmount) * 100) / 100;
+    const paymentRef = `TAB-PAY-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    if (bill.source === 'held_draft' && bill.billId) {
+      await this.db
+        .updateTable('held_sales')
+        .set({
+          paid_online: true,
+          paid_online_amount: totalWithTip,
+          paid_online_ref: paymentRef,
+          note: sql`COALESCE(note, '') || ${' [مسدد إلكترونياً بالكامل - مرجع: ' + paymentRef + ']'}` as any,
+        })
+        .where('id', '=', bill.billId)
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .execute();
+    }
+
+    // Insert or update resolved table service call for floor plan and waiter station
+    await this.db
+      .insertInto('restaurant_table_service_calls')
+      .values({
+        tenant_id: tenant.id,
+        table_number: cleanTable,
+        call_type: 'bill_paid',
+        status: 'resolved',
+        bill_amount: billAmount,
+        tip_amount: tipAmount,
+        payment_reference: paymentRef,
+        payment_status: 'paid',
+        resolved_at: new Date(),
+      })
+      .execute();
+
+    return {
+      success: true,
+      paidOnline: true,
+      tableNumber: cleanTable,
+      billAmount,
+      tipAmount,
+      totalPaid: totalWithTip,
+      paymentReference: paymentRef,
+      guestName: dto?.guestName || '',
+      currency: bill.currency || 'SAR',
+      paidAt: new Date().toISOString(),
+      message: 'تم سداد حساب الطاولة بنجاح! شكراً لزيارتكم ونتمنى لكم وقتاً ممتعاً.',
+    };
+  }
 }
+

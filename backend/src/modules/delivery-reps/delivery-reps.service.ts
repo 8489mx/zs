@@ -847,4 +847,99 @@ export class DeliveryRepsService {
 
     return { ok: true, message: 'تم تأكيد تسليم الشحنة بنجاح' };
   }
+
+  /**
+   * Restaurant & F&B Dispatch Console: 1-click batch order dispatch to driver
+   */
+  async dispatchOrders(
+    actor: AuthContext,
+    payload: { repId: number; saleIds?: number[]; onlineOrderIds?: number[]; notes?: string }
+  ) {
+    const rep = await this.db
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name', 'phone'])
+      .where('id', '=', payload.repId)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!rep) {
+      throw new AppError('MANDATORY_FIELD_MISSING', 'مندوب التوصيل المحدد غير موجود');
+    }
+
+    const now = new Date();
+    const notifications: Array<{ recipientPhone: string; orderNumber: string; text: string }> = [];
+
+    // 1. Dispatch POS / phone delivery sales
+    if (payload.saleIds && payload.saleIds.length > 0) {
+      const sales = await this.db
+        .selectFrom('sales')
+        .select(['id', 'doc_no', 'customer_name', 'customer_phone', 'total'])
+        .where('id', 'in', payload.saleIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      await this.db
+        .updateTable('sales')
+        .set({
+          delivery_rep_id: rep.id,
+          delivery_status: 'out_for_delivery',
+          dispatched_at: now,
+          note: payload.notes ? sql`COALESCE(note, '') || ${' [' + payload.notes + ']'}` as any : undefined,
+        })
+        .where('id', 'in', payload.saleIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      for (const s of sales) {
+        if (s.customer_phone) {
+          notifications.push({
+            recipientPhone: s.customer_phone,
+            orderNumber: s.doc_no || `SALE-${s.id}`,
+            text: `عزيزي العميل، طلبك رقم #${s.doc_no || s.id} في الطريق إليك مع كابتن التوصيل ${rep.name} (${rep.phone || ''}). نتمنى لك وجبة شهية!`,
+          });
+        }
+      }
+    }
+
+    // 2. Dispatch online storefront orders
+    if (payload.onlineOrderIds && payload.onlineOrderIds.length > 0) {
+      const onlineOrders = await this.db
+        .selectFrom('online_orders')
+        .select(['id', 'order_number', 'customer_name', 'customer_phone'])
+        .where('id', 'in', payload.onlineOrderIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          status: 'shipped',
+          dispatched_at: now,
+        })
+        .where('id', 'in', payload.onlineOrderIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      for (const ord of onlineOrders) {
+        if (ord.customer_phone) {
+          notifications.push({
+            recipientPhone: ord.customer_phone,
+            orderNumber: ord.order_number,
+            text: `عزيزي العميل، طلبك رقم #${ord.order_number} في الطريق إليك مع كابتن التوصيل ${rep.name} (${rep.phone || ''}). نتمنى لك وجبة شهية!`,
+          });
+        }
+      }
+    }
+
+    const count = (payload.saleIds?.length || 0) + (payload.onlineOrderIds?.length || 0);
+
+    return {
+      success: true,
+      repId: rep.id,
+      repName: rep.name,
+      dispatchedCount: count,
+      notifications,
+      message: `تم إسناد وانطلاق ${count} طلب بنجاح مع الكابتن ${rep.name}`,
+    };
+  }
 }

@@ -16,11 +16,12 @@ import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
 import { useStorefrontSeo } from '../hooks/useStorefrontSeo';
 import { IconStore } from '../components/StorefrontIcons';
-import { UtensilsIcon, BellIcon, CreditCardIcon } from '@/shared/components/icons/AppIcons';
+import { UtensilsIcon, BellIcon, CreditCardIcon, ReceiptIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 import { getStoreHostSlug } from '@/lib/store-public-url';
 import { applyStorefrontThemeVariables } from '../lib/storefront-theme-contrast';
+import { TableBillModal } from '../components/TableBillModal';
 
 export function PublicStorefrontPage() {
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
@@ -32,6 +33,7 @@ export function PublicStorefrontPage() {
   const hostSlug = useMemo(() => (slug ? null : getStoreHostSlug()), [slug]);
   const cleanSlug = String(slug || hostSlug || 'default').trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
+  const [isTableBillOpen, setIsTableBillOpen] = useState(false);
 
   /**
    * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
@@ -381,6 +383,27 @@ export function PublicStorefrontPage() {
               <CreditCardIcon size={13} color="#ffffff" />
               <span>{isCallingService ? 'جارٍ الطلب...' : 'طلب الحساب'}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setIsTableBillOpen(true)}
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.4)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+              }}
+            >
+              <ReceiptIcon size={13} color="#ffffff" />
+              <span>سداد الشيك إلكترونياً</span>
+            </button>
             <div
               style={{
                 background: 'rgba(255,255,255,0.2)',
@@ -598,6 +621,15 @@ export function PublicStorefrontPage() {
         }}
         onReviewSubmitted={handleReviewSubmitted}
       />
+
+      {tableParam && (
+        <TableBillModal
+          open={isTableBillOpen}
+          onClose={() => setIsTableBillOpen(false)}
+          slug={cleanSlug}
+          tableNumber={tableParam}
+        />
+      )}
     </div>
   );
 }

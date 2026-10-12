@@ -96,10 +96,21 @@
   - دعم `reservation_type: 'reservation' | 'waitlist'` في جدول `restaurant_table_reservations`.
   - تبويب مخصص في نافذة الحجوزات `PosTableReservationsModal.tsx` لقائمة الانتظار مع احتساب دقيق لوقت الانتظار المنقضي (`منذ X د`).
   - زر إجلاس فوري بالصالة وتسكين الطاولة بنقرة واحدة (1-Click Seating) يربط الضيف بالطاولة ويفتحها مباشرة في نقطة البيع.
+- **الدفع الذاتي عند الطاولة عبر الباركود (Dine-In Self-Checkout / Pay at Table via QR):**
+  - مسارات الاستعلام والسداد الإلكتروني لطاولة الصالة المفتوحة: `GET /api/storefront/:slug/table/:tableNumber/bill` و `POST /api/storefront/:slug/table/:tableNumber/pay-bill`.
+  - واجهة العميل عند مسح الباركود `TableBillModal.tsx` وربطها المباشر في `PublicStorefrontPage.tsx`: استعراض أصناف الطاولة الحية، رسوم الخدمة، ضريبة القيمة المضافة، واختيار سريع للإكرامية مع سداد فوري ببطاقة الدفع أو Apple Pay.
+  - انتقال حالة الطاولة آلياً في خريطة صالة الكاشير `PosTablesFloorPlanDialog.tsx` ومحطة النادل `WaiterStationPage.tsx` لشارة `💳 مسدد إلكترونياً!` باللون الزمردي فور نجاح السداد عبر `restaurant_table_service_calls` بنمط `bill_paid`.
+- **منصة ترحيل طلبات التوصيل لسائقي المطعم (In-House Restaurant Delivery Driver Dispatcher Console):**
+  - مسار الترحيل الجماعي `POST /api/delivery-reps/dispatch` في `delivery-reps.service.ts` و `delivery-reps.controller.ts`.
+  - واجهة تحكم متكاملة `RestaurantDeliveryDispatcherModal.tsx` وربطها في شريط أدوات الكاشير `PosWorkspaceHeader.tsx`: اختيار متعدد للطلبات الجاهزة، إسنادها دفعة واحدة للمندوب (`delivery_representatives`)، توليد رسائل واتساب للعميل ببيانات السائق بنقرة واحدة، ومتابعة التحصيل النقدي والتسوية المالية للسائق.
+- **محرك وإعدادات عروض الساعات السعيدة المجدولة (Time-based Happy Hour Engine & Configuration):**
+  - دعم تحديد فترات الساعات السعيدة (`happy_hour_start`, `happy_hour_end`, `days_of_week`) في جدول `product_offers` والمحركات الحسابية `pos.domain.ts` و `storefront-offers.engine.ts`.
+  - واجهة ضبط العروض والساعات السعيدة في بطاقة الأصناف `ProductOffersCard.tsx`.
 - **تطبيق واعتماد كافة الهجرات البنيوية في قاعدة البيانات:**
   - تطبيق الهجرة `2040000000210_pos_restaurant_fnb_advanced_features.ts` (جداول مجمعات التوصيل، طلبات المنصات، وسجل هدر الأطعمة).
   - تطبيق الهجرة `2040000000211_pos_terminal_ecr_metadata.ts` (حقول الربط المالي المباشر ECR في `sales` و `sale_payments`).
   - تطبيق الهجرة `2040000000215_restaurant_sfda_nutrition_service_calls_tips_waitlist.ts` (حقول SFDA الغذائية، نداءات الخدمة عبر QR، الإكراميات، وقائمة الانتظار).
+  - تطبيق الهجرة `2040000000216_restaurant_pay_at_table_and_dispatch.ts` (حقول السداد الذاتي للطاولات، والإسناد الميداني لسائقي المطعم).
 
 ### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
 - **المصدر الموحد للحقيقة:** محرك مركزي موحد `frontend/src/shared/verticals/vertical-scope.ts` يستنتج نمط عمل المنشأة بدقة (`maritime`, `contracting`, `wholesale_van`, `manufacturing`, `retail_general`, إلخ).

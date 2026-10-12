@@ -286,6 +286,7 @@ export function WaiterStationPage() {
             const isOccupied = Boolean(occupied);
             const tableCalls = pendingCallsByTable.get(tNum) || [];
             const hasCall = tableCalls.length > 0;
+            const isBillPaid = tableCalls.some((c) => c.call_type === 'bill_paid');
             const isBill = tableCalls.some((c) => c.call_type === 'bill');
             const total = (occupied?.cart || []).reduce(
               (sum: number, it: any) => sum + (it.qty || 1) * Number(it.price || 0),
@@ -298,8 +299,8 @@ export function WaiterStationPage() {
                 type="button"
                 onClick={() => handleSelectTable(tNum)}
                 style={{
-                  background: hasCall ? (isBill ? '#fef2f2' : '#fffbeb') : isOccupied ? '#fef2f2' : '#ffffff',
-                  border: hasCall ? (isBill ? '2.5px solid #ef4444' : '2.5px solid #f59e0b') : isOccupied ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                  background: hasCall ? (isBillPaid ? '#f0fdf4' : isBill ? '#fef2f2' : '#fffbeb') : isOccupied ? '#fef2f2' : '#ffffff',
+                  border: hasCall ? (isBillPaid ? '2.5px solid #22c55e' : isBill ? '2.5px solid #ef4444' : '2.5px solid #f59e0b') : isOccupied ? '2px solid #ef4444' : '1px solid #cbd5e1',
                   borderRadius: '12px',
                   padding: '16px 10px',
                   textAlign: 'center',
@@ -319,7 +320,7 @@ export function WaiterStationPage() {
                   <span
                     style={{
                       fontSize: '9.5px',
-                      background: isBill ? '#dc2626' : '#d97706',
+                      background: isBillPaid ? '#16a34a' : isBill ? '#dc2626' : '#d97706',
                       color: '#ffffff',
                       padding: '2px 6px',
                       borderRadius: '4px',
@@ -330,7 +331,7 @@ export function WaiterStationPage() {
                     }}
                   >
                     <BellIcon size={10} color="#ffffff" />
-                    <span>{isBill ? 'طلب حساب!' : 'استدعاء!'}</span>
+                    <span>{isBillPaid ? 'مسدد إلكترونياً!' : isBill ? 'طلب حساب!' : 'استدعاء!'}</span>
                   </span>
                 )}
                 {isOccupied ? (

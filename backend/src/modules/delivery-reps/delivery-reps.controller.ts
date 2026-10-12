@@ -105,4 +105,13 @@ export class DeliveryRepsController {
   ): Promise<Record<string, unknown>> {
     return this.service.getRepSummary(id, req.authContext!);
   }
+
+  @Post('dispatch')
+  @RequirePermissions('deliveryReps')
+  dispatchOrders(
+    @Body() payload: { repId: number; saleIds?: number[]; onlineOrderIds?: number[]; notes?: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.service.dispatchOrders(req.authContext!, payload);
+  }
 }

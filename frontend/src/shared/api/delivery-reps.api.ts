@@ -129,6 +129,19 @@ export const deliveryRepsApi = {
       return [];
     }
   },
+
+  dispatchOrders: (payload: { repId: number; saleIds?: number[]; onlineOrderIds?: number[]; notes?: string }) =>
+    http<{
+      success: boolean;
+      repId: number;
+      repName: string;
+      dispatchedCount: number;
+      notifications: Array<{ recipientPhone: string; orderNumber: string; text: string }>;
+      message: string;
+    }>('/api/delivery-reps/dispatch', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };
 
 export interface DriverPortalUser {

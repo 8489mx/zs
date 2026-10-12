@@ -953,6 +953,9 @@ export interface SalesTable {
   tip_amount?: number | null;
   guest_count?: number | null;
   guest_check_printed_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined> | null;
+  dispatched_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  delivered_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  driver_cash_settled?: boolean;
 }
 
 export interface SaleItemTable {
@@ -1025,6 +1028,9 @@ export interface HeldSaleTable {
   collection_status: 'cod' | 'prepaid_by_rep' | 'prepaid_online' | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  paid_online?: boolean;
+  paid_online_amount?: number;
+  paid_online_ref?: string | null;
 }
 
 export interface HeldSaleItemTable {
@@ -2791,6 +2797,9 @@ export interface OnlineOrderTable {
   reserved_location_id?: number | null;
   stock_reserved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   idempotency_key?: string | null;
+  dispatched_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  delivered_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  driver_cash_settled?: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -5083,6 +5092,10 @@ export interface RestaurantTableServiceCallTable {
   status: 'pending' | 'resolved';
   created_at: ColumnType<Date, string | Date | undefined, never>;
   resolved_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  bill_amount?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  tip_amount?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  payment_reference?: string | null;
+  payment_status?: string | null;
 }
 
 export interface PosKitchenPrinterTable {

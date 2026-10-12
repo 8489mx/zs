@@ -14,6 +14,7 @@ import { PosOfflineQueueModal } from './PosOfflineQueueModal';
 import { PosInstantExchangeDialog } from './PosInstantExchangeDialog';
 import { PosDeliveryAggregatorsModal } from './PosDeliveryAggregatorsModal';
 import { PosFoodWasteModal } from './PosFoodWasteModal';
+import { RestaurantDeliveryDispatcherModal } from './RestaurantDeliveryDispatcherModal';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
@@ -39,6 +40,7 @@ import {
   PrinterIcon,
   CheckCircleIcon,
   UsersIcon,
+  TruckIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 
@@ -76,6 +78,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
   const [isAggregatorsOpen, setIsAggregatorsOpen] = useState(false);
+  const [isDriverDispatchOpen, setIsDriverDispatchOpen] = useState(false);
   const [isFoodWasteOpen, setIsFoodWasteOpen] = useState(false);
   const [isScreensMenuOpen, setIsScreensMenuOpen] = useState(false);
   const [screensMenuStyle, setScreensMenuStyle] = useState<React.CSSProperties>({});
@@ -490,6 +493,28 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             منصات التوصيل
           </Button>
 
+          {/* In-House Restaurant Delivery Driver Dispatcher */}
+          {(isPhoneOrdersActive || isRestaurantActive || isStorefrontActive) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsDriverDispatchOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#0369a1',
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="إسناد وترحيل طلبات التوصيل لسائقي المطعم ومتابعة التحصيل وإرسال واتساب السائق"
+            >
+              <TruckIcon size={14} color="#0284c7" />
+              <span>سائقي التوصيل</span>
+            </Button>
+          )}
+
           {/* Kitchen Food Waste Logger */}
           {(isRestaurantActive || ['restaurant', 'food_beverage'].includes(settings?.businessIndustry || '')) && (
             <Button
@@ -881,6 +906,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     </DialogShell>
     <PosInstantExchangeDialog open={isExchangeOpen} onClose={() => setIsExchangeOpen(false)} pos={pos} />
     <PosDeliveryAggregatorsModal open={isAggregatorsOpen} onClose={() => setIsAggregatorsOpen(false)} />
+    <RestaurantDeliveryDispatcherModal open={isDriverDispatchOpen} onClose={() => setIsDriverDispatchOpen(false)} />
     <PosFoodWasteModal open={isFoodWasteOpen} onClose={() => setIsFoodWasteOpen(false)} branchId={Number(pos.branchId) || 1} />
     </>
   );

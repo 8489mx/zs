@@ -745,6 +745,7 @@ export function PosTablesFloorPlanDialog({
                 const kdsTicket = kdsTableMap.get(tableNum);
                 const tableCalls = pendingCallsByTable.get(tableNum) || [];
                 const hasActiveCall = tableCalls.length > 0;
+                const isBillPaidCall = tableCalls.some((c) => c.call_type === 'bill_paid');
                 const isBillCall = tableCalls.some((c) => c.call_type === 'bill');
                 const isCurrent = currentTableNumber === tableNum;
                 const hasLiveCart = isCurrent && currentCartItemsCount > 0;
@@ -754,9 +755,9 @@ export function PosTablesFloorPlanDialog({
                 let dotColor = '#10b981';
 
                 if (hasActiveCall) {
-                  borderColor = isBillCall ? '#f87171' : '#fbbf24';
-                  bgColor = isBillCall ? '#fef2f2' : '#fffbeb';
-                  dotColor = isBillCall ? '#dc2626' : '#d97706';
+                  borderColor = isBillPaidCall ? '#86efac' : isBillCall ? '#f87171' : '#fbbf24';
+                  bgColor = isBillPaidCall ? '#f0fdf4' : isBillCall ? '#fef2f2' : '#fffbeb';
+                  dotColor = isBillPaidCall ? '#16a34a' : isBillCall ? '#dc2626' : '#d97706';
                 } else if (hasLiveCart) {
                   borderColor = '#170e5e';
                   bgColor = '#eff6ff';
@@ -907,8 +908,8 @@ export function PosTablesFloorPlanDialog({
                           justifyContent: 'space-between',
                           gap: '4px',
                           width: '100%',
-                          background: isBillCall ? '#fee2e2' : '#fef3c7',
-                          border: `1px solid ${isBillCall ? '#fca5a5' : '#fde68a'}`,
+                          background: isBillPaidCall ? '#dcfce7' : isBillCall ? '#fee2e2' : '#fef3c7',
+                          border: `1px solid ${isBillPaidCall ? '#86efac' : isBillCall ? '#fca5a5' : '#fde68a'}`,
                           borderRadius: '6px',
                           padding: '2px 5px',
                           margin: '2px 0',
@@ -918,14 +919,14 @@ export function PosTablesFloorPlanDialog({
                           style={{
                             fontSize: '9px',
                             fontWeight: 800,
-                            color: isBillCall ? '#991b1b' : '#92400e',
+                            color: isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px',
                           }}
                         >
-                          <BellIcon size={10} color={isBillCall ? '#991b1b' : '#92400e'} />
-                          <span>{isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
+                          <BellIcon size={10} color={isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e'} />
+                          <span>{isBillPaidCall ? 'مسدد إلكترونياً!' : isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
                         </span>
                         <button
                           type="button"
@@ -935,7 +936,7 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 800,
                             padding: '1px 5px',
                             borderRadius: '3px',
-                            background: isBillCall ? '#dc2626' : '#b45309',
+                            background: isBillPaidCall ? '#15803d' : isBillCall ? '#dc2626' : '#b45309',
                             color: '#ffffff',
                             border: 'none',
                             cursor: 'pointer',

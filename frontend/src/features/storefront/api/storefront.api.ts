@@ -60,6 +60,44 @@ export const storefrontApi = {
       }>;
     }>(`/api/storefront/${encodeURIComponent(slug)}/tables-qr?from=${from}&to=${to}`),
 
+  getTableBill: (slug: string, tableNumber: string) =>
+    http<{
+      hasActiveBill: boolean;
+      source?: 'held_draft' | 'sale';
+      billId?: number;
+      invoiceNo?: string;
+      tableNumber: string;
+      isPaidOnline?: boolean;
+      paidOnlineAmount?: number;
+      paidOnlineRef?: string | null;
+      items?: Array<{ name: string; qty: number; unitPrice: number; total: number; modifiers?: any[]; notes?: string }>;
+      subtotal?: number;
+      discount?: number;
+      serviceCharge?: number;
+      tax?: number;
+      total?: number;
+      currency?: string;
+      message?: string;
+    }>(`/api/storefront/${encodeURIComponent(slug)}/table/${encodeURIComponent(tableNumber)}/bill`),
+
+  payTableBill: (slug: string, tableNumber: string, payload: { tipAmount?: number; paymentMethod?: string; guestName?: string; guestPhone?: string }) =>
+    http<{
+      success: boolean;
+      paidOnline: boolean;
+      tableNumber: string;
+      billAmount: number;
+      tipAmount: number;
+      totalPaid: number;
+      paymentReference: string;
+      guestName?: string;
+      currency: string;
+      paidAt: string;
+      message: string;
+    }>(`/api/storefront/${encodeURIComponent(slug)}/table/${encodeURIComponent(tableNumber)}/pay-bill`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   // Order-scoped public routes carry the order's access token (invariant SF-1).
   createPaymentSession: (slug: string, orderNumber: string, token: string) =>
     http<StorefrontPaymentSessionResponse>(

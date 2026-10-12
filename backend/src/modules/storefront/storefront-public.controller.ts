@@ -305,5 +305,28 @@ export class StorefrontPublicController {
   ) {
     return this.paymentService.processStripeWebhook(headers, body, (req as any)?.rawBody);
   }
+
+  /**
+   * Next-Gen F&B: Get active table check / bill for Pay-at-Table via QR code
+   */
+  @Get(':slug/table/:tableNumber/bill')
+  getTableBill(
+    @Param('slug') slug: string,
+    @Param('tableNumber') tableNumber: string,
+  ) {
+    return this.service.getActiveTableBill(slug, tableNumber);
+  }
+
+  /**
+   * Next-Gen F&B: Pay active table check / bill via QR online checkout
+   */
+  @Post(':slug/table/:tableNumber/pay-bill')
+  payTableBill(
+    @Param('slug') slug: string,
+    @Param('tableNumber') tableNumber: string,
+    @Body() body: { tipAmount?: number; paymentMethod?: string; guestName?: string; guestPhone?: string },
+  ) {
+    return this.service.payActiveTableBill(slug, tableNumber, body);
+  }
 }
 

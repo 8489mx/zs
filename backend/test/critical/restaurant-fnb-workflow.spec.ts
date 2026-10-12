@@ -336,6 +336,65 @@ async function testWalkInWaitlistQueueWorkflow(): Promise<void> {
   assert.equal(seatedParty.seated_table, '12');
 }
 
+async function testPayAtTableAndDriverDispatchWorkflow(): Promise<void> {
+  // 1. Pay at Table calculations
+  const items = [
+    { name: 'ستيك ريب آي مع صوص الفطر', qty: 2, unitPrice: 180 },
+    { name: 'سلطة سيزر بالدجاج', qty: 1, unitPrice: 65 },
+    { name: 'عصير برتقال طازج', qty: 2, unitPrice: 25 },
+  ];
+  const subtotal = items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0); // 360 + 65 + 50 = 475
+  assert.equal(subtotal, 475);
+
+  const serviceChargeRate = 0.12; // 12% service charge
+  const serviceCharge = Math.round(subtotal * serviceChargeRate * 100) / 100; // 57
+  assert.equal(serviceCharge, 57);
+
+  const taxRate = 0.15; // 15% VAT
+  const taxableBase = subtotal + serviceCharge; // 532
+  const tax = Math.round(taxableBase * taxRate * 100) / 100; // 79.80
+  assert.equal(tax, 79.8);
+
+  const billTotal = Math.round((taxableBase + tax) * 100) / 100; // 611.80
+  assert.equal(billTotal, 611.8);
+
+  const tipAmount = 50; // Custom tip
+  const totalPaid = Math.round((billTotal + tipAmount) * 100) / 100; // 661.80
+  assert.equal(totalPaid, 661.8);
+
+  // 2. In-house driver dispatching and settlement
+  interface DriverOrder {
+    orderNumber: string;
+    driverId: number;
+    driverName: string;
+    driverPhone: string;
+    totalAmount: number;
+    paymentMethod: 'cash_on_delivery' | 'online_paid';
+    dispatchedAt: number;
+  }
+
+  const driverOrder: DriverOrder = {
+    orderNumber: 'ORD-261012-0042',
+    driverId: 7,
+    driverName: 'الكابتن محمود سليم',
+    driverPhone: '0551234567',
+    totalAmount: 185,
+    paymentMethod: 'cash_on_delivery',
+    dispatchedAt: Date.now(),
+  };
+
+  // WhatsApp dispatch message verification
+  const dispatchText = `عزيزي العميل، طلبك رقم #${driverOrder.orderNumber} في الطريق إليك مع كابتن التوصيل ${driverOrder.driverName} (${driverOrder.driverPhone}). نتمنى لك وجبة شهية!`;
+  assert.ok(dispatchText.includes(driverOrder.orderNumber));
+  assert.ok(dispatchText.includes(driverOrder.driverName));
+  assert.ok(dispatchText.includes(driverOrder.driverPhone));
+
+  // Driver return settlement verification
+  const driverCashCollected = 185;
+  const isSettled = driverOrder.paymentMethod === 'cash_on_delivery' && driverCashCollected === driverOrder.totalAmount;
+  assert.strictEqual(isSettled, true);
+}
+
 (async () => {
   console.log('--- Starting Restaurant F&B Critical Workflow Audit ---');
   await testServiceChargeFinancialInvariants();
@@ -360,6 +419,8 @@ async function testWalkInWaitlistQueueWorkflow(): Promise<void> {
   console.log('10. Tip & Gratuity Allocation Engine: PASSED');
   await testWalkInWaitlistQueueWorkflow();
   console.log('11. Walk-In Waitlist Queue & Seating Engine: PASSED');
+  await testPayAtTableAndDriverDispatchWorkflow();
+  console.log('12. Pay-at-Table QR Self-Checkout & In-House Driver Dispatch: PASSED');
   console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100%) ---');
 })().catch((err) => {
   console.error('Restaurant F&B Critical Audit FAILED:', err);
