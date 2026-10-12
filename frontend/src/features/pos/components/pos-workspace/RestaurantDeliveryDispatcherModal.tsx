@@ -4,7 +4,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
-import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { storefrontApi } from '@/features/storefront';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import {
   TruckIcon,
