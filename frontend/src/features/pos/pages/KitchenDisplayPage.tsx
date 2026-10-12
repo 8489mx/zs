@@ -12,6 +12,9 @@ import { KdsKpiStrip } from '../components/kds/KdsKpiStrip';
 import { KdsFilterBar } from '../components/kds/KdsFilterBar';
 import { KdsStandbyState } from '../components/kds/KdsStandbyState';
 import { KdsTicketCard } from '../components/kds/KdsTicketCard';
+import { Pos86ItemsModal } from '../components/pos-workspace/Pos86ItemsModal';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
+import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function KitchenDisplayPage() {
   const navigate = useNavigate();
@@ -21,6 +24,16 @@ export function KitchenDisplayPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [is86ModalOpen, setIs86ModalOpen] = useState<boolean>(false);
+
+  const { data: products = [] } = useProductsQuery();
+
+  const { data: items86 = [] } = useQuery({
+    queryKey: ['pos-86-items-kds'],
+    queryFn: () => restaurantAdvancedFnbApi.get86Items(),
+    refetchInterval: 15_000,
+  });
+  const active86Count = items86.length;
 
   const handleBack = () => {
     navigate('/displays');
@@ -192,6 +205,8 @@ export function KitchenDisplayPage() {
         isRecalling={recallMutation.isPending}
         onToggleFullscreen={handleToggleFullscreen}
         onBack={handleBack}
+        onOpen86Modal={() => setIs86ModalOpen(true)}
+        active86Count={active86Count}
       />
 
       {/* 2. Executive Kitchen KPI Strip */}
@@ -272,6 +287,12 @@ export function KitchenDisplayPage() {
           </div>
         )}
       </main>
+
+      <Pos86ItemsModal
+        open={is86ModalOpen}
+        onClose={() => setIs86ModalOpen(false)}
+        products={products}
+      />
     </div>
   );
 }

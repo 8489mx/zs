@@ -1,0 +1,223 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { StandardDialog } from '@/shared/components/StandardDialog';
+import { RefreshCwIcon, AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
+import { formatCurrency } from '@/lib/format';
+
+interface PosPlateCostRadarModalProps {
+  open: boolean;
+  onClose: () => void;
+  currency?: string;
+}
+
+export function PosPlateCostRadarModal({
+  open,
+  onClose,
+  currency = 'ج.م',
+}: PosPlateCostRadarModalProps) {
+  const [filterAlertsOnly, setFilterAlertsOnly] = useState(false);
+
+  const { data: radarItems = [], refetch } = useQuery({
+    queryKey: ['restaurant-plate-cost-radar'],
+    queryFn: () => restaurantAdvancedFnbApi.getPlateCostRadar(),
+    enabled: open,
+  });
+
+  const displayedItems = filterAlertsOnly
+    ? radarItems.filter((i) => i.isAlert)
+    : radarItems;
+
+  const alertCount = radarItems.filter((i) => i.isAlert).length;
+
+  return (
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="رادار تذبذب تكلفة الأطباق وهوامش الربح (Plate Cost & Inflation Radar)"
+      subtitle="رصد لحظي لتأثير ارتفاع أسعار الخامات والمشتريات على هامش ربح الوجبات مع اقتراح أسعار البيع المثالية"
+      width="min(1060px, 96vw)"
+      compact
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* KPI Strip */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي الوجبات المرصودة بالوصفات</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              {radarItems.length} أطباق ووجبات
+            </div>
+          </div>
+
+          <div style={{ background: alertCount > 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${alertCount > 0 ? '#fecaca' : '#bbf7d0'}`, borderRadius: '10px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '11px', color: alertCount > 0 ? '#991b1b' : '#166534', fontWeight: 700 }}>
+              أطباق تحت خطر تآكل الهامش (Alerts)
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: alertCount > 0 ? '#dc2626' : '#16a34a', marginTop: '4px' }}>
+              {alertCount} وجبة متأثرة بارتفاع الخامات
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: '#334155' }}>
+              <input
+                type="checkbox"
+                checked={filterAlertsOnly}
+                onChange={(e) => setFilterAlertsOnly(e.target.checked)}
+                style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+              />
+              <span>إظهار الوجبات الحرجة فقط</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+              }}
+            >
+              <RefreshCwIcon size={13} />
+              <span>تحديث الرادار</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Radar Table */}
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '9px 12px' }}>اسم الوجبة / الطبق</th>
+                  <th style={{ padding: '9px 12px' }}>سعر البيع الحالي</th>
+                  <th style={{ padding: '9px 12px' }}>التكلفة المعيارية</th>
+                  <th style={{ padding: '9px 12px' }}>التكلفة الحية (الخامات)</th>
+                  <th style={{ padding: '9px 12px' }}>تضخم التكلفة</th>
+                  <th style={{ padding: '9px 12px' }}>هامش الربح الحالي</th>
+                  <th style={{ padding: '9px 12px' }}>السعر المقترح (هامش 65%)</th>
+                  <th style={{ padding: '9px 12px', textAlign: 'center' }}>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedItems.map((item, idx) => {
+                  const isEroded = item.isAlert;
+
+                  return (
+                    <tr
+                      key={item.productId}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        background: isEroded ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fafafa',
+                      }}
+                    >
+                      <td style={{ padding: '9px 12px', fontWeight: 800, color: '#0f172a' }}>{item.productName}</td>
+                      <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>
+                        {formatCurrency(item.sellingPrice, currency)}
+                      </td>
+                      <td style={{ padding: '9px 12px', color: '#64748b' }}>
+                        {formatCurrency(item.standardCost, currency)}
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 700, color: isEroded ? '#b91c1c' : '#0f172a' }}>
+                        {formatCurrency(item.liveCost, currency)}
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 800, color: item.costInflationPct > 0 ? '#dc2626' : '#16a34a' }}>
+                        {item.costInflationPct > 0 ? `+${item.costInflationPct}%` : `${item.costInflationPct}%`}
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 800, color: item.currentMarginPct < 50 ? '#dc2626' : '#16a34a' }}>
+                        {item.currentMarginPct}%
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 800, color: '#170e5e' }}>
+                        {formatCurrency(item.suggestedPrice, currency)}
+                      </td>
+                      <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                        {isEroded ? (
+                          <span
+                            style={{
+                              background: '#fee2e2',
+                              color: '#b91c1c',
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <AlertTriangleIcon size={12} />
+                            <span>تآكل الهامش</span>
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              background: '#dcfce7',
+                              color: '#15803d',
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <CheckCircleIcon size={12} />
+                            <span>آمن ومربح</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {displayedItems.length === 0 && (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                      لا توجد أطباق متأثرة أو بيانات متوفرة حالياً
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+          <div style={{ fontSize: '12px', color: '#64748b' }}>
+            الرادار يقيس التكلفة الحية من واقع آخر فواتير استلام المخزون وعقود الموردين.
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '7px 20px',
+              borderRadius: '8px',
+              background: '#170e5e',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </StandardDialog>
+  );
+}

@@ -388,6 +388,13 @@ export function updatePosItemModifiers(cart: PosItem[], lineKey: string, modifie
   });
 }
 
+export function updatePosItemSeat(cart: PosItem[], lineKey: string, seatNumber?: number) {
+  return cart.map((item) => {
+    if (item.lineKey !== lineKey) return item;
+    return { ...item, seatNumber: seatNumber ? Number(seatNumber) : undefined };
+  });
+}
+
 export function updatePosItemQtyWithOptions(
   cart: PosItem[],
   lineKey: string,

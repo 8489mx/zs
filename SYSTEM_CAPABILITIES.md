@@ -6831,5 +6831,369 @@
   - `frontend/src/features/pos/components/kds/KdsFilterBar.tsx`
   - `frontend/src/features/pos/components/kds/KdsTicketCard.tsx`
 
+---
+
+## 217. محرك الاستبعاد اللحظي للأصناف النافذة بالمطبخ والكاشير (Fast 86'd Items Engine & KDS Integration)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ شريط الهيدر، شاشة المطبخ `/pos/kds` ➔ زر "أصناف 86"، والـ API `/api/sales/restaurant/86-items`.
+* **الهدف:** تطبيق المعيار العالمي لإدارة المطابخ (86'd Items) بتمكين الشيف والكاشير من وسم أي صنف أو وجبة بنقرة واحدة بأنها "نافذة بالمطبخ"، وحجبها تلقائياً وفورياً عن سلة الكاشير وأجهزة الويتر والمطبخ لتفادي إحراج طاقم الخدمة مع الزبائن، مع دعم الإعادة التلقائية للخدمة بعد انقضاء ساعات الوردية.
+* **المحرك والميزات المنفذة:**
+  1. **الوسم الفوري بزر 86 (1-Click Fast 86):**
+     - تمييز الصنف فورياً بشارة 86 حمراء مشطوبة، وحفظ سبب الاستبعاد (نفاد الكمية بالمطبخ، تلف المواد الخام، عطل بمعدة الطهي).
+     - مؤقت الاستعادة الذاتي (Auto-Restore): إمكانية تحديد إعادة الإتاحة التلقائية بعد 8 ساعات (نهاية الوردية)، 12 ساعة، أو 24 ساعة لصباح اليوم التالي.
+  2. **التكامل المزدوج بين المطبخ ونقطة البيع:**
+     - زر تفاعلي بهيدر شاشة المطبخ KDS وهيدر الكاشير يعرض عداد الأصناف المستبعدة حياً.
+     - نافذة بحث سريعة `Pos86ItemsModal` تمكن الشيف أو الكاشير من استبعاد أو إعادة تفعيل أي صنف بضغطة زر واحدة.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/Pos86ItemsModal.tsx`
+  - `frontend/src/features/pos/components/kds/KdsHeader.tsx`
+  - `frontend/src/features/pos/pages/KitchenDisplayPage.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+
+---
+
+## 218. مجمع الإكراميات وتوزيع حصص الوردية على طاقم الصالة والمطبخ (Tip Pooling & Shift Distribution Engine)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "مجمع الإكراميات" بهيدر الصالة ➔ نافذة `PosTipPoolModal` ➔ والـ API `/api/sales/restaurant/tip-pools`.
+* **الهدف:** توفير محرك محاسبي وإداري عادل لتجميع كافة إكراميات الوردية (نقدية وبطاقات ودفع إلكتروني للطاولات) في وعاء واحد وتوزيعها بدقة متناهية على طاقم الخدمة والمطبخ متفوقاً على أنظمة Toast و Foodics.
+* **المحرك والميزات المنفذة:**
+  1. **نماذج التوزيع المرنة الثلاثة:**
+     - **أوزان الأدوار الوظيفية (Role-Based Points):** توزيع ذكي بنقاط الخدمة (كابتن صالة 1.5x، ويتر 1.2x، باريستا 1.0x، طاقم المطبخ 0.8x، كاشير 0.8x).
+     - **ساعات العمل الفعلية (Hours Worked):** توزيع نسبي بناءً على ساعات عمل كل موظف في الوردية.
+     - **التساوي الكامل (Equal Split):** تقسيم المجموع بالتساوي على الحاضرين.
+  2. **المطابقة المالية الدقيقة (Zero-Loss Rounding):**
+     - خوارزمية توزيع تضمن مطابقة الإجمالي بالمليم مع رصيد المجمع دون أي فوارق تقريب سنتيمية.
+     - اعتماد وتوثيق الصرف بجدول `restaurant_tip_pool_distributions` وربطه بالموظف والتاريخ.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosTipPoolModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+
+---
+
+## 219. خريطة الصالة متعددة الأجنحة وتخصيص الطاولات (Multi-Zone Floor Plan & Dining Sections)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ نافذة خريطة الصالة `PosTablesFloorPlanDialog` ➔ تبويبات أجنحة الصالة.
+* **الهدف:** تقسيم صالة المطعم بمرونة عالية إلى أجنحة ومناطق تشغيلية متعددة (الصالة الرئيسية، التراس الخارجي، قسم العائلات، جناح الـ VIP) لتسهيل خدمة المطاعم الضخمة والمنتجعات.
+* **المحرك والميزات المنفذة:**
+  1. **التبويبات الجغرافية السريعة (Dining Zone Tabs):**
+     - شريط تبويبات علوي مدمج في خريطة الصالة يتيح التبديل اللحظي (0ms) بين أقسام المطعم.
+     - فلترة الطاولات التابعة لكل جناح مع إحصائيات فورية لعدد الطاولات الشاغرة والمشغولة في كل منطقة.
+  2. **هيكلة المناطق بقاعدة البيانات:**
+     - جدول `restaurant_table_zones` لتعريف كود المنطقة، اسمها، سعة مقاعدها الافتراضية، ومصفوفة أرقام الطاولات التابعة لها.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+
+---
+
+## 220. جدول التحضير اليومي للمطبخ المركزي والأصناف نصف المصنعة (Daily Prep Sheet & Central Commissary Engine)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير والمطبخ `/pos` ➔ زر "ورقة التحضير" ➔ نافذة `KitchenDailyPrepSheetModal` ➔ والـ API `/api/sales/restaurant/prep-sheets`.
+* **الهدف:** إدارة عمليات المطبخ التحضيري ومحطة التجهيز الصباحية لسلاسل المطابخ والمطاعم لإنتاج المواد نصف المصنعة (تتبيل اللحوم، تقطيع الخضار، تحضير الصوصات باللتر، تجهيز عجين المخبوزات).
+* **المحرك والميزات المنفذة:**
+  1. **حساب متطلبات التحضير الذاتية (Par Level Engine):**
+     - تحديد الكمية المستهدفة (Par Level) للوردية (صباحية، مسائية، ليلية).
+     - حساب الفارق التلقائي: `المطلوب تحضيره = المستهدف - المتاح الحالي بالثلاجة`.
+  2. **عدادات التحكم المتوافقة مع دستور RTL:**
+     - تعديل الكميات المحضرة بعداد `[+] (الكمية) [-]` المتوافق حرفياً مع دستور الواجهات العربية.
+     - زر اعتماد إتمام التحضير بنقرة واحدة وتحديث حالة الجاهزية التشغيلية للمطبخ.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/KitchenDailyPrepSheetModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+
+---
+
+## 221. كروت الأختام الرقمية وبرنامج ولاء المقاهي والمطاعم (Digital Stamp Loyalty & Punch Cards)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "كرت الأختام" ➔ نافذة `PosCustomerPunchCardModal` ➔ والـ API `/api/sales/restaurant/stamp-cards`.
+* **الهدف:** دعم نموذج الولاء الأكثر شعبية في الكافيهات ومطاعم الوجبات السريعة (اشترِ N أكواب قهوة واحصل على 1 مجاناً) بصيغة رقمية نقية مرتبطة بملف العميل دون بطاقات ورقية مفقودة.
+* **المحرك والميزات المنفذة:**
+  1. **الكرت الرقمي التفاعلي:**
+     - شبكة أختام رسومية دائرية مع علامات تحقق واضحة للأختام المكتسبة ودوائر منقطة للأختام المتبقية.
+     - عرض عدد الكروت المكتملة سابقاً والمكافأة الجاهزة للصرف.
+  2. **الختم السريع وصرف المكافأة:**
+     - زر مباشر في الكاشير (+1 ختم) يضيف الأختام مع احتساب آلي لاكتمال الكرت وصرف المشروب المجاني وإعادة تصفير العداد للكرت الجديد.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosCustomerPunchCardModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+
+---
+
+## 222. رادار تذبذب تكلفة الأطباق وهوامش الربح الحية (Live Plate Cost & Food Inflation Radar)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "رادار التكلفة" ➔ نافذة `PosPlateCostRadarModal` ➔ والـ API `/api/sales/restaurant/plate-cost-radar`.
+* **الهدف:** رصد أثر الارتفاع اللحظي في أسعار المواد الخام والمشتريات على تكلفة كل وجبة وهامش مساهمتها وحماية أرباح المطعم من التآكل الصامت متفوقاً على أداة Toast xtraCHEF.
+* **المحرك والميزات المنفذة:**
+  1. **فك الوصفات والتقييم اللحظي للمكونات (Live Recipe BOM Costing):**
+     - استخراج التكلفة الحية من واقع أسعار خامات المخزون ومقارنتها بالتكلفة المعيارية للطبق.
+     - حساب نسبة التضخم في تكلفة الطبق: `((التكلفة الحية - المعيارية) / المعيارية) * 100`.
+  2. **تنبيهات تآكل الهامش واقتراح السعر المثالي:**
+     - كشف الأطباق التي هبط هامش ربحها عن 50% وتصنيفها فورياً كأطباق حرجة (Alerts).
+     - احتساب السعر البيعي المقترح تلقائياً للحفاظ على الهامش المستهدف للمطاعم (65% هامش ربح): `السعر المقترح = التكلفة الحية ÷ 0.35`.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000217_restaurant_advanced_master_suite.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosPlateCostRadarModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 223. نقل الأصناف الفردية بين الطاولات وفصل الفواتير (Item-Level Table Transfer & Split-Destination Engine)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير وخريطة الصالة `/pos` ➔ نافذة الصالة `PosTablesFloorPlanDialog` ➔ زر "نقل أصناف بين الطاولات" أو زر النقل السريع على كارت الطاولة ➔ نافذة `PosTransferItemModal`.
+* **الهدف:** تمكين الكاشير والويتر من نقل مشروب أو طبق معين من طاولة إلى أخرى (مثلاً ضيف انتقل لطاولة أصدقائه أو طلب تحويل حسابه لطاولة أخرى) دون ترحيل الفاتورة بأكملها ودون إلغاء وإعادة طلب.
+* **المحرك والميزات المنفذة:**
+  1. **التحديد الجزئي للكميات والأصناف:**
+     - إمكانية تحديد كمية محددة من الصنف ونقلها فقط (مثلاً كوب قهوة واحد من أصل 3) مع عداد تحكم `[+] (الكمية) [-]` المتوافق مع دستور RTL.
+  2. **التكامل اللحظي مع مسودة الكاشير وفواتير الصالة المعلقة:**
+     - يتم تحديث السلة النشطة مباشرة إذا كانت الطاولة المصدر أو الهدف مفتوحة في شاشة البيع، مع تحديث المسودات المحفوظة `heldDrafts` في الذاكرة دون الحاجة لإعادة تحميل الشاشة.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/components/pos-workspace/PosTransferItemModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+
+---
+
+## 224. طباعة ملصقات الأكواب والوجبات السريعة الحرارية 50x30 مم (Sticky Cup & Box Label Thermal Printing)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ شريط الأدوات العلوي ➔ زر "ملصقات الأكواب" ➔ محرك `printCupLabelsWindow`.
+* **الهدف:** طباعة استيكرات لاصقة صغيرة بمقاس 50×30 مم تلصق مباشرة على أكواب القهوة، علب البرجر، ووجبات التيك أواي مع تفاصيل التخصيص والملاحظات لضمان عدم حدوث خطأ في تسليم الطلبات في الكافيهات ومطاعم الخدمة السريعة.
+* **المحرك والميزات المنفذة:**
+  1. **التوافق التام مع الطابعات الحرارية المخصصة (Thermal Label Printers):**
+     - صفحة CSS الطباعة مضبوطة بدقة `50mm x 30mm` مع هوامش 0mm و `@page { size: 50mm 30mm; margin: 0; }`.
+     - دعم كسر الصفحات التلقائي (`page-break-after: always`) لطباعة ملصق مستقل لكل قطعة (مثلاً لو الطلب يحتوي 3 أكواب يتم طباعة 3 ملصقات `1/3`, `2/3`, `3/3`).
+  2. **بيانات الملصق الاحترافية:**
+     - اسم الصنف، الملاحظات الخاصة (سكر زيادة، حليب لوز، بدون بصل)، رقم الطلب، الوقت، ورقم القطعة من الإجمالي.
+* **الملفات المنفذة:**
+  - `frontend/src/lib/pos-printing/cup-label.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+
+---
+
+## 225. وضع كشك الخدمة الذاتية الرأسي التفاعلي للعملاء (Self-Ordering Kiosk Mode - Portrait Touch UX)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** مسارات الراوتر المباشرة `/pos/kiosk` و `/kiosk` ➔ صفحة `SelfOrderingKioskPage`.
+* **الهدف:** تقديم تجربة طلب ذاتي فاخرة وسريعة للعملاء داخل المطعم على الشاشات اللمسية الرأسية الكبيرة (Touch Kiosks) أو الأجهزة اللوحية دون الحاجة للوقوف في طابور الكاشير.
+* **المحرك والميزات المنفذة:**
+  1. **تصميم رأسي مخصص للمس (Portrait Touch Interface):**
+     - شاشة بداية ترحيبية تتيح للعميل اختيار نوع الطلب ("تناول داخل المطعم" أو "سفري / استلام خارجي") بنقرة واحدة بحجم عريض.
+     - كتالوج أصناف بصري جذاب مع صور وأسعار وتصنيفات سريعة قابلة للتمرير باللمس.
+  2. **حقيبة المشتريات والدفع الذاتي:**
+     - نافذة استعراض الطلب مع عدادات سريعة مطابقة لدستور RTL `[+] (الكمية) [-]`.
+     - اختيار وسيلة الدفع (بطاقة بنكية / جهاز الدفع في الكشك أو الدفع عند الاستلام).
+     - شاشة احتفالية بنجاح الطلب ورقم استدعاء بارز مع مؤقت عد تنازلي يعيد الكشك تلقائياً لشاشة البداية لاستقبال العميل التالي.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/pages/SelfOrderingKioskPage.tsx`
+  - `frontend/src/app/router/root-router.tsx`
+
+---
+
+## 226. محرك ضيافة الإدارة والخصومات الرسمية والتوثيق المحاسبي (Manager Comps & House Accounts Engine)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "ضيافة الإدارة" ➔ نافذة `PosManagerCompModal` ➔ والـ API `/api/sales/restaurant/manager-comps`.
+* **الهدف:** تنظيم عمليات ضيافة الملاك والإدارة (Manager Comps)، وجبات الموظفين (Staff Meals)، تذوق الشيف ومراقبة الجودة، وحل شكاوى العملاء (Customer Recovery) بتوثيق محاسبي رسمي ورقابة أمنية برمز PIN لمنع استغلال الخصومات من قبل الكاشير.
+* **المحرك والميزات المنفذة:**
+  1. **التحقق الأمني برمز المدير (Manager PIN Auth):**
+     - لا يمكن تطبيق الضيافة أو الخصم الإداري إلا بإدخال رمز PIN معتمد للمدير.
+  2. **التصنيف المحاسبي للضيافة والخصم:**
+     - 4 أنواع قانونية للضيافة: `vip_guest` (ضيافة إدارة)، `staff_meal` (وجبة طاقم)، `quality_test` (تذوق وضبط جودة)، و `customer_recovery` (إرضاء عميل).
+     - دعم الضيافة بنسبة 100% لكامل الطلب أو بمبلغ جزئي محدد مع كتابة سبب الزيارة أو الملاحظة.
+  3. **سجل تدقيق رقابي ومحاسبي (Audit Ledger):**
+     - جدول `restaurant_manager_comps` بقاعدة البيانات لحفظ كل عملية مع معرف الطلب، اسم المدير، نوع الضيافة، والمبلغ المحسوم لترحيلها بدقة لحساب المصروفات المناسب في شجرة الحسابات.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000218_restaurant_enterprise_frontiers.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosManagerCompModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `frontend/src/features/pos/components/PosWorkspace.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 227. رادار تقييم العميل اللحظي عند الطاولة وتنبيه الإنقاذ الفوري (Table QR Post-Payment Rating & Rescue Alert)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة فاتورة الطاولة الرقمية للعميل `TableBillModal` ➔ والـ API `/api/sales/restaurant/table-ratings` ➔ شاشة خريطة صالة الكاشير `PosTablesFloorPlanDialog`.
+* **الهدف:** تمكين العميل الجالس على الطاولة من تقييم تجربته فورياً (1-5 نجوم)، مع إطلاق جرس إنذار فوري (Service Rescue Alert) على شاشة الكاشير والمدير إذا كان التقييم سلبياً (نجمتان أو نجمة واحدة) قبل أن يغادر العميل المطعم أو يكتب مراجعة سلبية على جوجل.
+* **المحرك والميزات المنفذة:**
+  1. **واجهة التقييم التفاعلية بالنجوم للعميل:**
+     - واجهة 5 نجوم لمسية في فاتورة الهاتف المحمول؛ وفي حال اختيار تقييم منخفض (<= 2) تظهر قائمة فورية بالأسباب المحتملة (تأخر الطلب، الطعام بارد، معاملة غير لائقة، نظافة المكان) مع حقل للملاحظات.
+  2. **التنبيه التشغيلي الفوري لإنقاذ الموقف (Instant Floor Plan Rescue Banner):**
+     - تسجيل التقييم في `restaurant_table_ratings`؛ وإذا كان التقييم <= 2 يتم آلياً إدراج نداء خدمة طارئ من نوع `rescue` في جدول نداءات الطاولات.
+     - يظهر شريط تنبيه أحمر نابض بارز فورياً في نافذة خريطة الصالة عند الكاشير يحمل رقم الطاولة، التقييم، والسبب، مع زر "تم التدخل وحل المشكلة" لإغلاق التنبيه فورياً بعد إرضاء العميل.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000218_restaurant_enterprise_frontiers.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/storefront/components/TableBillModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 228. توقيت الطهي الذكي وتنسيق خروج أطباق الطلب معاً (Kitchen Pacing & Staggered Prep Scheduling)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة شاشات المطبخ الرقمية KDS `/pos/kds` ➔ بطاقة التذكرة `KdsTicketCard` ➔ والـ API الخاص بـ KDS.
+* **الهدف:** حل المعضلة الكبرى في المطابخ الساخنة؛ عندما يطلب العميل ستيك يستغرق 20 دقيقة وسلطة تستغرق 5 دقائق، يجب ألا تُحضَّر السلطة في الدقيقة 5 وتبرد وتذبل في انتظار الستيك، بل يجب تأخير إطلاق تحضير السلطة حتى الدقيقة 15 لتخرج كافة أصناف التذكرة طازجة وساخنة معاً في نفس اللحظة (Coursetimed Pacing).
+* **المحرك والميزات المنفذة:**
+  1. **حساب التوقيت المتدرج للأصناف (Staggered Prep Calculation):**
+     - إضافة حقل `prep_time_minutes` لكل صنف في جدول المنتجات وقراءته في تذاكر KDS.
+     - استخراج أطول صنف يستغرق وقتاً في التذكرة (`maxTicketPrep`).
+     - حساب زمن التأخير المطلوب لكل صنف: `delay = maxTicketPrep - itemPrepTime`.
+  2. **المؤشرات البصرية الواضحة لطاقم الطهي:**
+     - الصنف الذي حان وقت طهيه يظهر ببادج خضراء: `ابدأ الطهي الآن (X د)`.
+     - الصنف الذي يجب تأخيره يظهر ببادج صفراء مميزة: `انتظار Y د (الطهي X د)`.
+     - يضمن هذا التزامن التام لجميع الأطباق ومطابقة كبرى أنظمة المطابخ العالمية (Toast Kitchen Pacing).
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000218_restaurant_enterprise_frontiers.ts`
+  - `frontend/src/features/pos/api/kds.api.ts`
+  - `frontend/src/features/pos/components/kds/KdsTicketCard.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`
+
+---
+
+## 229. طلب المقاعد الفردية والتقسيم التلقائي للفاتورة حسب المقعد (Seat-Level Ordering & 1-Click Split by Seat)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير سلة الطلبات `PosCartItemsList` ➔ نافذة تقسيم الفاتورة `PosSplitBillModal` ➔ تذاكر المطبخ `KdsTicketCard`.
+* **الهدف:** تمكين الكاشير والويتر من تعيين كل صنف يُطلب على الطاولة لمقعد محدد من الجالسين (`مقعد 1`, `مقعد 2`, `مقعد 3`...)، مما يتيح تقديم كل طبق أمام صاحبه بالضبط بدون إحراج، وتوفير زر ذكي بنقرة واحدة يقسم الفاتورة كاملة تلقائياً بحسب المقاعد دون أي حسابات يدوية.
+* **المحرك والميزات المنفذة:**
+  1. **تخصيص المقاعد في سلة الكاشير (Interactive Seat Picker):**
+     - كل صنف في سلة الكاشير يمتلك زراً تفاعلياً أنيقاً يعرض رقم المقعد، والنقر عليه يتنقل فورياً بين المقاعد (`مقعد 1 ➔ مقعد 2 ➔ مقعد 3...`).
+  2. **التقسيم الفوري بضغطة زر واحدة (1-Click Seat Split Engine):**
+     - في نافذة تقسيم الفاتورة `PosSplitBillModal`، تم تزويد الكاشير بزر **"توزيع فوري حسب المقاعد (Seat Split)"** يقوم بتجميع أصناف كل مقعد في شيك منفصل محسوب بدقة مع الضريبة والخدمة، مع ضمان تصفير أي فروق بنسات (Zero-Penny Invariant).
+  3. **إبراز المقعد في شاشة المطبخ KDS:**
+     - ظهور شارة المقعد `[مقعد X]` بجانب كل صنف على تذاكر KDS ليعرف المطبخ وسيرفس الصالة توزيع الأطباق فور خروجها.
+* **الملفات المنفذة:**
+  - `frontend/src/features/pos/types/pos.types.ts`
+  - `frontend/src/features/pos/lib/pos.domain.ts`
+  - `frontend/src/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspaceActions.ts`
+  - `frontend/src/features/pos/components/pos-cart-panel/PosCartItemsList.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosSplitBillModal.tsx`
+  - `frontend/src/features/pos/components/kds/KdsTicketCard.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 25)
+
+---
+
+## 230. محرك الاقتراح والترقية الذكية وزيادة متوسط الفاتورة (Smart Upselling & Cross-Sell Engine)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "عروض ذكية" ➔ نافذة `PosSmartUpsellModal` ➔ كشك الخدمة الذاتية `SelfOrderingKioskPage` ➔ والـ API `/api/sales/restaurant/upsell`.
+* **الهدف:** رفع متوسط قيمة الشيك وفاتورة العميل (Check Average Lift) من خلال قواعد ذكية تقترح أوتوماتيكياً إضافات مكملة أو ترقيات جذابة بخصم مشجع عند طلب أصناف معينة (مثل اقتراح بطاطس بالجبنة عند طلب البرجر، أو دونات بخصم عند طلب القهوة).
+* **المحرك والميزات المنفذة:**
+  1. **محرك القواعد الديناميكي بقاعدة البيانات (`restaurant_upsell_rules`):**
+     - دعم ربط مصفوفة أصناف مشغلة (`trigger_product_ids`) بصنف مقترح (`recommended_product_id`) مع نسبة خصم محددة ونصوص تسويقية باللغة العربية.
+  2. **الدمج في كشك الخدمة الذاتية (Self-Ordering Kiosk):**
+     - عند نقر العميل على "إتمام الطلب" في الكشك، يتم فحص السلة تلقائياً؛ فإذا تطابقت القواعد، تظهر نافذة عروض جذابة تعرض الصنف المقترح مع بيان السعر الأصلي والسعر المخفض وزر "إضافة للطلب" بنقرة واحدة قبل التوجه للدفع.
+  3. **الدمج في شاشة كاشير المطاعم POS:**
+     - إتاحة زر "عروض ذكية" في شريط الكاشير عند وجود أصناف بالسلة ليقوم الكاشير بعرض الاقتراح ومساعدة العميل على زيادة وجبته بأسعار مميزة.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000219_restaurant_next_level_frontiers.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosSmartUpsellModal.tsx`
+  - `frontend/src/features/pos/pages/SelfOrderingKioskPage.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 26)
+
+---
+
+## 231. طابور طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru Lane & Speed of Service Timer - SOS)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "طلبات السيارات" ➔ نافذة `PosDriveThruModal` ➔ والـ API `/api/sales/restaurant/drive-thru`.
+* **الهدف:** إدارة مسار طلبات السيارات (Drive-Thru Lane) بأعلى كفاءة تشغيلية مع مراقبة حية لسرعة الخدمة (Speed of Service - SOS) لكل مركبة لضمان عدم حدوث اختناقات في المسار ومطابقة المعايير العالمية لسلاسل الفاست فود العالمية.
+* **المحرك والميزات المنفذة:**
+  1. **تسجيل بيانات المركبة ومسار الطلب:**
+     - تسجيل لوحة السيارة، موديل المركبة ولونها، ومحطة الخدمة (`order_taken` عند الميكروفون ➔ `at_window` عند شباك الاستلام ➔ `completed` عند التسليم).
+  2. **عداد سرعة الخدمة اللحظي (Live SOS Stopwatch):**
+     - احتساب الثواني المنقضية لكل مركبة وتحديث العداد في الواجهة كل ثانية مع تلوين ذكي لحالة المؤشر:
+       - أقل من 90 ثانية: أخضر (سرعة ممتازة).
+       - من 90 إلى 180 ثانية: كهرماني (تنبيه بالسرعة).
+       - أكثر من 180 ثانية: أحمر تحذيري (اختناق في المسار).
+  3. **مؤشرات أداء المسار المجمعة (Lane KPIs):**
+     - بطاقات علوية تعرض إجمالي المركبات في المسار، المركبات عند الشباك، ومتوسط سرعة الخدمة بالثواني.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000219_restaurant_next_level_frontiers.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosDriveThruModal.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 27)
+
+---
+
+## 232. ملصقات صلاحية وسلامة الأغذية المحضرة بالمطبخ (Kitchen Day-Dots & HACCP Prep Expiry Labels 50x30mm)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الكاشير `/pos` ➔ زر "ورقة التحضير" ➔ نافذة `KitchenDailyPrepSheetModal` ➔ زر "ملصق (50x30)" ➔ محرك الطباعة الحرارية `prep-day-dot.ts`.
+* **الهدف:** الامتثال الصارم لاشتراطات سلامة الغذاء ومواصفات الهيئة العامة للغذاء والدواء ومعايير HACCP الدولية، من خلال طباعة ملصقات لاصقة حرارية قياسية (50x30 مم) لكل دفعة تحضير في المطبخ توضح اسم الصنف، تاريخ وساعة التحضير، تاريخ وساعة انتهاء الصلاحية بدقة الساعات، درجة حرارة الحفظ، واسم الشيف المسؤول.
+* **المحرك والميزات المنفذة:**
+  1. **حساب مدة الصلاحية التلقائي بالساعات (`shelf_life_hours`):**
+     - إضافة حقول الصلاحية ودرجة الحفظ لجدول خامات التحضير `restaurant_prep_sheet_items`.
+     - حساب تلقائي لوقت انتهاء الصلاحية بناءً على تاريخ وساعة الإنتاج ومدة الصلاحية بالساعات المحددة لكل صنف.
+  2. **نظام اليوم المميز (Kitchen Day-Dots Standard):**
+     - تخصيص لون ورمز اليوم باللغة العربية (الأحد، الإثنين، الثلاثاء، الأربعاء، الخميس، الجمعة، السبت) لسهولة التمييز البصري الفوري داخل الثلاجات ومستودعات التبريد.
+  3. **طباعة حرارية مباشرة بقياس 50x30 مم:**
+     - محرك طباعة حراري مخصص بدون أي إيموجيز يطبع ملصقاً عالي التباين بحجم 50×30 مم يحتوي على باركود الدفعة ومعلومات الصلاحية ودرجة الحفظ بدقة مئوية.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000219_restaurant_next_level_frontiers.ts`
+  - `backend/src/database/database.types.ts`
+  - `frontend/src/lib/pos-printing/prep-day-dot.ts`
+  - `frontend/src/features/pos/components/pos-workspace/KitchenDailyPrepSheetModal.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 28)
+
+---
+
+## 233. فرض الحد الأدنى لإنفاق الطاولات ومناطق الصالة (Table Zone Minimum Spend Enforcer)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة خريطة الصالة `PosTablesFloorPlanDialog` ➔ شريط الكاشير `PosWorkspaceHeader` ➔ والـ API `/api/sales/restaurant/minimum-spend/calculate`.
+* **الهدف:** تمكين المطاعم والكافيهات الفاخرة وصالات كبار الشخصيات (VIP Rooms / Terrace Lounges) من فرض حد أدنى للإنفاق على الطاولة (Minimum Spend / Minimum Charge)، مع احتساب آلي لأي عجز كرسوم تكملة الحد الأدنى إذا كان إجمالي طلبات الطاولة أقل من الحد المشروط للمنطقة.
+* **المحرك والميزات المنفذة:**
+  1. **تعريف الحد الأدنى لكل منطقة في الصالة:**
+     - إضافة حقل `minimum_spend` في جدول مناطق الصالة `restaurant_table_zones`، وضبطه بسهولة لكل منطقة (مثل: صالة VIP: 500 ر.س، التراس الخارجي: 200 ر.س، الصالة الرئيسية: 0 ر.س).
+  2. **المؤشر اللحظي في شريط الكاشير:**
+     - عند فتح أي طاولة في منطقة محدد لها حد أدنى، يظهر شريط ذكي بجوار عدد الضيوف يوضح الحد الأدنى ومبلغ العجز المتبقي باللون الأحمر حتى يتجاوزه الطلب فيتحول للأخضر.
+  3. **محرك احتساب عجز الإنفاق (Deficit Surcharge):**
+     - نقطة نهاية برمجية `/minimum-spend/calculate` تحسب العجز رياضياً: `deficit = Math.max(0, minimum_spend - current_total)` وإضافته كبند تكميلي عند المحاسبة لضمان الامتثال التام لسياسة الصالة المالية.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000219_restaurant_next_level_frontiers.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/sales/services/restaurant-advanced-fnb.service.ts`
+  - `backend/src/modules/sales/controllers/restaurant-advanced-fnb.controller.ts`
+  - `frontend/src/features/pos/api/restaurant-advanced-fnb.api.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosTablesFloorPlanDialog.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 29)
+
+
+
+
 
 

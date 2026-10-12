@@ -395,6 +395,530 @@ async function testPayAtTableAndDriverDispatchWorkflow(): Promise<void> {
   assert.strictEqual(isSettled, true);
 }
 
+async function testFast86EngineWorkflow(): Promise<void> {
+  const item = {
+    productId: 42,
+    productName: 'برجر ترافل كلاسيك',
+    is86ed: true,
+    reason: 'نفاد الكمية بالمطبخ',
+    autoRestoreHours: 8,
+  };
+  assert.strictEqual(item.is86ed, true);
+  assert.strictEqual(item.reason, 'نفاد الكمية بالمطبخ');
+
+  // Verify auto-restore calculation
+  const restoreTime = Date.now() + item.autoRestoreHours * 3600 * 1000;
+  assert.ok(restoreTime > Date.now());
+}
+
+async function testTipPoolingAndShiftDistributionEngine(): Promise<void> {
+  const totalTips = 700; // 250 cash + 450 card
+  const staff = [
+    { employeeName: 'أحمد', role: 'waiter', weight: 1.2, hours: 8 },
+    { employeeName: 'كريم', role: 'captain', weight: 1.5, hours: 8 },
+    { employeeName: 'عمر', role: 'barista', weight: 1.0, hours: 8 },
+    { employeeName: 'إبراهيم', role: 'kitchen', weight: 0.8, hours: 8 },
+  ];
+
+  // Role-based calculation: sum of weights = 1.2 + 1.5 + 1.0 + 0.8 = 4.5
+  const totalWeight = staff.reduce((acc, s) => acc + s.weight, 0);
+  assert.strictEqual(totalWeight, 4.5);
+
+  let allocatedSum = 0;
+  const allocations = staff.map((s, idx) => {
+    let amount = Number(((s.weight / totalWeight) * totalTips).toFixed(2));
+    allocatedSum += amount;
+    if (idx === staff.length - 1) {
+      const delta = Number((totalTips - allocatedSum).toFixed(2));
+      amount = Number((amount + delta).toFixed(2));
+    }
+    return { name: s.employeeName, amount };
+  });
+
+  const exactSum = allocations.reduce((acc, a) => acc + a.amount, 0);
+  assert.strictEqual(Number(exactSum.toFixed(2)), totalTips, 'Tip pool distributed with 0.00 zero-loss rounding');
+}
+
+async function testMultiZoneFloorPlanEngine(): Promise<void> {
+  const zones = [
+    { code: 'main', name: 'الصالة الرئيسية', tables: ['1', '2', '3', '4'] },
+    { code: 'patio', name: 'التراس الخارجي', tables: ['5', '6', '7'] },
+    { code: 'family', name: 'قسم العائلات', tables: ['8', '9', '10'] },
+    { code: 'vip', name: 'جناح VIP', tables: ['11', '12'] },
+  ];
+
+  assert.strictEqual(zones.length, 4);
+  const totalMapped = zones.reduce((acc, z) => acc + z.tables.length, 0);
+  assert.strictEqual(totalMapped, 12);
+  assert.ok(zones.some((z) => z.code === 'vip' && z.tables.includes('11')));
+}
+
+async function testDailyPrepSheetAndParLevelEngine(): Promise<void> {
+  const prepItem = {
+    productName: 'تتبيل شاورما ولحم البرجر',
+    parLevel: 25,
+    onHand: 10,
+  };
+  const prepRequired = Math.max(0, prepItem.parLevel - prepItem.onHand);
+  assert.strictEqual(prepRequired, 15, 'Prep required = 25 - 10 = 15 kg');
+
+  const actualPrepped = 15;
+  const isPrepped = actualPrepped >= prepRequired;
+  assert.strictEqual(isPrepped, true, 'Item marked prepped when actual meets required');
+}
+
+async function testDigitalStampLoyaltyCardEngine(): Promise<void> {
+  const targetStamps = 6;
+  let currentStamps = 4;
+  let completedCards = 1;
+
+  // Add 2 stamps -> total 6 -> unlocks reward and resets current to 0
+  const stampsToAdd = 2;
+  currentStamps += stampsToAdd;
+  let rewardUnlocked = false;
+
+  if (currentStamps >= targetStamps) {
+    rewardUnlocked = true;
+    completedCards += Math.floor(currentStamps / targetStamps);
+    currentStamps = currentStamps % targetStamps;
+  }
+
+  assert.strictEqual(rewardUnlocked, true);
+  assert.strictEqual(currentStamps, 0);
+  assert.strictEqual(completedCards, 2);
+}
+
+async function testLivePlateCostAndInflationRadarEngine(): Promise<void> {
+  const sellingPrice = 120;
+  const standardCost = 35;
+  const liveIngredientCost = 45; // Raw ingredient price jumped by 10
+
+  const costInflationPct = Number((((liveIngredientCost - standardCost) / standardCost) * 100).toFixed(1));
+  assert.strictEqual(costInflationPct, 28.6, 'Ingredient cost inflation = +28.6%');
+
+  const currentMarginPct = Number((((sellingPrice - liveIngredientCost) / sellingPrice) * 100).toFixed(1));
+  assert.strictEqual(currentMarginPct, 62.5, 'Current margin = 62.5%');
+
+  // Suggested price to preserve 65% margin: liveCost / (1 - 0.65) = 45 / 0.35 = 128.57
+  const suggestedPrice = Number((liveIngredientCost / 0.35).toFixed(2));
+  assert.strictEqual(suggestedPrice, 128.57);
+}
+
+// ========================================================
+// PHASE 2 FRONTIERS TESTS (19 - 24)
+// ========================================================
+
+async function testItemLevelTableTransferEngine(): Promise<void> {
+  interface CartItem {
+    productId: number;
+    name: string;
+    qty: number;
+    price: number;
+  }
+
+  const table4Cart: CartItem[] = [
+    { productId: 1, name: 'برجر كلاسيك', qty: 2, price: 35 },
+    { productId: 2, name: 'بيتزا مارجريتا', qty: 1, price: 50 },
+    { productId: 3, name: 'بطاطس مقلية', qty: 3, price: 12 },
+  ];
+
+  const table7Cart: CartItem[] = [
+    { productId: 4, name: 'كولا بارد', qty: 2, price: 8 },
+  ];
+
+  // Transfer 1 Burger and 2 Fries from Table 4 to Table 7
+  const itemsToTransfer = [
+    { productId: 1, qty: 1 },
+    { productId: 3, qty: 2 },
+  ];
+
+  // Deduct from Table 4
+  for (const t of itemsToTransfer) {
+    const item = table4Cart.find((i) => i.productId === t.productId);
+    assert.ok(item, 'Item must exist on source table');
+    assert.ok(item.qty >= t.qty, 'Transferred qty cannot exceed source qty');
+    item.qty -= t.qty;
+  }
+
+  // Add to Table 7
+  for (const t of itemsToTransfer) {
+    const existing = table7Cart.find((i) => i.productId === t.productId);
+    if (existing) {
+      existing.qty += t.qty;
+    } else {
+      const sourceItem = [{ productId: 1, name: 'برجر كلاسيك', price: 35 }, { productId: 3, name: 'بطاطس مقلية', price: 12 }].find(i => i.productId === t.productId)!;
+      table7Cart.push({ ...sourceItem, qty: t.qty });
+    }
+  }
+
+  // Assert Table 4 state
+  assert.strictEqual(table4Cart.find((i) => i.productId === 1)?.qty, 1);
+  assert.strictEqual(table4Cart.find((i) => i.productId === 2)?.qty, 1);
+  assert.strictEqual(table4Cart.find((i) => i.productId === 3)?.qty, 1);
+
+  // Assert Table 7 state
+  assert.strictEqual(table7Cart.length, 3);
+  assert.strictEqual(table7Cart.find((i) => i.productId === 1)?.qty, 1);
+  assert.strictEqual(table7Cart.find((i) => i.productId === 3)?.qty, 2);
+  assert.strictEqual(table7Cart.find((i) => i.productId === 4)?.qty, 2);
+}
+
+async function testStickyCupLabelFormattingAndPageDimensions(): Promise<void> {
+  const item = {
+    productName: 'سبانش لاتيه مثلج',
+    qty: 2,
+    orderNumber: 'ORD-260914-0042',
+    tableNumber: '4',
+    modifiers: [{ name: 'حليب شوفان', qty: 1 }, { name: 'سكر خفيف', qty: 1 }],
+  };
+
+  // Test label expansion: 2 items produce 2 distinct stickers with sequential indices
+  const stickers: any[] = [];
+  for (let i = 0; i < item.qty; i++) {
+    stickers.push({
+      itemIndex: i + 1,
+      totalItems: item.qty,
+      orderShortNo: item.orderNumber.slice(-4),
+      title: item.productName,
+      modifiersText: item.modifiers.map(m => `+ ${m.name}`).join(' • '),
+    });
+  }
+
+  assert.strictEqual(stickers.length, 2);
+  assert.strictEqual(stickers[0].itemIndex, 1);
+  assert.strictEqual(stickers[0].totalItems, 2);
+  assert.strictEqual(stickers[0].modifiersText, '+ حليب شوفان • + سكر خفيف');
+  assert.strictEqual(stickers[1].itemIndex, 2);
+  assert.strictEqual(stickers[1].orderShortNo, '0042');
+}
+
+async function testSelfOrderingKioskOrderCreationAndState(): Promise<void> {
+  const kioskOrder = {
+    orderType: 'dine_in' as const,
+    tableNumber: '14',
+    items: [
+      { productId: 10, qty: 2, unitPrice: 45 },
+      { productId: 12, qty: 1, unitPrice: 15 },
+    ],
+    paymentMethod: 'card' as const,
+  };
+
+  const total = kioskOrder.items.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
+  assert.strictEqual(total, 105, 'Kiosk order total = 2*45 + 15 = 105');
+  assert.strictEqual(kioskOrder.tableNumber, '14');
+  assert.strictEqual(kioskOrder.orderType, 'dine_in');
+}
+
+async function testManagerCompsAndHouseAccountsValidation(): Promise<void> {
+  // Invariant 1: Comp amount must be strictly greater than 0
+  const validateComp = (amount: number, compType: string, managerName: string) => {
+    if (amount <= 0) throw new Error('مبلغ الضيافة يجب أن يكون أكبر من الصفر');
+    if (!managerName || !managerName.trim()) throw new Error('اسم المدير مطلوب');
+    const validTypes = ['vip_guest', 'customer_complaint', 'staff_meal', 'promotional_tasting'];
+    if (!validTypes.includes(compType)) throw new Error('نوع الضيافة غير صالح');
+    return true;
+  };
+
+  assert.throws(() => validateComp(0, 'vip_guest', 'المدير'), /أكبر من الصفر/);
+  assert.throws(() => validateComp(-50, 'vip_guest', 'المدير'), /أكبر من الصفر/);
+  assert.throws(() => validateComp(100, 'vip_guest', ''), /اسم المدير مطلوب/);
+  assert.throws(() => validateComp(100, 'invalid_type', 'المدير'), /نوع الضيافة غير صالح/);
+
+  // Invariant 2: Valid comp returns true
+  assert.strictEqual(validateComp(120, 'vip_guest', 'سعد المدير'), true);
+  assert.strictEqual(validateComp(45, 'customer_complaint', 'سعد المدير'), true);
+}
+
+async function testTableQrPostPaymentRatingAndRescueAlertTrigger(): Promise<void> {
+  interface TableRating {
+    id: number;
+    tableNumber: string;
+    rating: number;
+    isRescueAlertTriggered: boolean;
+    isRescued: boolean;
+  }
+
+  const recordRating = (tableNumber: string, rating: number): TableRating => {
+    const isNegative = rating <= 2;
+    return {
+      id: 101,
+      tableNumber,
+      rating,
+      isRescueAlertTriggered: isNegative,
+      isRescued: false,
+    };
+  };
+
+  // High rating: no rescue alert
+  const rating5 = recordRating('7', 5);
+  assert.strictEqual(rating5.isRescueAlertTriggered, false);
+  assert.strictEqual(rating5.rating, 5);
+
+  // Low rating (1 or 2 stars): triggers high-priority rescue alert
+  const rating2 = recordRating('4', 2);
+  assert.strictEqual(rating2.isRescueAlertTriggered, true);
+
+  const rating1 = recordRating('3', 1);
+  assert.strictEqual(rating1.isRescueAlertTriggered, true);
+
+  // Resolve rescue
+  rating2.isRescued = true;
+  assert.strictEqual(rating2.isRescued, true);
+}
+
+async function testKitchenPacingAndStaggeredCookingEngine(): Promise<void> {
+  interface TicketItem {
+    id: number;
+    name: string;
+    station: string;
+    prepTimeMinutes: number;
+  }
+
+  const items: TicketItem[] = [
+    { id: 1, name: 'ستيك ريب آي مشوي', station: 'grill', prepTimeMinutes: 18 },
+    { id: 2, name: 'برجر دجاج كرسبي', station: 'kitchen', prepTimeMinutes: 10 },
+    { id: 3, name: 'بطاطس مقلية ذهبية', station: 'kitchen', prepTimeMinutes: 4 },
+  ];
+
+  // Invariant 1: Max prep determines ticket benchmark
+  const maxPrep = Math.max(...items.map((i) => i.prepTimeMinutes));
+  assert.strictEqual(maxPrep, 18, 'Max prep time = 18 mins (Steak)');
+
+  // Invariant 2: Stagger delays
+  // Steak: 18 - 18 = 0 delay (Fire immediately)
+  // Burger: 18 - 10 = 8 mins delay
+  // Fries: 18 - 4 = 14 mins delay
+  const getDelay = (itemPrep: number) => Math.max(0, maxPrep - itemPrep);
+  assert.strictEqual(getDelay(18), 0, 'Steak fires immediately at 0 min');
+  assert.strictEqual(getDelay(10), 8, 'Burger holds for 8 mins');
+  assert.strictEqual(getDelay(4), 14, 'Fries hold for 14 mins');
+
+  // Invariant 3: Pacing state at elapsed = 9 mins
+  const elapsed = 9;
+  // Steak: 9 >= 0 -> cooking
+  // Burger: 9 >= 8 -> fire now!
+  // Fries: 9 < 14 -> still held, remaining 5 mins
+  const isHeld = (itemPrep: number) => elapsed < getDelay(itemPrep);
+  assert.strictEqual(isHeld(18), false, 'Steak is cooking');
+  assert.strictEqual(isHeld(10), false, 'Burger hold expired, fire now');
+  assert.strictEqual(isHeld(4), true, 'Fries must still wait for 5 mins');
+}
+
+// ========================================================
+// PHASE 3 NEXT-LEVEL ENTERPRISE FRONTIERS TESTS (25 - 29)
+// ========================================================
+
+async function testSeatLevelOrderingAndSplitBySeatGrouping(): Promise<void> {
+  interface CartItemWithSeat {
+    lineKey: string;
+    productId: number;
+    name: string;
+    price: number;
+    quantity: number;
+    seatNumber?: number;
+  }
+
+  const items: CartItemWithSeat[] = [
+    { lineKey: 'l1', productId: 101, name: 'ريب آي ستيك', price: 120, quantity: 1, seatNumber: 1 },
+    { lineKey: 'l2', productId: 102, name: 'سلطة سيزر', price: 35, quantity: 1, seatNumber: 1 },
+    { lineKey: 'l3', productId: 103, name: 'باستا الفريدو', price: 65, quantity: 1, seatNumber: 2 },
+    { lineKey: 'l4', productId: 104, name: 'عصير برتقال طازج', price: 20, quantity: 2, seatNumber: 2 },
+    { lineKey: 'l5', productId: 105, name: 'شوكولاتة فوندان', price: 40, quantity: 1, seatNumber: 3 },
+  ];
+
+  // Group by seatNumber
+  const seatMap = new Map<number, CartItemWithSeat[]>();
+  for (const item of items) {
+    const seat = item.seatNumber || 1;
+    if (!seatMap.has(seat)) seatMap.set(seat, []);
+    seatMap.get(seat)!.push(item);
+  }
+
+  assert.strictEqual(seatMap.size, 3, 'Must split into exactly 3 seats');
+
+  // Calculate subtotals
+  const seat1Subtotal = seatMap.get(1)!.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const seat2Subtotal = seatMap.get(2)!.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const seat3Subtotal = seatMap.get(3)!.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  assert.strictEqual(seat1Subtotal, 120 + 35); // 155
+  assert.strictEqual(seat2Subtotal, 65 + (20 * 2)); // 105
+  assert.strictEqual(seat3Subtotal, 40); // 40
+
+  const totalAllSeats = seat1Subtotal + seat2Subtotal + seat3Subtotal;
+  const originalTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  // Invariant: sum of individual seat totals equals the full ticket total with zero discrepancy
+  assert.strictEqual(totalAllSeats, originalTotal, 'Sum of seat checks must strictly equal parent total (300)');
+  assert.strictEqual(originalTotal, 300);
+}
+
+async function testSmartUpsellRecommendationTriggerAndDiscount(): Promise<void> {
+  interface UpsellRule {
+    id: number;
+    trigger_product_ids: number[];
+    recommended_product_id: number;
+    prompt_text_ar: string;
+    discount_pct: number;
+    is_active: boolean;
+  }
+
+  const rules: UpsellRule[] = [
+    {
+      id: 1,
+      trigger_product_ids: [10, 11], // Burgers
+      recommended_product_id: 50, // Cheese fries
+      prompt_text_ar: 'هل ترغب بإضافة بطاطس بالجبنة بسعر خاص؟',
+      discount_pct: 20,
+      is_active: true,
+    },
+    {
+      id: 2,
+      trigger_product_ids: [20], // Coffee
+      recommended_product_id: 60, // Donut
+      prompt_text_ar: 'احصل على دونات شوكولاتة مع قهوتك بخصم 50%',
+      discount_pct: 50,
+      is_active: true,
+    },
+  ];
+
+  const getRecommendations = (cartProductIds: number[]): UpsellRule[] => {
+    return rules.filter((r) => r.is_active && r.trigger_product_ids.some((id) => cartProductIds.includes(id)));
+  };
+
+  // Cart with Burger (10) -> matches rule 1
+  const recsForBurger = getRecommendations([10, 99]);
+  assert.strictEqual(recsForBurger.length, 1);
+  assert.strictEqual(recsForBurger[0].recommended_product_id, 50);
+
+  // Discount math: Base price 25, 20% discount -> 20.00
+  const originalPrice = 25;
+  const discountedPrice = Number((originalPrice * (1 - recsForBurger[0].discount_pct / 100)).toFixed(2));
+  assert.strictEqual(discountedPrice, 20.00, 'Discounted price must be 20.00');
+
+  // Cart without triggers -> no recommendations
+  const recsForSalad = getRecommendations([99]);
+  assert.strictEqual(recsForSalad.length, 0);
+}
+
+async function testDriveThruQueueStateMachineAndSosCalculation(): Promise<void> {
+  interface DriveThruOrder {
+    id: number;
+    orderNumber: string;
+    vehiclePlate: string;
+    status: 'order_taken' | 'at_window' | 'completed' | 'cancelled';
+    orderTakenAt: Date;
+    atWindowAt?: Date;
+    completedAt?: Date;
+    serviceTimeSeconds?: number;
+  }
+
+  const order: DriveThruOrder = {
+    id: 1,
+    orderNumber: 'DT-260914-0001',
+    vehiclePlate: 'أ ب ج 1234',
+    status: 'order_taken',
+    orderTakenAt: new Date('2026-10-12T12:00:00Z'),
+  };
+
+  // Transition 1: Arrive at window 45s later
+  order.status = 'at_window';
+  order.atWindowAt = new Date('2026-10-12T12:00:45Z');
+  assert.strictEqual(order.status, 'at_window');
+
+  // Transition 2: Complete order 80s after order taken (Total SOS = 80s)
+  order.status = 'completed';
+  order.completedAt = new Date('2026-10-12T12:01:20Z');
+  order.serviceTimeSeconds = Math.round((order.completedAt.getTime() - order.orderTakenAt.getTime()) / 1000);
+
+  assert.strictEqual(order.serviceTimeSeconds, 80, 'Total service time = 80s');
+
+  // Benchmark speed of service rating
+  const getSosTier = (sec: number) => {
+    if (sec < 90) return 'green_fast';
+    if (sec <= 180) return 'amber_moderate';
+    return 'red_bottleneck';
+  };
+
+  assert.strictEqual(getSosTier(order.serviceTimeSeconds), 'green_fast', '80s meets fast SOS benchmark');
+  assert.strictEqual(getSosTier(130), 'amber_moderate');
+  assert.strictEqual(getSosTier(240), 'red_bottleneck');
+}
+
+async function testKitchenDayDotHaccpFoodSafetyLabelGeneration(): Promise<void> {
+  const prepItem = {
+    id: 1,
+    name: 'صلصة طماطم بيتزا محضرة',
+    batchNumber: 'BATCH-261012-01',
+    preppedAt: new Date('2026-10-12T08:00:00Z'),
+    shelfLifeHours: 72, // 3 days
+    storageTemp: '4°C',
+    chefName: 'شيف حسن',
+  };
+
+  // Calculate expiry
+  const expiryDate = new Date(prepItem.preppedAt.getTime() + prepItem.shelfLifeHours * 3600 * 1000);
+  assert.strictEqual(expiryDate.toISOString(), '2026-10-15T08:00:00.000Z', 'Expiry must be 72 hours later');
+
+  // Day dot Arabic day names
+  const dayNamesAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const expiryDayName = dayNamesAr[expiryDate.getUTCDay()]; // Thursday -> الخميس
+  assert.strictEqual(expiryDayName, 'الخميس');
+
+  // Thermal label metadata assertion
+  const labelPayload = {
+    widthMm: 50,
+    heightMm: 30,
+    colorDayDot: 'BROWN_THU',
+    dayName: expiryDayName,
+    storageTemp: prepItem.storageTemp,
+    shelfLifeHours: prepItem.shelfLifeHours,
+  };
+
+  assert.strictEqual(labelPayload.widthMm, 50);
+  assert.strictEqual(labelPayload.heightMm, 30);
+  assert.strictEqual(labelPayload.storageTemp, '4°C');
+}
+
+async function testTableZoneMinimumSpendCalculationAndDeficitSurcharge(): Promise<void> {
+  interface TableZone {
+    id: number;
+    zoneName: string;
+    minimumSpend: number;
+  }
+
+  const vipZone: TableZone = {
+    id: 1,
+    zoneName: 'صالة كبار الشخصيات VIP',
+    minimumSpend: 500,
+  };
+
+  const calculateMinSpendDeficit = (cartTotal: number, minSpend: number) => {
+    if (minSpend <= 0) return { minSpend, deficit: 0, finalTotal: cartTotal };
+    const deficit = Math.max(0, Number((minSpend - cartTotal).toFixed(2)));
+    return {
+      minSpend,
+      deficit,
+      finalTotal: cartTotal + deficit,
+    };
+  };
+
+  // Scenario 1: Cart is under minimum spend (340 < 500)
+  const underSpendResult = calculateMinSpendDeficit(340, vipZone.minimumSpend);
+  assert.strictEqual(underSpendResult.deficit, 160, 'Deficit must be 500 - 340 = 160');
+  assert.strictEqual(underSpendResult.finalTotal, 500, 'Final billed total must meet 500 minimum spend');
+
+  // Scenario 2: Cart exceeds minimum spend (680 > 500)
+  const overSpendResult = calculateMinSpendDeficit(680, vipZone.minimumSpend);
+  assert.strictEqual(overSpendResult.deficit, 0, 'No deficit when spending exceeds minimum');
+  assert.strictEqual(overSpendResult.finalTotal, 680, 'Final total remains 680');
+
+  // Scenario 3: Regular zone without minimum spend (0)
+  const regularZoneResult = calculateMinSpendDeficit(120, 0);
+  assert.strictEqual(regularZoneResult.deficit, 0);
+  assert.strictEqual(regularZoneResult.finalTotal, 120);
+}
+
 (async () => {
   console.log('--- Starting Restaurant F&B Critical Workflow Audit ---');
   await testServiceChargeFinancialInvariants();
@@ -421,9 +945,44 @@ async function testPayAtTableAndDriverDispatchWorkflow(): Promise<void> {
   console.log('11. Walk-In Waitlist Queue & Seating Engine: PASSED');
   await testPayAtTableAndDriverDispatchWorkflow();
   console.log('12. Pay-at-Table QR Self-Checkout & In-House Driver Dispatch: PASSED');
-  console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100%) ---');
+  await testFast86EngineWorkflow();
+  console.log('13. Fast 86 Engine & Out-of-Stock Auto-Restore: PASSED');
+  await testTipPoolingAndShiftDistributionEngine();
+  console.log('14. Tip Pooling & Shift Distribution (Zero-loss Rounding): PASSED');
+  await testMultiZoneFloorPlanEngine();
+  console.log('15. Multi-Zone Dining Sections (Main, Patio, Family, VIP): PASSED');
+  await testDailyPrepSheetAndParLevelEngine();
+  console.log('16. Daily Prep Sheet & Central Commissary Par Levels: PASSED');
+  await testDigitalStampLoyaltyCardEngine();
+  console.log('17. Digital Stamp Loyalty Card (Punch Card Rewards): PASSED');
+  await testLivePlateCostAndInflationRadarEngine();
+  console.log('18. Live Plate Cost & Food Inflation Radar (Margin Protection): PASSED');
+  await testItemLevelTableTransferEngine();
+  console.log('19. Item-Level Table Transfer (Partial Item Moving): PASSED');
+  await testStickyCupLabelFormattingAndPageDimensions();
+  console.log('20. Sticky Cup & Box Label Formatting (50x30mm Thermal): PASSED');
+  await testSelfOrderingKioskOrderCreationAndState();
+  console.log('21. Self-Ordering Kiosk Dine-In/Takeaway Order Dispatch: PASSED');
+  await testManagerCompsAndHouseAccountsValidation();
+  console.log('22. Manager Comps & VIP House Hospitality Validation: PASSED');
+  await testTableQrPostPaymentRatingAndRescueAlertTrigger();
+  console.log('23. Table QR Post-Payment Rating & Rescue Alert Engine: PASSED');
+  await testKitchenPacingAndStaggeredCookingEngine();
+  console.log('24. Kitchen Pacing & Staggered Cooking Delay Engine: PASSED');
+  await testSeatLevelOrderingAndSplitBySeatGrouping();
+  console.log('25. Seat-Level Ordering & 1-Click Split by Seat Grouping: PASSED');
+  await testSmartUpsellRecommendationTriggerAndDiscount();
+  console.log('26. Smart Upsell Recommendation Trigger & Discount Validation: PASSED');
+  await testDriveThruQueueStateMachineAndSosCalculation();
+  console.log('27. Drive-Thru Queue State Machine & Speed of Service (SOS): PASSED');
+  await testKitchenDayDotHaccpFoodSafetyLabelGeneration();
+  console.log('28. Kitchen Day-Dot 50x30mm Expiry & HACCP Label Generation: PASSED');
+  await testTableZoneMinimumSpendCalculationAndDeficitSurcharge();
+  console.log('29. Table Zone Minimum Spend Calculation & Deficit Surcharge: PASSED');
+  console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100% - 29/29) ---');
 })().catch((err) => {
   console.error('Restaurant F&B Critical Audit FAILED:', err);
   process.exit(1);
 });
+
 

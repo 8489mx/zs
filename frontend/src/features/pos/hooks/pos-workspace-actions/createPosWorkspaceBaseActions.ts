@@ -6,6 +6,7 @@ import {
   updatePosItemQtyWithOptions,
   updatePosItemNotes,
   updatePosItemModifiers,
+  updatePosItemSeat,
 } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import {
@@ -281,6 +282,16 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
   }
 
+  function setItemSeat(lineKey: string, seatNumber?: number) {
+    try {
+      const nextCart = updatePosItemSeat(params.cart, lineKey, seatNumber);
+      params.setSelectedLineKey(lineKey);
+      params.setCart(nextCart);
+    } catch (error) {
+      params.setSubmitMessage('تعذر تعديل رقم المقعد.');
+    }
+  }
+
   function removeItem(lineKey: string) {
     params.setCart((current) => removePosItem(current, lineKey));
     if (params.selectedLineKey === lineKey) params.setSelectedLineKey('');
@@ -479,6 +490,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     setQty,
     setItemNote,
     setItemModifiers,
+    setItemSeat,
     removeItem,
     fillPaidAmount,
     setPaymentPreset,

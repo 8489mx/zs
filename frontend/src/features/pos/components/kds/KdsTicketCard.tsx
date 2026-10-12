@@ -222,70 +222,128 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {ticket.items.map((item) => {
-            const isDone = item.status === 'ready';
+          {(() => {
+            const itemPrepEstimates = ticket.items.map((i) => {
+              return Number(i.prepTimeMinutes || (i.station === 'grill' ? 14 : i.station === 'kitchen' ? 10 : i.station === 'bakery' ? 8 : 4));
+            });
+            const maxTicketPrep = Math.max(...itemPrepEstimates, 10);
 
-            return (
-              <div
-                key={item.id}
-                onClick={() => {
-                  const nextStatus: KdsItemStatus = isDone ? 'cooking' : 'ready';
-                  onItemStatusChange(ticket.id, item.id, nextStatus);
-                }}
-                style={{
-                  padding: '8px 10px',
-                  backgroundColor: isDone ? '#f8fafc' : '#ffffff',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  border: `1px solid ${isDone ? '#e2e8f0' : '#cbd5e1'}`,
-                  transition: 'all 0.15s ease',
-                  opacity: isDone ? 0.65 : 1,
-                }}
-                title="انقر لتأكيد تجهيز الصنف والشطب عليه"
-              >
+            return ticket.items.map((item, idx) => {
+              const isDone = item.status === 'ready';
+              const itemPrepTime = itemPrepEstimates[idx];
+              const staggerDelay = Math.max(0, maxTicketPrep - itemPrepTime);
+              const isHeld = !isDone && ticket.items.length > 1 && ticket.elapsedMinutes < staggerDelay;
+              const minutesUntilFire = Math.max(1, staggerDelay - ticket.elapsedMinutes);
+
+              return (
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                  key={item.id}
+                  onClick={() => {
+                    const nextStatus: KdsItemStatus = isDone ? 'cooking' : 'ready';
+                    onItemStatusChange(ticket.id, item.id, nextStatus);
                   }}
+                  style={{
+                    padding: '8px 10px',
+                    backgroundColor: isDone ? '#f8fafc' : isHeld ? '#fffbeb' : '#ffffff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    border: `1px solid ${isDone ? '#e2e8f0' : isHeld ? '#fef3c7' : '#cbd5e1'}`,
+                    transition: 'all 0.15s ease',
+                    opacity: isDone ? 0.65 : 1,
+                  }}
+                  title="انقر لتأكيد تجهيز الصنف والشطب عليه"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 900,
-                        color: isDone ? '#94a3b8' : '#170e5e',
-                        backgroundColor: isDone ? '#e2e8f0' : 'rgba(23, 14, 94, 0.08)',
-                        padding: '2px 6px',
-                        borderRadius: '5px',
-                      }}
-                    >
-                      {item.qty}×
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 800,
-                        color: isDone ? '#94a3b8' : '#0f172a',
-                        textDecoration: isDone ? 'line-through' : 'none',
-                      }}
-                    >
-                      {item.name}
-                    </span>
-                    {item.station && item.station !== 'all' && item.station !== 'general' && (
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        backgroundColor: item.station === 'beverages' ? '#e0f2fe' : item.station === 'grill' ? '#ffedd5' : '#f1f5f9',
-                        color: item.station === 'beverages' ? '#0369a1' : item.station === 'grill' ? '#c2410c' : '#475569',
-                      }}>
-                        {item.station === 'beverages' ? 'بار' : item.station === 'grill' ? 'شواية' : item.station === 'bakery' ? 'حلويات' : 'مطبخ'}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 900,
+                          color: isDone ? '#94a3b8' : '#170e5e',
+                          backgroundColor: isDone ? '#e2e8f0' : 'rgba(23, 14, 94, 0.08)',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                        }}
+                      >
+                        {item.qty}×
                       </span>
-                    )}
-                  </div>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: isDone ? '#94a3b8' : '#0f172a',
+                          textDecoration: isDone ? 'line-through' : 'none',
+                        }}
+                      >
+                        {item.name}
+                      </span>
+                      {item.seatNumber && (
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          backgroundColor: '#dbeafe',
+                          color: '#1e40af',
+                          border: '1px solid #bfdbfe',
+                        }}>
+                          مقعد {item.seatNumber}
+                        </span>
+                      )}
+                      {item.station && item.station !== 'all' && item.station !== 'general' && (
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          backgroundColor: item.station === 'beverages' ? '#e0f2fe' : item.station === 'grill' ? '#ffedd5' : '#f1f5f9',
+                          color: item.station === 'beverages' ? '#0369a1' : item.station === 'grill' ? '#c2410c' : '#475569',
+                        }}>
+                          {item.station === 'beverages' ? 'بار' : item.station === 'grill' ? 'شواية' : item.station === 'bakery' ? 'حلويات' : 'مطبخ'}
+                        </span>
+                      )}
+
+                      {/* Smart Kitchen Pacing Indicator */}
+                      {!isDone && (
+                        isHeld ? (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a',
+                            }}
+                            title={`تنسيق خروج الأطباق معاً: انتظر ${minutesUntilFire} دقيقة قبل بدء طهي هذا الصنف ليتزامن مع الصنف الأطول (${maxTicketPrep} د)`}
+                          >
+                            انتظار {minutesUntilFire} د
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: '#dcfce7',
+                              color: '#15803d',
+                              border: '1px solid #bbf7d0',
+                            }}
+                            title={`وقت الطهي المقدر: ${itemPrepTime} دقيقة`}
+                          >
+                            ابدأ الطهي ({itemPrepTime} د)
+                          </span>
+                        )
+                      )}
+                    </div>
 
                   <span
                     style={{
@@ -343,7 +401,8 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                 )}
               </div>
             );
-          })}
+          });
+        })()}
         </div>
 
         {/* Order Level Special Note */}

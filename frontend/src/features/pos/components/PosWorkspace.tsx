@@ -20,6 +20,8 @@ import { PosRecentSalesReprintModal } from '@/features/pos/components/pos-worksp
 import { PosPhoneOrderDialog } from '@/features/pos/components/pos-workspace/PosPhoneOrderDialog';
 import { PosCallerIdFloatingAlert } from '@/features/pos/components/pos-workspace/PosCallerIdFloatingAlert';
 import { PosComboMealModal } from '@/features/pos/components/pos-workspace/PosComboMealModal';
+import { PosManagerCompModal } from '@/features/pos/components/pos-workspace/PosManagerCompModal';
+import { printOrderCupLabels } from '@/lib/pos-printing/cup-label';
 import { salesApi } from '@/features/sales/api/sales.api';
 import {
   getSelectedCustomerName,
@@ -82,8 +84,30 @@ export function PosWorkspace() {
   const [phoneOrderOpen, setPhoneOrderOpen] = useState(false);
   const [phoneOrderInitialPhone, setPhoneOrderInitialPhone] = useState('');
   const [phoneOrderInitialName, setPhoneOrderInitialName] = useState('');
+  const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
+
+  const handlePrintCupLabels = useCallback(() => {
+    if (pos.cart.length === 0) {
+      toast.warning('السلة فارغة، أضف أصنافاً لطباعة ملصقات الأكواب والعلب');
+      return;
+    }
+    printOrderCupLabels({
+      orderNumber: pos.tableNumber ? `طاولة-${pos.tableNumber}` : 'سفري',
+      tableNumber: pos.tableNumber || undefined,
+      customerName: pos.quickCustomerName || undefined,
+      orderType: pos.orderType,
+      branchName: pos.currentBranch?.name,
+      items: pos.cart.map((item) => ({
+        name: item.name,
+        qty: item.qty,
+        notes: item.notes,
+        modifiers: item.modifiers,
+      })),
+    }, pos.settingsQuery.data);
+    toast.success('تم إرسال ملصقات الأكواب والعلب للطابعة اللاصقة بنجاح');
+  }, [pos.cart, pos.tableNumber, pos.quickCustomerName, pos.orderType, pos.currentBranch, pos.settingsQuery.data]);
 
   const handleOpenPhoneOrder = useCallback((phone?: string, name?: string) => {
     setPhoneOrderInitialPhone(phone || '');
@@ -572,6 +596,8 @@ export function PosWorkspace() {
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
         onOpenReprintModal={() => setReprintModalOpen(true)}
         onOpenComboModal={() => setComboMealModalOpen(true)}
+        onOpenManagerComp={() => setIsManagerCompOpen(true)}
+        onPrintCupLabels={handlePrintCupLabels}
       />
 
       <PosWorkspaceMainContent
@@ -787,6 +813,86 @@ export function PosWorkspace() {
             pos.setTableNumber(to);
             pos.setSubmitMessage(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}.`);
           }}
+          rawHeldDrafts={pos.heldDrafts}
+          currentCartItems={pos.cart}
+          onTransferItems={async (sourceTable, targetTable, transferredItems) => {
+            // 1. Deduct from source
+            if (sourceTable === pos.tableNumber) {
+              const updatedCart = [...pos.cart];
+              for (const item of transferredItems) {
+                const idx = updatedCart.findIndex((c) => String(c.productId) === String(item.productId) && c.price === item.price);
+                if (idx !== -1) {
+                  if (updatedCart[idx].qty > item.qty) {
+                    updatedCart[idx] = { ...updatedCart[idx], qty: updatedCart[idx].qty - item.qty };
+                  } else {
+                    updatedCart.splice(idx, 1);
+                  }
+                }
+              }
+              pos.setCart(updatedCart);
+            } else {
+              const sourceDraft = pos.heldDrafts.find((d) => String(d.tableNumber).trim() === String(sourceTable).trim());
+              if (sourceDraft && sourceDraft.cart) {
+                const updatedDraftCart = [...sourceDraft.cart];
+                for (const item of transferredItems) {
+                  const idx = updatedDraftCart.findIndex((c) => String(c.productId) === String(item.productId) && c.price === item.price);
+                  if (idx !== -1) {
+                    if (updatedDraftCart[idx].qty > item.qty) {
+                      updatedDraftCart[idx] = { ...updatedDraftCart[idx], qty: updatedDraftCart[idx].qty - item.qty };
+                    } else {
+                      updatedDraftCart.splice(idx, 1);
+                    }
+                  }
+                }
+                if (updatedDraftCart.length === 0) {
+                  await pos.deleteDraft(sourceDraft.id);
+                } else {
+                  sourceDraft.cart = updatedDraftCart;
+                  await posApi.saveHeldDraft(sourceDraft as any);
+                }
+              }
+            }
+
+            // 2. Add to target
+            if (targetTable === pos.tableNumber) {
+              const targetCart = [...pos.cart];
+              for (const item of transferredItems) {
+                const idx = targetCart.findIndex((c) => String(c.productId) === String(item.productId) && c.price === item.price);
+                if (idx !== -1) {
+                  targetCart[idx] = { ...targetCart[idx], qty: Number(targetCart[idx].qty || 0) + Number(item.qty || 0) };
+                } else {
+                  targetCart.push(item as any);
+                }
+              }
+              pos.setCart(targetCart);
+            } else {
+              const targetDraft = pos.heldDrafts.find((d) => String(d.tableNumber).trim() === String(targetTable).trim());
+              if (targetDraft && targetDraft.cart) {
+                const targetCart = [...targetDraft.cart];
+                for (const item of transferredItems) {
+                  const idx = targetCart.findIndex((c) => String(c.productId) === String(item.productId) && c.price === item.price);
+                  if (idx !== -1) {
+                    targetCart[idx] = { ...targetCart[idx], qty: Number(targetCart[idx].qty || 0) + Number(item.qty || 0) };
+                  } else {
+                    targetCart.push(item as any);
+                  }
+                }
+                targetDraft.cart = targetCart;
+                await posApi.saveHeldDraft(targetDraft as any);
+              } else {
+                const newDraftId = `draft-${Date.now()}`;
+                await posApi.saveHeldDraft({
+                  id: newDraftId,
+                  tableNumber: targetTable,
+                  orderType: 'dine_in',
+                  cart: transferredItems as any,
+                  discount: 0,
+                  createdAt: new Date().toISOString(),
+                } as any);
+              }
+            }
+            toast.success(`تم نقل ${transferredItems.length} صنف بنجاح من طاولة ${sourceTable} إلى طاولة ${targetTable}`);
+          }}
           onMergeTable={async (from, to) => {
             const targetDraft = pos.heldDrafts.find((d) => String(d.tableNumber).trim() === String(to).trim());
             if (targetDraft && targetDraft.cart?.length) {
@@ -812,6 +918,20 @@ export function PosWorkspace() {
           }}
         />
       )}
+
+      {/* Restaurant Manager Comps & VIP On-the-house Modal */}
+      <PosManagerCompModal
+        open={isManagerCompOpen}
+        onClose={() => setIsManagerCompOpen(false)}
+        currentCartTotal={Number(pos.totals?.total || 0)}
+        currentTableNumber={pos.tableNumber || undefined}
+        cartSummary={pos.cart.map((i) => `${i.qty}× ${i.name}`).join('، ')}
+        onApplyComp={async (comp) => {
+          pos.setDiscount(comp.amount);
+          pos.setNote(`ضيافة إدارة [${comp.compType}] - معتمد: ${comp.managerName}${comp.notes ? ` - ${comp.notes}` : ''}`);
+          setIsManagerCompOpen(false);
+        }}
+      />
 
       {/* 2. Standard Retail Held Drafts Dialog (Non-Restaurant Mode) */}
       <PosHeldDraftsDialog

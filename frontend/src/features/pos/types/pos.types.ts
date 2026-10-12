@@ -22,6 +22,7 @@ export interface PosItem {
   notes?: string;
   offerName?: string;
   modifiers?: any[];
+  seatNumber?: number;
   quantityChunks?: number[];
   trackSerials?: boolean;
   serials?: string[];

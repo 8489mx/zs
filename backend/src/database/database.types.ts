@@ -5113,9 +5113,187 @@ export interface PosKitchenPrinterTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface Restaurant86ItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  product_id: number | string;
+  product_name: string;
+  component_product_id: number | string | null;
+  is_86ed: boolean;
+  reason: string | null;
+  auto_restore_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantTipPoolTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  shift_date: ColumnType<string, string | undefined, string | undefined>;
+  shift_name: string;
+  total_cash_tips: number;
+  total_card_tips: number;
+  total_tips: number;
+  distribution_method: string;
+  status: string;
+  notes: string | null;
+  distributed_by: number | null;
+  distributed_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantTipPoolDistributionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  pool_id: number;
+  employee_id: number;
+  employee_name: string;
+  role_name: string;
+  hours_worked: number;
+  point_weight: number;
+  allocated_amount: number;
+  is_paid: boolean;
+  paid_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface RestaurantTableZoneTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  zone_code: string;
+  name: string;
+  sort_order: number;
+  capacity_seats: number;
+  table_numbers: unknown;
+  minimum_spend?: number;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantPrepSheetTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  prep_date: ColumnType<string, string | undefined, string | undefined>;
+  shift_type: string;
+  status: string;
+  prepared_by: number | null;
+  completed_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface RestaurantPrepSheetItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  prep_sheet_id: number;
+  product_id: number | string;
+  product_name: string;
+  unit_name: string;
+  par_level: number;
+  current_on_hand: number;
+  prep_required: number;
+  prep_actual: number;
+  shelf_life_hours?: number;
+  storage_temp?: string;
+  status: string;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantStampCardTable {
+  id: Generated<number>;
+  tenant_id: string;
+  customer_id: number | string;
+  program_name: string;
+  target_stamps: number;
+  current_stamps: number;
+  total_completed_cards: number;
+  reward_description: string | null;
+  last_stamped_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantManagerCompTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  sale_id: number | string | null;
+  table_number: string | null;
+  comp_type: string;
+  manager_name: string;
+  amount: number;
+  items_summary: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface RestaurantTableRatingTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  table_number: string;
+  sale_id: number | string | null;
+  rating: number;
+  feedback_category: string | null;
+  notes: string | null;
+  is_rescued: boolean;
+  rescued_by: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface RestaurantDriveThruOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  branch_id: number | null;
+  vehicle_plate: string;
+  vehicle_desc: string | null;
+  sale_id: number | string | null;
+  status: string; // 'order_taken', 'at_window', 'completed', 'cancelled'
+  order_time: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  window_arrival_time: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  completed_time: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  sos_seconds: number | null;
+  total_amount: number;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface RestaurantUpsellRuleTable {
+  id: Generated<number>;
+  tenant_id: string;
+  trigger_product_id: number | string | null;
+  trigger_category_name: string | null;
+  suggested_product_id: number | string;
+  suggested_product_name: string;
+  title: string;
+  discount_amount: number;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
   pos_kitchen_printers: PosKitchenPrinterTable;
   restaurant_table_service_calls: RestaurantTableServiceCallTable;
+  restaurant_86_items: Restaurant86ItemTable;
+  restaurant_tip_pools: RestaurantTipPoolTable;
+  restaurant_tip_pool_distributions: RestaurantTipPoolDistributionTable;
+  restaurant_table_zones: RestaurantTableZoneTable;
+  restaurant_prep_sheets: RestaurantPrepSheetTable;
+  restaurant_prep_sheet_items: RestaurantPrepSheetItemTable;
+  restaurant_stamp_cards: RestaurantStampCardTable;
+  restaurant_manager_comps: RestaurantManagerCompTable;
+  restaurant_table_ratings: RestaurantTableRatingTable;
+  restaurant_drive_thru_orders: RestaurantDriveThruOrderTable;
+  restaurant_upsell_rules: RestaurantUpsellRuleTable;
 }
+
 

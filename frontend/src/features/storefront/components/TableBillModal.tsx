@@ -1,6 +1,7 @@
 import { useState, useId } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
@@ -12,6 +13,7 @@ import {
   XIcon,
   UtensilsIcon,
   CheckCircleIcon,
+  AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface TableBillModalProps {
@@ -27,6 +29,14 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
   const [guestName, setGuestName] = useState<string>('');
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [paymentSuccessData, setPaymentSuccessData] = useState<any | null>(null);
+
+  // Table Post-Payment Rating & Rescue Alert States
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState<string>('food_quality');
+  const [feedbackNotes, setFeedbackNotes] = useState<string>('');
+  const [isRatingSubmitted, setIsRatingSubmitted] = useState<boolean>(false);
+  const [isRescueTriggered, setIsRescueTriggered] = useState<boolean>(false);
+  const [isSubmittingRating, setIsSubmittingRating] = useState<boolean>(false);
 
   const billQuery = useQuery({
     queryKey: ['table-bill', slug, tableNumber],
@@ -69,6 +79,48 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
 
   const finalTotal = Math.round(((bill?.total || 0) + tipAmount) * 100) / 100;
   const titleId = useId();
+
+  const handleSelectRating = async (stars: number) => {
+    setSelectedRating(stars);
+    if (stars >= 3) {
+      setIsSubmittingRating(true);
+      try {
+        await restaurantAdvancedFnbApi.recordTableRating({
+          tableNumber,
+          rating: stars,
+          feedbackCategory: 'general',
+        });
+        setIsRatingSubmitted(true);
+        toast.success('شكراً جزيلاً لتقييمك الرائع!');
+      } catch {
+        // quiet
+      } finally {
+        setIsSubmittingRating(false);
+      }
+    }
+  };
+
+  const handleSubmitRescueFeedback = async () => {
+    if (!selectedRating) return;
+    setIsSubmittingRating(true);
+    try {
+      const res = await restaurantAdvancedFnbApi.recordTableRating({
+        tableNumber,
+        rating: selectedRating,
+        feedbackCategory,
+        notes: feedbackNotes.trim() || undefined,
+      });
+      setIsRatingSubmitted(true);
+      if (res.isRescueAlertTriggered) {
+        setIsRescueTriggered(true);
+      }
+      toast.success(res.message);
+    } catch {
+      toast.error('تعذر إرسال التقييم');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
 
   return (
     <DialogShell
@@ -211,6 +263,131 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                     {paymentSuccessData.paymentReference}
                   </span>
                 </div>
+              </div>
+
+              {/* Post-Payment Experience Rating & Rescue Alert Card */}
+              <div
+                style={{
+                  width: '100%',
+                  backgroundColor: '#ffffff',
+                  border: isRescueTriggered ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {!isRatingSubmitted ? (
+                  <>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>
+                      كيف تقيم تجربتك معنا اليوم؟
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                      {[1, 2, 3, 4, 5].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => handleSelectRating(num)}
+                          disabled={isSubmittingRating}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            border: selectedRating === num ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                            backgroundColor: selectedRating === num ? '#170e5e' : '#f8fafc',
+                            color: selectedRating === num ? '#ffffff' : '#0f172a',
+                            fontSize: '15px',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Negative Rating Form (1 or 2 stars) */}
+                    {selectedRating !== null && selectedRating <= 2 && (
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0' }}>
+                        <div style={{ fontSize: '11.5px', color: '#991b1b', fontWeight: 700, marginBottom: '6px' }}>
+                          نعتذر عن عدم رضاك! ما هو سبب الملاحظة لنقوم بحله فوراً؟
+                        </div>
+                        <select
+                          value={feedbackCategory}
+                          onChange={(e) => setFeedbackCategory(e.target.value)}
+                          style={{
+                            width: '100%',
+                            height: '32px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            padding: '0 8px',
+                            fontSize: '11.5px',
+                            marginBottom: '6px',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <option value="food_quality">جودة وحرارة الطعام</option>
+                          <option value="service_speed">سرعة الخدمة والويتر</option>
+                          <option value="order_accuracy">دقة أصناف الطلب</option>
+                          <option value="cleanliness">النظافة والأجواء</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={feedbackNotes}
+                          onChange={(e) => setFeedbackNotes(e.target.value)}
+                          placeholder="ملاحظة سريعة للمدير (اختياري)"
+                          style={{
+                            width: '100%',
+                            height: '32px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            padding: '0 8px',
+                            fontSize: '11.5px',
+                            marginBottom: '8px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={handleSubmitRescueFeedback}
+                          disabled={isSubmittingRating}
+                          style={{
+                            width: '100%',
+                            height: '34px',
+                            backgroundColor: '#dc2626',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {isSubmittingRating ? 'جارٍ إرسال التنبيه...' : 'إرسال التنبيه الفوري لمدير الصالة'}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : isRescueTriggered ? (
+                  <div style={{ textAlign: 'center', color: '#991b1b' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 900, fontSize: '13px', marginBottom: '4px' }}>
+                      <AlertTriangleIcon size={16} color="#dc2626" />
+                      <span>تم استدعاء مدير الصالة بنجاح</span>
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                      نعتذر بشدة عن أي إزعاج! مدير الصالة في طريقه لطاولتك الآن لتدارك الأمر شخصياً.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#166534' }}>
+                    <div style={{ fontWeight: 900, fontSize: '13px', marginBottom: '2px' }}>
+                      شكراً لتقييمك الرائع!
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                      سعدنا بخدمتك ونتطلع لزيارتك القادمة دائماً.
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Button

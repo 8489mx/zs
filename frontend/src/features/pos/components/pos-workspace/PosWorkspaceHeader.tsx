@@ -15,6 +15,14 @@ import { PosInstantExchangeDialog } from './PosInstantExchangeDialog';
 import { PosDeliveryAggregatorsModal } from './PosDeliveryAggregatorsModal';
 import { PosFoodWasteModal } from './PosFoodWasteModal';
 import { RestaurantDeliveryDispatcherModal } from './RestaurantDeliveryDispatcherModal';
+import { Pos86ItemsModal } from './Pos86ItemsModal';
+import { PosTipPoolModal } from './PosTipPoolModal';
+import { KitchenDailyPrepSheetModal } from './KitchenDailyPrepSheetModal';
+import { PosPlateCostRadarModal } from './PosPlateCostRadarModal';
+import { PosCustomerPunchCardModal } from './PosCustomerPunchCardModal';
+import { PosDriveThruModal } from './PosDriveThruModal';
+import { PosSmartUpsellModal } from './PosSmartUpsellModal';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
@@ -59,9 +67,25 @@ interface PosWorkspaceHeaderProps {
   onOpenSerialLookup?: () => void;
   onOpenReprintModal?: () => void;
   onOpenComboModal?: () => void;
+  onOpenManagerComp?: () => void;
+  onPrintCupLabels?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onOpenPhoneOrder, onRequestOpenShift, onOpenReprintModal, onOpenComboModal }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({
+  pos,
+  posMode,
+  onModeChange,
+  onFocusSearch,
+  onOpenQuickService,
+  onOpenHeldDrafts,
+  onOpenTables,
+  onOpenPhoneOrder,
+  onRequestOpenShift,
+  onOpenReprintModal,
+  onOpenComboModal,
+  onOpenManagerComp,
+  onPrintCupLabels,
+}: PosWorkspaceHeaderProps) {
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isPhoneOrdersActive = settings?.phoneOrdersModuleEnabled === true || (settings?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(settings?.businessIndustry || '')));
@@ -80,6 +104,37 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   const [isAggregatorsOpen, setIsAggregatorsOpen] = useState(false);
   const [isDriverDispatchOpen, setIsDriverDispatchOpen] = useState(false);
   const [isFoodWasteOpen, setIsFoodWasteOpen] = useState(false);
+  const [is86ModalOpen, setIs86ModalOpen] = useState(false);
+  const [isTipPoolOpen, setIsTipPoolOpen] = useState(false);
+  const [isPrepSheetOpen, setIsPrepSheetOpen] = useState(false);
+  const [isPlateRadarOpen, setIsPlateRadarOpen] = useState(false);
+  const [isStampCardOpen, setIsStampCardOpen] = useState(false);
+  const [isDriveThruOpen, setIsDriveThruOpen] = useState(false);
+  const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
+  const [upsellRules, setUpsellRules] = useState<any[]>([]);
+
+  const { data: headerZones = [] } = useQuery({
+    queryKey: ['restaurant-floor-zones', pos.branchId],
+    queryFn: () => restaurantAdvancedFnbApi.getZones(pos.branchId ? Number(pos.branchId) : undefined),
+    enabled: isRestaurantActive,
+    staleTime: 60_000,
+  });
+
+  const activeTableZone = headerZones.find((z) => {
+    if (!pos.tableNumber) return false;
+    const nums = Array.isArray(z.table_numbers) ? z.table_numbers : [];
+    return nums.map(String).includes(String(pos.tableNumber).trim());
+  });
+  const activeZoneMinSpend = Number(activeTableZone?.minimum_spend || 0);
+  const currentCartTotal = Number(pos.totals?.total || 0);
+
+  const { data: items86 = [] } = useQuery({
+    queryKey: ['pos-86-items-header', pos.branchId],
+    queryFn: () => restaurantAdvancedFnbApi.get86Items(pos.branchId ? Number(pos.branchId) : undefined),
+    enabled: isRestaurantActive,
+    refetchInterval: 15_000,
+  });
+  const count86 = items86.length;
   const [isScreensMenuOpen, setIsScreensMenuOpen] = useState(false);
   const [screensMenuStyle, setScreensMenuStyle] = useState<React.CSSProperties>({});
   const screensMenuContainerRef = useRef<HTMLDivElement>(null);
@@ -425,6 +480,24 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                   متوسط الفرد: <strong style={{ color: '#047857' }}>{formatCurrency((pos.totals?.total || 0) / ((pos as any).guestCount || 1))}</strong>
                 </span>
               )}
+              {activeZoneMinSpend > 0 && (
+                <span
+                  style={{
+                    marginRight: '4px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap',
+                    background: currentCartTotal >= activeZoneMinSpend ? '#ecfdf5' : '#fef2f2',
+                    color: currentCartTotal >= activeZoneMinSpend ? '#047857' : '#b91c1c',
+                    border: `1px solid ${currentCartTotal >= activeZoneMinSpend ? '#a7f3d0' : '#fecaca'}`,
+                  }}
+                  title={`الحد الأدنى لإنفاق الطاولة في هذه المنطقة: ${activeZoneMinSpend}`}
+                >
+                  الحد الأدنى: {activeZoneMinSpend} ر.س {currentCartTotal < activeZoneMinSpend && `(عجز: ${(activeZoneMinSpend - currentCartTotal).toFixed(2)})`}
+                </span>
+              )}
             </div>
           )}
 
@@ -530,6 +603,206 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
               title="تسجيل هدر وتالف المطبخ والوجبات وخصم المواد الخام لحظياً"
             >
               هدر المطبخ
+            </Button>
+          )}
+
+          {/* Fast 86 Items Exclusion */}
+          {isRestaurantActive && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIs86ModalOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: count86 > 0 ? '#991b1b' : '#334155',
+                background: count86 > 0 ? '#fee2e2' : '#f8fafc',
+                border: count86 > 0 ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="استبعاد الأصناف والمكونات النافذة لحظياً من الكاشير والمطبخ (86'd Items)"
+            >
+              <span>استبعاد 86</span>
+              {count86 > 0 && (
+                <span
+                  style={{
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 900,
+                    padding: '0 5px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {count86}
+                </span>
+              )}
+            </Button>
+          )}
+
+          {/* Tip Pooling & Shift Distribution */}
+          {isRestaurantActive && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsTipPoolOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#1e40af',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+              }}
+              title="مجمع الإكراميات وتوزيع حصص الوردية على طاقم الصالة والمطبخ"
+            >
+              مجمع الإكراميات
+            </Button>
+          )}
+
+          {/* Daily Prep Sheet */}
+          {isRestaurantActive && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsPrepSheetOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#166534',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+              }}
+              title="ورقة التحضير اليومية للمطبخ والأصناف نصف المصنعة"
+            >
+              ورقة التحضير
+            </Button>
+          )}
+
+          {/* Plate Cost Radar */}
+          {isRestaurantActive && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsPlateRadarOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#7c2d12',
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+              }}
+              title="رادار تذبذب تكلفة الأطباق وهوامش ربح الوجبات"
+            >
+              رادار التكلفة
+            </Button>
+          )}
+
+          {/* Customer Stamp Loyalty */}
+          {(isRestaurantActive || Boolean(pos.customerId)) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsStampCardOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#6b21a8',
+                background: '#faf5ff',
+                border: '1px solid #e9d5ff',
+              }}
+              title="كرت الأختام الرقمي للعميل ومكافآت المقاهي والمطاعم"
+            >
+              كرت الأختام
+            </Button>
+          )}
+
+          {/* Manager Comps & VIP On-the-house */}
+          {isRestaurantActive && onOpenManagerComp && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onOpenManagerComp}
+              style={{
+                fontWeight: 700,
+                color: '#15803d',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+              }}
+              title="اعتماد ضيافة الإدارة والخصومات الرسمية (Manager Comps)"
+            >
+              ضيافة الإدارة
+            </Button>
+          )}
+
+          {/* Sticky Cup & Box Labels Printing */}
+          {isRestaurantActive && onPrintCupLabels && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onPrintCupLabels}
+              style={{
+                fontWeight: 700,
+                color: '#170e5e',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="طباعة ملصقات لاصقة للأكواب والعلب حرارياً 50x30 مم"
+            >
+              <PrinterIcon size={14} color="#170e5e" />
+              <span>ملصقات الأكواب</span>
+            </Button>
+          )}
+
+          {/* Drive-Thru Lane (طلبات السيارات ومؤشر SOS) */}
+          {isRestaurantActive && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsDriveThruOpen(true)}
+              style={{
+                fontWeight: 700,
+                color: '#1e3a8a',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="طابور طلبات السيارات ومؤشر سرعة الخدمة SOS"
+            >
+              <TruckIcon size={14} color="#1e3a8a" />
+              <span>طلبات السيارات</span>
+            </Button>
+          )}
+
+          {/* Smart Upsell Recommendations */}
+          {isRestaurantActive && pos.cart.length > 0 && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const firstProductId = Number(pos.cart[0]?.productId) || undefined;
+                  const rules = await restaurantAdvancedFnbApi.getUpsellRecommendations(firstProductId);
+                  setUpsellRules(rules || []);
+                  setIsUpsellModalOpen(true);
+                } catch {
+                  setIsUpsellModalOpen(true);
+                }
+              }}
+              style={{
+                fontWeight: 700,
+                color: '#b45309',
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="اقتراحات الترقية الذكية وزيادة متوسط الفاتورة (Upsell & Cross-sell)"
+            >
+              <CheckCircleIcon size={14} color="#b45309" />
+              <span>عروض ذكية</span>
             </Button>
           )}
 
@@ -908,6 +1181,49 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     <PosDeliveryAggregatorsModal open={isAggregatorsOpen} onClose={() => setIsAggregatorsOpen(false)} />
     <RestaurantDeliveryDispatcherModal open={isDriverDispatchOpen} onClose={() => setIsDriverDispatchOpen(false)} />
     <PosFoodWasteModal open={isFoodWasteOpen} onClose={() => setIsFoodWasteOpen(false)} branchId={Number(pos.branchId) || 1} />
+    <Pos86ItemsModal
+      open={is86ModalOpen}
+      onClose={() => setIs86ModalOpen(false)}
+      products={(pos as any).productsQuery?.data || []}
+      branchId={Number(pos.branchId) || undefined}
+    />
+    <PosTipPoolModal
+      open={isTipPoolOpen}
+      onClose={() => setIsTipPoolOpen(false)}
+      branchId={Number(pos.branchId) || undefined}
+      currency={(pos as any).currency || 'ج.م'}
+    />
+    <KitchenDailyPrepSheetModal
+      open={isPrepSheetOpen}
+      onClose={() => setIsPrepSheetOpen(false)}
+      branchId={Number(pos.branchId) || undefined}
+    />
+    <PosPlateCostRadarModal
+      open={isPlateRadarOpen}
+      onClose={() => setIsPlateRadarOpen(false)}
+      currency={(pos as any).currency || 'ج.م'}
+    />
+    <PosCustomerPunchCardModal
+      open={isStampCardOpen}
+      onClose={() => setIsStampCardOpen(false)}
+      customerId={Number(pos.customerId) || 1}
+      customerName={(pos as any).customerName || 'العميل الحالي'}
+    />
+    <PosDriveThruModal
+      open={isDriveThruOpen}
+      onClose={() => setIsDriveThruOpen(false)}
+      branchId={Number(pos.branchId) || undefined}
+    />
+    <PosSmartUpsellModal
+      open={isUpsellModalOpen}
+      onClose={() => setIsUpsellModalOpen(false)}
+      recommendations={upsellRules}
+      onAcceptUpsell={(product: any) => {
+        if ((pos as any).addProduct) {
+          (pos as any).addProduct(product);
+        }
+      }}
+    />
     </>
   );
 }

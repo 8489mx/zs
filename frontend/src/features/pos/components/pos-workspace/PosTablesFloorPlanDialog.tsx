@@ -17,6 +17,8 @@ import { tableCallsApi, type TableServiceCall } from '@/features/pos/api/table-c
 import { PosTableReservationsModal } from './PosTableReservationsModal';
 import { TableQrPrintDialog } from './TableQrPrintDialog';
 import { PosKitchenPrintersModal } from './PosKitchenPrintersModal';
+import { PosTransferItemModal, type TransferableCartItem } from './PosTransferItemModal';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import type { AppSettings } from '@/types/domain';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
 
@@ -27,6 +29,8 @@ interface PosTablesFloorPlanDialogProps {
   currentCartItemsCount?: number;
   currentCartTotal?: number;
   heldDrafts: HeldPosDraftSummary[];
+  rawHeldDrafts?: any[];
+  currentCartItems?: any[];
   settings?: AppSettings | null;
   onSelectTable: (tableNumber: string) => Promise<void> | void;
   onRecallDraft: (draftId: string) => Promise<void>;
@@ -34,6 +38,7 @@ interface PosTablesFloorPlanDialogProps {
   onClearAllDrafts?: () => Promise<void>;
   onTransferTable?: (fromTable: string, toTable: string) => void;
   onMergeTable?: (fromTable: string, toTable: string) => void;
+  onTransferItems?: (sourceTable: string, targetTable: string, items: TransferableCartItem[]) => Promise<void> | void;
   initialTab?: 'floor' | 'list';
   isCurrentCheckPrinted?: boolean;
   onPrintGuestCheck?: (tableNumber: string, draftId?: string) => Promise<void> | void;
@@ -47,6 +52,8 @@ export function PosTablesFloorPlanDialog({
   currentCartItemsCount = 0,
   currentCartTotal = 0,
   heldDrafts,
+  rawHeldDrafts = [],
+  currentCartItems = [],
   settings,
   onSelectTable,
   onRecallDraft,
@@ -54,6 +61,7 @@ export function PosTablesFloorPlanDialog({
   onClearAllDrafts,
   onTransferTable,
   onMergeTable,
+  onTransferItems,
   initialTab = 'floor',
   isCurrentCheckPrinted = false,
   onPrintGuestCheck,
@@ -70,12 +78,59 @@ export function PosTablesFloorPlanDialog({
   const [isReservationsModalOpen, setIsReservationsModalOpen] = useState(false);
   const [isPrintersModalOpen, setIsPrintersModalOpen] = useState(false);
 
+  // Item-level Transfer States
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferSourceTable, setTransferSourceTable] = useState('');
+  const [transferSourceItems, setTransferSourceItems] = useState<TransferableCartItem[]>([]);
+
+  const handleOpenItemTransfer = (tableNum: string) => {
+    let itemsToTransfer: TransferableCartItem[] = [];
+    if (tableNum === currentTableNumber && currentCartItems && currentCartItems.length > 0) {
+      itemsToTransfer = currentCartItems.map((item: any) => ({
+        id: item.id || item.productId,
+        productId: item.productId,
+        name: item.name,
+        qty: Number(item.qty || 1),
+        price: Number(item.price || 0),
+        unitName: item.unitName,
+        modifiers: item.modifiers,
+        notes: item.notes,
+      }));
+    } else if (rawHeldDrafts && rawHeldDrafts.length > 0) {
+      const draft = rawHeldDrafts.find((d: any) => String(d.tableNumber).trim() === String(tableNum).trim());
+      if (draft && draft.cart) {
+        itemsToTransfer = draft.cart.map((item: any) => ({
+          id: item.id || item.productId,
+          productId: item.productId,
+          name: item.name,
+          qty: Number(item.qty || 1),
+          price: Number(item.price || 0),
+          unitName: item.unitName,
+          modifiers: item.modifiers,
+          notes: item.notes,
+        }));
+      }
+    }
+    setTransferSourceTable(tableNum);
+    setTransferSourceItems(itemsToTransfer);
+    setTransferModalOpen(true);
+  };
+
   // Dynamic tables count from settings
   const configuredTablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 12));
   const [tablesCount, setTablesCount] = useState(configuredTablesCount);
   const [isEditingCount, setIsEditingCount] = useState(false);
   const [newTablesCount, setNewTablesCount] = useState(configuredTablesCount);
   const [isSavingCount, setIsSavingCount] = useState(false);
+
+  // Multi-Zone Floor Plan (Dining Sections: Main, Patio, Family, VIP)
+  const activeBranch = (settings as any)?.activeBranchId || (settings as any)?.branchId;
+  const { data: zones = [] } = useQuery({
+    queryKey: ['restaurant-floor-zones', activeBranch],
+    queryFn: () => restaurantAdvancedFnbApi.getZones(activeBranch ? Number(activeBranch) : undefined),
+    enabled: open,
+  });
+  const [selectedZone, setSelectedZone] = useState<string>('all');
 
   // Today's Table Reservations
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -185,6 +240,25 @@ export function PosTablesFloorPlanDialog({
 
   // Dynamic table array based on configured count
   const defaultTables = Array.from({ length: tablesCount }, (_, i) => String(i + 1));
+
+  const activeZone = zones.find((z) => z.zone_code === selectedZone);
+  const zoneTableSet = activeZone && activeZone.table_numbers
+    ? new Set(
+        (Array.isArray(activeZone.table_numbers)
+          ? activeZone.table_numbers
+          : typeof activeZone.table_numbers === 'string'
+          ? (() => {
+              try { return JSON.parse(activeZone.table_numbers); } catch { return []; }
+            })()
+          : []
+        ).map((n: any) => String(n).trim())
+      )
+    : null;
+
+  const displayedTables = defaultTables.filter((t) => {
+    if (selectedZone === 'all' || !zoneTableSet || zoneTableSet.size === 0) return true;
+    return zoneTableSet.has(String(t).trim());
+  });
 
   // Map occupied tables by table number
   const occupiedMap = new Map<string, HeldPosDraftSummary>();
@@ -676,6 +750,25 @@ export function PosTablesFloorPlanDialog({
                     {isTransferring ? 'إلغاء وضع النقل' : 'نقل الطلب إلى طاولة أخرى'}
                   </button>
                 )}
+
+                {Boolean(currentTableNumber && currentCartItemsCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenItemTransfer(currentTableNumber)}
+                    style={{
+                      background: '#ffffff',
+                      color: '#170e5e',
+                      border: '1.5px solid #170e5e',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    نقل أصناف محددة
+                  </button>
+                )}
               </div>
             </div>
 
@@ -728,6 +821,46 @@ export function PosTablesFloorPlanDialog({
               </div>
             )}
 
+            {/* Multi-Zone Dining Tabs */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', marginLeft: '4px' }}>أجنحة الصالة:</span>
+              <button
+                type="button"
+                onClick={() => setSelectedZone('all')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  border: selectedZone === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  background: selectedZone === 'all' ? '#170e5e' : '#fff',
+                  color: selectedZone === 'all' ? '#fff' : '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                كافة الطاولات ({defaultTables.length})
+              </button>
+              {zones.map((z) => (
+                <button
+                  key={z.id}
+                  type="button"
+                  onClick={() => setSelectedZone(z.zone_code)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: selectedZone === z.zone_code ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                    background: selectedZone === z.zone_code ? '#170e5e' : '#fff',
+                    color: selectedZone === z.zone_code ? '#fff' : '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {z.name}
+                </button>
+              ))}
+            </div>
+
             {/* Tables Grid */}
             <div
               style={{
@@ -739,7 +872,7 @@ export function PosTablesFloorPlanDialog({
                 padding: '4px',
               }}
             >
-              {defaultTables.map((tableNum) => {
+              {displayedTables.map((tableNum) => {
                 const occupied = occupiedMap.get(tableNum);
                 const qrOrder = qrOrdersMap.get(tableNum);
                 const kdsTicket = kdsTableMap.get(tableNum);
@@ -747,6 +880,7 @@ export function PosTablesFloorPlanDialog({
                 const hasActiveCall = tableCalls.length > 0;
                 const isBillPaidCall = tableCalls.some((c) => c.call_type === 'bill_paid');
                 const isBillCall = tableCalls.some((c) => c.call_type === 'bill');
+                const isRescueCall = tableCalls.some((c) => c.call_type === 'rescue');
                 const isCurrent = currentTableNumber === tableNum;
                 const hasLiveCart = isCurrent && currentCartItemsCount > 0;
 
@@ -754,7 +888,11 @@ export function PosTablesFloorPlanDialog({
                 let bgColor = '#ffffff';
                 let dotColor = '#10b981';
 
-                if (hasActiveCall) {
+                if (isRescueCall) {
+                  borderColor = '#e11d48';
+                  bgColor = '#fff1f2';
+                  dotColor = '#e11d48';
+                } else if (hasActiveCall) {
                   borderColor = isBillPaidCall ? '#86efac' : isBillCall ? '#f87171' : '#fbbf24';
                   bgColor = isBillPaidCall ? '#f0fdf4' : isBillCall ? '#fef2f2' : '#fffbeb';
                   dotColor = isBillPaidCall ? '#16a34a' : isBillCall ? '#dc2626' : '#d97706';
@@ -874,6 +1012,27 @@ export function PosTablesFloorPlanDialog({
                         <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '1px' }}>
                           {occupied.itemsCount} أصناف • معلقة
                         </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenItemTransfer(tableNum);
+                          }}
+                          style={{
+                            marginTop: '3px',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#170e5e',
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                          title="نقل أصناف محددة من هذه الطاولة إلى طاولة أخرى"
+                        >
+                          نقل أصناف
+                        </button>
                       </div>
                     ) : qrOrder ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
@@ -899,7 +1058,7 @@ export function PosTablesFloorPlanDialog({
                       </div>
                     )}
 
-                    {/* Active Service Call Badge (Waiter / Bill) */}
+                    {/* Active Service Call Badge (Waiter / Bill / Rescue) */}
                     {hasActiveCall && (
                       <div
                         style={{
@@ -908,8 +1067,8 @@ export function PosTablesFloorPlanDialog({
                           justifyContent: 'space-between',
                           gap: '4px',
                           width: '100%',
-                          background: isBillPaidCall ? '#dcfce7' : isBillCall ? '#fee2e2' : '#fef3c7',
-                          border: `1px solid ${isBillPaidCall ? '#86efac' : isBillCall ? '#fca5a5' : '#fde68a'}`,
+                          background: isRescueCall ? '#ffe4e6' : isBillPaidCall ? '#dcfce7' : isBillCall ? '#fee2e2' : '#fef3c7',
+                          border: `1.5px solid ${isRescueCall ? '#f43f5e' : isBillPaidCall ? '#86efac' : isBillCall ? '#fca5a5' : '#fde68a'}`,
                           borderRadius: '6px',
                           padding: '2px 5px',
                           margin: '2px 0',
@@ -919,14 +1078,18 @@ export function PosTablesFloorPlanDialog({
                           style={{
                             fontSize: '9px',
                             fontWeight: 800,
-                            color: isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e',
+                            color: isRescueCall ? '#be123c' : isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px',
                           }}
                         >
-                          <BellIcon size={10} color={isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e'} />
-                          <span>{isBillPaidCall ? 'مسدد إلكترونياً!' : isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
+                          {isRescueCall ? (
+                            <AlertTriangleIcon size={10} color="#be123c" />
+                          ) : (
+                            <BellIcon size={10} color={isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e'} />
+                          )}
+                          <span>{isRescueCall ? 'إنقاذ ضيف (Rescue)!' : isBillPaidCall ? 'مسدد إلكترونياً!' : isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
                         </span>
                         <button
                           type="button"
@@ -936,7 +1099,7 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 800,
                             padding: '1px 5px',
                             borderRadius: '3px',
-                            background: isBillPaidCall ? '#15803d' : isBillCall ? '#dc2626' : '#b45309',
+                            background: isRescueCall ? '#e11d48' : isBillPaidCall ? '#15803d' : isBillCall ? '#dc2626' : '#b45309',
                             color: '#ffffff',
                             border: 'none',
                             cursor: 'pointer',
@@ -1266,6 +1429,21 @@ export function PosTablesFloorPlanDialog({
       <PosKitchenPrintersModal
         open={isPrintersModalOpen}
         onClose={() => setIsPrintersModalOpen(false)}
+      />
+
+      <PosTransferItemModal
+        open={transferModalOpen}
+        onClose={() => setTransferModalOpen(false)}
+        sourceTable={transferSourceTable}
+        sourceItems={transferSourceItems}
+        allTables={defaultTables}
+        occupiedTables={Array.from(occupiedMap.keys())}
+        onConfirmTransfer={async (targetTable, transferredItems) => {
+          if (onTransferItems) {
+            await onTransferItems(transferSourceTable, targetTable, transferredItems);
+            setTransferModalOpen(false);
+          }
+        }}
       />
     </DialogShell>
   );

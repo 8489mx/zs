@@ -1,5 +1,5 @@
 import React from 'react';
-import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
+import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon, ArrowRightIcon, BanIcon } from '@/shared/components/icons/AppIcons';
 
 interface KdsHeaderProps {
   currentTime: string;
@@ -9,6 +9,8 @@ interface KdsHeaderProps {
   isRecalling: boolean;
   onToggleFullscreen: () => void;
   onBack?: () => void;
+  onOpen86Modal?: () => void;
+  active86Count?: number;
 }
 
 export const KdsHeader: React.FC<KdsHeaderProps> = ({
@@ -19,6 +21,8 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
   isRecalling,
   onToggleFullscreen,
   onBack,
+  onOpen86Modal,
+  active86Count = 0,
 }) => {
   return (
     <header
@@ -119,6 +123,46 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
             >
               <ArrowRightIcon size={14} color="#ffffff" strokeWidth={2.5} />
               <span>العودة للنظام</span>
+            </button>
+          )}
+
+          {/* 86 Items Fast Exclusion */}
+          {onOpen86Modal && (
+            <button
+              type="button"
+              onClick={onOpen86Modal}
+              style={{
+                backgroundColor: active86Count > 0 ? '#fee2e2' : '#f8fafc',
+                color: active86Count > 0 ? '#991b1b' : '#334155',
+                border: active86Count > 0 ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '7px 12px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              title="إدارة واستبعاد الأصناف النافذة بالمطبخ (86'd Items)"
+            >
+              <BanIcon size={14} color={active86Count > 0 ? '#dc2626' : '#64748b'} />
+              <span>أصناف 86</span>
+              {active86Count > 0 && (
+                <span
+                  style={{
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 900,
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {active86Count}
+                </span>
+              )}
             </button>
           )}
 

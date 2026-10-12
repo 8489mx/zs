@@ -36,6 +36,7 @@ interface PosWorkspaceActions {
   setQty: (lineKey: string, qty: number) => void;
   setItemNote: (lineKey: string, notes: string) => void;
   setItemModifiers: (lineKey: string, modifiers: any[]) => void;
+  setItemSeat: (lineKey: string, seatNumber?: number) => void;
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
@@ -127,6 +128,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     setQty: base.setQty,
     setItemNote: base.setItemNote,
     setItemModifiers: base.setItemModifiers,
+    setItemSeat: base.setItemSeat,
     removeItem: (lineKey: string) => {
       logCartRemoveEvent(lineKey);
       base.removeItem(lineKey);

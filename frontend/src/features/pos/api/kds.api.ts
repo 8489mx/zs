@@ -15,6 +15,8 @@ export interface KdsTicketItem {
   notes?: string;
   status: KdsItemStatus;
   station: KdsStation;
+  prepTimeMinutes?: number;
+  seatNumber?: number;
 }
 
 export interface KdsTicket {

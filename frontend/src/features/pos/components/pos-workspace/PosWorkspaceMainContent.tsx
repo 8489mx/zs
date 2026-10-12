@@ -212,6 +212,7 @@ export function PosWorkspaceMainContent({
             onQtyChange={pos.setQty}
             onItemNoteChange={pos.setItemNote}
             onItemModifiersClick={onItemModifiersClick}
+            onItemSeatChange={pos.setItemSeat}
             onEditProduct={onEditProduct}
             onRemoveItem={onRequestLineDelete}
             onSelectLine={pos.selectCartLine}

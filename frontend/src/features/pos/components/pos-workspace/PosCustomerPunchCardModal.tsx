@@ -1,0 +1,183 @@
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { StandardDialog } from '@/shared/components/StandardDialog';
+import { toast } from '@/shared/components/system-alert';
+import { CheckCircleIcon, PlusCircleIcon } from '@/shared/components/icons/AppIcons';
+import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
+
+interface PosCustomerPunchCardModalProps {
+  open: boolean;
+  onClose: () => void;
+  customerId: number;
+  customerName?: string;
+}
+
+export function PosCustomerPunchCardModal({
+  open,
+  onClose,
+  customerId,
+  customerName = 'العميل',
+}: PosCustomerPunchCardModalProps) {
+  const { data: card, refetch } = useQuery({
+    queryKey: ['restaurant-stamp-card', customerId],
+    queryFn: () => restaurantAdvancedFnbApi.getStampCard(customerId),
+    enabled: open && !!customerId,
+  });
+
+  const stampMutation = useMutation({
+    mutationFn: (count: number) => restaurantAdvancedFnbApi.addCustomerStamp(customerId, count),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      refetch();
+    },
+    onError: () => {
+      toast.error('تعذر إضافة الختم للعميل');
+    },
+  });
+
+  const target = card?.target_stamps || 6;
+  const current = card?.current_stamps || 0;
+  const completed = card?.total_completed_cards || 0;
+  const rewardDesc = card?.reward_description || 'مشروب مجاني عند اكتمال الختم';
+
+  const stampSlots = Array.from({ length: target }, (_, i) => i < current);
+
+  return (
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="كرت الأختام الرقمي للعميل (Digital Stamp Loyalty Card)"
+      subtitle={`برنامج ولاء المقاهي والمطاعم المباشر للعميل: ${customerName}`}
+      width="min(560px, 94vw)"
+      compact
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', padding: '10px 0' }}>
+        {/* Visual Punch Card Simulation */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '460px',
+            background: 'linear-gradient(135deg, #170e5e 0%, #2e1065 100%)',
+            borderRadius: '16px',
+            padding: '20px',
+            color: '#fff',
+            boxShadow: '0 8px 24px rgba(23, 14, 94, 0.25)',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: '#c4b5fd', fontWeight: 600 }}>كوبون الولاء الرقمي</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '0.3px' }}>{card?.program_name || 'كوبون المشروبات والقهوة'}</div>
+            </div>
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                color: '#fef08a',
+              }}
+            >
+              {completed} كروت مكتملة
+            </div>
+          </div>
+
+          {/* Stamp Circles Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${Math.min(target, 6)}, 1fr)`,
+              gap: '12px',
+              margin: '18px 0',
+            }}
+          >
+            {stampSlots.map((isStamped, idx) => (
+              <div
+                key={idx}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: '50%',
+                  border: isStamped ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)',
+                  background: isStamped ? '#16a34a' : 'rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: isStamped ? '0 0 10px rgba(74, 222, 128, 0.5)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {isStamped ? (
+                  <CheckCircleIcon size={20} color="#ffffff" />
+                ) : (
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Reward Footer */}
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+            }}
+          >
+            <span>المكافأة: <strong>{rewardDesc}</strong></span>
+            <span style={{ color: '#c4b5fd', fontWeight: 700 }}>
+              {target - current > 0 ? `متبقي ${target - current} أختام` : 'مكافأة جاهزة!'}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '460px' }}>
+          <button
+            type="button"
+            onClick={() => stampMutation.mutate(1)}
+            disabled={stampMutation.isPending}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              background: '#16a34a',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <PlusCircleIcon size={16} />
+            <span>ختم الكرت الآن (+1 ختم)</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              color: '#334155',
+              fontSize: '13px',
+              fontWeight: 700,
+              border: '1px solid #cbd5e1',
+              cursor: 'pointer',
+            }}
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </StandardDialog>
+  );
+}

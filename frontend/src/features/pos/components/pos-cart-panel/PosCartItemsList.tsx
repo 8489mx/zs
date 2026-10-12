@@ -14,6 +14,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   onSelectLine,
   onEditProduct,
   onItemNoteChange,
+  onItemSeatChange,
   onItemModifiersClick,
   onQtyChange,
   onChangeLineQtyByDelta,
@@ -98,17 +99,42 @@ const PosCartItemRow = memo(function PosCartItemRow({
             <strong>{item.serials.join(', ')}</strong> :IMEI <SmartphoneIcon size={12} color="#7e22ce" />
           </div>
         )}
-        {onItemModifiersClick && allowItemModifiers && (
-          <button
-            type="button"
-            style={{ fontSize: '0.75rem', color: '#170c5c', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px', marginTop: '4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.6 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onItemModifiersClick(item.lineKey);
-            }}
-          >
-            + إضافات
-          </button>
+        {allowItemModifiers && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+            {onItemModifiersClick && (
+              <button
+                type="button"
+                style={{ fontSize: '0.72rem', color: '#170c5c', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '1px 6px', cursor: 'pointer', opacity: isSelected ? 1 : 0.8 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onItemModifiersClick(item.lineKey);
+                }}
+              >
+                + إضافات
+              </button>
+            )}
+            <button
+              type="button"
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: item.seatNumber ? '#1e40af' : '#475569',
+                background: item.seatNumber ? '#dbeafe' : '#f1f5f9',
+                border: '1px solid ' + (item.seatNumber ? '#93c5fd' : '#cbd5e1'),
+                borderRadius: '4px',
+                padding: '1px 6px',
+                cursor: 'pointer',
+              }}
+              title="انقر لتغيير مقعد الضيف على الطاولة"
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextSeat = ((item.seatNumber || 1) % 6) + 1;
+                onItemSeatChange?.(item.lineKey, nextSeat);
+              }}
+            >
+              مقعد {item.seatNumber || 1}
+            </button>
+          </div>
         )}
       </div>
 
@@ -216,7 +242,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   );
 });
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
@@ -237,6 +263,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const handleEditProduct = useCallback((productId: string) => onEditProduct?.(productId), [onEditProduct]);
   const handleItemNoteChange = useCallback((lineKey: string, note: string) => onItemNoteChange(lineKey, note), [onItemNoteChange]);
   const handleItemModifiersClick = useCallback((lineKey: string) => onItemModifiersClick?.(lineKey), [onItemModifiersClick]);
+  const handleItemSeatChange = useCallback((lineKey: string, seat?: number) => onItemSeatChange?.(lineKey, seat), [onItemSeatChange]);
   const handleQtyChange = useCallback((lineKey: string, qty: number) => onQtyChange(lineKey, qty), [onQtyChange]);
   const handleChangeLineQtyByDelta = useCallback((lineKey: string, delta: number) => onChangeLineQtyByDelta?.(lineKey, delta), [onChangeLineQtyByDelta]);
   const handleRemoveItem = useCallback((lineKey: string) => onRemoveItem(lineKey), [onRemoveItem]);
@@ -295,6 +322,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               onEditProduct={handleEditProduct}
               onItemNoteChange={handleItemNoteChange}
               onItemModifiersClick={handleItemModifiersClick}
+              onItemSeatChange={handleItemSeatChange}
               onQtyChange={handleQtyChange}
               onChangeLineQtyByDelta={handleChangeLineQtyByDelta}
               onRemoveItem={handleRemoveItem}

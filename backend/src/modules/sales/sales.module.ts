@@ -38,6 +38,8 @@ import { KitchenPrintersController } from './controllers/kitchen-printers.contro
 import { KitchenPrintersService } from './services/kitchen-printers.service';
 import { TableServiceCallsController } from './controllers/table-service-calls.controller';
 import { TableServiceCallsService } from './services/table-service-calls.service';
+import { RestaurantAdvancedFnbController } from './controllers/restaurant-advanced-fnb.controller';
+import { RestaurantAdvancedFnbService } from './services/restaurant-advanced-fnb.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule, ReturnsModule],
@@ -54,6 +56,7 @@ import { TableServiceCallsService } from './services/table-service-calls.service
     TableReservationsController,
     KitchenPrintersController,
     TableServiceCallsController,
+    RestaurantAdvancedFnbController,
     CommercialSubscriptionController,
     SalesController,
   ],
@@ -75,6 +78,7 @@ import { TableServiceCallsService } from './services/table-service-calls.service
     TableReservationsService,
     KitchenPrintersService,
     TableServiceCallsService,
+    RestaurantAdvancedFnbService,
     CommercialSubscriptionService,
   ],
   exports: [

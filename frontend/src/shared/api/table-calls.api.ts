@@ -5,7 +5,7 @@ export interface TableServiceCall {
   tenant_id: string;
   branch_id?: number | null;
   table_number: string;
-  call_type: 'waiter' | 'bill' | 'water' | 'clean' | 'bill_paid';
+  call_type: 'waiter' | 'bill' | 'water' | 'clean' | 'bill_paid' | 'rescue';
   status: 'pending' | 'resolved';
   bill_amount?: number | null;
   tip_amount?: number | null;

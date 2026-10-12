@@ -128,6 +128,41 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
     setBills((prev) => prev.filter((b) => b.id !== billId));
   };
 
+  // Instant 1-Click Split by Seat
+  const handleSplitBySeat = () => {
+    const seatMap = new Map<number, PosItem[]>();
+    for (const item of pos.cart || []) {
+      const s = item.seatNumber || 1;
+      if (!seatMap.has(s)) seatMap.set(s, []);
+      seatMap.get(s)!.push({ ...item });
+    }
+
+    const generatedBills: SplitBill[] = [];
+    Array.from(seatMap.entries())
+      .sort(([a], [b]) => a - b)
+      .forEach(([seat, items]) => {
+        generatedBills.push({
+          id: `seat-${seat}`,
+          name: `شيك مقعد ${seat}`,
+          items,
+          isPaid: false,
+        });
+      });
+
+    if (generatedBills.length === 0) {
+      generatedBills.push({
+        id: 'seat-1',
+        name: 'شيك مقعد 1',
+        items: (pos.cart || []).map((i) => ({ ...i })),
+        isPaid: false,
+      });
+    }
+
+    setBills(generatedBills);
+    setSplitMode('items');
+    setStatusMessage(`تم توزيع الأصناف تلقائياً على ${generatedBills.length} شيكات حسب أرقام المقاعد.`);
+  };
+
   // Move item from one bill to another
   const handleMoveItem = (fromBillId: string, toBillId: string, itemLineKey: string, moveQty?: number) => {
     setBills((prev) => {
@@ -434,6 +469,27 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                 }}
               >
                 تقسيم بالتساوي (ضيوف)
+              </button>
+              <button
+                type="button"
+                onClick={handleSplitBySeat}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #bfdbfe',
+                  background: '#eff6ff',
+                  color: '#1e40af',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="توزيع فوري لأصناف السلة على شيكات مستقلة حسب مقعد كل ضيف"
+              >
+                <UsersIcon size={14} color="#1e40af" />
+                توزيع فوري حسب المقاعد (Seat Split)
               </button>
             </div>
           </div>
