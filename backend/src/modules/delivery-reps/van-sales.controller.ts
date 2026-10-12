@@ -7,6 +7,7 @@ import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { AppError } from '../../common/errors/app-error';
 
 @Controller('api/driver-portal/van-sales')
 export class VanSalesController {
@@ -76,10 +77,20 @@ export class VanSalesController {
   @Post('trips/open')
   async openTrip(
     @Headers('authorization') authHeader: string,
-    @Body() body: { sourceWarehouseId?: number; items?: { productId: number; qty: number }[]; notes?: string },
+    @Body() body: { sourceWarehouseId?: number; items?: { productId: number; qty: number }[]; notes?: string; startOdometer?: number; vehicleId?: number },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
-    return this.vanSalesService.openTripAndLoad(driver.repId, driver.tenantId, driver.accountId, body);
+    if (body?.items && Array.isArray(body.items) && body.items.length > 0) {
+      throw new AppError(
+        'سحب البضاعة المباشر من المستودع غير مسموح للمندوب؛ يرجى رفع طلب تحميل (إذن صرف) لاعتماده من أمين المستودع أو المشرف',
+        'DIRECT_WAREHOUSE_LOAD_FORBIDDEN',
+        403,
+      );
+    }
+    return this.vanSalesService.openTripAndLoad(driver.repId, driver.tenantId, driver.accountId, {
+      ...body,
+      items: [],
+    });
   }
 
   @Post('trips/settle')
@@ -93,9 +104,33 @@ export class VanSalesController {
       unloadRemainingToWarehouse: boolean;
       activeVisitCustomerId?: number;
       notes?: string;
+      supervisorPin?: string;
+      supervisorOverridePin?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const pinToVerify = String(body?.supervisorPin || body?.supervisorOverridePin || '').trim();
+    if (!pinToVerify) {
+      throw new AppError(
+        'إغلاق وتصفية رحلة التوزيع نهائياً من تطبيق المندوب يتطلب رمز اعتماد المشرف (Supervisor PIN)؛ أو يمكنك الضغط على "تقديم طلب التصفية للمشرف" لمراجعتها واعتمادها من لوحة الإدارة',
+        'SETTLEMENT_REQUIRES_SUPERVISOR_PIN',
+        403,
+      );
+    }
+    const pinVerification = await this.vanSalesService.verifySupervisorPin(
+      driver.tenantId,
+      pinToVerify,
+      driver.repId,
+    );
+    const supervisorAuthContext = {
+      userId: Number(pinVerification.supervisorId || 0),
+      sessionId: 'supervisor-pin-settlement',
+      username: String(pinVerification.supervisorName || 'supervisor'),
+      role: (pinVerification.supervisorRole || 'supervisor') as any,
+      permissions: ['deliveryReps', 'sales', 'inventory', 'accounting'] as any,
+      tenantId: driver.tenantId,
+      accountId: driver.accountId,
+    };
     return this.vanSalesService.settleTrip(
       driver.repId,
       driver.tenantId,
@@ -105,11 +140,14 @@ export class VanSalesController {
         countedCash: body.countedCash,
         unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
         nightStockApproved: !body.unloadRemainingToWarehouse,
-        nightStockNotes: !body.unloadRemainingToWarehouse ? 'تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي' : undefined,
+        nightStockNotes: !body.unloadRemainingToWarehouse
+          ? `تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي باعتماد المشرف (${pinVerification.supervisorName})`
+          : undefined,
         endOdometer: body.endOdometer,
         activeVisitCustomerId: body.activeVisitCustomerId,
         notes: body.notes,
       },
+      supervisorAuthContext,
     );
   }
 
@@ -188,7 +226,7 @@ export class VanSalesController {
     @Param('customerId', ParseIntPipe) customerId: number,
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
-    const sales = await this.vanSalesService.getCustomerEligibleSales(driver.tenantId, customerId);
+    const sales = await this.vanSalesService.getCustomerEligibleSales(driver.tenantId, customerId, driver.repId);
     return { ok: true, sales };
   }
 
@@ -401,7 +439,7 @@ export class VanSalesController {
   async recordTripExpense(
     @Headers('authorization') authHeader: string,
     @Param('tripId', ParseIntPipe) tripId: number,
-    @Body() body: { expenseType: string; amount: number; notes?: string; receiptPhotoUrl?: string },
+    @Body() body: { expenseType: string; amount: number; notes?: string; receiptPhotoUrl?: string; supervisorOverridePin?: string },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.recordTripExpense(driver.repId, driver.tenantId, driver.accountId, {
@@ -514,6 +552,43 @@ export class VanSalesAdminController {
   ) {
     const { tenantId, accountId } = requireTenantScope(req.authContext!);
     return this.vanPreSalesService.rejectPreSalesOrder(id, Number(req.authContext!.userId), tenantId, accountId, reason);
+  }
+
+  @Post('pre-sales-orders/consolidate-requisition')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async consolidatePreSalesOrdersToRequisition(
+    @Req() req: RequestWithAuth,
+    @Body()
+    body: {
+      orderIds: number[];
+      targetRepId: number;
+      sourceWarehouseId?: number;
+      notes?: string;
+    },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.consolidatePreSalesOrdersToRequisition(
+      tenantId,
+      accountId,
+      Number(req.authContext!.userId),
+      body,
+    );
+  }
+
+  @Post('pre-sales-orders/:id/convert-invoice')
+  @RequireAnyPermission('deliveryReps', 'sales')
+  async convertPreSalesOrderToInvoice(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body?: {
+      paymentType?: 'cash' | 'credit';
+      paidAmount?: number;
+      notes?: string;
+    },
+  ) {
+    requireTenantScope(req.authContext!);
+    return this.vanPreSalesService.convertPreSalesOrderToInvoice(id, req.authContext!, body);
   }
 
   @Get('trips')
@@ -810,15 +885,28 @@ export class VanSalesAdminController {
     @Query('month') month?: string,
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
-    const targets = await this.vanSalesService.listAllRepTargets(tenantId, month);
-    return { ok: true, targets };
+    const [targets, commissionConfig] = await Promise.all([
+      this.vanSalesService.listAllRepTargets(tenantId, month),
+      this.vanSalesService.getCommissionConfig(tenantId),
+    ]);
+    return { ok: true, targets, commissionConfig };
   }
 
   @Post('targets')
   @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
   async setRepTarget(
     @Req() req: RequestWithAuth,
-    @Body() body: { repId: number; month: string; targetAmount: number; collectionTarget?: number | null; visitsTarget?: number | null },
+    @Body()
+    body: {
+      repId: number;
+      month: string;
+      targetAmount: number;
+      collectionTarget?: number | null;
+      visitsTarget?: number | null;
+      salesCommissionRatePercent?: number;
+      collectionCommissionRatePercent?: number;
+      targetBonusRatePercent?: number;
+    },
   ) {
     const { tenantId, accountId } = requireTenantScope(req.authContext!);
     const res = await this.vanSalesService.setRepTarget(
@@ -829,8 +917,54 @@ export class VanSalesAdminController {
       Number(body.targetAmount),
       body.collectionTarget !== undefined && body.collectionTarget !== null ? Number(body.collectionTarget) : undefined,
       body.visitsTarget !== undefined && body.visitsTarget !== null ? Number(body.visitsTarget) : undefined,
+      {
+        salesCommissionRatePercent: body.salesCommissionRatePercent,
+        collectionCommissionRatePercent: body.collectionCommissionRatePercent,
+        targetBonusRatePercent: body.targetBonusRatePercent,
+      },
     );
     return res;
+  }
+
+  @Get('targets/commission-config')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getCommissionConfig(@Req() req: RequestWithAuth) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const config = await this.vanSalesService.getCommissionConfig(tenantId);
+    return { ok: true, config };
+  }
+
+  @Post('targets/commission-config')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async saveCommissionConfig(
+    @Req() req: RequestWithAuth,
+    @Body()
+    body: {
+      salesCommissionRatePercent?: number;
+      collectionCommissionRatePercent?: number;
+      targetBonusRatePercent?: number;
+      repId?: number;
+    },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    const config = await this.vanSalesService.saveCommissionConfig(tenantId, accountId, body);
+    return { ok: true, config };
+  }
+
+  @Post('targets/settle-commission')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async settleRepCommission(
+    @Req() req: RequestWithAuth,
+    @Body()
+    body: {
+      repId: number;
+      periodMonth: string;
+      amount?: number;
+      notes?: string;
+    },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.settleRepCommission(tenantId, accountId, req.authContext!, body);
   }
 
   // Route KPIs & Field Visits Endpoints
@@ -880,6 +1014,7 @@ export class VanSalesAdminController {
       customerCode?: string;
       locationUrl?: string;
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
       assignedRepName?: string;
     },
   ) {
@@ -915,6 +1050,8 @@ export class VanSalesAdminController {
     body: {
       customerIds: number[];
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
+      appendReps?: boolean;
       assignedRepName?: string;
       route?: string;
       visitDays?: string[];

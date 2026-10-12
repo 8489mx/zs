@@ -143,6 +143,7 @@ export function VanRoutesKpiAdminTab() {
   const [sequenceInput, setSequenceInput] = useState('1');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [assignedRepId, setAssignedRepId] = useState<string>('');
+  const [assignedRepIds, setAssignedRepIds] = useState<number[]>([]);
 
   const scheduleMutation = useMutation({
     mutationFn: (payload: {
@@ -151,6 +152,7 @@ export function VanRoutesKpiAdminTab() {
       routeSequence: number;
       visitDays: string[];
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
       assignedRepName?: string;
     }) => vanSalesApi.setCustomerRouteSchedule(payload.customerId, payload),
     onSuccess: () => {
@@ -172,6 +174,21 @@ export function VanRoutesKpiAdminTab() {
     setSequenceInput(String(customer.routeSequence || 1));
     setSelectedDays(Array.isArray(customer.visitDays) && customer.visitDays.length > 0 ? customer.visitDays : ['saturday', 'monday', 'wednesday']);
     setAssignedRepId(customer.assignedRepId ? String(customer.assignedRepId) : '');
+    const initRepIds =
+      Array.isArray(customer.assignedRepIds) && customer.assignedRepIds.length > 0
+        ? customer.assignedRepIds
+        : customer.assignedRepId
+          ? [customer.assignedRepId]
+          : [];
+    setAssignedRepIds(initRepIds);
+  };
+
+  const handleToggleRepAssignment = (repIdNum: number) => {
+    setAssignedRepIds((prev) => {
+      const next = prev.includes(repIdNum) ? prev.filter((id) => id !== repIdNum) : [...prev, repIdNum];
+      setAssignedRepId(next.length > 0 ? String(next[0]) : '');
+      return next;
+    });
   };
 
   const handleToggleDay = (dayId: string) => {
@@ -353,7 +370,7 @@ export function VanRoutesKpiAdminTab() {
       </div>
 
       {/* KPI Highlights Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))', gap: '12px' }}>
         <div
           style={{
             background: '#ffffff',
@@ -386,6 +403,24 @@ export function VanRoutesKpiAdminTab() {
             {kpiData?.strikeRate ?? 0}%
           </span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>نسبة تحويل الزيارة إلى فاتورة بيع فعلية</span>
+        </div>
+
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          }}
+        >
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4338ca', display: 'block' }}>الالتزام بالنطاق الجغرافي (Geofence)</span>
+          <span style={{ fontSize: '22px', fontWeight: 900, color: '#170e5e', display: 'block', marginTop: '4px' }}>
+            {kpiData?.geofenceComplianceRate ?? 100}%
+          </span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>
+            ضمن 300م: {kpiData?.withinGeofenceCount ?? 0} • خارج النطاق: {kpiData?.outOfGeofenceCount ?? 0}
+          </span>
         </div>
 
         <div
@@ -762,6 +797,7 @@ export function VanRoutesKpiAdminTab() {
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>المندوب</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>النتيجة</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>السبب / الفاتورة</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>النطاق الجغرافي (Geofence)</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>تاريخ التأجيل</th>
                     <th style={{ padding: '10px 14px', fontWeight: 700 }}>توقيت الزيارة</th>
                   </tr>
@@ -802,6 +838,53 @@ export function VanRoutesKpiAdminTab() {
                           </span>
                         )}
                         {v.notes && <div style={{ fontSize: '11px', color: '#64748b' }}>{v.notes}</div>}
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                          {v.geofenceStatus === 'within_range' ? (
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                backgroundColor: '#dcfce7',
+                                color: '#15803d',
+                                border: '1px solid #bbf7d0',
+                              }}
+                            >
+                              ضمن النطاق ({v.distanceMeters}م)
+                            </span>
+                          ) : v.geofenceStatus === 'out_of_range' ? (
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                backgroundColor: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                              }}
+                            >
+                              خارج النطاق ({v.distanceMeters}م)
+                            </span>
+                          ) : v.gpsLat && v.gpsLng ? (
+                            <span style={{ fontSize: '10px', color: '#64748b' }}>مسجل GPS (بدون إحداثيات محل)</span>
+                          ) : (
+                            <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>—</span>
+                          )}
+                          {v.gpsLat && v.gpsLng && (
+                            <a
+                              href={`https://www.google.com/maps?q=${v.gpsLat},${v.gpsLng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: '10.5px', color: '#2563eb', fontWeight: 700, textDecoration: 'none' }}
+                            >
+                              فتح موقع المندوب
+                            </a>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '10px 14px', fontSize: '11.5px', color: '#475569' }}>
                         {v.postponedToDate ? v.postponedToDate : '—'}
@@ -1074,7 +1157,29 @@ export function VanRoutesKpiAdminTab() {
                           )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
-                          {c.assignedRepName ? (
+                          {Array.isArray(c.assignedRepNames) && c.assignedRepNames.length > 0 ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {c.assignedRepNames.map((rName, idx) => (
+                                <span
+                                  key={`${c.customerId}-rep-${idx}`}
+                                  style={{
+                                    background: '#e0f2fe',
+                                    color: '#0369a1',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    fontWeight: 700,
+                                    fontSize: '11.5px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <TruckIcon size={12} />
+                                  {rName}
+                                </span>
+                              ))}
+                            </div>
+                          ) : c.assignedRepName ? (
                             <span
                               style={{
                                 background: '#e0f2fe',
@@ -1149,8 +1254,39 @@ export function VanRoutesKpiAdminTab() {
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: Number(c.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
-                          {Number(c.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                        <td style={{ padding: '10px 14px', textAlign: 'left', minWidth: '170px' }}>
+                          <div style={{ fontWeight: 800, fontSize: '13px', color: Number(c.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
+                            إجمالي: {Number(c.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                          </div>
+                          {Array.isArray(c.repBalances) && c.repBalances.filter((rb) => rb.balance !== 0).length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                              {c.repBalances
+                                .filter((rb) => rb.balance !== 0)
+                                .map((rb) => (
+                                  <div
+                                    key={`${c.customerId}-bal-${rb.repId}`}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: '#fff1f2',
+                                      border: '1px solid #fecdd3',
+                                      borderRadius: '5px',
+                                      padding: '2px 6px',
+                                      fontSize: '10.5px',
+                                      color: '#9f1239',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    <span>{rb.repName}:</span>
+                                    <span>
+                                      {Number(rb.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                           <Button
@@ -1177,70 +1313,140 @@ export function VanRoutesKpiAdminTab() {
         <StandardDialog
           open={Boolean(editingCustomer)}
           onClose={() => setEditingCustomer(null)}
-          title={`تخصيص خط ومندوب: ${editingCustomer.customerName}`}
+          title={`تخصيص خط ومناديب: ${editingCustomer.customerName}`}
           subtitle={`كود المحل: [${editingCustomer.customerCode ? editingCustomer.customerCode.replace(/^#/, '') : `C-${String(editingCustomer.customerId).padStart(4, '0')}`}]`}
-          maxWidth="520px"
+          maxWidth="620px"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            {/* Assigned Rep Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+            {/* Per-Rep Balance Breakdown Card for Supervisor */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '10px 14px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                  إجمالي مديونية العميل للمنشأة:
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: Number(editingCustomer.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
+                  {Number(editingCustomer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                </span>
+              </div>
+              {Array.isArray(editingCustomer.repBalances) && editingCustomer.repBalances.filter((rb) => rb.balance !== 0).length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '6px', marginTop: '6px' }}>
+                  {editingCustomer.repBalances
+                    .filter((rb) => rb.balance !== 0)
+                    .map((rb) => (
+                      <div
+                        key={`modal-bal-${rb.repId}`}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #fecdd3',
+                          borderRadius: '7px',
+                          padding: '6px 10px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '11.5px',
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{rb.repName}</span>
+                        <span style={{ fontWeight: 800, color: '#be123c' }}>
+                          {Number(rb.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  لا توجد مديونيات مجزأة حالياً على المناديب لهذا العميل.
+                </div>
+              )}
+            </div>
+
+            {/* Assigned Reps Multi-Selector */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                مندوب الفان المسؤول (Assigned Rep):
+                مناديب الفان المسؤولون عن المحل (يمكن اختيار مندوب أو أكثر مع عزل حساب كل مندوب):
               </label>
-              <CustomSelect
-                value={assignedRepId}
-                onChange={(val) => setAssignedRepId(val)}
-                options={singleRepOptions}
-                placeholder="اختر مندوب الفان المسؤول عن المتجر..."
-              />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '6px' }}>
+                {vanReps.map((r) => {
+                  const isSelectedRep = assignedRepIds.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => handleToggleRepAssignment(r.id)}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: '7px',
+                        border: isSelectedRep ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                        background: isSelectedRep ? '#170e5e' : '#ffffff',
+                        color: isSelectedRep ? '#ffffff' : '#334155',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                      {isSelectedRep && <CheckIcon size={13} />}
+                    </button>
+                  );
+                })}
+              </div>
               <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                عند تخصيص مندوب، سيظهر هذا المحل حصرياً في خطة زيارات وتطبيق هذا المندوب.
+                حساب ومديونية وتحصيل كل مندوب مع المحل معزول تماماً عن المناديب الآخرين.
               </small>
             </div>
 
-            {/* Route Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                اسم خط السير (Route Name) <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="مثال: خط الهرم والجيزة، خط فيصل، خط أكتوبر..."
-                value={routeInput}
-                onChange={(e) => setRouteInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
+            {/* Route Name & Sequence in 2-Column Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  اسم خط السير (Route Name) <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: خط الهرم والجيزة، خط فيصل..."
+                  value={routeInput}
+                  onChange={(e) => setRouteInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
 
-            {/* Sequence in Route */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                الترتيب التسلسلي للزيارة في مسار السيارة
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={sequenceInput}
-                onChange={(e) => setSequenceInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <small style={{ color: '#64748b', fontSize: '11px', marginTop: '3px', display: 'block' }}>
-                المحل رقم 1 يظهر كأول محطة في خط سير سيارة التوزيع
-              </small>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  الترتيب التسلسلي بالخط
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={sequenceInput}
+                  onChange={(e) => setSequenceInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
             </div>
 
             {/* Weekly Visit Days */}
@@ -1263,7 +1469,7 @@ export function VanRoutesKpiAdminTab() {
                         background: isChecked ? '#170e5e' : '#f8fafc',
                         color: isChecked ? '#ffffff' : '#334155',
                         fontSize: '12px',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1279,7 +1485,7 @@ export function VanRoutesKpiAdminTab() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingCustomer(null)}>
                 إلغاء
               </Button>
@@ -1287,17 +1493,20 @@ export function VanRoutesKpiAdminTab() {
                 variant="primary"
                 disabled={scheduleMutation.isPending}
                 onClick={() => {
-                  const repObj = vanReps.find((r) => String(r.id) === assignedRepId);
-                  const repName = repObj ? repObj.name : undefined;
-                  const repIdNum = assignedRepId ? parseInt(assignedRepId, 10) : null;
+                  const primaryRepId = assignedRepIds.length > 0 ? assignedRepIds[0] : (assignedRepId ? parseInt(assignedRepId, 10) : null);
+                  const repNames = assignedRepIds
+                    .map((id) => vanReps.find((r) => r.id === id)?.name)
+                    .filter(Boolean)
+                    .join(' ، ');
 
                   scheduleMutation.mutate({
                     customerId: editingCustomer.customerId,
                     route: routeInput.trim() || 'غير محدد',
                     routeSequence: parseInt(sequenceInput, 10) || 1,
                     visitDays: selectedDays,
-                    assignedRepId: repIdNum,
-                    assignedRepName: repName,
+                    assignedRepId: primaryRepId,
+                    assignedRepIds,
+                    assignedRepName: repNames || undefined,
                   });
                 }}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}

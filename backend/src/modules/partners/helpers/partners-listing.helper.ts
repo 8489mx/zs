@@ -22,7 +22,10 @@ export function parsePartnersListQuery(query: Record<string, unknown>): Partners
   return { page, pageSize, q, filter, isUnpagedDefault };
 }
 
-export function mapCustomerRow(row: CustomerRow): Record<string, unknown> {
+export function mapCustomerRow(
+  row: CustomerRow,
+  repBalances?: Array<{ repId: number; repName: string; balance: number; totalDebit: number; totalCredit: number }>,
+): Record<string, unknown> {
   let meta: any = {};
   if (typeof row.metadata === 'string') {
     try { meta = JSON.parse(row.metadata); } catch { meta = {}; }
@@ -40,6 +43,7 @@ export function mapCustomerRow(row: CustomerRow): Record<string, unknown> {
     address: row.address || '',
     customerCode: custCode,
     balance: Number(row.balance || 0),
+    repBalances: repBalances || [],
     type: row.customer_type || 'cash',
     creditLimit: Number(row.credit_limit || 0),
     storeCreditBalance: Number(row.store_credit_balance || 0),
@@ -65,9 +69,22 @@ export function mapSupplierRow(row: SupplierRow): Record<string, unknown> {
 export function buildCustomerSearchPredicate(q: string) {
   if (!q) return null;
   const term = `%${normalizeArabicSearch(q)}%`;
+  const codeDigitsMatch = q.trim().match(/^(?:c-|#)?0*(\d+)$/i);
+  const numericId = codeDigitsMatch ? Number(codeDigitsMatch[1]) : null;
+  if (numericId && Number.isInteger(numericId) && numericId > 0) {
+    return sql<boolean>`(
+      id = ${numericId}
+      OR LPAD(CAST(id AS TEXT), 4, '0') LIKE ${term}
+      OR TRANSLATE(LOWER(COALESCE(name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+      OR lower(phone) like ${term}
+      OR lower(cast(coalesce(metadata, '{}') as text)) like ${term}
+    )`;
+  }
   return sql<boolean>`(
     TRANSLATE(LOWER(COALESCE(name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
     OR lower(phone) like ${term}
+    OR LPAD(CAST(id AS TEXT), 4, '0') LIKE ${term}
+    OR lower(cast(coalesce(metadata, '{}') as text)) like ${term}
     OR TRANSLATE(LOWER(COALESCE(address, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
     OR lower(customer_type) like ${term}
     OR TRANSLATE(LOWER(COALESCE(company_name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}

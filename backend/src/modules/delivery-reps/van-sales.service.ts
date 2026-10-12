@@ -15,6 +15,8 @@ import {
   evaluateOdometerReadings,
   evaluateMakerCheckerSettlement,
   evaluateNightStockRetention,
+  evaluateFieldCardPayment,
+  evaluateTripExpenseGovernance,
 } from './van-trip-reconciliation.engine';
 import {
   sortItemsByProductId,
@@ -25,8 +27,18 @@ import {
   FLEET_VEHICLE_STATUSES,
   normalizeCustomerCode,
   formatCustomerCode,
+  getCustomerRepBalancesMap,
 } from './services/van-common.util';
-import { calculateRepTargetMetrics, type RepTargetCalculationResult } from './rep-target.engine';
+import {
+  calculateRepTargetMetrics,
+  extractCoordinatesFromCustomerLocation,
+  evaluateGeofenceCompliance,
+  evaluateBatchExpiryStatus,
+  extractAssignedRepIds,
+  resolveIsolatedRepCustomerBalance,
+  validateIsolatedRepCollection,
+  type RepTargetCalculationResult,
+} from './rep-target.engine';
 import { VanFleetService } from './services/van-fleet.service';
 import { VanRequisitionsService } from './services/van-requisitions.service';
 import { VanReturnsService } from './services/van-returns.service';
@@ -49,6 +61,10 @@ export interface VanStockItem {
   offerBadge?: string;
   packagingUnit?: { name: string; multiplier: number };
   availableUnits?: { id: number; name: string; multiplier: number; isBase: boolean }[];
+  earliestExpiryDate?: string | null;
+  batchNumber?: string | null;
+  expiryStatus?: 'valid' | 'near_expiry' | 'expired' | 'no_expiry';
+  daysToExpiry?: number | null;
 }
 
 export interface VanTripSummary {
@@ -141,6 +157,96 @@ export class VanSalesService {
       permissions: ['accounting'],
       tenantId,
       accountId,
+    };
+  }
+
+  /**
+   * Verifies a Supervisor PIN against authorized active users (or tenant managerPin setting)
+   * while strictly enforcing Maker-Checker separation (the rep cannot authorize their own actions).
+   */
+  async verifySupervisorPin(
+    tenantId: string,
+    pinInput?: string | null,
+    repId?: number | null,
+    queryable?: any,
+  ): Promise<{
+    approved: boolean;
+    supervisorId?: number;
+    supervisorName?: string;
+    supervisorRole?: string;
+  }> {
+    const cleanPin = String(pinInput || '').trim();
+    if (!cleanPin) {
+      return { approved: false };
+    }
+
+    const dbConn = queryable || this.anyDb;
+    let repUserId: number | null = null;
+    if (repId && Number(repId) > 0) {
+      const repRow = await dbConn
+        .selectFrom('delivery_representatives')
+        .select(['user_id'])
+        .where('id', '=', Number(repId))
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (repRow?.user_id) {
+        repUserId = Number(repRow.user_id);
+      }
+    }
+
+    let supervisorUser = await dbConn
+      .selectFrom('users')
+      .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .where(
+        sql<boolean>`(role in ('admin', 'supervisor', 'super_admin') or permissions_json::text ilike '%deliveryReps%' or permissions_json::text ilike '%sales%')`,
+      )
+      .where(sql<boolean>`(pin = ${cleanPin} or pin_hash = ${cleanPin})`)
+      .executeTakeFirst();
+
+    if (!supervisorUser) {
+      const settingRow = await dbConn
+        .selectFrom('settings')
+        .select(['value'])
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'managerPin')
+        .executeTakeFirst();
+      if (settingRow?.value && String(settingRow.value).trim() === cleanPin) {
+        let fallbackQuery = dbConn
+          .selectFrom('users')
+          .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
+          .where('tenant_id', '=', tenantId)
+          .where('is_active', '=', true)
+          .where(sql<boolean>`role in ('admin', 'supervisor', 'super_admin')`);
+        if (repUserId) {
+          fallbackQuery = fallbackQuery.where('id', '!=', repUserId);
+        }
+        supervisorUser = await fallbackQuery.orderBy('id', 'asc').executeTakeFirst();
+      }
+    }
+
+    if (!supervisorUser) {
+      throw new AppError(
+        'رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بالاعتماد الاستثنائي',
+        'INVALID_SUPERVISOR_PIN',
+        403,
+      );
+    }
+
+    if (repUserId && Number(supervisorUser.id) === repUserId) {
+      throw new AppError(
+        'لا يجوز لمندوب المبيعات استخدام رمزه الشخصي لاعتماد عملياته الميدانية طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)',
+        'MAKER_CHECKER_SELF_APPROVAL',
+        403,
+      );
+    }
+
+    return {
+      approved: true,
+      supervisorId: Number(supervisorUser.id),
+      supervisorName: String(supervisorUser.name || 'مشرف معتمد'),
+      supervisorRole: String(supervisorUser.role || 'supervisor'),
     };
   }
 
@@ -299,6 +405,7 @@ export class VanSalesService {
         'p.id as productId',
         'p.name as productName',
         'p.barcode',
+        'p.metadata as productMetadata',
         sql<number>`cast(coalesce(pls.qty, 0) as numeric)`.as('qty'),
         sql<number>`cast(coalesce(p.cost_price, 0) as numeric)`.as('costPrice'),
         sql<number>`cast(coalesce(p.retail_price, 0) as numeric)`.as('retailPrice'),
@@ -365,15 +472,38 @@ export class VanSalesService {
       }
     }
 
-    // Query product units for multi-UOM field sales
-    const rawUnits = prodIds.length > 0
-      ? await this.anyDb
-          .selectFrom('product_units')
-          .select(['id', 'product_id', 'name', 'multiplier', 'is_base_unit'])
-          .where('product_id', 'in', prodIds)
-          .orderBy('multiplier', 'asc')
-          .execute()
-      : [];
+    // Query product units and FEFO batches for van inventory items
+    const [rawUnits, batchRows] = prodIds.length > 0
+      ? await Promise.all([
+          this.anyDb
+            .selectFrom('product_units')
+            .select(['id', 'product_id', 'name', 'multiplier', 'is_base_unit'])
+            .where('product_id', 'in', prodIds)
+            .orderBy('multiplier', 'asc')
+            .execute(),
+          this.anyDb
+            .selectFrom('pharmacy_batches')
+            .select(['product_id', 'batch_number', 'expiry_date', 'quantity'])
+            .where('tenant_id', '=', tenantId)
+            .where('product_id', 'in', prodIds)
+            .where(sql<boolean>`cast(coalesce(quantity, 0) as numeric) > 0`)
+            .orderBy('expiry_date', 'asc')
+            .execute()
+            .catch(() => []),
+        ])
+      : [[], []];
+
+    const fefoBatchByProdId = new Map<number, { batchNumber: string | null; expiryDate: string }>();
+    for (const b of batchRows || []) {
+      const pid = Number(b.product_id);
+      if (!pid || !b.expiry_date) continue;
+      if (!fefoBatchByProdId.has(pid)) {
+        fefoBatchByProdId.set(pid, {
+          batchNumber: b.batch_number ? String(b.batch_number) : null,
+          expiryDate: String(b.expiry_date),
+        });
+      }
+    }
 
     const unitsByProdId = new Map<number, any[]>();
     for (const u of rawUnits) {
@@ -387,6 +517,7 @@ export class VanSalesService {
       });
     }
 
+    const nowRef = new Date();
     const inventory: VanStockItem[] = invRows.map((r: any) => {
       const pid = Number(r.productId);
       const baseRetail = Number(r.retailPrice || 0);
@@ -428,6 +559,19 @@ export class VanSalesService {
         }
       }
 
+      let metaObj: any = null;
+      if (r.productMetadata) {
+        if (typeof r.productMetadata === 'string') {
+          try { metaObj = JSON.parse(r.productMetadata); } catch { metaObj = null; }
+        } else if (typeof r.productMetadata === 'object') {
+          metaObj = r.productMetadata;
+        }
+      }
+      const fefoBatch = fefoBatchByProdId.get(pid);
+      const rawExpiry = fefoBatch?.expiryDate || metaObj?.expiry_date || metaObj?.expiryDate || null;
+      const rawBatchNo = fefoBatch?.batchNumber || metaObj?.batch_number || metaObj?.batchNumber || null;
+      const expiryInfo = evaluateBatchExpiryStatus(rawExpiry, nowRef, 60);
+
       return {
         productId: pid,
         productName: r.productName || `صنف #${pid}`,
@@ -443,10 +587,14 @@ export class VanSalesService {
         unitName: r.unitName || 'قطعة',
         packagingUnit: packUnitObj ? { name: packUnitObj.name, multiplier: packUnitObj.multiplier } : undefined,
         availableUnits: availUnits.length > 0 ? availUnits : undefined,
+        earliestExpiryDate: expiryInfo.earliestExpiryDate,
+        batchNumber: rawBatchNo ? String(rawBatchNo) : null,
+        expiryStatus: expiryInfo.status,
+        daysToExpiry: expiryInfo.daysRemaining,
       };
     });
 
-    // Fetch route customers with current debt balances
+    // Fetch route customers with per-rep isolated debt balances
     const customerRows = await this.anyDb
       .selectFrom('customers as c')
       .select([
@@ -464,22 +612,45 @@ export class VanSalesService {
       .limit(2500)
       .execute();
 
+    const customerIds: number[] = [];
+    const customerTotalBalances: Record<number, number> = {};
+    for (const c of customerRows) {
+      const cid = Number(c.id);
+      customerIds.push(cid);
+      customerTotalBalances[cid] = Number(c.balance || 0);
+    }
+
+    const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
+      customerIds,
+      customerTotalBalances,
+    });
+
     const customers = customerRows.map((c: any) => {
+      const cid = Number(c.id);
       let meta: any = {};
       if (typeof c.metadata === 'string') {
         try { meta = JSON.parse(c.metadata); } catch { meta = {}; }
       } else if (c.metadata && typeof c.metadata === 'object') {
         meta = c.metadata;
       }
+      const assignedRepIds = extractAssignedRepIds(meta);
+      const isolated = resolveIsolatedRepCustomerBalance({
+        repId: Number(repId),
+        breakdown: repBalancesMap.get(cid),
+        assignedRepIds,
+        fallbackTotalBalance: Number(c.balance || 0),
+      });
       return {
-        id: Number(c.id),
-        name: c.name || `عميل #${c.id}`,
+        id: cid,
+        name: c.name || `عميل #${cid}`,
         phone: c.phone || '',
         address: c.address || '',
-        balance: Number(c.balance || 0),
+        balance: isolated.repBalance,
+        totalCompanyBalance: isolated.totalCustomerBalance,
         creditLimit: Number(c.creditLimit || 0),
-        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, c.id),
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cid),
         route: meta.route || '',
+        assignedRepIds,
         locationUrl: meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
       };
     });
@@ -1021,7 +1192,7 @@ export class VanSalesService {
     if (!resolvedCustomerId && payload.customerName && payload.customerName.trim() && payload.customerName !== 'عميل نقدي ميداني') {
       const existing = await this.anyDb
         .selectFrom('customers')
-        .select(['id', 'name'])
+        .select(['id', 'name', 'metadata'])
         .where('name', '=', payload.customerName.trim())
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
@@ -1031,29 +1202,39 @@ export class VanSalesService {
         customerName = existing.name;
       } else {
         isNewCustomer = true;
-        const [newCust] = await this.anyDb
-          .insertInto('customers')
-          .values({
-            name: payload.customerName.trim(),
-            phone: payload.customerPhone || null,
-            is_active: true,
-            tenant_id: tenantId,
-            account_id: accountId,
-          })
-          .returning(['id', 'name'])
-          .execute();
-        resolvedCustomerId = Number(newCust.id);
-        customerName = newCust.name;
+        customerName = payload.customerName.trim();
       }
     } else if (resolvedCustomerId) {
       const cust = await this.anyDb
         .selectFrom('customers')
-        .select(['name'])
+        .select(['name', 'metadata'])
         .where('id', '=', resolvedCustomerId)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
       customerName = cust.name;
+
+      // Ensure shared customer retains multi-rep link in assigned_rep_ids without overwriting primary rep
+      let metaObj: any = {};
+      if (typeof cust.metadata === 'string') {
+        try { metaObj = JSON.parse(cust.metadata); } catch { metaObj = {}; }
+      } else if (cust.metadata && typeof cust.metadata === 'object') {
+        metaObj = { ...cust.metadata };
+      }
+      const existingRepIds = extractAssignedRepIds(metaObj);
+      if (!existingRepIds.includes(Number(repId))) {
+        const nextRepIds = [...existingRepIds, Number(repId)];
+        metaObj.assigned_rep_ids = nextRepIds;
+        if (!metaObj.assigned_rep_id) {
+          metaObj.assigned_rep_id = Number(repId);
+        }
+        await this.anyDb
+          .updateTable('customers')
+          .set({ metadata: JSON.stringify(metaObj) })
+          .where('id', '=', resolvedCustomerId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
     }
 
     let docNo = '';
@@ -1090,29 +1271,54 @@ export class VanSalesService {
         }
       }
 
-      // Security Invariant: Pre-resolve supervisor authorization if PIN is provided
-      let supervisorUser: any = null;
+      // Security Invariant: Pre-resolve supervisor authorization if PIN is provided (with Maker-Checker enforcement)
       let supervisorOverrideApproved = false;
       let overrideSupervisorName = '';
       let overrideSupervisorId: number | null = null;
 
       if (payload.supervisorOverridePin) {
-        supervisorUser = await trxAny
-          .selectFrom('users')
-          .select(['id', 'role', sql<string>`coalesce(display_name, username)`.as('name')])
-          .where('tenant_id', '=', tenantId)
-          .where('is_active', '=', true)
-          .where(sql<boolean>`(role in ('admin', 'supervisor', 'super_admin') or permissions_json::text ilike '%deliveryReps%' or permissions_json::text ilike '%sales%')`)
-          .where(sql<boolean>`(pin = ${payload.supervisorOverridePin} or pin_hash = ${payload.supervisorOverridePin})`)
-          .executeTakeFirst();
+        const pinVerification = await this.verifySupervisorPin(
+          tenantId,
+          payload.supervisorOverridePin,
+          repId,
+          trxAny,
+        );
+        supervisorOverrideApproved = pinVerification.approved;
+        overrideSupervisorId = pinVerification.supervisorId ?? null;
+        overrideSupervisorName = pinVerification.supervisorName ?? '';
+      }
 
-        if (supervisorUser) {
-          supervisorOverrideApproved = true;
-          overrideSupervisorId = Number(supervisorUser.id);
-          overrideSupervisorName = supervisorUser.name;
-        } else {
-          throw new AppError('رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بالاعتماد الاستثنائي', 'INVALID_SUPERVISOR_PIN', 403);
+      // Security Invariant: Transactional Ad-Hoc Customer Creation AFTER PIN Gate
+      // Prevents a failed credit attempt from persisting an unapproved customer row that bypasses isNewCustomer on retry
+      if (isNewCustomer && !resolvedCustomerId) {
+        if (isCreditOrSplit && !supervisorOverrideApproved) {
+          throw new AppError(
+            `البيع الآجل لعميل جديد ("${customerName}") غير مسجل مسبقاً يتطلب اعتماد المشرف برمز PIN لمنع المديونيات الوهمية`,
+            'NEW_CUSTOMER_CREDIT_REQUIRES_SUPERVISOR_PIN',
+            403,
+          );
         }
+        const initMeta = {
+          assigned_rep_id: Number(repId),
+          assigned_rep_ids: [Number(repId)],
+          created_by_rep_id: Number(repId),
+        };
+        const [newCust] = await trxAny
+          .insertInto('customers')
+          .values({
+            name: customerName,
+            phone: payload.customerPhone || null,
+            customer_type: 'cash',
+            credit_limit: 0,
+            metadata: JSON.stringify(initMeta),
+            is_active: true,
+            tenant_id: tenantId,
+            account_id: accountId,
+          })
+          .returning(['id', 'name'])
+          .execute();
+        resolvedCustomerId = Number(newCust.id);
+        customerName = newCust.name;
       }
 
       for (const item of sortedItems) {
@@ -1332,6 +1538,31 @@ export class VanSalesService {
       let creditOverrideUserId: number | null = null;
       let creditOverrideReason: string | null = null;
 
+      if (isCard && totalSale > 0) {
+        const cardCheck = evaluateFieldCardPayment({
+          totalSaleAmount: totalSale,
+          referenceReason: payload.supervisorOverrideReason || payload.notes,
+          supervisorOverride: supervisorOverrideApproved
+            ? {
+                approved: true,
+                supervisorId: overrideSupervisorId || undefined,
+                supervisorName: overrideSupervisorName,
+                reason: payload.supervisorOverrideReason || payload.notes || `إيصال شبكة معتمد من ${overrideSupervisorName}`,
+              }
+            : undefined,
+        });
+        if (!cardCheck.allowed) {
+          throw new AppError(
+            cardCheck.errorMessageAr || 'الدفع بالشبكة في الميدان يتطلب اعتماد المشرف ورقم إيصال الشبكة',
+            cardCheck.reasonCode || 'CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN',
+            403,
+          );
+        }
+        isCreditOverridden = true;
+        creditOverrideUserId = overrideSupervisorId;
+        creditOverrideReason = `اعتماد دفع شبكة/تحويل بنكي: ${cardCheck.approvedReference || ''}`;
+      }
+
       if ((isCredit || isSplit) && creditOwed > 0 && resolvedCustomerId) {
         // Security Invariant: Phantom Credit Prevention
         // Rep cannot sell on credit to an ad-hoc unregistered customer without supervisor PIN
@@ -1345,13 +1576,21 @@ export class VanSalesService {
 
         const custRecord = await trxAny
           .selectFrom('customers')
-          .select(['id', 'name', 'balance', 'credit_limit', 'is_credit_blocked', 'credit_block_reason'])
+          .select(['id', 'name', 'balance', 'credit_limit', 'is_credit_blocked', 'credit_block_reason', 'customer_type', 'metadata'])
           .where('id', '=', resolvedCustomerId)
           .where('tenant_id', '=', tenantId)
           .forUpdate()
           .executeTakeFirst();
 
         if (custRecord) {
+          let custMeta: any = {};
+          if (typeof custRecord.metadata === 'string') {
+            try { custMeta = JSON.parse(custRecord.metadata); } catch { custMeta = {}; }
+          } else if (custRecord.metadata && typeof custRecord.metadata === 'object') {
+            custMeta = custRecord.metadata;
+          }
+          const isFieldCreatedCustomer = Boolean(custMeta?.created_by_rep_id) || isNewCustomer;
+
           const creditCheck = evaluateCreditLimitCheck({
             customerId: resolvedCustomerId,
             customerName: custRecord.name || customerName,
@@ -1359,6 +1598,8 @@ export class VanSalesService {
             creditLimit: Number(custRecord.credit_limit || 0),
             isCreditBlocked: Boolean(custRecord.is_credit_blocked),
             creditBlockReason: custRecord.credit_block_reason,
+            customerType: custRecord.customer_type,
+            isFieldCreatedCustomer,
             requestedCreditAmount: creditOwed,
             supervisorOverride: supervisorOverrideApproved ? {
               approved: true,
@@ -1392,16 +1633,15 @@ export class VanSalesService {
           total: totalSale,
           subtotal: subtotalSale,
           discount: discountSale,
-          // Money collected in the field sits with the rep, not the till, until settleTrip — so
-          // this is never marked paid here. postSale below books the full total as a receivable,
-          // exactly like a cash-on-delivery order, and postVanTripSettlement clears it later.
-          paid_amount: 0,
+          // Cash/Credit collected in the field sits with the rep (or customer receivable) until settleTrip,
+          // whereas verified Card/Bank payments settle directly to the Bank (1120) via sale_payments.
+          paid_amount: isCard ? totalSale : 0,
           store_credit_used: 0,
           prices_include_tax: false,
           status: 'posted',
           payment_type: payload.paymentMethod,
           payment_channel: isCash ? 'cash' : (isCard ? 'card' : (isCredit ? 'credit' : 'mixed')),
-          collection_status: isCash ? 'prepaid_by_rep' : (isSplit && cashPaid > 0 ? 'prepaid_by_rep' : null),
+          collection_status: isCash ? 'prepaid_by_rep' : (isCard ? 'settled_to_bank' : (isSplit && cashPaid > 0 ? 'prepaid_by_rep' : null)),
           customer_id: resolvedCustomerId,
           branch_id: branchId,
           location_id: vanLocId,
@@ -1473,6 +1713,23 @@ export class VanSalesService {
             unit_multiplier: it.unit_multiplier || 1,
             is_bonus: Boolean(it.is_bonus),
             bonus_reason: it.bonus_reason || null,
+            tenant_id: tenantId,
+            account_id: accountId,
+          })
+          .execute();
+      }
+
+      if (isCard && totalSale > 0) {
+        await trxAny
+          .insertInto('sale_payments')
+          .values({
+            sale_id: createdSaleId,
+            payment_channel: 'card',
+            amount: totalSale,
+            applied_amount: totalSale,
+            tendered_amount: totalSale,
+            change_amount: 0,
+            card_rrn: payload.supervisorOverrideReason ? String(payload.supervisorOverrideReason).trim().slice(0, 64) : null,
             tenant_id: tenantId,
             account_id: accountId,
           })
@@ -1669,9 +1926,56 @@ export class VanSalesService {
     const vanLocId = trip.van_location_id ? Number(trip.van_location_id) : null;
     let receiptNo = '';
     let finalBalance = 0;
+    let repPreviousBalance = 0;
+    let repNewBalance = 0;
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
+
+      const lockedCust = await trxAny
+        .selectFrom('customers')
+        .select(['id', 'name', 'balance', 'metadata'])
+        .where('id', '=', payload.customerId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedCust) {
+        throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+      }
+
+      const currentCompanyBalance = Number(lockedCust.balance || 0);
+      const repBalancesMap = await getCustomerRepBalancesMap(trxAny, tenantId, {
+        customerIds: [payload.customerId],
+        customerTotalBalances: { [payload.customerId]: currentCompanyBalance },
+      });
+
+      const assignedRepIds = extractAssignedRepIds(lockedCust.metadata);
+      const isolated = resolveIsolatedRepCustomerBalance({
+        repId: Number(repId),
+        breakdown: repBalancesMap.get(payload.customerId),
+        assignedRepIds,
+        fallbackTotalBalance: currentCompanyBalance,
+      });
+
+      const validation = validateIsolatedRepCollection({
+        repId: Number(repId),
+        collectionAmount: amount,
+        repBalance: isolated.repBalance,
+        otherRepsBalance: isolated.otherRepsBalance,
+        totalCustomerBalance: isolated.totalCustomerBalance,
+      });
+
+      if (!validation.allowed) {
+        throw new AppError(
+          validation.errorMessage || 'لا يمكن تحصيل مديونية تخص مندوباً آخر',
+          validation.errorCode || 'REP_ISOLATED_BALANCE_EXCEEDED',
+          422,
+        );
+      }
+
+      repPreviousBalance = validation.repPreviousBalance;
+      repNewBalance = validation.repNewBalance;
 
       const updatedCust = await trxAny
         .updateTable('customers')
@@ -1751,8 +2055,8 @@ export class VanSalesService {
       receiptNo,
       amount,
       customerName: cust.name,
-      previousBalance: Number((finalBalance + amount).toFixed(2)),
-      newBalance: finalBalance,
+      previousBalance: repPreviousBalance,
+      newBalance: repNewBalance,
     };
   }
 
@@ -2410,6 +2714,7 @@ export class VanSalesService {
         's.created_at as createdAt',
         sql<string>`coalesce(c.name, 'عميل نقدي')`.as('customerName'),
         sql<string>`coalesce(c.phone, '')`.as('customerPhone'),
+        'c.metadata as customerMetadata',
         sql<number>`cast(s.delivery_gps_lat as double precision)`.as('deliveryGpsLat'),
         sql<number>`cast(s.delivery_gps_lng as double precision)`.as('deliveryGpsLng'),
       ])
@@ -2428,6 +2733,7 @@ export class VanSalesService {
         sql<number>`cast(abs(coalesce(cl.amount, 0)) as numeric)`.as('amount'),
         'cl.created_at as createdAt',
         sql<string>`coalesce(c.name, 'عميل')`.as('customerName'),
+        'c.metadata as customerMetadata',
         'cl.note',
         sql<number>`cast(cl.gps_lat as double precision)`.as('gpsLat'),
         sql<number>`cast(cl.gps_lng as double precision)`.as('gpsLng'),
@@ -2492,20 +2798,48 @@ export class VanSalesService {
         variance: Number(trip.variance || 0),
       },
       pagination: { page, pageSize, salesHasMore: sales.length > pageSize, collectionsHasMore: collections.length > pageSize, returnsHasMore: returns.length > pageSize },
-      sales: sales.slice(0, pageSize).map((s: any) => ({
-        ...s,
-        id: Number(s.id),
-        total: Number(s.total || 0),
-        deliveryGpsLat: s.deliveryGpsLat != null ? Number(s.deliveryGpsLat) : undefined,
-        deliveryGpsLng: s.deliveryGpsLng != null ? Number(s.deliveryGpsLng) : undefined,
-      })),
-      collections: collections.slice(0, pageSize).map((c: any) => ({
-        ...c,
-        id: Number(c.id),
-        amount: Number(c.amount || 0),
-        gpsLat: c.gpsLat != null ? Number(c.gpsLat) : undefined,
-        gpsLng: c.gpsLng != null ? Number(c.gpsLng) : undefined,
-      })),
+      sales: sales.slice(0, pageSize).map((s: any) => {
+        const custCoords = extractCoordinatesFromCustomerLocation({ metadata: s.customerMetadata });
+        const geo = evaluateGeofenceCompliance({
+          repLat: s.deliveryGpsLat != null ? Number(s.deliveryGpsLat) : null,
+          repLng: s.deliveryGpsLng != null ? Number(s.deliveryGpsLng) : null,
+          customerLat: custCoords?.lat ?? null,
+          customerLng: custCoords?.lng ?? null,
+          maxAllowedMeters: 300,
+        });
+        const { customerMetadata: _cm, ...rest } = s;
+        return {
+          ...rest,
+          id: Number(s.id),
+          total: Number(s.total || 0),
+          deliveryGpsLat: s.deliveryGpsLat != null ? Number(s.deliveryGpsLat) : undefined,
+          deliveryGpsLng: s.deliveryGpsLng != null ? Number(s.deliveryGpsLng) : undefined,
+          distanceMeters: geo.distanceMeters,
+          isWithinGeofence: geo.isCompliant,
+          geofenceStatus: geo.status,
+        };
+      }),
+      collections: collections.slice(0, pageSize).map((c: any) => {
+        const custCoords = extractCoordinatesFromCustomerLocation({ metadata: c.customerMetadata });
+        const geo = evaluateGeofenceCompliance({
+          repLat: c.gpsLat != null ? Number(c.gpsLat) : null,
+          repLng: c.gpsLng != null ? Number(c.gpsLng) : null,
+          customerLat: custCoords?.lat ?? null,
+          customerLng: custCoords?.lng ?? null,
+          maxAllowedMeters: 300,
+        });
+        const { customerMetadata: _cm, ...rest } = c;
+        return {
+          ...rest,
+          id: Number(c.id),
+          amount: Number(c.amount || 0),
+          gpsLat: c.gpsLat != null ? Number(c.gpsLat) : undefined,
+          gpsLng: c.gpsLng != null ? Number(c.gpsLng) : undefined,
+          distanceMeters: geo.distanceMeters,
+          isWithinGeofence: geo.isCompliant,
+          geofenceStatus: geo.status,
+        };
+      }),
       returns: returns.slice(0, pageSize).map((r: any) => ({
         ...r,
         id: Number(r.id),
@@ -2932,8 +3266,8 @@ export class VanSalesService {
   // FIELD RETURNS (Delegated to VanReturnsService)
   // =========================================================================
 
-  async getCustomerEligibleSales(tenantId: string, customerId: number) {
-    return this.vanReturnsService.getCustomerEligibleSales(tenantId, customerId);
+  async getCustomerEligibleSales(tenantId: string, customerId: number, repId?: number) {
+    return this.vanReturnsService.getCustomerEligibleSales(tenantId, customerId, repId);
   }
 
   async submitFieldReturn(
@@ -2985,8 +3319,22 @@ export class VanSalesService {
     targetAmount: number,
     collectionTarget?: number | null,
     visitsTarget?: number | null,
+    commissionRates?: {
+      salesCommissionRatePercent?: number;
+      collectionCommissionRatePercent?: number;
+      targetBonusRatePercent?: number;
+    },
   ) {
-    return this.vanTargetsService.setRepTarget(tenantId, accountId, repId, periodMonth, targetAmount, collectionTarget, visitsTarget);
+    return this.vanTargetsService.setRepTarget(
+      tenantId,
+      accountId,
+      repId,
+      periodMonth,
+      targetAmount,
+      collectionTarget,
+      visitsTarget,
+      commissionRates,
+    );
   }
 
   async getRepTarget(tenantId: string, repId: number, periodMonth?: string) {
@@ -2995,6 +3343,37 @@ export class VanSalesService {
 
   async listAllRepTargets(tenantId: string, periodMonth?: string) {
     return this.vanTargetsService.listAllRepTargets(tenantId, periodMonth);
+  }
+
+  async getCommissionConfig(tenantId: string) {
+    return this.vanTargetsService.getCommissionConfig(tenantId);
+  }
+
+  async saveCommissionConfig(
+    tenantId: string,
+    accountId: string,
+    payload: {
+      salesCommissionRatePercent?: number;
+      collectionCommissionRatePercent?: number;
+      targetBonusRatePercent?: number;
+      repId?: number;
+    },
+  ) {
+    return this.vanTargetsService.saveCommissionConfig(tenantId, accountId, payload);
+  }
+
+  async settleRepCommission(
+    tenantId: string,
+    accountId: string,
+    auth: AuthContext,
+    payload: {
+      repId: number;
+      periodMonth: string;
+      amount?: number;
+      notes?: string;
+    },
+  ) {
+    return this.vanTargetsService.settleRepCommission(tenantId, accountId, auth, payload);
   }
 
   // =========================================================================
@@ -3083,6 +3462,7 @@ export class VanSalesService {
       customerCode?: string;
       locationUrl?: string;
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
       assignedRepName?: string | null;
     },
   ) {
@@ -3094,6 +3474,8 @@ export class VanSalesService {
     payload: {
       customerIds: number[];
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
+      appendReps?: boolean;
       assignedRepName?: string | null;
       route?: string;
       visitDays?: string[];
@@ -3131,6 +3513,7 @@ export class VanSalesService {
       amount: number;
       notes?: string;
       receiptPhotoUrl?: string;
+      supervisorOverridePin?: string;
     },
     authContext?: AuthContext,
   ): Promise<{ ok: boolean; expenseId: number; totalTripExpenses: number }> {
@@ -3150,7 +3533,52 @@ export class VanSalesService {
       throw new AppError('لا يمكن تسجيل مصروفات على رحلة مغلقة أو غير موجودة', 'INVALID_TRIP', 400);
     }
 
-    const createdByUserId = authContext?.userId ? Number(authContext.userId) : null;
+    const existingSumRow = await this.anyDb
+      .selectFrom('van_trip_expenses')
+      .select(sql<number>`cast(coalesce(sum(amount), 0) as numeric)`.as('totalExpenses'))
+      .where('trip_id', '=', payload.tripId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const existingTripExpenses = Number(existingSumRow?.totalExpenses || 0);
+
+    let supervisorApproved = false;
+    let approvedSupervisorId: number | undefined = undefined;
+    let approvedSupervisorName: string | undefined = undefined;
+
+    if (payload.supervisorOverridePin) {
+      const pinCheck = await this.verifySupervisorPin(tenantId, payload.supervisorOverridePin, repId);
+      supervisorApproved = pinCheck.approved;
+      approvedSupervisorId = pinCheck.supervisorId;
+      approvedSupervisorName = pinCheck.supervisorName;
+    }
+
+    const governance = evaluateTripExpenseGovernance({
+      expenseType: payload.expenseType || 'other',
+      amount: Number(payload.amount),
+      notes: payload.notes,
+      existingTripExpenses,
+      supervisorOverride: supervisorApproved
+        ? {
+            approved: true,
+            supervisorId: approvedSupervisorId,
+            supervisorName: approvedSupervisorName,
+          }
+        : undefined,
+    });
+
+    if (!governance.allowed) {
+      throw new AppError(
+        governance.errorMessageAr || 'تم رفض تسجيل المصروف الميداني',
+        governance.reasonCode || 'EXPENSE_GOVERNANCE_REJECTED',
+        governance.requiresSupervisorPin ? 403 : 400,
+      );
+    }
+
+    const createdByUserId = approvedSupervisorId ?? (authContext?.userId ? Number(authContext.userId) : null);
+    const finalNotes = approvedSupervisorName
+      ? `${String(payload.notes || '').trim()} [اعتماد مشرف: ${approvedSupervisorName}]`
+      : String(payload.notes || '').trim() || null;
+
     const [inserted] = await this.anyDb
       .insertInto('van_trip_expenses')
       .values({
@@ -3159,7 +3587,7 @@ export class VanSalesService {
         trip_id: payload.tripId,
         expense_type: payload.expenseType || 'other',
         amount: Number(payload.amount),
-        notes: payload.notes || null,
+        notes: finalNotes,
         receipt_photo_url: payload.receiptPhotoUrl || null,
         created_by_user_id: createdByUserId,
       })
@@ -3362,14 +3790,16 @@ export class VanSalesService {
       district: district || undefined,
       route: route || undefined,
       assigned_rep_id: repId,
+      assigned_rep_ids: [repId],
       created_by_rep_id: repId,
       visit_days,
       ...(body.metadata || {}),
     };
 
     const cleanPhone = phone ? phone.replace(/[\s-]/g, '') : '';
+    let existing: any = null;
     if (cleanPhone) {
-      const existing = await this.anyDb
+      existing = await this.anyDb
         .selectFrom('customers')
         .where('tenant_id', '=', tenantId)
         .where((eb: any) =>
@@ -3380,61 +3810,81 @@ export class VanSalesService {
         )
         .select(['id', 'name', 'phone', 'address', 'metadata', 'balance'])
         .executeTakeFirst();
+    }
 
-      if (existing) {
-        let existingMeta: any = {};
-        if (typeof existing.metadata === 'string') {
-          try { existingMeta = JSON.parse(existing.metadata); } catch { existingMeta = {}; }
-        } else if (existing.metadata && typeof existing.metadata === 'object') {
-          existingMeta = existing.metadata;
-        }
+    if (!existing) {
+      existing = await this.anyDb
+        .selectFrom('customers')
+        .where('tenant_id', '=', tenantId)
+        .where('name', '=', name)
+        .select(['id', 'name', 'phone', 'address', 'metadata', 'balance'])
+        .executeTakeFirst();
+    }
 
-        const assignedRepIds: number[] = Array.isArray(existingMeta.assigned_rep_ids)
-          ? existingMeta.assigned_rep_ids
-          : existingMeta.assigned_rep_id ? [Number(existingMeta.assigned_rep_id)] : [];
-        if (!assignedRepIds.includes(repId)) {
-          assignedRepIds.push(repId);
-        }
-
-        const existingVisitDays: string[] = Array.isArray(existingMeta.visit_days)
-          ? existingMeta.visit_days
-          : [];
-        const mergedDays = Array.from(new Set([...existingVisitDays, ...visit_days]));
-        const custCode = normalizeCustomerCode(existingMeta.customer_code || existingMeta.code, existing.id);
-
-        const updatedMetadata = {
-          ...existingMeta,
-          assigned_rep_id: repId,
-          assigned_rep_ids: assignedRepIds,
-          route: route || existingMeta.route,
-          district: district || existingMeta.district,
-          visit_days: mergedDays,
-          customer_code: custCode,
-          code: custCode,
-        };
-
-        await this.anyDb
-          .updateTable('customers')
-          .set({ metadata: JSON.stringify(updatedMetadata) })
-          .where('id', '=', existing.id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        return {
-          ok: true,
-          alreadyExisted: true,
-          message: `المحل مسجل مسبقاً بكود [${custCode}] (${existing.name}) وتم ربطه بخط سيرك بنجاح`,
-          customer: {
-            id: Number(existing.id),
-            name: existing.name,
-            phone: existing.phone,
-            address: existing.address,
-            balance: Number(existing.balance || 0),
-            customerCode: custCode,
-            metadata: updatedMetadata,
-          },
-        };
+    if (existing) {
+      let existingMeta: any = {};
+      if (typeof existing.metadata === 'string') {
+        try { existingMeta = JSON.parse(existing.metadata); } catch { existingMeta = {}; }
+      } else if (existing.metadata && typeof existing.metadata === 'object') {
+        existingMeta = existing.metadata;
       }
+
+      const assignedRepIds = extractAssignedRepIds(existingMeta);
+      if (!assignedRepIds.includes(Number(repId))) {
+        assignedRepIds.push(Number(repId));
+      }
+
+      const existingVisitDays: string[] = Array.isArray(existingMeta.visit_days)
+        ? existingMeta.visit_days
+        : [];
+      const mergedDays = Array.from(new Set([...existingVisitDays, ...visit_days]));
+      const custCode = normalizeCustomerCode(existingMeta.customer_code || existingMeta.code, existing.id);
+
+      const updatedMetadata = {
+        ...existingMeta,
+        assigned_rep_id: existingMeta.assigned_rep_id || repId,
+        assigned_rep_ids: assignedRepIds,
+        route: route || existingMeta.route,
+        district: district || existingMeta.district,
+        visit_days: mergedDays,
+        customer_code: custCode,
+        code: custCode,
+      };
+
+      await this.anyDb
+        .updateTable('customers')
+        .set({ metadata: JSON.stringify(updatedMetadata) })
+        .where('id', '=', existing.id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      const existingId = Number(existing.id);
+      const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
+        customerIds: [existingId],
+        customerTotalBalances: { [existingId]: Number(existing.balance || 0) },
+      });
+      const isolated = resolveIsolatedRepCustomerBalance({
+        repId: Number(repId),
+        breakdown: repBalancesMap.get(existingId),
+        assignedRepIds,
+        fallbackTotalBalance: Number(existing.balance || 0),
+      });
+
+      return {
+        ok: true,
+        alreadyExisted: true,
+        message: `المحل مسجل مسبقاً بكود [${custCode}] (${existing.name}) وتم ربطه بخط سيرك بنجاح (رصيدك المستقل معه: ${isolated.repBalance} ج.م)`,
+        customer: {
+          id: existingId,
+          name: existing.name,
+          phone: existing.phone,
+          address: existing.address,
+          balance: isolated.repBalance,
+          totalCompanyBalance: isolated.totalCustomerBalance,
+          customerCode: custCode,
+          metadata: updatedMetadata,
+        },
+      };
     }
 
     const inserted = await this.anyDb

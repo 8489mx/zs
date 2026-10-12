@@ -191,6 +191,13 @@
 - **فلترة الفئات والأقاليم الملاحية المضغوطة (`CarrierSelectionGrid`):** زر الفئات الثلاثة مدمج في سطر واحد بنسبة 1/3 لكل فئة (`repeat(3, 1fr)`) على الموبايل بدلاً من 3 أسطر متراكمة، وشريط الأقاليم قابل للتمرير الأفقي بسلاسة (`nowrap; overflow-x: auto`) في سطر واحد بدلاً من التكدس في 5 أسطر، مع حماية حقل البحث من التداخل ومطابقة الكروت دون أي اقتطاع تعسفي.
 - **دستور شاشات الإعدادات والسياسات على الموبايل (`MaritimeSettingsPage` & `MaritimePipelineSettingsTab`):** التبويبات الفرعية للإعدادات تندمج في شبكة ثنائية 2-column مع عناوين عربية رشيقة تمنع تدفق النصوص الإنجليزية خارج الأزرار، وتوزيع أزرار إجراءات الهيدر (فحص الأتمتة وحفظ الإعدادات) في شبكة ثنائية بكامل العرض لمنع تآكل زر الحفظ أو انقذافه خارج الشاشة، وحظر أسهم العدادات الافتراضية (Number Spinners) في بيئات RTL، وعزل كافة التسميات الإنجليزية بين قوسين تحت `.desktop-only-inline` لمنع انكسار الأقواس (BiDi wrap break)، وتثبيت مربعات الاختيار مع `flex-shrink: 0` و `flex: 1; min-width: 0` لكتلة النصوص لمنع تداخل الشيك بوكس مع أسطر الشرح.
 
+### قدرة: العزل الشامل بين حسابات المناديب للعميل المشترك وتفصيل إجمالي المشرف والمالك (Rep-to-Rep Customer Account & Collection Isolation — VAN-12) — ✅ مفعّلة ومحروسة (أكتوبر 2026)
+- **عزل أرصدة العملاء لكل مندوب (`aggregateCustomerBalancesByRep` & `resolveIsolatedRepCustomerBalance`):** عند تعامل أكثر من مندوب مبيعات مع نفس المحل أو المنفذ (مثل «محل البركة» كود `0002` — مندوب 1 له `500 ج.م` ومندوب 2 له `2,000 ج.م`)، يفصل محرك العزل في `rep-target.engine.ts` و `van-common.util.ts` (`getCustomerRepBalancesMap`) حركات الأستاذ المساعد (`customer_ledger`) حسب كل مندوب (`COALESCE(vt.rep_id, s.delivery_rep_id, vfr.rep_id)`).
+- **بوابة المندوب (`getActiveTrip` و `getDriverTodayItinerary` و `createDriverCustomer`):** يرى كل مندوب حصراً مديونيته المعزولة لدى المحل (`repBalance`: مندوب 1 يرى `500 ج.م` فقط ومندوب 2 يرى `2,000 ج.م` فقط)، مع دعم التعيين المتعدد للمناديب على نفس المحل (`assigned_rep_ids`) دون مسح تعيين المندوب الآخر.
+- **عزل التحصيل الميداني (`recordFieldCollection` & `validateIsolatedRepCollection`):** يمنع النظام أي مندوب من تحصيل مبلغ يتجاوز مديونيته المعزولة لدى العميل المشترك (`REP_ISOLATED_BALANCE_EXCEEDED`) لمنع تداخل حسابات وعهد المناديب، ويعيد إيصال التحصيل الرصيد السابق والجديد الخاص بعهدة المندوب (`repPreviousBalance` / `repNewBalance`).
+- **عزل الفواتير والمرتجعات الميدانية (`getCustomerEligibleSales` & `submitFieldReturn`):** تقتصر الفواتير المتاحة للمرتجع في بوابة المندوب على فواتير المندوب نفسه فقط مع حظر إرجاع أصناف على فاتورة مندوب آخر (`SALE_REP_MISMATCH`).
+- **رؤية المشرف وصاحب المكان الشاملة والمفصلة (`VanRoutesKpiAdminTab.tsx` و `CustomersRegisterCard.tsx` و `CustomerEditorCard.tsx`):** عند بحث المشرف أو المالك باسم المحل («البركة») أو بكوده (`0002` / `C-0002`) في شاشة خطوط السير أو شاشة العملاء، يظهر إجمالي مديونية المحل للمنشأة (`2,500 ج.م`) وتحته شارات تفصيلية واضحة بحساب كل مندوب على حدة (`مندوب 1: 500.00 ج.م` | `مندوب 2: 2,000.00 ج.م`).
+
 ---
 
 ## بيئة التشغيل والاستضافة السحابية المعتمدة (Cloud Hosting & Infrastructure)
@@ -7237,8 +7244,41 @@
   - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
   - `backend/test/critical/restaurant-fnb-workflow.spec.ts` (Test 29)
 
+---
 
-
-
-
-
+## 234. الترقية المؤسسية المتكاملة لقطاع الفان وتوزيع الجملة (Wholesale & Van Distribution Enterprise Enhancements)
+* **الحالة / الإنجاز:** مكتمل ومتحقق بنسبة 100% (أكتوبر 2026).
+* **المسار:** مساحة عمل الفان وتوزيع الجملة `/van-sales` وبوابة المندوب `/driver` وإعدادات القطاعات `vertical-scope.ts`.
+* **الهدف:** إغلاق الحلقة التشغيلية والمحاسبية والرقابية الكاملة بين الحجز المسبق (Pre-Sales) وأذونات التحميل وفواتير الجملة، وبناء محرك عمولات وحوافز المندوبين وصرفها بقيد مزدوج، وتفعيل الرقابة الجغرافية (Geofencing) بالمتر بين إحداثيات المندوب وإحداثيات العميل، وتتبع الصلاحية والتشغيلات (FEFO) لبضاعة السيارات، وتنقية إعدادات قطاع الجملة والفان.
+* **المحرك والميزات المنفذة:**
+  1. **إغلاق الحلقة بين أوامر الحجز المسبق المعتمدة وأذونات التحميل وفواتير الجملة (`VAN-7`):**
+     - **تجميع الأوامر في إذن تحميل فان صباحي (`POST /api/van-sales/admin/pre-sales-orders/consolidate-to-requisition`):** اختيار عدة أوامر Pre-Sales معتمدة (`approved`) وتجميع أصنافها وكمياتها آلياً في إذن تحميل (`VL-YYMMDD-XXXX`) لمندوب التوزيع والمستودع المختار، مع فك الحجز المخزني المبدئي (`releaseLocationStock`) بالترتيب القانوني التصاعدي لـ `productId` لتفادي الازدواج عند صرف البضاعة لعهدة الفان، وتحويل حالة الأوامر المصدرية إلى `converted` (تم التحويل).
+     - **التحويل المباشر بنقرة واحدة إلى فاتورة بيع جملة مرحلة (`POST /api/van-sales/admin/pre-sales-orders/:id/convert-to-invoice`):** تحويل أمر الحجز المعتمد مباشرة إلى فاتورة مبيعات جملة رسمية في `SalesWriteService.createSale` مع تمرير `SystemApprovedSaleTerms` للحفاظ على أسعار وخصومات المشرف المعتمدة، وإعادة الحجز تلقائياً (Compensating Re-reservation) في حال فشل الترحيل.
+  2. **محرك عمولات وحوافز مناديب المبيعات والتحصيل وصرفها محاسبياً (`VAN-8`):**
+     - محرك حسابي نقي `calculateRepCommissionMetrics` في `rep-target.engine.ts` يحسب عمولة المبيعات (`% من المبيعات الفعلية`)، وعمولة التحصيل النقدي (`% من التحصيل الفعلي`)، ومكافأة تحقيق التارجت الإضافية (`% إضافية عند تحقيق تارجت المبيعات بنسبة >= 100%`)، مع خصم المبالغ المنصرفة سابقاً وإظهار الرصيد المتبقي للصرف (`remainingPayableCommission`).
+     - إمكانية ضبط نسب العمولات (افتراضياً على مستوى المنشأة أو مخصصة لكل مندوب في نافذة ضبط التارجت)، وزر **"صرف العمولة"** في تبويب `VanRepTargetsAdminTab.tsx` الذي يستدعي `POST /api/van-sales/admin/targets/settle-commission` لتوليد سند مصروف رسمي وحركة خزينة وقيد يومية محاسبي مزدوج متوازن (`AccountingPostingService.postExpense`).
+  3. **التحقق الجغرافي الدقيق بالمتر ومطابقة النطاق الجغرافي للعميل (`Geofencing Verification - VAN-9`):**
+     - محرك استخراج الإحداثيات الذكي `extractCoordinatesFromCustomerLocation` من حقول `gps_lat`/`gps_lng` أو من روابط خرائط جوجل (`@lat,lng` و `?q=lat,lng`) مع حفظ الإحداثيات تلقائياً في بطاقة العميل عند تحديث جدول خطوط السير.
+     - حساب المسافة الدقيقة بالمتر عبر معادلة Haversine (`calculateHaversineDistanceMeters` و `evaluateGeofenceCompliance` بنطاق قياسي 300 متر) وعرض شارة المطابقة الجغرافية (`داخل النطاق (X م)` باللون الزمردي أو `خارج النطاق (X كم)` باللون الأحمر التحذيري) في جدول الزيارات الميدانية وبطاقة KPI الالتزام الجغرافي (`VanRoutesKpiAdminTab.tsx`) وفي نافذة تفاصيل رحلة الفان للفواتير والتحصيلات (`VanTripsTab.tsx`).
+  4. **الوعي بتواريخ الصلاحية والتشغيلات لبضاعة الفان والمستودع (`FEFO Batch & Expiry Awareness - VAN-10`):**
+     - دالة نقية `evaluateBatchExpiryStatus` تقيم أقرب تشغيلة فعالة (`pharmacy_batches` مرتبة تصاعدياً حسب `expiry_date` أو بيانات الصلاحية في `products.metadata`) وتصنفها إلى (`expired`, `near_expiry` خلال 60 يوماً، `valid`, `no_expiry`).
+     - إظهار شارات التنبيه البصرية (`منتهي الصلاحية`، `FEFO قريب الانتهاء (X يوم)`، `صلاحية: YYYY-MM-DD`) للمندوب والمشرف في شاشة بيع الفان الميدانية (`VanSaleTab.tsx`) وفي شاشة طلب وأذونات التحميل الموحدة (`DriverNewLoadRequisitionView.tsx`) لتطبيق مبدأ الصرف للأقرب انتهاءً أولاً (FEFO).
+  5. **تنقية إعدادات نمط الفان وتوزيع الجملة (`VAN-11`):**
+     - تحديث `vertical-scope.ts` لإخفاء تبويبات التجارة الإلكترونية الاستهلاكية (`storefront` و `marketplaces`) افتراضياً في نمط `wholesale_van` ما لم يتم تفعيل المتجر الإلكتروني صراحةً (`settings?.storefrontModuleEnabled === true`).
+* **الملفات المنفذة:**
+  - `backend/src/modules/delivery-reps/rep-target.engine.ts`
+  - `backend/test/critical/rep-target-engine.spec.ts`
+  - `backend/src/modules/delivery-reps/services/van-pre-sales.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-targets.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-routes.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-requisitions.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanPreSalesAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanRepTargetsAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanRoutesKpiAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanTripsTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSaleTab.tsx`
+  - `frontend/src/features/delivery-reps/components/DriverNewLoadRequisitionView.tsx`
+  - `frontend/src/shared/verticals/vertical-scope.ts`

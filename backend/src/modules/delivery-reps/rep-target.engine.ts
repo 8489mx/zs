@@ -178,3 +178,551 @@ export function calculateRepTargetMetrics(input: RepTargetCalculationInput): Rep
     isVisitsAchieved,
   };
 }
+
+export interface RepCommissionInput {
+  actualSales: number;
+  actualCollections: number;
+  salesTarget?: number | null;
+  collectionTarget?: number | null;
+  salesCommissionRatePercent?: number | null;
+  collectionCommissionRatePercent?: number | null;
+  targetBonusRatePercent?: number | null;
+  alreadyPaidAmount?: number | null;
+}
+
+export interface RepCommissionMetricsResult {
+  salesCommissionRatePercent: number;
+  collectionCommissionRatePercent: number;
+  targetBonusRatePercent: number;
+  salesCommissionAmount: number;
+  collectionCommissionAmount: number;
+  isTargetBonusEligible: boolean;
+  targetBonusAmount: number;
+  totalEarnedCommission: number;
+  alreadyPaidAmount: number;
+  remainingPayableCommission: number;
+}
+
+function roundMoney(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Number(Math.round((value + Number.EPSILON) * 100) / 100);
+}
+
+/**
+ * Pure calculation engine for Delivery & Van Sales Representative Commissions.
+ * Calculates commission on net sales, commission on cash/credit collections,
+ * and achievement tier bonus when monthly sales target is met (>= 100%).
+ */
+export function calculateRepCommissionMetrics(input: RepCommissionInput): RepCommissionMetricsResult {
+  const actualSales = Math.max(0, Number(input.actualSales || 0));
+  const actualCollections = Math.max(0, Number(input.actualCollections || 0));
+  const salesTarget = Math.max(0, Number(input.salesTarget || 0));
+
+  const salesRate = input.salesCommissionRatePercent !== undefined && input.salesCommissionRatePercent !== null
+    ? Math.max(0, Number(input.salesCommissionRatePercent))
+    : 1.0;
+  const collectionRate = input.collectionCommissionRatePercent !== undefined && input.collectionCommissionRatePercent !== null
+    ? Math.max(0, Number(input.collectionCommissionRatePercent))
+    : 0.5;
+  const bonusRate = input.targetBonusRatePercent !== undefined && input.targetBonusRatePercent !== null
+    ? Math.max(0, Number(input.targetBonusRatePercent))
+    : 0.5;
+
+  const salesCommissionAmount = roundMoney((actualSales * salesRate) / 100);
+  const collectionCommissionAmount = roundMoney((actualCollections * collectionRate) / 100);
+  const isTargetBonusEligible = salesTarget > 0 && actualSales >= salesTarget;
+  const targetBonusAmount = isTargetBonusEligible ? roundMoney((actualSales * bonusRate) / 100) : 0;
+
+  const totalEarnedCommission = roundMoney(
+    salesCommissionAmount + collectionCommissionAmount + targetBonusAmount,
+  );
+  const alreadyPaidAmount = roundMoney(Math.max(0, Number(input.alreadyPaidAmount || 0)));
+  const remainingPayableCommission = roundMoney(
+    Math.max(0, totalEarnedCommission - alreadyPaidAmount),
+  );
+
+  return {
+    salesCommissionRatePercent: salesRate,
+    collectionCommissionRatePercent: collectionRate,
+    targetBonusRatePercent: bonusRate,
+    salesCommissionAmount,
+    collectionCommissionAmount,
+    isTargetBonusEligible,
+    targetBonusAmount,
+    totalEarnedCommission,
+    alreadyPaidAmount,
+    remainingPayableCommission,
+  };
+}
+
+function isValidCoordinatePair(lat: number, lng: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001) return false;
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+/**
+ * Extracts GPS coordinates (lat, lng) from customer metadata or Google Maps location URL.
+ */
+export function extractCoordinatesFromCustomerLocation(input: {
+  locationUrl?: string | null;
+  metadata?: Record<string, any> | string | null;
+}): { lat: number; lng: number } | null {
+  let metaObj: Record<string, any> | null = null;
+  if (input.metadata) {
+    if (typeof input.metadata === 'string') {
+      try {
+        metaObj = JSON.parse(input.metadata);
+      } catch {
+        metaObj = null;
+      }
+    } else if (typeof input.metadata === 'object') {
+      metaObj = input.metadata;
+    }
+  }
+
+  if (metaObj) {
+    const directLat = Number(metaObj.gps_lat ?? metaObj.lat ?? metaObj.latitude);
+    const directLng = Number(metaObj.gps_lng ?? metaObj.lng ?? metaObj.longitude);
+    if (isValidCoordinatePair(directLat, directLng)) {
+      return { lat: directLat, lng: directLng };
+    }
+  }
+
+  const rawUrl = String(
+    input.locationUrl ||
+      metaObj?.location_url ||
+      metaObj?.locationUrl ||
+      metaObj?.google_maps_url ||
+      '',
+  ).trim();
+  if (!rawUrl) return null;
+
+  // Pattern 1: @lat,lng (e.g. https://www.google.com/maps/place/.../@30.0444,31.2357,17z)
+  const atMatch = rawUrl.match(/@(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if (atMatch) {
+    const lat = Number(atMatch[1]);
+    const lng = Number(atMatch[2]);
+    if (isValidCoordinatePair(lat, lng)) return { lat, lng };
+  }
+
+  // Pattern 2: ?q=lat,lng or &q=lat,lng or query=lat,lng or ll=lat,lng
+  const queryMatch = rawUrl.match(/(?:[?&](?:q|query|ll|center|daddr)=)(-?\d+(?:\.\d+)?)\s*(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i);
+  if (queryMatch) {
+    const lat = Number(queryMatch[1]);
+    const lng = Number(queryMatch[2]);
+    if (isValidCoordinatePair(lat, lng)) return { lat, lng };
+  }
+
+  // Pattern 3: !3dLAT!4dLNG in Google Maps embed/place URLs
+  const bangMatch = rawUrl.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+  if (bangMatch) {
+    const lat = Number(bangMatch[1]);
+    const lng = Number(bangMatch[2]);
+    if (isValidCoordinatePair(lat, lng)) return { lat, lng };
+  }
+
+  // Pattern 4: Direct "lat, lng" string
+  const plainMatch = rawUrl.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (plainMatch) {
+    const lat = Number(plainMatch[1]);
+    const lng = Number(plainMatch[2]);
+    if (isValidCoordinatePair(lat, lng)) return { lat, lng };
+  }
+
+  return null;
+}
+
+/**
+ * Calculates great-circle distance in meters between two GPS coordinates using Haversine formula.
+ */
+export function calculateHaversineDistanceMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371000; // Earth radius in meters
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
+export interface GeofenceEvaluationResult {
+  status: 'within_geofence' | 'outside_geofence' | 'no_rep_gps' | 'no_customer_gps';
+  distanceMeters: number | null;
+  isCompliant: boolean | null;
+  maxAllowedMeters: number;
+}
+
+/**
+ * Evaluates whether a field rep's GPS coordinates fall within the customer's geofence radius.
+ */
+export function evaluateGeofenceCompliance(params: {
+  repLat?: number | null;
+  repLng?: number | null;
+  customerLat?: number | null;
+  customerLng?: number | null;
+  maxAllowedMeters?: number;
+}): GeofenceEvaluationResult {
+  const maxAllowedMeters = Math.max(50, Number(params.maxAllowedMeters || 300));
+  const repLat = params.repLat !== undefined && params.repLat !== null ? Number(params.repLat) : NaN;
+  const repLng = params.repLng !== undefined && params.repLng !== null ? Number(params.repLng) : NaN;
+  if (!isValidCoordinatePair(repLat, repLng)) {
+    return {
+      status: 'no_rep_gps',
+      distanceMeters: null,
+      isCompliant: null,
+      maxAllowedMeters,
+    };
+  }
+
+  const custLat = params.customerLat !== undefined && params.customerLat !== null ? Number(params.customerLat) : NaN;
+  const custLng = params.customerLng !== undefined && params.customerLng !== null ? Number(params.customerLng) : NaN;
+  if (!isValidCoordinatePair(custLat, custLng)) {
+    return {
+      status: 'no_customer_gps',
+      distanceMeters: null,
+      isCompliant: null,
+      maxAllowedMeters,
+    };
+  }
+
+  const distanceMeters = calculateHaversineDistanceMeters(repLat, repLng, custLat, custLng);
+  const isCompliant = distanceMeters <= maxAllowedMeters;
+  return {
+    status: isCompliant ? 'within_geofence' : 'outside_geofence',
+    distanceMeters,
+    isCompliant,
+    maxAllowedMeters,
+  };
+}
+
+export interface BatchExpiryStatusResult {
+  status: 'valid' | 'near_expiry' | 'expired' | 'no_expiry';
+  daysRemaining: number | null;
+  earliestExpiryDate: string | null;
+}
+
+/**
+ * Evaluates FEFO / Batch Expiry status for Van Stock and Warehouse Load items.
+ */
+export function evaluateBatchExpiryStatus(
+  expiryDateStr: string | null | undefined,
+  referenceDate: Date = new Date(),
+  nearExpiryDaysThreshold = 60,
+): BatchExpiryStatusResult {
+  const raw = String(expiryDateStr || '').trim();
+  if (!raw) {
+    return { status: 'no_expiry', daysRemaining: null, earliestExpiryDate: null };
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return { status: 'no_expiry', daysRemaining: null, earliestExpiryDate: null };
+  }
+
+  const refDayStart = Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    referenceDate.getUTCDate(),
+  );
+  const expDayStart = Date.UTC(
+    parsed.getUTCFullYear(),
+    parsed.getUTCMonth(),
+    parsed.getUTCDate(),
+  );
+  const daysRemaining = Math.floor((expDayStart - refDayStart) / (1000 * 60 * 60 * 24));
+  const isoDate = `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
+
+  if (daysRemaining < 0) {
+    return { status: 'expired', daysRemaining, earliestExpiryDate: isoDate };
+  }
+  if (daysRemaining <= nearExpiryDaysThreshold) {
+    return { status: 'near_expiry', daysRemaining, earliestExpiryDate: isoDate };
+  }
+  return { status: 'valid', daysRemaining, earliestExpiryDate: isoDate };
+}
+
+export interface CustomerRepLedgerEntryInput {
+  customerId: number;
+  repId: number | null;
+  repName?: string | null;
+  amount: number; // positive = debit (sale), negative = credit (payment / return)
+}
+
+export interface CustomerRepBalanceItem {
+  repId: number;
+  repName: string;
+  balance: number;
+  totalDebit: number;
+  totalCredit: number;
+}
+
+export interface CustomerRepBalanceBreakdown {
+  customerId: number;
+  totalCustomerBalance: number;
+  totalRepBalance: number;
+  unassignedBalance: number;
+  repBalances: CustomerRepBalanceItem[];
+  byRepId: Record<number, CustomerRepBalanceItem>;
+}
+
+/**
+ * Extracts all assigned representative IDs from customer metadata,
+ * supporting both legacy single `assigned_rep_id` and multi-rep `assigned_rep_ids`.
+ */
+export function extractAssignedRepIds(
+  metadata: Record<string, any> | string | null | undefined,
+): number[] {
+  let metaObj: Record<string, any> | null = null;
+  if (metadata) {
+    if (typeof metadata === 'string') {
+      try {
+        metaObj = JSON.parse(metadata);
+      } catch {
+        metaObj = null;
+      }
+    } else if (typeof metadata === 'object') {
+      metaObj = metadata;
+    }
+  }
+  if (!metaObj) return [];
+
+  const ids = new Set<number>();
+  if (Array.isArray(metaObj.assigned_rep_ids)) {
+    for (const raw of metaObj.assigned_rep_ids) {
+      const n = Number(raw);
+      if (Number.isInteger(n) && n > 0) ids.add(n);
+    }
+  }
+  if (metaObj.assigned_rep_id !== undefined && metaObj.assigned_rep_id !== null) {
+    const single = Number(metaObj.assigned_rep_id);
+    if (Number.isInteger(single) && single > 0) ids.add(single);
+  }
+  return Array.from(ids);
+}
+
+/**
+ * Pure aggregation engine for Rep-to-Rep Customer Account Isolation (عزل حسابات المناديب للعميل المشترك).
+ * Ensures that if Rep 1 is owed 500 EGP and Rep 2 is owed 2,000 EGP by the same shop (e.g. "محل البركة" C-0002),
+ * each rep's balance is strictly isolated, while the Supervisor/Owner sees the unified 2,500 EGP total
+ * alongside each rep's exact share.
+ */
+export function aggregateCustomerBalancesByRep(
+  entries: CustomerRepLedgerEntryInput[],
+  customerTotalBalances?: Record<number, number>,
+): Map<number, CustomerRepBalanceBreakdown> {
+  const result = new Map<number, CustomerRepBalanceBreakdown>();
+
+  const ensureCustomer = (customerId: number): CustomerRepBalanceBreakdown => {
+    let item = result.get(customerId);
+    if (!item) {
+      item = {
+        customerId,
+        totalCustomerBalance: 0,
+        totalRepBalance: 0,
+        unassignedBalance: 0,
+        repBalances: [],
+        byRepId: {},
+      };
+      result.set(customerId, item);
+    }
+    return item;
+  };
+
+  if (customerTotalBalances) {
+    for (const [cidKey, bal] of Object.entries(customerTotalBalances)) {
+      const cid = Number(cidKey);
+      if (Number.isInteger(cid) && cid > 0) {
+        const item = ensureCustomer(cid);
+        item.totalCustomerBalance = roundMoney(Number(bal || 0));
+      }
+    }
+  }
+
+  for (const row of entries || []) {
+    const cid = Number(row.customerId);
+    if (!Number.isInteger(cid) || cid <= 0) continue;
+    const amt = roundMoney(Number(row.amount || 0));
+    if (amt === 0) continue;
+
+    const item = ensureCustomer(cid);
+    const repId = row.repId !== undefined && row.repId !== null ? Number(row.repId) : null;
+
+    if (repId && Number.isInteger(repId) && repId > 0) {
+      let repItem = item.byRepId[repId];
+      if (!repItem) {
+        repItem = {
+          repId,
+          repName: String(row.repName || `مندوب #${repId}`).trim(),
+          balance: 0,
+          totalDebit: 0,
+          totalCredit: 0,
+        };
+        item.byRepId[repId] = repItem;
+      } else if (row.repName && repItem.repName.startsWith('مندوب #')) {
+        repItem.repName = String(row.repName).trim();
+      }
+
+      repItem.balance = roundMoney(repItem.balance + amt);
+      if (amt > 0) {
+        repItem.totalDebit = roundMoney(repItem.totalDebit + amt);
+      } else {
+        repItem.totalCredit = roundMoney(repItem.totalCredit + Math.abs(amt));
+      }
+    } else {
+      item.unassignedBalance = roundMoney(item.unassignedBalance + amt);
+    }
+  }
+
+  for (const [cid, item] of result.entries()) {
+    const repList = Object.values(item.byRepId).sort((a, b) => {
+      if (b.balance !== a.balance) return b.balance - a.balance;
+      return a.repId - b.repId;
+    });
+    item.repBalances = repList;
+    item.totalRepBalance = roundMoney(repList.reduce((sum, r) => sum + r.balance, 0));
+
+    const hasExplicitCustomerTotal =
+      customerTotalBalances !== undefined &&
+      Object.prototype.hasOwnProperty.call(customerTotalBalances, cid);
+
+    if (hasExplicitCustomerTotal) {
+      const explicitTotal = roundMoney(Number(customerTotalBalances![cid] || 0));
+      item.totalCustomerBalance = explicitTotal;
+      item.unassignedBalance = roundMoney(explicitTotal - item.totalRepBalance);
+    } else {
+      item.totalCustomerBalance = roundMoney(item.totalRepBalance + item.unassignedBalance);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Resolves the isolated balance visible to a specific rep (`repId`) for a customer.
+ * - Strictly returns only `repId`'s own ledger balance (`byRepId[repId].balance`).
+ * - Fallback: If no rep has any ledger balance on this customer (`totalRepBalance === 0`)
+ *   AND the customer has a legacy opening balance (`unassignedBalance > 0`)
+ *   AND the customer is exclusively assigned to this single rep (`assignedRepIds.length === 1 && assignedRepIds[0] === repId`),
+ *   returns `unassignedBalance`.
+ * - Otherwise returns `0` if `repId` has no ledger transactions with the customer (never leaks another rep's balance).
+ */
+export function resolveIsolatedRepCustomerBalance(params: {
+  repId: number;
+  breakdown?: CustomerRepBalanceBreakdown | null;
+  assignedRepIds?: number[];
+  fallbackTotalBalance?: number;
+}): {
+  repBalance: number;
+  otherRepsBalance: number;
+  totalCustomerBalance: number;
+} {
+  const repId = Number(params.repId);
+  const breakdown = params.breakdown;
+  const assignedIds = params.assignedRepIds || [];
+
+  if (!breakdown) {
+    const total = roundMoney(Number(params.fallbackTotalBalance || 0));
+    const isExclusivelyAssignedToRep = assignedIds.length === 1 && Number(assignedIds[0]) === repId;
+    const repBal = isExclusivelyAssignedToRep ? total : 0;
+    return {
+      repBalance: repBal,
+      otherRepsBalance: roundMoney(Math.max(0, total - repBal)),
+      totalCustomerBalance: total,
+    };
+  }
+
+  const ownEntry = breakdown.byRepId[repId];
+  const ownLedgerBalance = ownEntry ? roundMoney(ownEntry.balance) : 0;
+  const otherRepsLedgerBalance = roundMoney(
+    breakdown.repBalances
+      .filter((r) => r.repId !== repId && r.balance > 0)
+      .reduce((sum, r) => sum + r.balance, 0),
+  );
+
+  const isExclusivelyAssignedToRep =
+    assignedIds.length === 1 &&
+    Number(assignedIds[0]) === repId &&
+    otherRepsLedgerBalance === 0;
+
+  const effectiveRepBalance =
+    isExclusivelyAssignedToRep && breakdown.unassignedBalance > 0
+      ? roundMoney(ownLedgerBalance + breakdown.unassignedBalance)
+      : ownLedgerBalance;
+
+  return {
+    repBalance: effectiveRepBalance,
+    otherRepsBalance: otherRepsLedgerBalance,
+    totalCustomerBalance: breakdown.totalCustomerBalance,
+  };
+}
+
+/**
+ * Validates that a field representative's collection from a shared customer
+ * does not encroach upon or deduct from another representative's isolated debt balance.
+ */
+export function validateIsolatedRepCollection(params: {
+  repId: number;
+  collectionAmount: number;
+  repBalance: number;
+  otherRepsBalance: number;
+  totalCustomerBalance: number;
+}): {
+  allowed: boolean;
+  errorCode?: string;
+  errorMessage?: string;
+  repPreviousBalance: number;
+  repNewBalance: number;
+  companyPreviousBalance: number;
+  companyNewBalance: number;
+} {
+  const amount = roundMoney(Number(params.collectionAmount || 0));
+  const repPreviousBalance = roundMoney(Number(params.repBalance || 0));
+  const otherRepsBalance = roundMoney(Number(params.otherRepsBalance || 0));
+  const companyPreviousBalance = roundMoney(Number(params.totalCustomerBalance || 0));
+
+  if (amount <= 0) {
+    return {
+      allowed: false,
+      errorCode: 'INVALID_COLLECTION_AMOUNT',
+      errorMessage: 'يجب أن تكون قيمة التحصيل أكبر من الصفر',
+      repPreviousBalance,
+      repNewBalance: repPreviousBalance,
+      companyPreviousBalance,
+      companyNewBalance: companyPreviousBalance,
+    };
+  }
+
+  // If the amount exceeds this rep's own balance AND another rep has balance on this customer,
+  // block immediately to prevent mixing rep accounts!
+  if (amount > repPreviousBalance && otherRepsBalance > 0) {
+    return {
+      allowed: false,
+      errorCode: 'REP_ISOLATED_BALANCE_EXCEEDED',
+      errorMessage:
+        repPreviousBalance <= 0
+          ? `لا توجد مديونية مستحقة لك على هذا العميل (رصيدك معه: 0 ج.م)، بينما توجد مديونية بقيمة (${otherRepsBalance} ج.م) تخص مناديب آخرين وعهدهم مستقلة.`
+          : `لا يمكن تحصيل مبلغ (${amount} ج.م) أكبر من مديونية العميل الخاصة بعهدتك (${repPreviousBalance} ج.م). باقي مديونية العميل (${otherRepsBalance} ج.م) تخص مناديب آخرين وعهدهم مستقلة.`,
+      repPreviousBalance,
+      repNewBalance: repPreviousBalance,
+      companyPreviousBalance,
+      companyNewBalance: companyPreviousBalance,
+    };
+  }
+
+  return {
+    allowed: true,
+    repPreviousBalance,
+    repNewBalance: roundMoney(repPreviousBalance - amount),
+    companyPreviousBalance,
+    companyNewBalance: roundMoney(companyPreviousBalance - amount),
+  };
+}
+
+

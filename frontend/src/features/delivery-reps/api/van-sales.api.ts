@@ -17,6 +17,10 @@ export interface VanStockItem {
   offerBadge?: string;
   packagingUnit?: { name: string; multiplier: number };
   availableUnits?: { id: number; name: string; multiplier: number; isBase: boolean }[];
+  earliestExpiryDate?: string | null;
+  batchNumber?: string | null;
+  expiryStatus?: 'expired' | 'near_expiry' | 'valid' | 'no_expiry';
+  daysToExpiry?: number | null;
 }
 
 export interface VanTripExpense {
@@ -205,6 +209,16 @@ export interface RepTargetMetrics {
   remainingVisits?: number;
   requiredDailyVisits?: number;
   isVisitsAchieved?: boolean;
+  salesCommissionRate?: number;
+  collectionCommissionRate?: number;
+  targetBonusRate?: number;
+  salesCommissionEarned?: number;
+  collectionCommissionEarned?: number;
+  targetBonusEarned?: number;
+  totalCommissionEarned?: number;
+  paidCommissionAmount?: number;
+  remainingCommissionPayable?: number;
+  isCommissionSettled?: boolean;
 }
 
 export interface VanAssignedVehicle {
@@ -352,6 +366,14 @@ export interface VanFieldReturnRecord {
   createdAt: string;
 }
 
+export interface CustomerRepBalanceItem {
+  repId: number;
+  repName: string;
+  balance: number;
+  totalDebit: number;
+  totalCredit: number;
+}
+
 export interface SupervisorCustomerRouteItem {
   customerId: number;
   customerName: string;
@@ -362,9 +384,13 @@ export interface SupervisorCustomerRouteItem {
   routeSequence: number;
   visitDays: string[];
   assignedRepId: number | null;
+  assignedRepIds?: number[];
+  assignedRepNames?: string[];
   assignedRepName: string | null;
   locationUrl?: string;
   balance: number;
+  repBalances?: CustomerRepBalanceItem[];
+  unassignedBalance?: number;
   creditLimit: number;
 }
 
@@ -437,6 +463,10 @@ export interface DriverAvailableProduct {
   supplierName?: string;
   categoryId?: number;
   categoryName?: string;
+  earliestExpiryDate?: string | null;
+  batchNumber?: string | null;
+  expiryStatus?: 'expired' | 'near_expiry' | 'valid' | 'no_expiry';
+  daysToExpiry?: number | null;
 }
 
 export interface RepTargetSummary {
@@ -464,6 +494,16 @@ export interface RepTargetSummary {
   remainingVisits?: number;
   requiredDailyVisits?: number;
   isVisitsAchieved?: boolean;
+  salesCommissionRate?: number;
+  collectionCommissionRate?: number;
+  targetBonusRate?: number;
+  salesCommissionEarned?: number;
+  collectionCommissionEarned?: number;
+  targetBonusEarned?: number;
+  totalCommissionEarned?: number;
+  paidCommissionAmount?: number;
+  remainingCommissionPayable?: number;
+  isCommissionSettled?: boolean;
 }
 
 export interface TripAdminDetails {
@@ -478,6 +518,9 @@ export interface TripAdminDetails {
     customerPhone: string;
     deliveryGpsLat?: number;
     deliveryGpsLng?: number;
+    distanceMeters?: number | null;
+    isWithinGeofence?: boolean | null;
+    geofenceStatus?: 'within_range' | 'out_of_range' | 'missing_rep_gps' | 'missing_customer_gps';
     isCreditOverridden?: boolean;
     creditOverrideReason?: string;
   }>;
@@ -489,6 +532,9 @@ export interface TripAdminDetails {
     note?: string;
     gpsLat?: number;
     gpsLng?: number;
+    distanceMeters?: number | null;
+    isWithinGeofence?: boolean | null;
+    geofenceStatus?: 'within_range' | 'out_of_range' | 'missing_rep_gps' | 'missing_customer_gps';
   }>;
   returns: Array<{
     id: number;
@@ -638,6 +684,9 @@ export interface SupervisorRouteKpiSummary {
   positiveVisits: number;
   negativeVisits: number;
   strikeRate: number;
+  withinGeofenceCount?: number;
+  outOfGeofenceCount?: number;
+  geofenceComplianceRate?: number;
   negativeReasonsBreakdown: Record<string, number>;
   repeatedNegativeCustomersCount: number;
   totalFuelLiters: number;
@@ -830,6 +879,7 @@ export const vanSalesApi = {
     endOdometer?: number;
     activeVisitCustomerId?: number;
     notes?: string;
+    supervisorPin?: string;
   }): Promise<{
     ok: boolean;
     tripId: number;
@@ -1155,10 +1205,65 @@ export const vanSalesApi = {
     targetAmount: number,
     collectionTarget?: number | null,
     visitsTarget?: number | null,
+    commissionRates?: {
+      salesCommissionRate?: number;
+      collectionCommissionRate?: number;
+      targetBonusRate?: number;
+    },
   ) => {
     return http('/api/van-sales/admin/targets', {
       method: 'POST',
-      body: JSON.stringify({ repId, month, targetAmount, collectionTarget, visitsTarget }),
+      body: JSON.stringify({
+        repId,
+        month,
+        targetAmount,
+        collectionTarget,
+        visitsTarget,
+        ...(commissionRates || {}),
+      }),
+    });
+  },
+
+  getCommissionConfig: async (): Promise<{
+    defaultSalesRate: number;
+    defaultCollectionRate: number;
+    defaultTargetBonusRate: number;
+    repRates: Record<string, { salesRate: number; collectionRate: number; targetBonusRate: number }>;
+  }> => {
+    return http('/api/van-sales/admin/targets/commission-config');
+  },
+
+  saveCommissionConfig: async (payload: {
+    defaultSalesRate?: number;
+    defaultCollectionRate?: number;
+    defaultTargetBonusRate?: number;
+    repId?: number;
+    salesRate?: number;
+    collectionRate?: number;
+    targetBonusRate?: number;
+  }) => {
+    return http('/api/van-sales/admin/targets/commission-config', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  settleRepCommission: async (payload: {
+    repId: number;
+    month: string;
+    amount: number;
+    paymentMethod?: 'cash' | 'bank_transfer';
+    notes?: string;
+  }): Promise<{
+    ok: boolean;
+    repId: number;
+    month: string;
+    settledAmount: number;
+    expenseId?: number;
+  }> => {
+    return http('/api/van-sales/admin/targets/settle-commission', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 
@@ -1199,6 +1304,7 @@ export const vanSalesApi = {
       customerCode?: string;
       locationUrl?: string;
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
       assignedRepName?: string;
     },
   ) => {
@@ -1229,6 +1335,8 @@ export const vanSalesApi = {
   bulkAssignCustomerRoutes: async (payload: {
     customerIds: number[];
     assignedRepId?: number | null;
+    assignedRepIds?: number[];
+    appendReps?: boolean;
     assignedRepName?: string;
     route?: string;
     visitDays?: string[];
@@ -1430,13 +1538,47 @@ export const vanSalesApi = {
     });
   },
 
+  consolidateAdminPreSalesOrdersToRequisition: async (payload: {
+    orderIds: number[];
+    deliveryRepId: number;
+    notes?: string;
+  }): Promise<{
+    ok: boolean;
+    requisitionId: number;
+    requisitionDocNo: string;
+    consolidatedOrdersCount: number;
+    totalDistinctItems: number;
+  }> => {
+    return http('/api/van-sales/admin/pre-sales-orders/consolidate-requisition', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  convertAdminPreSalesOrderToInvoice: async (
+    orderId: number,
+    payload?: { paymentMethod?: 'cash' | 'credit'; notes?: string },
+  ): Promise<{
+    ok: boolean;
+    orderId: number;
+    orderNumber: string;
+    saleId: number;
+    invoiceDocNo: string;
+    totalAmount: number;
+  }> => {
+    return http(`/api/van-sales/admin/pre-sales-orders/${orderId}/convert-invoice`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    });
+  },
+
   // =========================================================================
   // Trip Operational Expenses API
   // =========================================================================
 
   recordTripExpense: async (
-    payloadOrTripId: number | { tripId: number; expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string },
-    extraPayload?: { expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string },
+    payloadOrTripId: number | { tripId: number; expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string; supervisorOverridePin?: string },
+    extraPayload?: { expenseType: string; amount: number; notes?: string; description?: string; receiptPhotoUrl?: string; receiptPhoto?: string; supervisorOverridePin?: string },
   ): Promise<{ ok: boolean; expenseId: number; totalTripExpenses: number }> => {
     let tripId: number;
     let body: any;
@@ -1448,6 +1590,7 @@ export const vanSalesApi = {
         amount: extraPayload?.amount,
         notes: extraPayload?.notes || extraPayload?.description,
         receiptPhotoUrl: extraPayload?.receiptPhotoUrl || extraPayload?.receiptPhoto,
+        supervisorOverridePin: extraPayload?.supervisorOverridePin,
       };
     } else {
       tripId = payloadOrTripId.tripId;
@@ -1457,6 +1600,7 @@ export const vanSalesApi = {
         amount: payloadOrTripId.amount,
         notes: payloadOrTripId.notes || payloadOrTripId.description,
         receiptPhotoUrl: payloadOrTripId.receiptPhotoUrl || payloadOrTripId.receiptPhoto,
+        supervisorOverridePin: payloadOrTripId.supervisorOverridePin,
       };
     }
     return http(`/api/driver-portal/van-sales/trips/${tripId}/expenses`, {

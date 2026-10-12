@@ -49,10 +49,14 @@ export class VanReturnsService {
 
   /**
    * Fetches recent sales for a customer with eligible items and their calculated net unit prices.
+   * When `repId` is provided (from the driver portal), strictly isolates to sales owned by that rep.
    */
-  async getCustomerEligibleSales(tenantId: string, customerId: number) {
-    const sales = await this.anyDb
+  async getCustomerEligibleSales(tenantId: string, customerId: number, repId?: number) {
+    let query = this.anyDb
       .selectFrom('sales as s')
+      .leftJoin('van_sales_trips as vt', (join: any) =>
+        join.onRef('vt.id', '=', 's.van_trip_id').onRef('vt.tenant_id', '=', 's.tenant_id'),
+      )
       .select([
         's.id',
         's.doc_no as docNo',
@@ -62,7 +66,13 @@ export class VanReturnsService {
       ])
       .where('s.customer_id', '=', customerId)
       .where('s.tenant_id', '=', tenantId)
-      .where('s.status', '=', 'posted')
+      .where('s.status', '=', 'posted');
+
+    if (repId !== undefined && repId !== null && Number(repId) > 0) {
+      query = query.where(sql<boolean>`coalesce(s.delivery_rep_id, vt.rep_id) = ${Number(repId)}`);
+    }
+
+    const sales = await query
       .orderBy('s.id', 'desc')
       .limit(20)
       .execute();
@@ -168,17 +178,31 @@ export class VanReturnsService {
       .executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
 
-    // If saleId is linked, validate against original invoice lines
+    // If saleId is linked, validate against original invoice lines and rep isolation
     if (payload.saleId) {
       const sale = await this.anyDb
-        .selectFrom('sales')
-        .select(['id', 'customer_id'])
-        .where('id', '=', payload.saleId)
-        .where('tenant_id', '=', tenantId)
+        .selectFrom('sales as s')
+        .leftJoin('van_sales_trips as vt', (join: any) =>
+          join.onRef('vt.id', '=', 's.van_trip_id').onRef('vt.tenant_id', '=', 's.tenant_id'),
+        )
+        .select([
+          's.id',
+          's.customer_id',
+          sql<number | null>`coalesce(s.delivery_rep_id, vt.rep_id)`.as('resolved_rep_id'),
+        ])
+        .where('s.id', '=', payload.saleId)
+        .where('s.tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!sale) throw new AppError('الفاتورة الأصلية غير موجودة', 'SALE_NOT_FOUND', 404);
       if (Number(sale.customer_id) !== Number(payload.customerId)) {
         throw new AppError('الفاتورة المحددة لا تخص هذا العميل', 'SALE_CUSTOMER_MISMATCH', 400);
+      }
+      if (sale.resolved_rep_id != null && Number(sale.resolved_rep_id) !== Number(repId)) {
+        throw new AppError(
+          'لا يمكن عمل مرتجع على فاتورة تخص مندوباً آخر — عهد وحسابات كل مندوب معزولة تماماً',
+          'SALE_REP_MISMATCH',
+          403,
+        );
       }
 
       const saleLines = await this.anyDb

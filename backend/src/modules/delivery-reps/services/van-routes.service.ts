@@ -4,7 +4,13 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
 import { VanFleetService } from './van-fleet.service';
-import { normalizeCustomerCode } from './van-common.util';
+import { normalizeCustomerCode, getCustomerRepBalancesMap } from './van-common.util';
+import {
+  extractCoordinatesFromCustomerLocation,
+  evaluateGeofenceCompliance,
+  extractAssignedRepIds,
+  resolveIsolatedRepCustomerBalance,
+} from '../rep-target.engine';
 
 @Injectable()
 export class VanRoutesService {
@@ -35,6 +41,18 @@ export class VanRoutesService {
       .orderBy('id', 'asc')
       .execute();
 
+    const customerIds: number[] = [];
+    const customerTotalBalances: Record<number, number> = {};
+    for (const c of customers) {
+      const cid = Number(c.id);
+      customerIds.push(cid);
+      customerTotalBalances[cid] = Number(c.balance || 0);
+    }
+    const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
+      customerIds,
+      customerTotalBalances,
+    });
+
     // 1. Calculate today's Arabic & English day names
     const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
     const englishDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -42,7 +60,7 @@ export class VanRoutesService {
     const currentDayName = arabicDays[dayIdx];
     const currentEnglishDayName = englishDays[dayIdx];
 
-    // 2. Filter customers based on rep assignment
+    // 2. Filter customers based on rep assignment (supporting multi-rep shared customers & ledger ownership)
     const parseCustMeta = (raw: any): any => {
       if (typeof raw === 'string') {
         try { return JSON.parse(raw); } catch { return {}; }
@@ -50,18 +68,20 @@ export class VanRoutesService {
       return raw && typeof raw === 'object' ? raw : {};
     };
 
+    const numRepId = Number(repId);
     const repHasExplicitAssignments = customers.some((c: any) => {
-      const m = parseCustMeta(c.metadata);
-      return m.assigned_rep_id && Number(m.assigned_rep_id) === Number(repId);
+      const assignedIds = extractAssignedRepIds(c.metadata);
+      return assignedIds.includes(numRepId);
     });
 
     const repCustomers = customers.filter((c: any) => {
-      const m = parseCustMeta(c.metadata);
-      const cAssignedRepId = m.assigned_rep_id ? Number(m.assigned_rep_id) : null;
+      const cid = Number(c.id);
+      const assignedIds = extractAssignedRepIds(c.metadata);
+      const hasRepLedgerActivity = Boolean(repBalancesMap.get(cid)?.byRepId[numRepId]);
       if (repHasExplicitAssignments) {
-        return cAssignedRepId === Number(repId);
+        return assignedIds.includes(numRepId) || hasRepLedgerActivity;
       }
-      return cAssignedRepId === null || cAssignedRepId === Number(repId);
+      return assignedIds.length === 0 || assignedIds.includes(numRepId) || hasRepLedgerActivity;
     });
 
     const todayVisits = await this.anyDb
@@ -96,6 +116,7 @@ export class VanRoutesService {
         sql<number>`count(*) filter (where visit_type = 'negative')`.as('negativeCount'),
       ])
       .where('tenant_id', '=', tenantId)
+      .where('rep_id', '=', repId)
       .groupBy('customer_id')
       .execute();
 
@@ -107,6 +128,13 @@ export class VanRoutesService {
     return repCustomers.map((c: any) => {
       const cId = Number(c.id);
       const meta = parseCustMeta(c.metadata);
+      const assignedRepIds = extractAssignedRepIds(meta);
+      const isolated = resolveIsolatedRepCustomerBalance({
+        repId: numRepId,
+        breakdown: repBalancesMap.get(cId),
+        assignedRepIds,
+        fallbackTotalBalance: Number(c.balance || 0),
+      });
       const todayVisit = visitMap.get(cId);
       const totalNegatives = negativeMap.get(cId) || 0;
 
@@ -131,7 +159,9 @@ export class VanRoutesService {
               );
             })
           : true;
-      const assignedRepId = meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null;
+      const assignedRepId = assignedRepIds.includes(numRepId)
+        ? numRepId
+        : (meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null);
 
       return {
         customerId: cId,
@@ -147,9 +177,11 @@ export class VanRoutesService {
         isScheduledToday,
         currentDayName,
         assignedRepId,
+        assignedRepIds,
         assignedRepName: meta.assigned_rep_name || '',
         locationUrl: meta.location_url || '',
-        balance: Number(c.balance || 0),
+        balance: isolated.repBalance,
+        totalCompanyBalance: isolated.totalCustomerBalance,
         creditLimit: Number(c.creditLimit || 0),
         visitStatus: status,
         todayVisit: todayVisit || null,
@@ -239,6 +271,7 @@ export class VanRoutesService {
         'vfv.customer_id as customerId',
         'c.name as customerName',
         'c.phone as customerPhone',
+        'c.metadata as customerMetadata',
         'vfv.visit_type as visitType',
         'vfv.sale_id as saleId',
         sql<string>`coalesce(s.doc_no, '')`.as('saleDocNo'),
@@ -259,18 +292,40 @@ export class VanRoutesService {
     if (filters?.dateTo) query = query.where('vfv.visited_at', '<=', `${filters.dateTo} 23:59:59`);
 
     const rows = await query.orderBy('vfv.visited_at', 'desc').limit(300).execute();
-    return rows;
+    return rows.map((r: any) => {
+      const custCoords = extractCoordinatesFromCustomerLocation({ metadata: r.customerMetadata });
+      const geo = evaluateGeofenceCompliance({
+        repLat: r.gpsLat != null ? Number(r.gpsLat) : null,
+        repLng: r.gpsLng != null ? Number(r.gpsLng) : null,
+        customerLat: custCoords?.lat ?? null,
+        customerLng: custCoords?.lng ?? null,
+        maxAllowedMeters: 300,
+      });
+      const { customerMetadata: _cm, ...rest } = r;
+      return {
+        ...rest,
+        customerLat: custCoords?.lat ?? null,
+        customerLng: custCoords?.lng ?? null,
+        distanceMeters: geo.distanceMeters,
+        isWithinGeofence: geo.isCompliant,
+        geofenceStatus: geo.status,
+      };
+    });
   }
 
   async getSupervisorRouteKpis(tenantId: string, dateFrom?: string, dateTo?: string) {
     let visitQuery = this.anyDb
       .selectFrom('van_field_visits as vfv')
+      .leftJoin('customers as c', 'c.id', 'vfv.customer_id')
       .select([
         'vfv.id',
         'vfv.visit_type as visitType',
         'vfv.negative_reason as negativeReason',
         'vfv.customer_id as customerId',
         'vfv.rep_id as repId',
+        'vfv.gps_lat as gpsLat',
+        'vfv.gps_lng as gpsLng',
+        'c.metadata as customerMetadata',
       ])
       .where('vfv.tenant_id', '=', tenantId);
 
@@ -283,6 +338,21 @@ export class VanRoutesService {
     const positiveVisits = visits.filter((v: any) => v.visitType === 'positive').length;
     const negativeVisits = visits.filter((v: any) => v.visitType === 'negative').length;
     const strikeRate = totalVisits > 0 ? Number(((positiveVisits / totalVisits) * 100).toFixed(1)) : 0;
+
+    let geofenceCompliantCount = 0;
+    let geofenceViolationsCount = 0;
+    for (const v of visits) {
+      const custCoords = extractCoordinatesFromCustomerLocation({ metadata: v.customerMetadata });
+      const geo = evaluateGeofenceCompliance({
+        repLat: v.gpsLat != null ? Number(v.gpsLat) : null,
+        repLng: v.gpsLng != null ? Number(v.gpsLng) : null,
+        customerLat: custCoords?.lat ?? null,
+        customerLng: custCoords?.lng ?? null,
+        maxAllowedMeters: 300,
+      });
+      if (geo.status === 'within_geofence') geofenceCompliantCount++;
+      else if (geo.status === 'outside_geofence') geofenceViolationsCount++;
+    }
 
     const reasonsMap: Record<string, number> = {
       no_cash: 0,
@@ -322,6 +392,8 @@ export class VanRoutesService {
       positiveVisits,
       negativeVisits,
       strikeRate,
+      geofenceCompliantCount,
+      geofenceViolationsCount,
       negativeReasonsBreakdown: reasonsMap,
       repeatedNegativeCustomersCount,
       totalFuelLiters,
@@ -343,6 +415,7 @@ export class VanRoutesService {
       customerCode?: string;
       locationUrl?: string;
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
       assignedRepName?: string | null;
     },
   ) {
@@ -355,27 +428,60 @@ export class VanRoutesService {
 
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
 
-    let resolvedRepName = payload.assignedRepName;
-    if (payload.assignedRepId) {
-      const rep = await this.anyDb
-        .selectFrom('delivery_representatives')
-        .select(['id', 'name'])
-        .where('id', '=', payload.assignedRepId)
-        .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
-      if (rep) {
-        resolvedRepName = rep.name;
-      }
-    } else if (payload.assignedRepId === null) {
-      resolvedRepName = null;
-    }
-
     let existingMeta: any = {};
     if (typeof cust.metadata === 'string') {
       try { existingMeta = JSON.parse(cust.metadata); } catch { existingMeta = {}; }
     } else if (cust.metadata && typeof cust.metadata === 'object') {
       existingMeta = { ...cust.metadata };
     }
+
+    let targetRepIds: number[] | undefined;
+    if (Array.isArray(payload.assignedRepIds)) {
+      targetRepIds = Array.from(
+        new Set(
+          payload.assignedRepIds
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ),
+      );
+    } else if (payload.assignedRepId !== undefined) {
+      if (payload.assignedRepId === null) {
+        targetRepIds = [];
+      } else {
+        const singleId = Number(payload.assignedRepId);
+        targetRepIds = Number.isInteger(singleId) && singleId > 0 ? [singleId] : [];
+      }
+    }
+
+    let resolvedRepName = payload.assignedRepName ?? existingMeta.assigned_rep_name ?? null;
+    let resolvedRepNames: string[] = Array.isArray(existingMeta.assigned_rep_names)
+      ? existingMeta.assigned_rep_names
+      : [];
+
+    if (targetRepIds !== undefined) {
+      if (targetRepIds.length > 0) {
+        const reps = await this.anyDb
+          .selectFrom('delivery_representatives')
+          .select(['id', 'name'])
+          .where('id', 'in', targetRepIds)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+        const nameById = new Map<number, string>();
+        for (const r of reps || []) {
+          nameById.set(Number(r.id), String(r.name || `مندوب #${r.id}`));
+        }
+        resolvedRepNames = targetRepIds.map((id) => nameById.get(id) || `مندوب #${id}`);
+        resolvedRepName = resolvedRepNames.join(' ، ');
+      } else {
+        resolvedRepNames = [];
+        resolvedRepName = null;
+      }
+    }
+
+    const parsedCoords = payload.locationUrl !== undefined
+      ? extractCoordinatesFromCustomerLocation({ locationUrl: payload.locationUrl })
+      : null;
+
     const updatedMeta: any = {
       ...existingMeta,
       ...(payload.route !== undefined ? { route: payload.route } : {}),
@@ -383,10 +489,13 @@ export class VanRoutesService {
       ...(payload.visitDays !== undefined ? { visit_days: payload.visitDays } : {}),
       ...(payload.customerCode !== undefined ? { customer_code: payload.customerCode } : {}),
       ...(payload.locationUrl !== undefined ? { location_url: payload.locationUrl } : {}),
+      ...(parsedCoords ? { gps_lat: parsedCoords.lat, gps_lng: parsedCoords.lng } : {}),
     };
 
-    if (payload.assignedRepId !== undefined) {
-      updatedMeta.assigned_rep_id = payload.assignedRepId;
+    if (targetRepIds !== undefined) {
+      updatedMeta.assigned_rep_ids = targetRepIds;
+      updatedMeta.assigned_rep_names = resolvedRepNames;
+      updatedMeta.assigned_rep_id = targetRepIds.length > 0 ? targetRepIds[0] : null;
       updatedMeta.assigned_rep_name = resolvedRepName;
     }
 
@@ -408,6 +517,8 @@ export class VanRoutesService {
     payload: {
       customerIds: number[];
       assignedRepId?: number | null;
+      assignedRepIds?: number[];
+      appendReps?: boolean;
       assignedRepName?: string | null;
       route?: string;
       visitDays?: string[];
@@ -417,17 +528,19 @@ export class VanRoutesService {
       throw new AppError('يرجى تحديد عميل واحد على الأقل', 'INVALID_CUSTOMER_IDS', 400);
     }
 
+    const allReps = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name'])
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    const repNameById = new Map<number, string>();
+    for (const r of allReps || []) {
+      repNameById.set(Number(r.id), String(r.name || `مندوب #${r.id}`));
+    }
+
     let resolvedRepName = payload.assignedRepName;
     if (payload.assignedRepId) {
-      const rep = await this.anyDb
-        .selectFrom('delivery_representatives')
-        .select(['id', 'name'])
-        .where('id', '=', payload.assignedRepId)
-        .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
-      if (rep) {
-        resolvedRepName = rep.name;
-      }
+      resolvedRepName = repNameById.get(Number(payload.assignedRepId)) || resolvedRepName;
     } else if (payload.assignedRepId === null) {
       resolvedRepName = null;
     }
@@ -447,9 +560,36 @@ export class VanRoutesService {
         meta = { ...c.metadata };
       }
 
-      if (payload.assignedRepId !== undefined) {
-        meta.assigned_rep_id = payload.assignedRepId;
-        meta.assigned_rep_name = resolvedRepName;
+      if (Array.isArray(payload.assignedRepIds)) {
+        const existingIds = payload.appendReps ? extractAssignedRepIds(meta) : [];
+        const mergedIds = Array.from(
+          new Set(
+            [...existingIds, ...payload.assignedRepIds.map((id) => Number(id))].filter(
+              (id) => Number.isInteger(id) && id > 0,
+            ),
+          ),
+        );
+        const names = mergedIds.map((id) => repNameById.get(id) || `مندوب #${id}`);
+        meta.assigned_rep_ids = mergedIds;
+        meta.assigned_rep_names = names;
+        meta.assigned_rep_id = mergedIds.length > 0 ? mergedIds[0] : null;
+        meta.assigned_rep_name = names.length > 0 ? names.join(' ، ') : null;
+      } else if (payload.assignedRepId !== undefined) {
+        if (payload.assignedRepId === null) {
+          meta.assigned_rep_id = null;
+          meta.assigned_rep_ids = [];
+          meta.assigned_rep_name = null;
+          meta.assigned_rep_names = [];
+        } else {
+          const rId = Number(payload.assignedRepId);
+          const existingIds = payload.appendReps ? extractAssignedRepIds(meta) : [];
+          const mergedIds = Array.from(new Set([...existingIds, rId]));
+          const names = mergedIds.map((id) => repNameById.get(id) || resolvedRepName || `مندوب #${id}`);
+          meta.assigned_rep_id = mergedIds[0] ?? rId;
+          meta.assigned_rep_ids = mergedIds;
+          meta.assigned_rep_name = names.join(' ، ');
+          meta.assigned_rep_names = names;
+        }
       }
       if (payload.route !== undefined && payload.route.trim()) {
         meta.route = payload.route.trim();
@@ -502,22 +642,53 @@ export class VanRoutesService {
       .where('c.is_active', '=', true);
 
     if (filters?.search && filters.search.trim()) {
-      const q = `%${filters.search.trim().toLowerCase()}%`;
-      query = query.where((eb: any) =>
-        eb.or([
-          sql<boolean>`lower(c.name) like ${q}`,
+      const rawTrim = filters.search.trim();
+      const q = `%${rawTrim.toLowerCase()}%`;
+      const codeDigitsMatch = rawTrim.match(/^(?:c-|#)?0*(\d+)$/i);
+      const numericId = codeDigitsMatch ? Number(codeDigitsMatch[1]) : null;
+      query = query.where((eb: any) => {
+        const conds: any[] = [
+          sql<boolean>`TRANSLATE(LOWER(COALESCE(c.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE TRANSLATE(${q}, 'أإآٱٲٳؤئىة', 'ااااااويهه')`,
           sql<boolean>`c.phone like ${q}`,
+          sql<boolean>`LPAD(CAST(c.id AS TEXT), 4, '0') LIKE ${q}`,
           sql<boolean>`cast(c.metadata as text) ilike ${q}`,
-        ]),
-      );
+        ];
+        if (numericId && Number.isInteger(numericId) && numericId > 0) {
+          conds.push(eb('c.id', '=', numericId));
+        }
+        return eb.or(conds);
+      });
     }
 
-    const rows = await query
-      .orderBy('c.name', 'asc')
-      .limit(3000)
-      .execute();
+    const [rows, allReps] = await Promise.all([
+      query.orderBy('c.name', 'asc').limit(3000).execute(),
+      this.anyDb
+        .selectFrom('delivery_representatives')
+        .select(['id', 'name'])
+        .where('tenant_id', '=', tenantId)
+        .execute(),
+    ]);
+
+    const repNameById = new Map<number, string>();
+    for (const rep of allReps || []) {
+      repNameById.set(Number(rep.id), String(rep.name || `مندوب #${rep.id}`));
+    }
+
+    const customerIds: number[] = [];
+    const customerTotalBalances: Record<number, number> = {};
+    for (const r of rows) {
+      const cid = Number(r.id);
+      customerIds.push(cid);
+      customerTotalBalances[cid] = Number(r.balance || 0);
+    }
+
+    const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
+      customerIds,
+      customerTotalBalances,
+    });
 
     let results = rows.map((r: any) => {
+      const cid = Number(r.id);
       let meta: any = {};
       if (typeof r.metadata === 'string') {
         try { meta = JSON.parse(r.metadata); } catch { meta = {}; }
@@ -525,28 +696,53 @@ export class VanRoutesService {
         meta = r.metadata;
       }
 
+      const breakdown = repBalancesMap.get(cid);
+      const repBalances = breakdown?.repBalances || [];
+      const metaRepIds = extractAssignedRepIds(meta);
+      const ledgerRepIds = repBalances.filter((rb) => rb.balance !== 0).map((rb) => rb.repId);
+      const assignedRepIds = Array.from(new Set([...metaRepIds, ...ledgerRepIds]));
+      const assignedRepNames = assignedRepIds.map(
+        (id) => repNameById.get(id) || breakdown?.byRepId[id]?.repName || `مندوب #${id}`,
+      );
+      const primaryRepId = meta.assigned_rep_id
+        ? Number(meta.assigned_rep_id)
+        : (assignedRepIds.length > 0 ? assignedRepIds[0] : null);
+      const displayRepName =
+        assignedRepNames.length > 0
+          ? assignedRepNames.join(' ، ')
+          : (meta.assigned_rep_name || null);
+
       return {
-        customerId: Number(r.id),
+        customerId: cid,
         customerName: r.name,
         customerPhone: r.phone || '',
         customerAddress: r.address || '',
-        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, r.id),
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cid),
         route: meta.route || 'غير محدد',
         routeSequence: Number(meta.route_sequence || 1),
         visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : [],
-        assignedRepId: meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null,
-        assignedRepName: meta.assigned_rep_name || null,
+        assignedRepId: primaryRepId,
+        assignedRepIds,
+        assignedRepNames,
+        assignedRepName: displayRepName,
         locationUrl: meta.location_url || (meta.gps_lat && meta.gps_lng ? `https://maps.google.com/?q=${meta.gps_lat},${meta.gps_lng}` : ''),
         balance: Number(r.balance || 0),
+        repBalances,
+        unassignedBalance: breakdown?.unassignedBalance || 0,
         creditLimit: Number(r.creditLimit || 0),
       };
     });
 
     if (filters?.unassignedOnly || filters?.repId === 'unassigned') {
-      results = results.filter((c: any) => !c.assignedRepId);
+      results = results.filter((c: any) => (!c.assignedRepIds || c.assignedRepIds.length === 0) && !c.assignedRepId);
     } else if (filters?.repId && filters.repId !== 'all') {
       const targetRepId = Number(filters.repId);
-      results = results.filter((c: any) => c.assignedRepId === targetRepId);
+      results = results.filter(
+        (c: any) =>
+          c.assignedRepId === targetRepId ||
+          (Array.isArray(c.assignedRepIds) && c.assignedRepIds.includes(targetRepId)) ||
+          (Array.isArray(c.repBalances) && c.repBalances.some((rb: any) => Number(rb.repId) === targetRepId && rb.balance !== 0)),
+      );
     }
 
     if (filters?.route && filters.route !== 'all') {

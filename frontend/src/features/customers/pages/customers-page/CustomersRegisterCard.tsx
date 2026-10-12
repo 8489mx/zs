@@ -99,8 +99,56 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     },
     {
       key: 'balance',
-      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : profile.id === 'distribution' ? 'مديونية المحل' : 'الرصيد',
-      cell: (customer: Customer) => formatCurrency(customer.balance || 0)
+      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : profile.id === 'distribution' ? 'مديونية المحل (إجمالي وتفصيل المناديب)' : 'الرصيد',
+      cell: (customer: Customer) => {
+        const totalBal = Number(customer.balance || 0);
+        const repBals = customer.repBalances || [];
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <strong style={{ color: totalBal > 0 ? '#dc2626' : '#0f172a' }}>
+              {formatCurrency(totalBal)}
+            </strong>
+            {repBals.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {repBals.map((rb) => (
+                  <span
+                    key={rb.repId}
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      color: rb.balance > 0 ? '#9a3412' : '#475569',
+                      backgroundColor: rb.balance > 0 ? '#ffedd5' : '#f1f5f9',
+                      border: `1px solid ${rb.balance > 0 ? '#fed7aa' : '#cbd5e1'}`,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`مديونية المندوب (${rb.repName}) المعزولة لدى المحل`}
+                  >
+                    {rb.repName}: {formatCurrency(rb.balance)}
+                  </span>
+                ))}
+                {(customer.unassignedBalance ?? 0) > 0 && (
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      color: '#475569',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    مباشر/إدارة: {formatCurrency(customer.unassignedBalance || 0)}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'creditLimit',
@@ -158,7 +206,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
       <SearchToolbar
         search={props.search}
         onSearchChange={(value) => { props.setSearch(value); props.setPage(1); }}
-        searchPlaceholder="ابحث بالاسم أو الهاتف أو العنوان أو النوع"
+        searchPlaceholder="ابحث بالاسم أو كود المحل (مثل 0002) أو الهاتف أو العنوان"
         title="بحث وتصفية"
         description="ابدأ بالفلتر المناسب ثم اختر السجل المطلوب لتظهر لوحة التعديل فورًا."
         actions={<span className="nav-pill">{props.filterMode === 'all' ? (profile.id === 'maritime' ? 'كل الشاحنين' : profile.id === 'contracting' ? 'كل جهات الإسناد' : 'كل العملاء') : props.filterMode === 'vip' ? (profile.id === 'maritime' ? 'شاحن VIP' : 'VIP') : props.filterMode === 'debt' ? 'عليهم رصيد' : 'نقدي'}</span>}

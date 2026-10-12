@@ -122,6 +122,71 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
           placeholder="0.00"
         />
       </Field>
+
+      {customer.repBalances && customer.repBalances.length > 0 && (
+        <div
+          style={{
+            gridColumn: 'span 2',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            backgroundColor: '#fff7ed',
+            border: '1px solid #fed7aa',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412' }}>
+              تفصيل مديونية المحل حسب كل مندوب (عزل مستقل لحسابات المناديب)
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626' }}>
+              إجمالي مديونية المحل للمنشأة: {Number(customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {customer.repBalances.map((rb) => (
+              <div
+                key={rb.repId}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #fdba74',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                }}
+              >
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>{rb.repName}:</span>
+                <span style={{ fontWeight: 800, color: rb.balance > 0 ? '#c2410c' : '#16a34a' }}>
+                  {Number(rb.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
+                </span>
+              </div>
+            ))}
+            {(customer.unassignedBalance ?? 0) > 0 && (
+              <div
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                }}
+              >
+                <span style={{ fontWeight: 700, color: '#475569' }}>مباشر / الفرع الرئيسي:</span>
+                <span style={{ fontWeight: 800, color: '#334155' }}>
+                  {Number(customer.unassignedBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       {profile.id === 'distribution' && (
         <fieldset style={{ padding: '12px 16px', border: '1px solid #bfdbfe', borderRadius: '10px', background: '#eff6ff', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '12px' }}>

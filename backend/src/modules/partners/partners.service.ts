@@ -10,6 +10,7 @@ import { UpsertCustomerDto } from './dto/upsert-customer.dto';
 import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
 import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePagination, mapCustomerRow, mapSupplierRow, parsePartnersListQuery } from './helpers/partners-listing.helper';
 import { generatePhoneSearchVariants } from '../../core/utils/phone-utils';
+import { getCustomerRepBalancesMap } from '../delivery-reps/services/van-common.util';
 
 @Injectable()
 export class PartnersService {
@@ -137,7 +138,16 @@ export class PartnersService {
 
     if (isUnpagedDefault) {
       const rows = await listQuery.orderBy('id', 'asc').execute();
-      return { customers: rows.map((row) => mapCustomerRow(row)) };
+      const customerIds = rows.map((r) => Number(r.id));
+      const customerTotalBalances: Record<number, number> = {};
+      for (const r of rows) customerTotalBalances[Number(r.id)] = Number(r.balance || 0);
+      const repBalancesMap = await getCustomerRepBalancesMap(this.db as any, this.tenantId(actor), {
+        customerIds,
+        customerTotalBalances,
+      });
+      return {
+        customers: rows.map((row) => mapCustomerRow(row, repBalancesMap.get(Number(row.id))?.repBalances)),
+      };
     }
 
     const [rows, countRow, summaryRow] = await Promise.all([
@@ -146,10 +156,18 @@ export class PartnersService {
       summaryQuery.executeTakeFirstOrThrow(),
     ]);
 
+    const customerIds = rows.map((r) => Number(r.id));
+    const customerTotalBalances: Record<number, number> = {};
+    for (const r of rows) customerTotalBalances[Number(r.id)] = Number(r.balance || 0);
+    const repBalancesMap = await getCustomerRepBalancesMap(this.db as any, this.tenantId(actor), {
+      customerIds,
+      customerTotalBalances,
+    });
+
     const totalItems = Number(countRow.count || 0);
 
     return {
-      customers: rows.map((row) => mapCustomerRow(row)),
+      customers: rows.map((row) => mapCustomerRow(row, repBalancesMap.get(Number(row.id))?.repBalances)),
       pagination: calculatePagination(page, pageSize, totalItems),
       summary: {
         totalCustomers: Number(summaryRow.total_customers || 0),

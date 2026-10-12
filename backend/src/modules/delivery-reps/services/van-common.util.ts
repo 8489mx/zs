@@ -248,6 +248,12 @@ export async function getMonthlyOfficialHolidayDates(
   }
 }
 
+import {
+  aggregateCustomerBalancesByRep,
+  CustomerRepBalanceBreakdown,
+  CustomerRepLedgerEntryInput,
+} from '../rep-target.engine';
+
 /**
  * Format customer code consistently as C-XXXX (e.g. C-0001, C-04185).
  * Never uses '#' and ensures minimum 4 digits.
@@ -271,4 +277,84 @@ export function normalizeCustomerCode(code: string | undefined | null, fallbackI
   }
   return formatCustomerCode(fallbackId);
 }
+
+/**
+ * Computes per-customer per-rep isolated balance breakdowns from `customer_ledger`
+ * joined with `van_sales_trips`, `sales`, `van_field_returns`, and `delivery_representatives`.
+ */
+export async function getCustomerRepBalancesMap(
+  anyDb: any,
+  tenantId: string,
+  options?: {
+    customerIds?: number[];
+    customerTotalBalances?: Record<number, number>;
+  },
+): Promise<Map<number, CustomerRepBalanceBreakdown>> {
+  const customerIds = (options?.customerIds || []).filter((id) => Number.isInteger(Number(id)) && Number(id) > 0);
+  if (options?.customerIds && customerIds.length === 0) {
+    return aggregateCustomerBalancesByRep([], options?.customerTotalBalances);
+  }
+
+  let query = anyDb
+    .selectFrom('customer_ledger as cl')
+    .leftJoin('van_sales_trips as vt', (join: any) =>
+      join.onRef('vt.id', '=', 'cl.van_trip_id').onRef('vt.tenant_id', '=', 'cl.tenant_id'),
+    )
+    .leftJoin('sales as s', (join: any) =>
+      join
+        .onRef('s.id', '=', 'cl.reference_id')
+        .onRef('s.tenant_id', '=', 'cl.tenant_id')
+        .on('cl.reference_type', '=', 'sale'),
+    )
+    .leftJoin('van_field_returns as vfr', (join: any) =>
+      join
+        .onRef('vfr.id', '=', 'cl.reference_id')
+        .onRef('vfr.tenant_id', '=', 'cl.tenant_id')
+        .on('cl.reference_type', '=', 'van_field_return'),
+    )
+    .leftJoin(
+      'delivery_representatives as dr',
+      (join: any) =>
+        join
+          .on('dr.id', '=', sql`COALESCE(vt.rep_id, s.delivery_rep_id, vfr.rep_id)`)
+          .onRef('dr.tenant_id', '=', 'cl.tenant_id'),
+    )
+    .select([
+      'cl.customer_id',
+      sql<number | null>`COALESCE(vt.rep_id, s.delivery_rep_id, vfr.rep_id)`.as('rep_id'),
+      'dr.name as rep_name',
+      sql<number>`COALESCE(SUM(CASE WHEN cl.amount > 0 THEN cl.amount ELSE 0 END), 0)`.as('total_debit'),
+      sql<number>`COALESCE(SUM(CASE WHEN cl.amount < 0 THEN cl.amount ELSE 0 END), 0)`.as('total_credit_neg'),
+    ])
+    .where('cl.tenant_id', '=', tenantId)
+    .groupBy([
+      'cl.customer_id',
+      sql`COALESCE(vt.rep_id, s.delivery_rep_id, vfr.rep_id)`,
+      'dr.name',
+    ]);
+
+  if (customerIds.length > 0) {
+    query = query.where('cl.customer_id', 'in', customerIds);
+  }
+
+  const rows = await query.execute();
+  const entries: CustomerRepLedgerEntryInput[] = [];
+
+  for (const r of rows || []) {
+    const cid = Number(r.customer_id);
+    const repId = r.rep_id !== null && r.rep_id !== undefined ? Number(r.rep_id) : null;
+    const repName = r.rep_name ? String(r.rep_name) : null;
+    const debit = Number(r.total_debit || 0);
+    const creditNeg = Number(r.total_credit_neg || 0);
+    if (debit !== 0) {
+      entries.push({ customerId: cid, repId, repName, amount: debit });
+    }
+    if (creditNeg !== 0) {
+      entries.push({ customerId: cid, repId, repName, amount: creditNeg });
+    }
+  }
+
+  return aggregateCustomerBalancesByRep(entries, options?.customerTotalBalances);
+}
+
 

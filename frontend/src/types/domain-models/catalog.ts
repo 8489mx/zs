@@ -116,4 +116,10 @@ export interface Customer {
   creditLimit: number;
   storeCreditBalance: number;
   metadata?: any;
+  repBalances?: Array<{
+    repId: number;
+    repName: string;
+    balance: number;
+  }>;
+  unassignedBalance?: number;
 }
