@@ -1,12 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
 import { formatCurrency } from '@/lib/format';
+import { systemConfirm } from '@/shared/components/system-alert';
 import {
   SearchIcon,
   CheckCircleIcon,
   ArrowRightIcon,
   BellIcon,
+  ShoppingCartIcon,
+  UtensilsIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export function WaiterStationPage() {
@@ -14,6 +17,20 @@ export function WaiterStationPage() {
 
   // Authentication State
   const waiterPin = '101';
+
+  // Responsive Device View State (Auto-detect Phone / Tablet / Desktop)
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
+  const [mobileActiveTab, setMobileActiveTab] = useState<'menu' | 'cart'>('menu');
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 860;
 
   // Active Order State
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -31,6 +48,10 @@ export function WaiterStationPage() {
     occupiedTablesMap,
     pendingCalls,
     pendingCallsByTable,
+    isOnline,
+    offlineQueueCount,
+    syncOfflineQueue,
+    isSyncingQueue,
     handleResolveCall: resolveCallAction,
     sendToKitchen,
     isSendingToKitchen,
@@ -112,6 +133,7 @@ export function WaiterStationPage() {
   // Select Table
   const handleSelectTable = (tableNum: string) => {
     setSelectedTable(tableNum);
+    setMobileActiveTab('menu');
     const existingDraft = occupiedTablesMap.get(tableNum);
     if (existingDraft && Array.isArray(existingDraft.cart)) {
       setGuestCount(Number(existingDraft.guestCount || 2));
@@ -158,56 +180,134 @@ export function WaiterStationPage() {
         {/* Top Header */}
         <header
           style={{
-            background: '#170e5e',
-            color: '#ffffff',
-            padding: '12px 18px',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '12px 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
               type="button"
               onClick={() => navigate('/pos')}
               style={{
-                background: 'rgba(255,255,255,0.15)',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '6px 10px',
-                color: '#ffffff',
+                background: '#eef2ff',
+                border: '1px solid #c7d2fe',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                color: '#170e5e',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '6px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 800,
+                transition: 'all 0.15s ease',
               }}
             >
-              <ArrowRightIcon size={14} color="#ffffff" />
+              <ArrowRightIcon size={14} color="#170e5e" strokeWidth={2.5} />
               <span>العودة للكاشير</span>
             </button>
-            <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900 }}>
-              محطة الويتر وكابتن الصالة (Captain Station)
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+              <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                محطة الويتر وكابتن الصالة (Captain Station)
+              </h1>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Connectivity Badge */}
+            {isOnline && offlineQueueCount === 0 ? (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #e2e8f0',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                <span>متصل بالشبكة</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void syncOfflineQueue()}
+                disabled={isSyncingQueue}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر"
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
+                <span>{isOnline ? `مزامنة (${offlineQueueCount} معلق)` : `أوفلاين (${offlineQueueCount} معلق)`}</span>
+              </button>
+            )}
+
+            <span style={{ fontSize: '12px', background: '#eef2ff', color: '#170e5e', border: '1px solid #c7d2fe', padding: '4px 12px', borderRadius: '8px', fontWeight: 800 }}>
               كابتن #{waiterPin}
             </span>
           </div>
         </header>
 
-        {/* Subheader info banner */}
-        <div style={{ background: '#eef2ff', borderBottom: '1px solid #c7d2fe', padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#3730a3' }}>
-            اختر الطاولة لتسجيل طلب جديد أو إضافة أصناف:
-          </span>
-          <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 700 }}>
-            <span style={{ color: '#16a34a' }}>● شاغرة ({tablesCount - occupiedTablesMap.size})</span>
-            <span style={{ color: '#dc2626' }}>● مشغولة ({occupiedTablesMap.size})</span>
+        {/* Subheader Executive KPI Summary */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
+            padding: isMobile ? '8px 12px' : '10px 24px',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(130px, 1fr))' : 'repeat(auto-fit, minmax(170px, 1fr))',
+            gap: isMobile ? '8px' : '12px',
+          }}
+        >
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>إجمالي طاولات الصالة:</span>
+            <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>{tablesCount}</span>
           </div>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>شاغرة ومتاحة:</span>
+            </div>
+            <span style={{ fontSize: '17px', fontWeight: 900, color: '#15803d' }}>{tablesCount - occupiedTablesMap.size}</span>
+          </div>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: occupiedTablesMap.size > 0 ? '#ef4444' : '#94a3b8', display: 'inline-block' }} />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>مشغولة حالياً:</span>
+            </div>
+            <span style={{ fontSize: '17px', fontWeight: 900, color: occupiedTablesMap.size > 0 ? '#b91c1c' : '#64748b' }}>{occupiedTablesMap.size}</span>
+          </div>
+          {pendingCalls.length > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>نداءات الزبائن:</span>
+              </div>
+              <span style={{ fontSize: '17px', fontWeight: 900, color: '#b45309' }}>{pendingCalls.length}</span>
+            </div>
+          )}
         </div>
 
         {/* Urgent Service Calls Banner */}
@@ -273,11 +373,11 @@ export function WaiterStationPage() {
         <div
           style={{
             flex: 1,
-            padding: '16px',
+            padding: isMobile ? '12px' : '24px',
             overflowY: 'auto',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
-            gap: '12px',
+            gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(135px, 1fr))' : 'repeat(auto-fill, minmax(185px, 1fr))',
+            gap: isMobile ? '10px' : '16px',
             alignContent: 'start',
           }}
         >
@@ -299,52 +399,68 @@ export function WaiterStationPage() {
                 type="button"
                 onClick={() => handleSelectTable(tNum)}
                 style={{
-                  background: hasCall ? (isBillPaid ? '#f0fdf4' : isBill ? '#fef2f2' : '#fffbeb') : isOccupied ? '#fef2f2' : '#ffffff',
-                  border: hasCall ? (isBillPaid ? '2.5px solid #22c55e' : isBill ? '2.5px solid #ef4444' : '2.5px solid #f59e0b') : isOccupied ? '2px solid #ef4444' : '1px solid #cbd5e1',
-                  borderRadius: '12px',
-                  padding: '16px 10px',
+                  background: hasCall ? (isBillPaid ? '#f0fdf4' : isBill ? '#fef2f2' : '#fffbeb') : isOccupied ? '#fff5f5' : '#ffffff',
+                  border: hasCall ? (isBillPaid ? '2px solid #22c55e' : isBill ? '2px solid #ef4444' : '2px solid #f59e0b') : isOccupied ? '1.5px solid #fca5a5' : '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: isMobile ? '14px 10px' : '20px 14px',
+                  minHeight: isMobile ? '115px' : '135px',
+                  minWidth: 0,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
                   textAlign: 'center',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                  transition: 'transform 0.1s ease',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.borderColor = '#170e5e';
+                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = hasCall ? (isBillPaid ? '#22c55e' : isBill ? '#ef4444' : '#f59e0b') : isOccupied ? '#fca5a5' : '#e2e8f0';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.04)';
                 }}
               >
-                <div style={{ fontSize: '16px', fontWeight: 900, color: isOccupied ? '#991b1b' : '#0f172a' }}>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: isOccupied ? '#991b1b' : '#0f172a' }}>
                   طاولة {tNum}
                 </div>
                 {hasCall && (
                   <span
                     style={{
-                      fontSize: '9.5px',
+                      fontSize: '10px',
                       background: isBillPaid ? '#16a34a' : isBill ? '#dc2626' : '#d97706',
                       color: '#ffffff',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
                       fontWeight: 800,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '3px',
+                      gap: '4px',
                     }}
                   >
-                    <BellIcon size={10} color="#ffffff" />
+                    <BellIcon size={11} color="#ffffff" />
                     <span>{isBillPaid ? 'مسدد إلكترونياً!' : isBill ? 'طلب حساب!' : 'استدعاء!'}</span>
                   </span>
                 )}
                 {isOccupied ? (
                   <>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 900, color: '#dc2626' }}>
                       {formatCurrency(total)}
                     </div>
-                    <span style={{ fontSize: '10px', background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    <span style={{ fontSize: '10.5px', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
                       مشغولة ({occupied.cart?.length || 0})
                     </span>
                   </>
                 ) : (
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
+                  <span style={{ fontSize: '11.5px', color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 10px', borderRadius: '20px', fontWeight: 700 }}>
                     شاغرة ومتاحة
                   </span>
                 )}
@@ -373,20 +489,25 @@ export function WaiterStationPage() {
       {/* Top Header */}
       <header
         style={{
-          background: '#170e5e',
-          color: '#ffffff',
-          padding: '10px 16px',
+          background: '#ffffff',
+          color: '#0f172a',
+          borderBottom: '1px solid #e2e8f0',
+          padding: isMobile ? '10px 14px' : '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (cart.length > 0) {
-                if (window.confirm('هل تريد إلغاء الطلب الحالي والعودة لشبكة الطاولات؟')) {
+                const ok = await systemConfirm('هل تريد إلغاء الطلب الحالي والعودة لشبكة الطاولات؟');
+                if (ok) {
                   setSelectedTable(null);
                   setCart([]);
                 }
@@ -395,52 +516,183 @@ export function WaiterStationPage() {
               }
             }}
             style={{
-              background: 'rgba(255,255,255,0.15)',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              color: '#ffffff',
+              background: '#eef2ff',
+              border: '1px solid #c7d2fe',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              color: '#170e5e',
               fontSize: '12px',
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            ← تغيير الطاولة
+            <ArrowRightIcon size={14} color="#170e5e" strokeWidth={2.5} />
+            <span>تغيير الطاولة</span>
           </button>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>
-            طاولة {selectedTable}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+            <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+              تسجيل طلب: طاولة {selectedTable}
+            </h1>
           </div>
         </div>
 
-        {/* Covers RTL Stepper: [+] first, label, [-] last */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700 }}>الضيوف:</span>
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#ffffff', borderRadius: '6px', height: '30px' }}>
-            <button
-              type="button"
-              onClick={() => setGuestCount((c) => c + 1)}
-              style={{ width: '30px', height: '100%', border: 'none', background: 'transparent', fontSize: '14px', fontWeight: 800, color: '#170e5e', cursor: 'pointer' }}
+        {/* Right Header Section: Connectivity & Covers RTL Stepper */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Connectivity Badge */}
+          {isOnline && offlineQueueCount === 0 ? (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#f8fafc',
+                color: '#0f172a',
+                border: '1px solid #e2e8f0',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
             >
-              +
-            </button>
-            <span style={{ minWidth: '30px', textAlign: 'center', fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              {guestCount}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              <span>متصل</span>
             </span>
+          ) : (
             <button
               type="button"
-              onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
-              style={{ width: '30px', height: '100%', border: 'none', background: 'transparent', fontSize: '14px', fontWeight: 800, color: '#64748b', cursor: 'pointer' }}
+              onClick={() => void syncOfflineQueue()}
+              disabled={isSyncingQueue}
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                background: '#fef3c7',
+                color: '#92400e',
+                border: '1px solid #fde68a',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر"
             >
-              -
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
+              <span>{isOnline ? `مزامنة (${offlineQueueCount})` : `أوفلاين (${offlineQueueCount})`}</span>
             </button>
+          )}
+
+          {/* Covers RTL Stepper: [+] first, label, [-] last */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>الضيوف:</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', height: '32px' }}>
+              <button
+                type="button"
+                onClick={() => setGuestCount((c) => c + 1)}
+                style={{ width: '32px', height: '100%', border: 'none', background: 'transparent', fontSize: '15px', fontWeight: 900, color: '#170e5e', cursor: 'pointer' }}
+              >
+                +
+              </button>
+              <span style={{ minWidth: '32px', textAlign: 'center', fontSize: '13px', fontWeight: 900, color: '#0f172a' }}>
+                {guestCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                style={{ width: '32px', height: '100%', border: 'none', background: 'transparent', fontSize: '15px', fontWeight: 900, color: '#64748b', cursor: 'pointer' }}
+              >
+                -
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Body: Menu Left / Cart Right */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 340px', overflow: 'hidden' }}>
+      {/* Mobile Device Tab Switcher (Phone / Vertical Tablet) */}
+      {isMobile && (
+        <div
+          style={{
+            display: 'flex',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '6px 12px',
+            gap: '8px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab('menu')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: mobileActiveTab === 'menu' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+              background: mobileActiveTab === 'menu' ? '#170e5e' : '#f8fafc',
+              color: mobileActiveTab === 'menu' ? '#ffffff' : '#475569',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            <UtensilsIcon size={14} color={mobileActiveTab === 'menu' ? '#ffffff' : '#475569'} />
+            <span>قائمة الأصناف ({filteredProducts.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab('cart')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: mobileActiveTab === 'cart' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+              background: mobileActiveTab === 'cart' ? '#170e5e' : '#f8fafc',
+              color: mobileActiveTab === 'cart' ? '#ffffff' : '#475569',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            <ShoppingCartIcon size={14} color={mobileActiveTab === 'cart' ? '#ffffff' : '#475569'} />
+            <span>سلة الطلب ({cartItemsCount}) · {formatCurrency(cartTotal)}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Main Body: Adaptive Layout (Mobile Tabbed / Desktop Side-by-Side) */}
+      <div
+        style={{
+          flex: 1,
+          display: isMobile ? 'flex' : 'grid',
+          flexDirection: isMobile ? 'column' : undefined,
+          gridTemplateColumns: isMobile ? undefined : '1fr 340px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
         {/* MENU COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid #cbd5e1', overflow: 'hidden' }}>
+        {(!isMobile || mobileActiveTab === 'menu') && (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              borderLeft: isMobile ? 'none' : '1px solid #cbd5e1',
+              overflow: 'hidden',
+              minWidth: 0,
+            }}
+          >
           {/* Categories Horizontal Bar */}
           <div
             style={{
@@ -504,15 +756,17 @@ export function WaiterStationPage() {
             </div>
           </div>
 
-          {/* Product Items Grid */}
+          {/* Product Items Grid (Adaptive Clamping & Responsive Cell Sizes) */}
           <div
             style={{
               flex: 1,
-              padding: '12px',
+              padding: isMobile ? '10px' : '14px',
               overflowY: 'auto',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: '10px',
+              gridTemplateColumns: isMobile
+                ? 'repeat(auto-fill, minmax(130px, 1fr))'
+                : 'repeat(auto-fill, minmax(155px, 1fr))',
+              gap: isMobile ? '8px' : '12px',
               alignContent: 'start',
             }}
           >
@@ -521,37 +775,168 @@ export function WaiterStationPage() {
                 key={p.id}
                 type="button"
                 onClick={() => handleAddItem(p)}
+                title={p.name}
                 style={{
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '10px',
-                  padding: '12px 8px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '10px 10px 8px',
                   textAlign: 'center',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  minHeight: '85px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  alignItems: 'center',
+                  height: '115px',
+                  minHeight: '115px',
+                  maxHeight: '115px',
+                  minWidth: 0,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#170e5e';
+                  e.currentTarget.style.boxShadow = '0 3px 8px rgba(23, 14, 94, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)';
                 }}
               >
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: '1.25' }}>
+                <div
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    lineHeight: '1.35',
+                    textAlign: 'center',
+                    width: '100%',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    whiteSpace: 'normal',
+                  }}
+                >
                   {p.name}
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 900, color: '#170e5e', marginTop: '6px' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 900,
+                    color: '#170e5e',
+                    marginTop: 'auto',
+                    paddingTop: '4px',
+                    width: '100%',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                  }}
+                >
                   {formatCurrency(p.price || p.retail_price || 0)}
                 </div>
               </button>
             ))}
           </div>
+
+          {/* Mobile Bottom Floating Cart Bar */}
+          {isMobile && cart.length > 0 && (
+            <div
+              style={{
+                background: '#ffffff',
+                borderTop: '2px solid #170e5e',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.08)',
+                zIndex: 10,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                  الطلب الحالي ({cartItemsCount} أصناف)
+                </div>
+                <div style={{ fontSize: '15px', color: '#170e5e', fontWeight: 900 }}>
+                  {formatCurrency(cartTotal)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileActiveTab('cart')}
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <ShoppingCartIcon size={14} color="#ffffff" />
+                <span>مراجعة السلة ({cartItemsCount})</span>
+              </button>
+            </div>
+          )}
         </div>
+        )}
 
         {/* CART COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+        {(!isMobile || mobileActiveTab === 'cart') && (
+          <div
+            style={{
+              flex: isMobile ? 1 : undefined,
+              width: isMobile ? '100%' : '340px',
+              display: 'flex',
+              flexDirection: 'column',
+              background: '#ffffff',
+              overflow: 'hidden',
+            }}
+          >
+          <div
+            style={{
+              padding: '12px 14px',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
               طلبات الطاولة الجديدة ({cartItemsCount})
             </div>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setMobileActiveTab('menu')}
+                style={{
+                  background: '#eef2ff',
+                  border: '1px solid #c7d2fe',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  color: '#170e5e',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                + إضافة المزيد
+              </button>
+            )}
           </div>
 
           {/* Cart Items List */}
@@ -572,15 +957,27 @@ export function WaiterStationPage() {
                     marginBottom: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{item.name}</div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#170e5e' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div
+                      style={{
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      {item.name}
+                    </div>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#170e5e', whiteSpace: 'nowrap' }}>
                       {formatCurrency(item.price * item.qty)}
                     </div>
                   </div>
 
                   {item.notes && (
-                    <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: 600, marginTop: '2px' }}>
+                    <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, marginTop: '2px' }}>
                       ملاحظة: {item.notes}
                     </div>
                   )}
@@ -616,7 +1013,7 @@ export function WaiterStationPage() {
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#3b82f6',
+                        color: '#170e5e',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -643,7 +1040,7 @@ export function WaiterStationPage() {
               onClick={handleSendToKitchen}
               style={{
                 width: '100%',
-                background: cart.length === 0 ? '#94a3b8' : '#16a34a',
+                background: cart.length === 0 ? '#94a3b8' : '#170e5e',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
@@ -655,7 +1052,7 @@ export function WaiterStationPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: cart.length > 0 ? '0 4px 12px rgba(22, 163, 74, 0.25)' : 'none',
+                boxShadow: cart.length > 0 ? '0 4px 12px rgba(23, 14, 94, 0.25)' : 'none',
               }}
             >
               <CheckCircleIcon size={16} color="#ffffff" />
@@ -663,6 +1060,7 @@ export function WaiterStationPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Item Note Modal */}

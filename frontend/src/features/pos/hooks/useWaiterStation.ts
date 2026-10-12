@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { posApi } from '@/features/pos/api/pos.api';
 import { settingsApi } from '@/features/settings';
@@ -16,8 +16,24 @@ export interface WaiterCartItem {
   modifiers?: Array<{ name: string; price: number }>;
 }
 
+const OFFLINE_QUEUE_KEY = 'waiter_offline_orders_queue';
+const CACHED_PRODUCTS_KEY = 'waiter_cached_products';
+
 export function useWaiterStation() {
   const queryClient = useQueryClient();
+
+  // Network Connectivity State
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [isSyncingQueue, setIsSyncingQueue] = useState<boolean>(false);
+  const [offlineQueue, setOfflineQueue] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Settings & Configuration
   const { data: settings } = useQuery({
@@ -26,12 +42,36 @@ export function useWaiterStation() {
   });
   const tablesCount = Math.max(1, Number(settings?.restaurantTablesCount || 20));
 
-  // Products Catalog (Cached & Fast)
+  // Products Catalog (with resilient Offline LocalStorage Caching)
   const { data: productsData, isLoading: isCatalogLoading } = useQuery({
     queryKey: ['waiter-products'],
-    queryFn: () => posApi.lookupProducts({ fullCatalog: true, limit: 100 }),
+    queryFn: async () => {
+      try {
+        const res = await posApi.lookupProducts({ fullCatalog: true, limit: 100 });
+        if (res && res.length > 0) {
+          localStorage.setItem(CACHED_PRODUCTS_KEY, JSON.stringify(res));
+        }
+        return res;
+      } catch (err) {
+        const cached = localStorage.getItem(CACHED_PRODUCTS_KEY);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+        throw err;
+      }
+    },
   });
-  const products = productsData || [];
+
+  // Fallback to cache if query data is missing
+  const products = useMemo(() => {
+    if (productsData && productsData.length > 0) return productsData;
+    try {
+      const cached = localStorage.getItem(CACHED_PRODUCTS_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  }, [productsData]);
 
   // Active Held Drafts (To know occupied tables and their items)
   const { data: heldDrafts = [], refetch: refetchDrafts } = useQuery({
@@ -47,8 +87,17 @@ export function useWaiterStation() {
         map.set(String(d.tableNumber).trim(), d);
       }
     }
+    // Also mark any locally queued tables as occupied
+    for (const q of offlineQueue) {
+      if (q.tableNumber) {
+        map.set(String(q.tableNumber).trim(), {
+          ...q,
+          isOfflineQueued: true,
+        });
+      }
+    }
     return map;
-  }, [heldDrafts]);
+  }, [heldDrafts, offlineQueue]);
 
   // Real-time table service calls (Waiters & Bill requests)
   const { data: pendingCalls = [] } = useQuery({
@@ -79,6 +128,57 @@ export function useWaiterStation() {
       toast.error('فشل تحديث حالة النداء');
     },
   });
+
+  // Offline Queue Synchronizer
+  const syncOfflineQueue = useCallback(async () => {
+    const currentQueue: any[] = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    if (!currentQueue.length || isSyncingQueue) return;
+
+    setIsSyncingQueue(true);
+    let successCount = 0;
+    const remainingQueue: any[] = [];
+
+    for (const item of currentQueue) {
+      try {
+        await posApi.saveHeldDraft(item);
+        successCount++;
+      } catch {
+        remainingQueue.push(item);
+      }
+    }
+
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
+    setOfflineQueue(remainingQueue);
+    setIsSyncingQueue(false);
+
+    if (successCount > 0) {
+      toast.success(`تمت مزامنة ${successCount} طلبات معلقة من وضع عدم الاتصال إلى المطبخ بنجاح!`);
+      queryClient.invalidateQueries({ queryKey: ['waiter-held-drafts'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-floor-kds-tickets'] });
+    }
+  }, [isSyncingQueue, queryClient]);
+
+  // Network Listeners
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.info('تم استعادة الاتصال بالشبكة! جاري مزامنة طلبات الويتر...');
+      void syncOfflineQueue();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning('تم فقدان الاتصال بالشبكة. محطة الويتر تعمل الآن في وضع عدم الاتصال (Offline Mode).');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncOfflineQueue]);
 
   // Submit & Send to Kitchen Mutation
   const sendToKitchenMutation = useMutation({
@@ -122,8 +222,27 @@ export function useWaiterStation() {
         updatedAt: new Date().toISOString(),
       };
 
-      // 1. Save / Update Held Draft
-      await posApi.saveHeldDraft(draftPayload);
+      // 1. Try sending online, or fallback to offline queue if disconnected / network error
+      if (!navigator.onLine) {
+        const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+        queue.push(draftPayload);
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        setOfflineQueue(queue);
+        toast.warning(`أنت غير متصل: تم حفظ طلب طاولة ${selectedTable} محلياً وسيتم إرساله للمطبخ تلقائياً فور عودة الاتصال.`);
+        return { isOfflineSaved: true };
+      }
+
+      try {
+        await posApi.saveHeldDraft(draftPayload);
+      } catch (networkErr: any) {
+        // Enqueue locally on network exception
+        const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+        queue.push(draftPayload);
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        setOfflineQueue(queue);
+        toast.warning(`تعذر الوصول للسيرفر: تم حفظ طلب طاولة ${selectedTable} محلياً بنجاح للمزامنة.`);
+        return { isOfflineSaved: true };
+      }
 
       // 2. Thermal Kitchen Order Ticket (KOT)
       try {
@@ -143,14 +262,18 @@ export function useWaiterStation() {
       } catch {
         // Kitchen print non-blocking
       }
+
+      return { isOfflineSaved: false };
     },
-    onSuccess: (_data, variables) => {
-      toast.success(`تم إرسال طلب طاولة ${variables.selectedTable} إلى المطبخ بنجاح!`);
+    onSuccess: (res, variables) => {
+      if (!res?.isOfflineSaved) {
+        toast.success(`تم إرسال طلب طاولة ${variables.selectedTable} إلى المطبخ بنجاح!`);
+      }
       queryClient.invalidateQueries({ queryKey: ['waiter-held-drafts'] });
       queryClient.invalidateQueries({ queryKey: ['pos-floor-kds-tickets'] });
     },
     onError: () => {
-      toast.error('تعذر إرسال الطلب إلى المطبخ. يرجى التحقق من الاتصال.');
+      toast.error('تعذر إرسال الطلب إلى المطبخ.');
     },
   });
 
@@ -163,6 +286,10 @@ export function useWaiterStation() {
     occupiedTablesMap,
     pendingCalls,
     pendingCallsByTable,
+    isOnline,
+    offlineQueueCount: offlineQueue.length,
+    syncOfflineQueue,
+    isSyncingQueue,
     handleResolveCall: (callId: number) => resolveCallMutation.mutateAsync(callId),
     sendToKitchen: sendToKitchenMutation.mutateAsync,
     isSendingToKitchen: sendToKitchenMutation.isPending,
