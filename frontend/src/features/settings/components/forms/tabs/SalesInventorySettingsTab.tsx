@@ -1896,46 +1896,46 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 borderRadius: '12px',
                 padding: '14px 18px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: '12px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
               }}
             >
-              {/* Master Toggle */}
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  userSelect: 'none',
-                }}
-              >
-                <div style={iconBadgeStyle}>
-                  <PosTerminalIcon size={20} />
-                </div>
-                <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                    تفعيل خدمة ربط ماكينات الدفع الإلكتروني (POS Terminals)
-                  </strong>
-                  <small style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                    إظهار خيار إرسال المبالغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة
-                  </small>
-                </div>
-                <input
-                  type="checkbox"
-                  style={{ ...premiumCheckboxInputStyle, marginRight: '12px' }}
-                  checked={isMasterPosTerminalEnabled}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    setIsMasterPosTerminalEnabled(val);
-                    form.setValue('posTerminalEnabled', val, { shouldDirty: true });
+              {/* Row 1: Master Toggle on Right, Actions & Count on Left */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                {/* Master Toggle */}
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    userSelect: 'none',
                   }}
-                  disabled={disabled}
-                />
-              </label>
+                >
+                  <div style={iconBadgeStyle}>
+                    <PosTerminalIcon size={20} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                      تفعيل خدمة ربط ماكينات الدفع الإلكتروني (POS Terminals)
+                    </strong>
+                    <small style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      إظهار خيار إرسال المبالغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة
+                    </small>
+                  </div>
+                  <input
+                    type="checkbox"
+                    style={{ ...premiumCheckboxInputStyle, marginRight: '12px' }}
+                    checked={isMasterPosTerminalEnabled}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setIsMasterPosTerminalEnabled(val);
+                      form.setValue('posTerminalEnabled', val, { shouldDirty: true });
+                    }}
+                    disabled={disabled}
+                  />
+                </label>
 
                 {/* Actions & Count */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1980,7 +1980,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 </div>
               </div>
 
-              {/* Zero-Click Checkout Auto Finalize */}
+              {/* Row 2: Zero-Click Checkout Auto Finalize */}
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled || !isMasterPosTerminalEnabled ? 'not-allowed' : 'pointer' }}>
                   <input
