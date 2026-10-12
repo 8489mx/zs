@@ -1,9 +1,10 @@
 import { getGlobalSystemCurrency } from '@/lib/currencies';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { productsApi } from '@/features/products/api/products.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { subscribeSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
 import { SignagePromoItem } from '../components/signage/types';
 import { SignageHeader } from '../components/signage/SignageHeader';
 import { SignageHeroCard } from '../components/signage/SignageHeroCard';
@@ -13,6 +14,7 @@ import { SignageSettingsDrawer } from '../components/signage/SignageSettingsDraw
 import { SignageNavDrawer } from '../components/signage/SignageNavDrawer';
 
 export function DigitalSignagePage() {
+  const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
   const settings = settingsQuery.data;
 
@@ -81,7 +83,7 @@ export function DigitalSignagePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch products
+  // Fetch products (background polling every 25s for standalone TV screens)
   const productsQuery = useQuery({
     queryKey: ['signage-products', viewFilter],
     queryFn: async () => {
@@ -92,8 +94,16 @@ export function DigitalSignagePage() {
       });
       return res.products || [];
     },
-    refetchInterval: 60000,
+    refetchInterval: 25000,
   });
+
+  // Real-time 0ms broadcast synchronization across tabs, windows, and monitors
+  useEffect(() => {
+    const unsubscribe = subscribeSignageOffersUpdate(() => {
+      queryClient.invalidateQueries({ queryKey: ['signage-products'] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const rawProducts = productsQuery.data || [];
 
@@ -101,17 +111,36 @@ export function DigitalSignagePage() {
   const promoItems: SignagePromoItem[] = useMemo(() => {
     if (!rawProducts.length) return [];
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     return rawProducts.map((p, idx) => {
       const retail = Number(p.retailPrice) || 0;
       const promotionalPrice = (p as any).promotionalPrice ? Number((p as any).promotionalPrice) : null;
-      const firstOffer = p.offers && p.offers.length > 0 ? p.offers[0] : null;
+      
+      // Filter for active offers first, or fallback to first configured offer
+      const activeOffers = (p.offers || []).filter((o: any) => (!o.to || o.to >= todayStr) && (!o.from || o.from <= todayStr));
+      const firstOffer = activeOffers.length > 0 ? activeOffers[0] : (p.offers && p.offers.length > 0 ? p.offers[0] : null);
       const offerVal = firstOffer ? Number(firstOffer.value) : 0;
       let offerPrice: number | null = null;
+
       if (firstOffer && offerVal > 0) {
         if (firstOffer.type === 'percent') {
           offerPrice = Math.max(0, retail * (1 - offerVal / 100));
         } else if (firstOffer.type === 'fixed') {
           offerPrice = Math.max(0, retail - offerVal);
+        } else if (firstOffer.type === 'price') {
+          offerPrice = Math.max(0, offerVal);
+        } else if (firstOffer.type === 'bundle') {
+          const bundleQty = Math.max(1, Number(firstOffer.minQty || 1));
+          offerPrice = Math.max(0, offerVal / bundleQty);
+        } else if (firstOffer.type === 'bogo') {
+          const buyQ = Math.max(1, Number(firstOffer.bogoBuyQty || 1));
+          const getQ = Math.max(1, Number(firstOffer.bogoGetQty || 1));
+          const discPct = Math.min(100, Math.max(0, Number(firstOffer.bogoDiscountPercent ?? 100)));
+          const cycleTotalQty = buyQ + getQ;
+          const origTotal = retail * cycleTotalQty;
+          const savings = getQ * retail * (discPct / 100);
+          offerPrice = cycleTotalQty > 0 ? Math.max(0, (origTotal - savings) / cycleTotalQty) : retail;
         }
       }
 
@@ -138,6 +167,13 @@ export function DigitalSignagePage() {
       };
     });
   }, [rawProducts]);
+
+  // Safeguard index if item list shrinks
+  useEffect(() => {
+    if (currentIndex >= promoItems.length && promoItems.length > 0) {
+      setCurrentIndex(0);
+    }
+  }, [promoItems.length, currentIndex]);
 
   // Automatic Carousel Ticker
   useEffect(() => {

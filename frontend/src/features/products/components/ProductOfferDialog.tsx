@@ -5,6 +5,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { bomsApi } from '@/shared/api/boms.api';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { broadcastSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
 import type { Product, ProductOffer } from '@/types/domain';
 import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
@@ -270,6 +271,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['products.all.combos.list'] });
       queryClient.invalidateQueries({ queryKey: ['boms.list.offers'] });
+      broadcastSignageOffersUpdate();
       setEditingComboId(null);
       setEditingBomId(null);
       setComboName('');
@@ -293,6 +295,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['products.all.combos.list'] });
       queryClient.invalidateQueries({ queryKey: ['boms.list.offers'] });
+      broadcastSignageOffersUpdate();
     },
   });
 
@@ -561,6 +564,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     await mutation.mutateAsync(nextOffers);
     const updatedProduct = { ...activeProduct, offers: nextOffers };
     setActiveProduct(updatedProduct);
+    broadcastSignageOffersUpdate();
     onSaved?.(updatedProduct);
     resetForm();
   }
@@ -571,6 +575,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     await mutation.mutateAsync(nextOffers);
     const updatedProduct = { ...activeProduct, offers: nextOffers };
     setActiveProduct(updatedProduct);
+    broadcastSignageOffersUpdate();
     onSaved?.(updatedProduct);
     if (editingIndex === originalIndex) {
       resetForm();

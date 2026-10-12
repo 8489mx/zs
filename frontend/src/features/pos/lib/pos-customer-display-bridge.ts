@@ -117,3 +117,93 @@ export function openDigitalSignageWindow(): Window | null {
   return window.open('/signage', 'DigitalSignageWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
 }
 
+export const POS_SIGNAGE_BROADCAST_CHANNEL = 'pos_signage_broadcast_channel';
+export const POS_SIGNAGE_STORAGE_KEY = 'pos_signage_last_update';
+export const POS_SIGNAGE_EVENT_NAME = 'pos-signage-offers-updated';
+
+let signageBroadcastChannelInstance: BroadcastChannel | null = null;
+
+function getSignageBroadcastChannel(): BroadcastChannel | null {
+  if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') {
+    return null;
+  }
+  if (!signageBroadcastChannelInstance) {
+    try {
+      signageBroadcastChannelInstance = new BroadcastChannel(POS_SIGNAGE_BROADCAST_CHANNEL);
+    } catch {
+      signageBroadcastChannelInstance = null;
+    }
+  }
+  return signageBroadcastChannelInstance;
+}
+
+export function broadcastSignageOffersUpdate(): void {
+  const timestamp = Date.now();
+
+  // 1. In-window custom event (0ms same-window sync)
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent(POS_SIGNAGE_EVENT_NAME, { detail: { timestamp } }));
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. BroadcastChannel (0ms in-browser cross-tab/cross-window sync)
+  const channel = getSignageBroadcastChannel();
+  if (channel) {
+    try {
+      channel.postMessage({ type: 'SIGNAGE_OFFERS_UPDATED', timestamp });
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Persist to localStorage (cross-window storage event fallback)
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(POS_SIGNAGE_STORAGE_KEY, String(timestamp));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function subscribeSignageOffersUpdate(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  // 1. Listen via CustomEvent (same window)
+  const onCustomEvent = () => {
+    callback();
+  };
+  window.addEventListener(POS_SIGNAGE_EVENT_NAME, onCustomEvent);
+
+  // 2. Listen via BroadcastChannel (cross-window / cross-tab)
+  const channel = getSignageBroadcastChannel();
+  const onChannelMessage = (event: MessageEvent) => {
+    if (event.data?.type === 'SIGNAGE_OFFERS_UPDATED') {
+      callback();
+    }
+  };
+  if (channel) {
+    channel.addEventListener('message', onChannelMessage);
+  }
+
+  // 3. Listen via storage event (cross-window fallback)
+  const onStorageChange = (event: StorageEvent) => {
+    if (event.key === POS_SIGNAGE_STORAGE_KEY && event.newValue) {
+      callback();
+    }
+  };
+  window.addEventListener('storage', onStorageChange);
+
+  return () => {
+    window.removeEventListener(POS_SIGNAGE_EVENT_NAME, onCustomEvent);
+    if (channel) {
+      channel.removeEventListener('message', onChannelMessage);
+    }
+    window.removeEventListener('storage', onStorageChange);
+  };
+}
+
+
