@@ -231,7 +231,19 @@ export class SalesWriteService {
   private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number, tenantId: string) {
     return trx
       .selectFrom('product_offers')
-      .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+      .select([
+        'offer_type',
+        'value',
+        'start_date',
+        'end_date',
+        'min_qty',
+        'bogo_buy_qty',
+        'bogo_get_qty',
+        'bogo_discount_percent',
+        'happy_hour_start',
+        'happy_hour_end',
+        'days_of_week',
+      ])
       .where('product_id', '=', productId)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('is_active', '=', true)
@@ -1048,7 +1060,20 @@ export class SalesWriteService {
       const allOffers = productIds.length > 0
         ? await trx
             .selectFrom('product_offers')
-            .select(['product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+            .select([
+              'product_id',
+              'offer_type',
+              'value',
+              'start_date',
+              'end_date',
+              'min_qty',
+              'bogo_buy_qty',
+              'bogo_get_qty',
+              'bogo_discount_percent',
+              'happy_hour_start',
+              'happy_hour_end',
+              'days_of_week',
+            ])
             .where('product_id', 'in', productIds)
             .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
             .where('is_active', '=', true)

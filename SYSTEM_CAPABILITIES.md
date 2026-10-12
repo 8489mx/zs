@@ -677,22 +677,27 @@
 
 ---
 
-## 28. محرك العروض الترويجية المتقدمة والباقات (Advanced Promotions, BOGO & Happy Hours Engine) 🎁
-* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+## 28. محرك العروض الترويجية المتقدمة والباقات (Advanced Promotions, BOGO & Happy Hours Engine)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% ومُدقق بالكامل عبر كافة قنوات البيع
 * **مسارات الكود:**
   * **قاعدة البيانات والترحيل:** `backend/src/database/migrations/2040000000040_advanced_promotions_bogo_happy_hours.ts`, `backend/src/database/database.types.ts`
-  * **الباك إند والكاتالوج:** `backend/src/modules/catalog/dto/upsert-product.dto.ts`, `backend/src/modules/catalog/services/catalog-product.service.ts`
+  * **الباك إند وبوابة اعتماد الأسعار:** `backend/src/modules/sales/helpers/sales-write.helper.ts`, `backend/src/modules/sales/services/sales-write.service.ts`, `backend/src/modules/catalog/dto/upsert-product.dto.ts`, `backend/src/modules/catalog/services/catalog-product.service.ts`
+  * **التوزيع الميداني (فانات ومندوبين):** `backend/src/modules/delivery-reps/van-sales.service.ts`, `backend/src/modules/delivery-reps/services/van-pre-sales.service.ts`
+  * **المتجر الإلكتروني العام:** `frontend/src/features/storefront/lib/storefront-offers.engine.ts`, `frontend/src/features/storefront/components/`
   * **محرك حساب الكاشير والـ POS:** `frontend/src/features/pos/lib/pos.domain.ts`
-  * **واجهة العروض ومحاكي التوفير المباشر:** `frontend/src/features/products/components/ProductOfferDialog.tsx`, `frontend/src/features/products/components/offers/ProductOfferItemEditorTab.tsx`, `frontend/src/types/domain-models/catalog.ts`
-* **الجداول في قاعدة البيانات:** `product_offers` (`offer_type` يدعم `'bogo'`, `bogo_buy_qty`, `bogo_get_qty`, `bogo_discount_percent`, `happy_hour_start`, `happy_hour_end`, `days_of_week`)
+  * **أوامر البيع الإدارية:** `frontend/src/features/sales/components/CreateSalesOrderModal.tsx`
+  * **واجهة العروض الموحدة (Ctrl+Alt+S):** `frontend/src/features/products/components/ProductOfferDialog.tsx`, `frontend/src/features/products/components/offers/ProductOfferItemEditorTab.tsx`, `frontend/src/types/domain-models/catalog.ts`
+* **الجداول في قاعدة البيانات:** `product_offers` (`offer_type` يدعم `'bogo'`, `'bundle'`, `'price'`, `'fixed'`, `'percent'`, `bogo_buy_qty`, `bogo_get_qty`, `bogo_discount_percent`, `happy_hour_start`, `happy_hour_end`, `days_of_week`), `combo_offers`, `combo_offer_items`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
-| **محرك عروض BOGO المتقدم (اشترِ X واحصل على Y مجاناً أو بخصم)** | 🟢 | 100% | `pos.domain.ts`, `catalog-product.service.ts`, `ProductOfferItemEditorTab.tsx` | محرك رياضي دوري متقدم (Cycle-based BOGO) يدعم سيناريوهات الترويج الكبرى: اشترِ 2 واحصل على 1 مجاناً (100%)، أو اشترِ 1 واحصل على الثاني بنصف السعر (50%)، مع حساب دقيق لمجموعات الشراء في سلة الكاشير آلياً دون أي تدخل يدوي. |
-| **محرك الساعات الذهبية ومواعيد العرض (Happy Hours & Day-of-Week Scheduling)** | 🟢 | 100% | `pos.domain.ts`, `ProductOfferItemEditorTab.tsx`, `ProductOfferDialog.tsx` | جدولة تلقائية متقدمة للعروض حسب أوقات اليوم (مثلاً من 16:00 إلى 20:00)، أو عروض منتصف الليل التي تعبر اليوم (مثلاً 22:00 إلى 02:00)، مع حصر أيام التطبيق (عطلة نهاية الأسبوع الجمعة والسبت، يوم الجمعة فقط، أو أيام العمل الأحد إلى الخميس). ينشط العرض وينتهي لحظياً في الكاشير بدقة التوقيت المحلي. |
+| **محرك عروض BOGO المتقدم (اشترِ X واحصل على Y مجاناً أو بخصم)** | 🟢 | 100% | `pos.domain.ts`, `sales-write.helper.ts`, `van-sales.service.ts`, `van-pre-sales.service.ts`, `storefront-offers.engine.ts` | محرك رياضي دوري متقدم (Cycle-based BOGO) يدعم سيناريوهات الترويج الكبرى: اشترِ 2 واحصل على 1 مجاناً (100%)، أو اشترِ 1 واحصل على الثاني بنصف السعر (50%)، مع حساب دقيق لمجموعات الشراء وبواقي القطع الفردية، وتزامن كامل وموحد بين شاشات الكاشير، بوابات الترحيل في الباك إند، فانات البيع، والمتجر الإلكتروني. |
+| **محرك الساعات الذهبية ومواعيد العرض (Happy Hours & Day-of-Week Scheduling)** | 🟢 | 100% | `pos.domain.ts`, `sales-write.helper.ts`, `sales-write.service.ts`, `ProductOfferItemEditorTab.tsx` | جدولة تلقائية متقدمة للعروض حسب أوقات اليوم (مثلاً من 16:00 إلى 20:00)، أو عروض منتصف الليل العابرة لليومين (مثلاً 22:00 إلى 02:00)، مع حصر أيام التطبيق (عطلة نهاية الأسبوع الجمعة والسبت، يوم الجمعة فقط، أو أيام العمل الأحد إلى الخميس). ينشط العرض وينتهي لحظياً في الكاشير وتتحقق منه بوابات اعتماد الأسعار في الباك إند بدقة التوقيت المحلي. |
+| **المزامنة الشاملة عبر قنوات البيع والتوزيع (Cross-Channel Synchronization)** | 🟢 | 100% | `sales-write.helper.ts`, `van-sales.service.ts`, `van-pre-sales.service.ts`, `CreateSalesOrderModal.tsx` | معالجة وسد فجوات احتساب العروض عبر كافة المنافذ: فانات البيع الميداني، طلبات الحجز المسبق (Pre-sales)، أوامر البيع الإدارية، وفواتير الكاشير، مما يضمن ظهور شارات العروض وسعر البيع الفعلي وعدم رفض بوابات الباك إند لأي خصم مشروع صادر بموجب عرض نشط. |
 | **محاكي التوفير والربحية الفوري (Realtime Cart & Margin Simulator)** | 🟢 | 100% | `ProductOfferItemEditorTab.tsx`, `ProductOfferDialog.tsx` | معاينة فورية ديناميكية في نافذة العرض توضح التكلفة الأصلية، السعر بعد تطبيق دورة BOGO، نسبة التوفير المحققة للعميل، ومتوسط سعر القطعة، مع تنبيه ذكي فوري باللون الأحمر إذا نزل سعر البيع الترويجي عن سعر تكلفة الصنف لتفادي الخسائر. |
-| **التكامل الكامل والموحد داخل نافذة العروض (Single Unified Offers Modal)** | 🟢 | 100% | `ProductOfferDialog.tsx`, `ProductOfferItemEditorTab.tsx` | دمج تجربة BOGO والساعات الذهبية ضمن نفس نافذة إدارة العروض الموحدة للصنف (`ProductOfferDialog`) بتبويب منسق ومريح، مع شارات بصرية واضحة في قائمة العروض المسجلة تشير لحالة BOGO ومواعيد الساعات الذهبية، وإمكانية التعديل والحذف الفوري. |
-| **عروض الباقات والكميات المجمعة (Bundle Packs & Mix & Match)** | 🟢 | 100% | `pos.domain.ts`, `ProductOfferComboCreatorTab.tsx`, `ProductOfferActiveCombosTab.tsx` | دعم عروض الكميات (مثل شراء 3 قطع بسعر إجمالي محدد)، والعروض المجمعة المتكاملة (كومبو) عبر شجرة المنتج (BOM) لدمج عدة أصناف في باقة واحدة بسعر مخفض وخصم مكوناتها تلقائياً من المستودع. |
+| **واجهة العروض الموحدة والمطهرة (Clean Enterprise Offers Modal - Ctrl+Alt+S)** | 🟢 | 100% | `ProductOfferDialog.tsx`, `ProductOfferItemEditorTab.tsx` | نافذة موحدة نظيفة ومطورة، تم فيها إزالة الهيدر الداخلي المكرر وزر الإغلاق المزدوج لتتوافق 100% مع معايير StandardDialog وحظر النوافذ المتداخلة، مع تبويبات سريعة للتنقل بين عروض الصنف والعروض المجمعة وإمكانية الاستدعاء السريع بالاختصار العالمي Ctrl+Alt+S. |
+| **عروض الباقات والوجبات المجمعة (Bundle Packs & Combo Meals / BOM)** | 🟢 | 100% | `pos.domain.ts`, `sales-write.service.ts`, `ProductOfferComboCreatorTab.tsx`, `ProductOfferActiveCombosTab.tsx` | دعم عروض الكميات المجمعة (Bundle Packs)، وعروض الوجبات المجمعة (كومبو) مع تفجير آلي لشجرة المكونات (BOM Auto-Production) وخصم مكوناتها ومخزونها بالترتيب القانوني للأقفال (Canonical Lock Order) فور البيع دون أي تضارب. |
+| **حزمة الاختبارات الشاملة والتدقيق البرمجي (Critical Offers Test Suite)** | 🟢 | 100% | `comprehensive-offers-audit.spec.ts`, `sales-write.helper.spec.ts`, `pos.domain.spec.ts` | حزمة اختبارات تدقيقية صارمة بنسبة نجاح 100% تغطي كافة أنماط العروض الـ 8 (نسبة، مبلغ، سعر بديل، باقات، BOGO، ساعات سعيدة، جدولة أيام، كومبو مع خصم مخزني) وتؤكد مطابقة الحسابات المالية وسلامة مسارات الترحيل. |
 
 ---
 

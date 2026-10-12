@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addPosItem, getProductPrice, syncPosCartStock, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
+import { addPosItem, getProductPrice, isOfferHappyHourActive, repriceCartLine, syncPosCartStock, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import type { Product } from '@/types/domain';
 
 const product: Product = {
@@ -127,5 +127,64 @@ describe('POS stock handling', () => {
 
     // 1 bundle + 2 items (7 pieces): (500 + 240) / 7 = 105.71
     expect(getProductPrice(bundleProduct, 'retail', 7)).toBe(105.71);
+  });
+
+  it('applies BOGO offers correctly with free units and partial discounts', () => {
+    const bogoProduct: Product = {
+      ...product,
+      retailPrice: 100,
+      stock: 20,
+      offers: [{
+        id: 'bogo-1',
+        type: 'bogo',
+        value: 100,
+        bogoBuyQty: 1,
+        bogoGetQty: 1,
+        bogoDiscountPercent: 100,
+        from: localIsoDate(),
+        to: null,
+      }],
+    };
+
+    // 1 item: threshold not met (need buy 1 + get 1 = 2)
+    expect(getProductPrice(bogoProduct, 'retail', 1)).toBe(100);
+
+    // 2 items: buy 1, get 1 free (total 100 -> 50 each)
+    expect(getProductPrice(bogoProduct, 'retail', 2)).toBe(50);
+
+    // 3 items: buy 1 get 1 free + 1 at full price (total 200 -> 66.67 each)
+    expect(getProductPrice(bogoProduct, 'retail', 3)).toBe(66.67);
+
+    // 4 items: 2 complete cycles (total 200 -> 50 each)
+    expect(getProductPrice(bogoProduct, 'retail', 4)).toBe(50);
+  });
+
+  it('respects happy hours and days of week scheduling in POS', () => {
+    const scheduledProduct: Product = {
+      ...product,
+      retailPrice: 100,
+      stock: 20,
+      offers: [{
+        id: 'hh-1',
+        type: 'percent',
+        value: 20,
+        happyHourStart: '14:00',
+        happyHourEnd: '18:00',
+        daysOfWeek: '1,2,3', // Monday, Tuesday, Wednesday
+        from: localIsoDate(),
+        to: null,
+      }],
+    };
+
+    // Tuesday at 15:00 (inside window and valid day)
+    const validTime = new Date('2026-04-14T15:00:00'); // Tuesday
+    const cartValid = addPosItem([], scheduledProduct, { priceType: 'retail' });
+    // repricing with time
+    const repricedValid = repriceCartLine(cartValid[0], scheduledProduct, 1);
+    expect(repricedValid.offerName).toContain('20%');
+
+    // Tuesday at 20:00 (outside window)
+    const outsideTime = new Date('2026-04-14T20:00:00');
+    expect(isOfferHappyHourActive(scheduledProduct.offers![0], outsideTime)).toBe(false);
   });
 });

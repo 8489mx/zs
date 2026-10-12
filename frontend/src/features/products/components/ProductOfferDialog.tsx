@@ -646,113 +646,81 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     >
       <div className="page-stack" style={{ gap: 16 }}>
         
-        {/* Header */}
-        <div style={{
-          background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          paddingBottom: 14,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: '#eff6ff',
-              color: '#2563eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid #dbeafe'
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                <line x1="7" y1="7" x2="7.01" y2="7" />
-              </svg>
+        {/* Navigation Bar / Active Product Banner */}
+        {activeProduct ? (
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 10,
+            padding: '10px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                {activeProduct.name}
+              </span>
+              <span style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem', color: '#0f172a', fontWeight: 600 }}>
+                السعر الأساسي: {formatCurrency(retailPrice)}
+              </span>
+              {costPrice > 0 && (
+                <span style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem', color: '#64748b' }}>
+                  التكلفة: {formatCurrency(costPrice)}
+                </span>
+              )}
+              <span style={{
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                padding: '2px 8px',
+                borderRadius: 12,
+                fontSize: '0.76rem',
+                fontWeight: 600
+              }}>
+                {offers.length} {offers.length === 1 ? 'عرض مسجل' : 'عروض مسجلة'}
+              </span>
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
-                  إدارة العروض والخصومات
-                </h3>
-                {activeProduct ? (
-                  <span style={{
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    fontSize: '0.76rem',
-                    fontWeight: 600
-                  }}>
-                    {offers.length} {offers.length === 1 ? 'عرض' : 'عروض'}
-                  </span>
-                ) : (
-                  <span style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    color: '#64748b',
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    fontSize: '0.74rem',
-                    fontWeight: 600
-                  }}>
-                    اختصار: Ctrl+Alt+S
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.86rem', color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {activeProduct ? (
-                  <>
-                    <strong style={{ color: '#1e293b' }}>{activeProduct.name}</strong>
-                    <span>·</span>
-                    <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: 4, color: '#0f172a', fontWeight: 600 }}>
-                      السعر الأساسي: {formatCurrency(retailPrice)}
-                    </span>
-                    {costPrice > 0 ? (
-                      <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: 4, color: '#475569' }}>
-                        التكلفة: {formatCurrency(costPrice)}
-                      </span>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveProduct(null);
-                        resetForm();
-                      }}
-                      style={{
-                        background: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                        color: '#1d4ed8',
-                        borderRadius: 4,
-                        padding: '2px 8px',
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                      </svg>
-                      <span>اختيار صنف آخر</span>
-                    </button>
-                  </>
-                ) : (
-                  <span>ابحث عن أي صنف بالاسم أو الباركود لضبط عروضه وخصوماته فوراً</span>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {!activeProduct && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginInlineStart: 'auto', marginInlineEnd: 12 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveProduct(null);
+                resetForm();
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                borderRadius: 6,
+                padding: '5px 12px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>اختيار صنف آخر</span>
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+            paddingBottom: 4
+          }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -760,18 +728,17 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                   setActiveProduct(null);
                 }}
                 style={{
-                  padding: '6px 14px',
+                  padding: '7px 16px',
                   borderRadius: 8,
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: dialogMode === 'item_offers' ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                  background: dialogMode === 'item_offers' ? '#eff6ff' : '#ffffff',
-                  color: dialogMode === 'item_offers' ? '#1d4ed8' : '#64748b',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  border: dialogMode === 'item_offers' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: dialogMode === 'item_offers' ? '#170e5e' : '#ffffff',
+                  color: dialogMode === 'item_offers' ? '#ffffff' : '#64748b',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  transition: 'all 0.15s ease',
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -788,18 +755,17 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                   setActiveProduct(null);
                 }}
                 style={{
-                  padding: '6px 14px',
+                  padding: '7px 16px',
                   borderRadius: 8,
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '1px solid #db2777' : '1px solid #e2e8f0',
-                  background: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#fdf2f8' : '#ffffff',
-                  color: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#be185d' : '#64748b',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  border: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#170e5e' : '#ffffff',
+                  color: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#ffffff' : '#64748b',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  transition: 'all 0.15s ease',
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -807,7 +773,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 </svg>
                 العروض المجمعة (الكومبو)
                 <span style={{
-                  background: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#be185d' : '#f1f5f9',
+                  background: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
                   color: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#ffffff' : '#64748b',
                   padding: '1px 6px',
                   borderRadius: 10,
@@ -818,42 +784,20 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 </span>
               </button>
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              border: '1px solid #e2e8f0',
+            <div style={{
               background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               color: '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#fee2e2';
-              e.currentTarget.style.color = '#ef4444';
-              e.currentTarget.style.borderColor = '#fca5a5';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.color = '#64748b';
-              e.currentTarget.style.borderColor = '#e2e8f0';
-            }}
-            title="إغلاق"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+              padding: '3px 10px',
+              borderRadius: 6,
+              fontSize: '0.75rem',
+              fontWeight: 600
+            }}>
+              اختصار سريع: Ctrl+Alt+S
+            </div>
+          </div>
+        )}
 
         {/* View 0A: Active Combos List View */}
         {!activeProduct && dialogMode === 'active_combos' ? (

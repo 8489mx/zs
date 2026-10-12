@@ -455,7 +455,7 @@ export class VanPreSalesService {
       const nowIso = new Date().toISOString().slice(0, 10);
       const offers = await trxAny
         .selectFrom('product_offers')
-        .select(['product_id', 'offer_type', 'value', 'min_qty', 'start_date', 'end_date'])
+        .select(['product_id', 'offer_type', 'value', 'min_qty', 'start_date', 'end_date', 'bogo_buy_qty', 'bogo_get_qty', 'bogo_discount_percent'])
         .where('product_id', 'in', productIds)
         .where('tenant_id', '=', tenantId)
         .where('is_active', '=', true)
@@ -523,9 +523,10 @@ export class VanPreSalesService {
 
         // Check applicable offers
         const activeOffers = offersByProduct.get(pid) || [];
+        const getMinQty = (o: any) => o.offer_type === 'bogo' ? (Number(o.bogo_buy_qty || 1) + Number(o.bogo_get_qty || 1)) : Math.max(1, Number(o.min_qty || 1));
         const matchingOffer = activeOffers
-          .filter((off) => totalBaseQty >= Math.max(1, Number(off.min_qty || 1)))
-          .sort((a, b) => Number(b.min_qty || 0) - Number(a.min_qty || 0))[0];
+          .filter((off) => totalBaseQty >= getMinQty(off))
+          .sort((a, b) => getMinQty(b) - getMinQty(a))[0];
 
         if (matchingOffer && !item.unitPrice) {
           const offerVal = Number(matchingOffer.value || 0);
@@ -541,6 +542,29 @@ export class VanPreSalesService {
             unitPrice = Number((offerVal * multiplier).toFixed(2));
             pricingTierType = 'offer';
             unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
+          } else if (matchingOffer.offer_type === 'bundle' && offerVal > 0) {
+            const minQ = Math.max(1, Number(matchingOffer.min_qty || 1));
+            const bundles = Math.floor(qty / minQ);
+            const rem = qty % minQ;
+            const bundleTotal = (bundles * offerVal) + (rem * listPrice);
+            unitPrice = Number(((bundleTotal / qty)).toFixed(2));
+            pricingTierType = 'offer';
+            unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
+          } else if (matchingOffer.offer_type === 'bogo') {
+            const buyQ = Math.max(1, Number(matchingOffer.bogo_buy_qty || 1));
+            const getQ = Math.max(1, Number(matchingOffer.bogo_get_qty || 1));
+            const discPct = Math.min(100, Math.max(0, Number(matchingOffer.bogo_discount_percent ?? (offerVal || 100))));
+            const cycle = buyQ + getQ;
+            if (qty >= cycle) {
+              const fullCycles = Math.floor(qty / cycle);
+              const rem = qty % cycle;
+              const freeUnits = (fullCycles * getQ) + Math.max(0, rem - buyQ);
+              const discAmt = freeUnits * listPrice * (discPct / 100);
+              const netTot = Math.max(0, (qty * listPrice) - discAmt);
+              unitPrice = Number(((netTot / qty)).toFixed(2));
+              pricingTierType = 'offer';
+              unitOfferSavings = Math.max(0, Number((listPrice - unitPrice).toFixed(2)));
+            }
           }
         }
 

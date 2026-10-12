@@ -6,11 +6,17 @@ function roundCurrency(value: number): number {
 }
 
 export type SaleProductOfferRow = {
-  offer_type?: 'percent' | 'fixed' | 'price' | string | null;
+  offer_type?: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo' | string | null;
   value?: number | string | null;
   start_date?: string | Date | null;
   end_date?: string | Date | null;
   min_qty?: number | string | null;
+  bogo_buy_qty?: number | string | null;
+  bogo_get_qty?: number | string | null;
+  bogo_discount_percent?: number | string | null;
+  happy_hour_start?: string | null;
+  happy_hour_end?: string | null;
+  days_of_week?: string | null;
 };
 
 export type SaleProductRow = {
@@ -121,15 +127,54 @@ function todayLocalIsoDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-function isOfferActive(offer: SaleProductOfferRow, todayIso: string): boolean {
+function isOfferActive(offer: SaleProductOfferRow, todayIso: string, now: Date = new Date()): boolean {
   const from = normalizeDateOnly(offer.start_date);
   const to = normalizeDateOnly(offer.end_date);
-  return (!from || from <= todayIso) && (!to || to >= todayIso);
+  if (from && from > todayIso) return false;
+  if (to && to < todayIso) return false;
+
+  // Day of week check (e.g. "0,1,2,3,4,5,6" or comma-separated numbers)
+  if (offer.days_of_week && typeof offer.days_of_week === 'string' && offer.days_of_week.trim()) {
+    const currentDay = now.getDay(); // 0 is Sunday, ..., 6 is Saturday
+    const allowedDays = offer.days_of_week.split(',').map((d) => Number(d.trim())).filter((d) => !Number.isNaN(d));
+    if (allowedDays.length > 0 && !allowedDays.includes(currentDay)) {
+      return false;
+    }
+  }
+
+  // Happy hour time range check (HH:mm)
+  if (offer.happy_hour_start && offer.happy_hour_end && String(offer.happy_hour_start).trim() && String(offer.happy_hour_end).trim()) {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [startH, startM] = String(offer.happy_hour_start).split(':').map(Number);
+    const [endH, endM] = String(offer.happy_hour_end).split(':').map(Number);
+    const startMinutes = (startH || 0) * 60 + (startM || 0);
+    const endMinutes = (endH || 0) * 60 + (endM || 0);
+
+    if (startMinutes <= endMinutes) {
+      if (currentMinutes < startMinutes || currentMinutes > endMinutes) return false;
+    } else {
+      // Overnight range
+      if (currentMinutes < startMinutes && currentMinutes > endMinutes) return false;
+    }
+  }
+
+  return true;
+}
+
+function getOfferEffectiveMinQty(offer: SaleProductOfferRow): number {
+  if (offer.offer_type === 'bogo') {
+    const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
+    const getQ = Math.max(1, Number(offer.bogo_get_qty || 1));
+    return buyQ + getQ;
+  }
+  return Math.max(1, Number(offer.min_qty || 1));
 }
 
 function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1): number {
   const offerValue = Number(offer.value || 0);
-  if (!(offerValue > 0) && offer.offer_type !== 'price' && offer.offer_type !== 'bundle') return roundCurrency(basePrice);
+  if (!(offerValue > 0) && offer.offer_type !== 'price' && offer.offer_type !== 'bundle' && offer.offer_type !== 'bogo') {
+    return roundCurrency(basePrice);
+  }
   if (offer.offer_type === 'percent') return roundCurrency(Math.max(0, basePrice - ((basePrice * offerValue) / 100)));
   if (offer.offer_type === 'fixed') return roundCurrency(Math.max(0, basePrice - offerValue));
   if (offer.offer_type === 'price') return roundCurrency(Math.max(0, offerValue));
@@ -142,17 +187,33 @@ function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferR
     const total = (bundles * offerValue) + (remainder * basePrice);
     return roundCurrency(total / normalizedQty);
   }
+  if (offer.offer_type === 'bogo') {
+    const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
+    const getQ = Math.max(1, Number(offer.bogo_get_qty || 1));
+    const discPct = Math.min(100, Math.max(0, Number(offer.bogo_discount_percent ?? (offerValue || 100))));
+    const normalizedQty = Math.max(1, Number(qty || 1));
+    const cycle = buyQ + getQ;
+    if (normalizedQty < cycle) return roundCurrency(basePrice);
+
+    const fullCycles = Math.floor(normalizedQty / cycle);
+    const remainder = normalizedQty % cycle;
+    const discountedUnits = (fullCycles * getQ) + Math.max(0, remainder - buyQ);
+    const discountPerUnit = (basePrice * discPct) / 100;
+    const totalDiscount = discountedUnits * discountPerUnit;
+    const totalLinePrice = Math.max(0, (normalizedQty * basePrice) - totalDiscount);
+    return roundCurrency(totalLinePrice / normalizedQty);
+  }
   return roundCurrency(basePrice);
 }
 
-function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number): SaleProductOfferRow | null {
+function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number, now: Date = new Date()): SaleProductOfferRow | null {
   const normalizedQty = Math.max(1, Number(qty || 1));
-  const applicableOffers = offers.filter((offer) => isOfferActive(offer, todayIso) && normalizedQty >= Math.max(1, Number(offer.min_qty || 1)));
+  const applicableOffers = offers.filter((offer) => isOfferActive(offer, todayIso, now) && normalizedQty >= getOfferEffectiveMinQty(offer));
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = Math.max(1, Number(left.min_qty || 1));
-    const rightMinQty = Math.max(1, Number(right.min_qty || 1));
+    const leftMinQty = getOfferEffectiveMinQty(left);
+    const rightMinQty = getOfferEffectiveMinQty(right);
     if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
 
     const leftPrice = calculateOfferAdjustedPrice(basePrice, left, normalizedQty);
@@ -171,6 +232,7 @@ export function calculateAllowedSaleUnitPrice(params: {
   qty?: number;
   unitMultiplier?: number;
   todayIso?: string;
+  now?: Date;
 }): number {
   const multiplier = Number(params.unitMultiplier || 1) > 0 ? Number(params.unitMultiplier || 1) : 1;
   if (params.priceType === 'wholesale') {
@@ -179,7 +241,7 @@ export function calculateAllowedSaleUnitPrice(params: {
   const basePrice = roundCurrency(Number(params.retailPrice || 0) * multiplier);
   const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
   const qty = Number(params.qty || 1);
-  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice);
+  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice, params.now || new Date());
 
   if (!activeOffer) {
     return roundCurrency(basePrice);

@@ -12,6 +12,7 @@ import { OrderItemProductPicker } from './OrderItemProductPicker';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
 import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 import type { Product } from '@/types/domain';
+import { getProductPrice } from '@/features/pos/lib/pos.domain';
 import type { CreateSalesOrderPayload, SalesOrderItem } from '../api/sales-orders.api';
 
 interface SalesOrderItemFormRow extends SalesOrderItem {
@@ -99,6 +100,18 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
     const updated = [...items];
     const item = { ...updated[index], [field]: value };
     const qty = Number(field === 'quantity' ? value : item.quantity) || 0;
+
+    // If quantity changes, re-evaluate active offers on the selected product
+    if (field === 'quantity' && item.productId > 0) {
+      const foundProd = catalogProducts?.find((p) => Number(p.id) === Number(item.productId));
+      if (foundProd && foundProd.offers && foundProd.offers.length > 0) {
+        const promoPrice = getProductPrice(foundProd, 'retail', qty || 1);
+        if (promoPrice > 0) {
+          item.unitPrice = promoPrice;
+        }
+      }
+    }
+
     const price = Number(field === 'unitPrice' ? value : item.unitPrice) || 0;
     const discount = Number(field === 'discount' ? value : item.discount) || 0;
     item.total = Math.max(0, qty * price - discount);
@@ -109,7 +122,9 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
   const handleSelectProduct = (index: number, prod: Product) => {
     const updated = [...items];
     const qty = Number(updated[index]?.quantity) || 1;
-    const price = Number(prod.retailPrice || prod.wholesalePrice || 0);
+    const basePrice = Number(prod.retailPrice || prod.wholesalePrice || 0);
+    const promoPrice = prod.offers && prod.offers.length > 0 ? getProductPrice(prod, 'retail', qty) : basePrice;
+    const price = promoPrice > 0 ? promoPrice : basePrice;
     const discount = Number(updated[index]?.discount) || 0;
     const unit = prod.units?.[0]?.name || 'قطعة';
     const stock = Number(prod.stock ?? 0);
