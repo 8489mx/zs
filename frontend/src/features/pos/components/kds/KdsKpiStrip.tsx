@@ -23,69 +23,85 @@ export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
     >
       <div
         style={{
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '10px',
           padding: '8px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
         }}
       >
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>ورد للتو (جديد):</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#170e5e', display: 'inline-block' }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>ورد للتو (جديد):</span>
+        </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e' }}>{stats.pendingCount}</span>
       </div>
 
       <div
         style={{
-          backgroundColor: '#fffbeb',
-          border: '1px solid #fde68a',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
           borderRadius: '10px',
           padding: '8px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
         }}
       >
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>قيد التحضير والطهي:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>قيد التحضير والطهي:</span>
+        </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#b45309' }}>{stats.cookingCount}</span>
       </div>
 
       <div
         style={{
-          backgroundColor: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
           borderRadius: '10px',
           padding: '8px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
         }}
       >
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>جاهز للاستلام والتسليم:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>جاهز للاستلام والتسليم:</span>
+        </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#15803d' }}>{stats.readyCount}</span>
       </div>
 
       <div
         style={{
-          backgroundColor: stats.criticalCount > 0 ? '#fef2f2' : '#f8fafc',
+          backgroundColor: stats.criticalCount > 0 ? '#fef2f2' : '#ffffff',
           border: `1px solid ${stats.criticalCount > 0 ? '#fecaca' : '#e2e8f0'}`,
           borderRadius: '10px',
           padding: '8px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
         }}
       >
-        <span
-          style={{
-            fontSize: '13px',
-            fontWeight: 700,
-            color: stats.criticalCount > 0 ? '#991b1b' : '#64748b',
-          }}
-        >
-          متأخر (&gt;15د):
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: stats.criticalCount > 0 ? '#ef4444' : '#94a3b8', display: 'inline-block' }} />
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              color: stats.criticalCount > 0 ? '#991b1b' : '#64748b',
+            }}
+          >
+            متأخر (&gt;15د):
+          </span>
+        </div>
         <span
           style={{
             fontSize: '18px',

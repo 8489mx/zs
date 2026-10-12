@@ -1,5 +1,4 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -22,6 +21,10 @@ import { PosPlateCostRadarModal } from './PosPlateCostRadarModal';
 import { PosCustomerPunchCardModal } from './PosCustomerPunchCardModal';
 import { PosDriveThruModal } from './PosDriveThruModal';
 import { PosSmartUpsellModal } from './PosSmartUpsellModal';
+import { PosRestaurantOperationsModal } from './PosRestaurantOperationsModal';
+import { PosDisplaysModal } from './PosDisplaysModal';
+import { PosManagerCompModal } from './PosManagerCompModal';
+import { PosComboMealModal } from './PosComboMealModal';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -32,23 +35,14 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
-import {
-  openCustomerDisplayWindow,
-  openKitchenDisplayWindow,
-  openDigitalSignageWindow,
-} from '@/features/pos/lib/pos-customer-display-bridge';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import {
   UtensilsIcon,
-  LaptopIcon,
   MonitorIcon,
   MaximizeIcon,
   MenuIcon,
-  ChevronDownIcon,
   PhoneCallIcon,
   PrinterIcon,
-  CheckCircleIcon,
-  UsersIcon,
-  TruckIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 
@@ -135,10 +129,13 @@ function PosWorkspaceHeaderComponent({
     refetchInterval: 15_000,
   });
   const count86 = items86.length;
-  const [isScreensMenuOpen, setIsScreensMenuOpen] = useState(false);
-  const [screensMenuStyle, setScreensMenuStyle] = useState<React.CSSProperties>({});
-  const screensMenuContainerRef = useRef<HTMLDivElement>(null);
-  const screensMenuDropdownRef = useRef<HTMLDivElement>(null);
+  const currentUser = useAuthStore((s: any) => s.user);
+  const isManager = isAdminUser(currentUser) || currentUser?.permissions?.includes('pos_manager') || currentUser?.permissions?.includes('manage_restaurant');
+
+  const [isDisplaysModalOpen, setIsDisplaysModalOpen] = useState(false);
+  const [isOpsModalOpen, setIsOpsModalOpen] = useState(false);
+  const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
+  const [isComboMealModalOpen, setIsComboMealModalOpen] = useState(false);
 
   const handleNoSaleDrawerKick = useCallback(async () => {
     if (isNoSalePending) return;
@@ -175,51 +172,7 @@ function PosWorkspaceHeaderComponent({
     }
   }, [isNoSalePending, noSaleManagerPin, noSaleReason, pos.branchId, pos.ownOpenShift, settings?.posElectronCashierPrinter]);
 
-  const updateScreensMenuPosition = useCallback(() => {
-    if (!screensMenuContainerRef.current) return;
-    const rect = screensMenuContainerRef.current.getBoundingClientRect();
-    const menuWidth = 280;
-    let left = rect.right - menuWidth;
-    if (left < 10) left = 10;
-    if (left + menuWidth > window.innerWidth - 10) {
-      left = Math.max(10, window.innerWidth - menuWidth - 10);
-    }
-    setScreensMenuStyle({
-      position: 'fixed',
-      top: `${rect.bottom + 6}px`,
-      left: `${left}px`,
-      width: `${menuWidth}px`,
-      zIndex: 99999,
-    });
-  }, []);
 
-  useEffect(() => {
-    if (!isScreensMenuOpen) return;
-    updateScreensMenuPosition();
-
-    function handlePointerDown(e: MouseEvent) {
-      const target = e.target as Node;
-      if (screensMenuContainerRef.current?.contains(target)) return;
-      if (screensMenuDropdownRef.current?.contains(target)) return;
-      setIsScreensMenuOpen(false);
-    }
-
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setIsScreensMenuOpen(false);
-    }
-
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('keydown', handleKeydown);
-    window.addEventListener('resize', updateScreensMenuPosition);
-    window.addEventListener('scroll', updateScreensMenuPosition, true);
-
-    return () => {
-      window.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeydown);
-      window.removeEventListener('resize', updateScreensMenuPosition);
-      window.removeEventListener('scroll', updateScreensMenuPosition, true);
-    };
-  }, [isScreensMenuOpen, updateScreensMenuPosition]);
 
   const [showFloatingAlert, setShowFloatingAlert] = useState(false);
   const previousPendingCountRef = useRef<number | null>(null);
@@ -287,7 +240,7 @@ function PosWorkspaceHeaderComponent({
       )}
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
-        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', overflow: 'visible' }}>
           {/* 1. Mode Toggle */}
           <div className="pos-mode-toggle" role="group" aria-label="POS mode">
             <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
@@ -333,13 +286,13 @@ function PosWorkspaceHeaderComponent({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                color: pos.orderType === 'delivery' ? '#1e40af' : '#334155',
-                background: pos.orderType === 'delivery' ? '#eff6ff' : undefined,
-                border: pos.orderType === 'delivery' ? '1px solid #93c5fd' : undefined,
+                color: pos.orderType === 'delivery' ? '#ffffff' : '#334155',
+                background: pos.orderType === 'delivery' ? '#170e5e' : undefined,
+                border: pos.orderType === 'delivery' ? '1px solid #170e5e' : undefined,
               }}
               title="مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (F7 أو Alt + P)"
             >
-              <PhoneCallIcon size={14} color={pos.orderType === 'delivery' ? '#2563eb' : '#170e5e'} />
+              <PhoneCallIcon size={14} color={pos.orderType === 'delivery' ? '#ffffff' : '#170e5e'} />
               <span>طلب هاتفي F7</span>
             </Button>
           )}
@@ -352,9 +305,9 @@ function PosWorkspaceHeaderComponent({
               onClick={onOpenTables || onOpenHeldDrafts || (() => setIsTablesOpen(true))}
               style={{
                 fontWeight: 700,
-                color: pos.tableNumber ? '#166534' : undefined,
-                background: pos.tableNumber ? '#f0fdf4' : undefined,
-                border: pos.tableNumber ? '1px solid #86efac' : undefined,
+                color: pos.tableNumber ? '#170e5e' : undefined,
+                background: pos.tableNumber ? '#f1f5f9' : undefined,
+                border: pos.tableNumber ? '1px solid #cbd5e1' : undefined,
               }}
               title="إدارة طاولات الصالة وجلسات الطعام والطلبات المعلقة (F3)"
             >
@@ -508,301 +461,21 @@ function PosWorkspaceHeaderComponent({
               variant="secondary"
               onClick={() => (pos as any).printGuestCheckNow?.()}
               style={{
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: '11.5px',
                 height: '30px',
                 padding: '0 10px',
-                color: (pos as any).guestCheckPrintedAt ? '#92400e' : '#170e5e',
-                background: (pos as any).guestCheckPrintedAt ? '#fef3c7' : '#f8fafc',
-                border: (pos as any).guestCheckPrintedAt ? '1px solid #fde68a' : '1px solid #cbd5e1',
+                color: '#170e5e',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
               }}
               title="طباعة شيك حساب الطاولة غير المسدد للزبون للمعاينة"
             >
-              <PrinterIcon size={14} />
-              <span>{(pos as any).guestCheckPrintedAt ? 'تم تسليم الشيك (إعادة طباعة)' : 'طباعة الشيك المبدئي'}</span>
-            </Button>
-          )}
-
-          {/* Combo Meal Builder */}
-          {isRestaurantActive && onOpenComboModal && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onOpenComboModal}
-              style={{
-                fontWeight: 800,
-                fontSize: '11.5px',
-                height: '30px',
-                padding: '0 10px',
-                color: '#170e5e',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="بناء وجبة كومبو تجميعية سريعة خطوة بخطوة"
-            >
-              <span>وجبة كومبو</span>
-            </Button>
-          )}
-
-          {/* Delivery Aggregators Hub (Jahez, Hungerstation, Talabat, Keeta) */}
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setIsAggregatorsOpen(true)}
-            style={{
-              fontWeight: 700,
-              color: '#170e5e',
-              background: '#eef2ff',
-              border: '1px solid #c7d2fe',
-            }}
-            title="منظومة تطبيقات التوصيل الخليجية (جاهز، هنقرستيشن، طلبات، كيتا) وإيقاف الأصناف 86"
-          >
-            منصات التوصيل
-          </Button>
-
-          {/* In-House Restaurant Delivery Driver Dispatcher */}
-          {(isPhoneOrdersActive || isRestaurantActive || isStorefrontActive) && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsDriverDispatchOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#0369a1',
-                background: '#f0f9ff',
-                border: '1px solid #bae6fd',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="إسناد وترحيل طلبات التوصيل لسائقي المطعم ومتابعة التحصيل وإرسال واتساب السائق"
-            >
-              <TruckIcon size={14} color="#0284c7" />
-              <span>سائقي التوصيل</span>
-            </Button>
-          )}
-
-          {/* Kitchen Food Waste Logger */}
-          {(isRestaurantActive || ['restaurant', 'food_beverage'].includes(settings?.businessIndustry || '')) && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsFoodWasteOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#991b1b',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-              }}
-              title="تسجيل هدر وتالف المطبخ والوجبات وخصم المواد الخام لحظياً"
-            >
-              هدر المطبخ
-            </Button>
-          )}
-
-          {/* Fast 86 Items Exclusion */}
-          {isRestaurantActive && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIs86ModalOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: count86 > 0 ? '#991b1b' : '#334155',
-                background: count86 > 0 ? '#fee2e2' : '#f8fafc',
-                border: count86 > 0 ? '1px solid #fca5a5' : '1px solid #cbd5e1',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="استبعاد الأصناف والمكونات النافذة لحظياً من الكاشير والمطبخ (86'd Items)"
-            >
-              <span>استبعاد 86</span>
-              {count86 > 0 && (
-                <span
-                  style={{
-                    background: '#dc2626',
-                    color: '#ffffff',
-                    fontSize: '10px',
-                    fontWeight: 900,
-                    padding: '0 5px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  {count86}
-                </span>
-              )}
-            </Button>
-          )}
-
-          {/* Tip Pooling & Shift Distribution */}
-          {isRestaurantActive && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsTipPoolOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#1e40af',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-              }}
-              title="مجمع الإكراميات وتوزيع حصص الوردية على طاقم الصالة والمطبخ"
-            >
-              مجمع الإكراميات
-            </Button>
-          )}
-
-          {/* Daily Prep Sheet */}
-          {isRestaurantActive && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsPrepSheetOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#166534',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-              }}
-              title="ورقة التحضير اليومية للمطبخ والأصناف نصف المصنعة"
-            >
-              ورقة التحضير
-            </Button>
-          )}
-
-          {/* Plate Cost Radar */}
-          {isRestaurantActive && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsPlateRadarOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#7c2d12',
-                background: '#fff7ed',
-                border: '1px solid #fed7aa',
-              }}
-              title="رادار تذبذب تكلفة الأطباق وهوامش ربح الوجبات"
-            >
-              رادار التكلفة
-            </Button>
-          )}
-
-          {/* Customer Stamp Loyalty */}
-          {(isRestaurantActive || Boolean(pos.customerId)) && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsStampCardOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#6b21a8',
-                background: '#faf5ff',
-                border: '1px solid #e9d5ff',
-              }}
-              title="كرت الأختام الرقمي للعميل ومكافآت المقاهي والمطاعم"
-            >
-              كرت الأختام
-            </Button>
-          )}
-
-          {/* Manager Comps & VIP On-the-house */}
-          {isRestaurantActive && onOpenManagerComp && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onOpenManagerComp}
-              style={{
-                fontWeight: 700,
-                color: '#15803d',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-              }}
-              title="اعتماد ضيافة الإدارة والخصومات الرسمية (Manager Comps)"
-            >
-              ضيافة الإدارة
-            </Button>
-          )}
-
-          {/* Sticky Cup & Box Labels Printing */}
-          {isRestaurantActive && onPrintCupLabels && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onPrintCupLabels}
-              style={{
-                fontWeight: 700,
-                color: '#170e5e',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="طباعة ملصقات لاصقة للأكواب والعلب حرارياً 50x30 مم"
-            >
               <PrinterIcon size={14} color="#170e5e" />
-              <span>ملصقات الأكواب</span>
-            </Button>
-          )}
-
-          {/* Drive-Thru Lane (طلبات السيارات ومؤشر SOS) */}
-          {isRestaurantActive && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsDriveThruOpen(true)}
-              style={{
-                fontWeight: 700,
-                color: '#1e3a8a',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="طابور طلبات السيارات ومؤشر سرعة الخدمة SOS"
-            >
-              <TruckIcon size={14} color="#1e3a8a" />
-              <span>طلبات السيارات</span>
-            </Button>
-          )}
-
-          {/* Smart Upsell Recommendations */}
-          {isRestaurantActive && pos.cart.length > 0 && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={async () => {
-                try {
-                  const firstProductId = Number(pos.cart[0]?.productId) || undefined;
-                  const rules = await restaurantAdvancedFnbApi.getUpsellRecommendations(firstProductId);
-                  setUpsellRules(rules || []);
-                  setIsUpsellModalOpen(true);
-                } catch {
-                  setIsUpsellModalOpen(true);
-                }
-              }}
-              style={{
-                fontWeight: 700,
-                color: '#b45309',
-                background: '#fffbeb',
-                border: '1px solid #fde68a',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-              title="اقتراحات الترقية الذكية وزيادة متوسط الفاتورة (Upsell & Cross-sell)"
-            >
-              <CheckCircleIcon size={14} color="#b45309" />
-              <span>عروض ذكية</span>
+              <span>{(pos as any).guestCheckPrintedAt ? 'تم تسليم الشيك (إعادة طباعة)' : 'طباعة الشيك المبدئي'}</span>
             </Button>
           )}
 
@@ -813,10 +486,10 @@ function PosWorkspaceHeaderComponent({
               variant="secondary"
               onClick={() => setIsOnlineOrdersOpen(true)}
               style={{
-                fontWeight: 800,
-                background: '#059669',
-                color: '#ffffff',
-                border: '1px solid #047857',
+                fontWeight: 700,
+                background: '#ffffff',
+                color: '#1e293b',
+                border: '1px solid #cbd5e1',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -840,214 +513,64 @@ function PosWorkspaceHeaderComponent({
             </Button>
           )}
 
-          {/* 6. Screens Dropdown Menu */}
-          <div ref={screensMenuContainerRef} className="desktop-only-toolbar-item pos-screens-menu-container" style={{ position: 'relative' }}>
+          {/* 6. Screens Hub Trigger Button */}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsDisplaysModalOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 700,
+              background: isDisplaysModalOpen ? '#f1f5f9' : '#ffffff',
+              color: '#1e293b',
+              border: '1px solid #cbd5e1',
+            }}
+            title="مركز شاشات العرض الخارجية والمحطات التفاعلية"
+          >
+            <MonitorIcon size={16} color="#170e5e" />
+            <span>شاشات العرض</span>
+          </Button>
+
+          {/* 7. Restaurant Operations Modal Trigger Button */}
+          {isRestaurantActive && (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setIsScreensMenuOpen((prev) => !prev)}
+              onClick={() => setIsOpsModalOpen(true)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontWeight: 700,
-                background: isScreensMenuOpen ? '#f1f5f9' : undefined,
+                background: isOpsModalOpen ? '#f1f5f9' : '#ffffff',
                 color: '#1e293b',
+                border: '1px solid #cbd5e1',
               }}
-              title="شاشات العرض الخارجية (العميل والإعلانات والمطبخ)"
+              title="مركز عمليات وأدوات المطعم المتقدمة"
             >
-              <MonitorIcon size={16} color="#170e5e" />
-              <span>شاشات العرض</span>
-              <ChevronDownIcon size={14} color="#64748b" style={{ transform: isScreensMenuOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
+              <UtensilsIcon size={16} color="#170e5e" />
+              <span>عمليات المطعم</span>
+              {count86 > 0 && (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    lineHeight: '1.2',
+                  }}
+                >
+                  {count86}
+                </span>
+              )}
             </Button>
+          )}
 
-            {isScreensMenuOpen && typeof document !== 'undefined' && createPortal(
-              <div
-                ref={screensMenuDropdownRef}
-                style={{
-                  ...screensMenuStyle,
-                  background: '#ffffff',
-                  borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
-                  boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.2), 0 8px 16px -4px rgba(15, 23, 42, 0.12)',
-                  padding: '6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  direction: 'rtl',
-                }}
-              >
-                {/* 1. Customer Display */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsScreensMenuOpen(false);
-                    openCustomerDisplayWindow();
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                    width: '100%',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <MonitorIcon size={17} color="#1d4ed8" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>شاشة العميل (Customer Display)</div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>عرض الأسعار والمشتريات للزبون</div>
-                  </div>
-                </button>
-
-                {/* 2. Digital Signage */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsScreensMenuOpen(false);
-                    openDigitalSignageWindow();
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                    width: '100%',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <LaptopIcon size={17} color="#0369a1" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>شاشة العروض والأسعار (Signage)</div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>شاشة التلفزيون الترويجية في المتجر</div>
-                  </div>
-                </button>
-
-                {/* 3. Kitchen Display (KDS) - Only if Restaurant module is enabled! */}
-                {isRestaurantActive && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsScreensMenuOpen(false);
-                      openKitchenDisplayWindow();
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'right',
-                      width: '100%',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <UtensilsIcon size={17} color="#c2410c" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>شاشة المطبخ (KDS)</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>شاشة تفاعلية لتحضير الوجبات للشيف</div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 4. Order Status / Pickup Board - Restaurant Mode */}
-                {isRestaurantActive && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsScreensMenuOpen(false);
-                      window.open('/pos/order-status', 'OrderStatusBoardWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'right',
-                      width: '100%',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <CheckCircleIcon size={17} color="#16a34a" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>شاشة جاهزية الطلبات (Pickup Board)</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>شاشة الانتظار وإعلان أرقام الطلبات للزبائن</div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 5. Handheld Waiter / Captain Station */}
-                {isRestaurantActive && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsScreensMenuOpen(false);
-                      window.open('/pos/waiter', 'WaiterStationWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'right',
-                      width: '100%',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <UsersIcon size={17} color="#4338ca" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>محطة الويتر وكابتن الصالة (Captain Station)</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>واجهة سريعة للأجهزة المحمولة لأخذ طلبات الطاولة</div>
-                    </div>
-                  </button>
-                )}
-              </div>,
-              document.body
-            )}
-          </div>
-
-          {/* 7. Shift Button */}
+          {/* 8. Shift Button */}
           {pos.ownOpenShift ? (
             <Link to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}>
               <Button type="button" variant="secondary" className="pos-close-shift-btn">
@@ -1178,49 +701,150 @@ function PosWorkspaceHeaderComponent({
       </div>
     </DialogShell>
     <PosInstantExchangeDialog open={isExchangeOpen} onClose={() => setIsExchangeOpen(false)} pos={pos} />
-    <PosDeliveryAggregatorsModal open={isAggregatorsOpen} onClose={() => setIsAggregatorsOpen(false)} />
-    <RestaurantDeliveryDispatcherModal open={isDriverDispatchOpen} onClose={() => setIsDriverDispatchOpen(false)} />
-    <PosFoodWasteModal open={isFoodWasteOpen} onClose={() => setIsFoodWasteOpen(false)} branchId={Number(pos.branchId) || 1} />
+    <PosDeliveryAggregatorsModal
+      open={isAggregatorsOpen}
+      onClose={() => setIsAggregatorsOpen(false)}
+      onBack={() => { setIsAggregatorsOpen(false); setIsOpsModalOpen(true); }}
+    />
+    <RestaurantDeliveryDispatcherModal
+      open={isDriverDispatchOpen}
+      onClose={() => setIsDriverDispatchOpen(false)}
+      onBack={() => { setIsDriverDispatchOpen(false); setIsOpsModalOpen(true); }}
+    />
+    <PosFoodWasteModal
+      open={isFoodWasteOpen}
+      onClose={() => setIsFoodWasteOpen(false)}
+      branchId={Number(pos.branchId) || 1}
+      onBack={() => { setIsFoodWasteOpen(false); setIsOpsModalOpen(true); }}
+    />
     <Pos86ItemsModal
       open={is86ModalOpen}
       onClose={() => setIs86ModalOpen(false)}
       products={(pos as any).productsQuery?.data || []}
       branchId={Number(pos.branchId) || undefined}
+      onBack={() => { setIs86ModalOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosTipPoolModal
       open={isTipPoolOpen}
       onClose={() => setIsTipPoolOpen(false)}
       branchId={Number(pos.branchId) || undefined}
       currency={(pos as any).currency || 'ج.م'}
+      onBack={() => { setIsTipPoolOpen(false); setIsOpsModalOpen(true); }}
     />
     <KitchenDailyPrepSheetModal
       open={isPrepSheetOpen}
       onClose={() => setIsPrepSheetOpen(false)}
       branchId={Number(pos.branchId) || undefined}
+      onBack={() => { setIsPrepSheetOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosPlateCostRadarModal
       open={isPlateRadarOpen}
       onClose={() => setIsPlateRadarOpen(false)}
       currency={(pos as any).currency || 'ج.م'}
+      onBack={() => { setIsPlateRadarOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosCustomerPunchCardModal
       open={isStampCardOpen}
       onClose={() => setIsStampCardOpen(false)}
       customerId={Number(pos.customerId) || 1}
       customerName={(pos as any).customerName || 'العميل الحالي'}
+      onBack={() => { setIsStampCardOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosDriveThruModal
       open={isDriveThruOpen}
       onClose={() => setIsDriveThruOpen(false)}
       branchId={Number(pos.branchId) || undefined}
+      onBack={() => { setIsDriveThruOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosSmartUpsellModal
       open={isUpsellModalOpen}
       onClose={() => setIsUpsellModalOpen(false)}
       recommendations={upsellRules}
+      onBack={() => { setIsUpsellModalOpen(false); setIsOpsModalOpen(true); }}
       onAcceptUpsell={(product: any) => {
         if ((pos as any).addProduct) {
           (pos as any).addProduct(product);
+        }
+      }}
+    />
+    <PosRestaurantOperationsModal
+      open={isOpsModalOpen}
+      onClose={() => setIsOpsModalOpen(false)}
+      isManager={isManager}
+      count86={count86}
+      cartLength={pos.cart.length}
+      isPhoneOrdersActive={Boolean(isPhoneOrdersActive)}
+      isRestaurantActive={Boolean(isRestaurantActive)}
+      isStorefrontActive={Boolean(isStorefrontActive)}
+      onOpenCombo={onOpenComboModal || (() => setIsComboMealModalOpen(true))}
+      onOpenCupLabels={onPrintCupLabels}
+      onOpenStampCard={() => setIsStampCardOpen(true)}
+      onOpenDriveThru={() => setIsDriveThruOpen(true)}
+      onOpenUpsell={async () => {
+        try {
+          const firstProductId = Number(pos.cart[0]?.productId) || undefined;
+          const rules = await restaurantAdvancedFnbApi.getUpsellRecommendations(firstProductId);
+          setUpsellRules(rules || []);
+          setIsUpsellModalOpen(true);
+        } catch {
+          setIsUpsellModalOpen(true);
+        }
+      }}
+      onOpen86={() => setIs86ModalOpen(true)}
+      onOpenManagerComp={onOpenManagerComp || (() => setIsManagerCompOpen(true))}
+      onOpenPlateRadar={() => setIsPlateRadarOpen(true)}
+      onOpenPrepSheet={() => setIsPrepSheetOpen(true)}
+      onOpenFoodWaste={() => setIsFoodWasteOpen(true)}
+      onOpenTipPool={() => setIsTipPoolOpen(true)}
+      onOpenAggregators={() => setIsAggregatorsOpen(true)}
+      onOpenDriverDispatch={() => setIsDriverDispatchOpen(true)}
+    />
+    <PosDisplaysModal
+      open={isDisplaysModalOpen}
+      onClose={() => setIsDisplaysModalOpen(false)}
+      isRestaurantActive={Boolean(isRestaurantActive)}
+    />
+    <PosManagerCompModal
+      open={isManagerCompOpen}
+      onClose={() => setIsManagerCompOpen(false)}
+      onBack={() => {
+        setIsManagerCompOpen(false);
+        setIsOpsModalOpen(true);
+      }}
+      currentCartTotal={Number(pos.totals?.total || 0)}
+      currentTableNumber={pos.tableNumber || undefined}
+      cartSummary={pos.cart.map((i) => `${i.qty}× ${i.name}`).join('، ')}
+      onApplyComp={async (comp) => {
+        pos.setDiscount(comp.amount);
+        pos.setNote(`ضيافة إدارة [${comp.compType}] - معتمد: ${comp.managerName}${comp.notes ? ` - ${comp.notes}` : ''}`);
+        setIsManagerCompOpen(false);
+      }}
+    />
+    <PosComboMealModal
+      open={isComboMealModalOpen}
+      onClose={() => setIsComboMealModalOpen(false)}
+      onBack={() => {
+        setIsComboMealModalOpen(false);
+        setIsOpsModalOpen(true);
+      }}
+      products={(pos as any).productsQuery?.data || []}
+      onAddComboToCart={(combo) => {
+        const product = ((pos as any).productsQuery?.data || []).find((p: any) => p.id === combo.productId);
+        if (product) {
+          pos.handleAddProduct(product);
+          pos.setCart((prevCart: any[]) => {
+            const lastIdx = prevCart.length - 1;
+            if (lastIdx < 0) return prevCart;
+            const updated = [...prevCart];
+            updated[lastIdx] = {
+              ...updated[lastIdx],
+              name: combo.productName,
+              notes: combo.notes,
+              modifiers: combo.modifiers,
+            };
+            return updated;
+          });
+          toast.success(`تمت إضافة ${combo.productName} إلى السلة بنجاح`);
         }
       }}
     />

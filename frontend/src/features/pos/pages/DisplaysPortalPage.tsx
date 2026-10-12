@@ -1,9 +1,20 @@
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { PageHeader } from "@/shared/components/page-header";
-import { useAppToolbar } from "@/stores/toolbar-store";
-import { useSettingsQuery } from "@/shared/hooks/use-catalog-queries";
-import { FeatureGate } from "@/shared/components/feature-gate";
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/shared/components/page-header';
+import { useAppToolbar } from '@/stores/toolbar-store';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { FeatureGate } from '@/shared/components/feature-gate';
+import {
+  MonitorIcon,
+  LaptopIcon,
+  UtensilsIcon,
+  CheckCircleIcon,
+  UsersIcon,
+  Maximize2Icon,
+  ArrowRightIcon,
+  CheckShieldIcon,
+  SlidersIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface DisplayCard {
   key: string;
@@ -12,8 +23,7 @@ interface DisplayCard {
   badge: string;
   path: string;
   windowName: string;
-  iconPath: string;
-  color: string;
+  icon: React.ReactNode;
 }
 
 export function DisplaysPortalPage() {
@@ -25,325 +35,384 @@ export function DisplaysPortalPage() {
   const breadcrumbs = useMemo(
     () => [
       {
-        label: isRestaurant ? "المطاعم والكافيهات" : "المبيعات",
-        to: isRestaurant ? undefined : "/sales",
+        label: isRestaurant ? 'المطاعم والكافيهات' : 'المبيعات',
+        to: isRestaurant ? undefined : '/sales',
       },
-      { label: "شاشات العرض" },
+      { label: 'شاشات العرض والتفاعل' },
     ],
     [isRestaurant]
   );
 
   useAppToolbar(breadcrumbs);
 
-  // Order in RTL:
-  // 1. Right: شاشة العروض والأسعار
-  // 2. Center: شاشة العميل
-  // 3. Far Left: شاشة المطبخ (KDS)
   const cards: DisplayCard[] = [
     {
-      key: "signage",
-      title: "شاشة العروض والأسعار",
-      description: "عرض ترويجي حي على شاشات صالة العرض والمعرض، يعرض المنتجات والتخفيضات الكبرى دورياً مع رمز QR للطلب.",
-      badge: "صالة العرض والمبيعات",
-      path: "/signage",
-      windowName: "DigitalSignageWindow",
-      iconPath: "M2 3h20v14H2V3zm6 18h8m-4-4v4",
-      color: "#170e5e",
+      key: 'signage',
+      title: 'شاشة العروض والأسعار (Digital Signage)',
+      description: 'بث ترويجي حي على شاشات التلفزيون والمعرض، يعرض المنتجات والتخفيضات الكبرى دورياً مع رمز QR للتسوق من الهاتف.',
+      badge: 'صالة العرض والتلفزيون',
+      path: '/signage',
+      windowName: 'DigitalSignageWindow',
+      icon: <LaptopIcon size={26} color="#170e5e" />,
     },
     {
-      key: "customer-display",
-      title: "شاشة العميل",
-      description: "شاشة تفاعلية مواجهة للعميل عند نقطة البيع (POS)، تعرض الأصناف أثناء المسح والأسعار والإجمالي ورمز الدفع الإلكتروني.",
-      badge: "نقطة البيع والكاشير",
-      path: "/pos/customer-display",
-      windowName: "CustomerDisplayWindow",
-      iconPath: "M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM12 17v4M8 21h8",
-      color: "#0d7a5f",
+      key: 'customer-display',
+      title: 'شاشة العميل (Customer Facing Display)',
+      description: 'شاشة تفاعلية مواجهة للعميل عند نقطة البيع (POS)، تعرض الأصناف أثناء المسح والأسعار والإجمالي ورمز الدفع الإلكتروني.',
+      badge: 'نقطة البيع والكاشير',
+      path: '/pos/customer-display',
+      windowName: 'CustomerDisplayWindow',
+      icon: <MonitorIcon size={26} color="#170e5e" />,
     },
     {
-      key: "kds",
-      title: "شاشة المطبخ (KDS)",
-      description: "شاشة مخصصة لطاقم المطبخ ومحطات التحضير، تستقبل طلبات الكاشير والصالة والتوصيل لحظياً مع تنبيهات صوتية وتنظيم الطلبات.",
-      badge: "محطة التحضير والطلبات",
-      path: "/kds",
-      windowName: "KitchenDisplayWindow",
-      iconPath: "M18 2v8a3 3 0 0 1-3 3h-1v9h-2v-9H7a3 3 0 0 1-3-3V2h2v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2h2z",
-      color: "#c2410c",
+      key: 'kds',
+      title: 'شاشة المطبخ (Kitchen Display - KDS)',
+      description: 'شاشة مخصصة لطاقم المطبخ ومحطات التحضير، تستقبل طلبات الكاشير والصالة والتوصيل لحظياً مع تنبيهات صوتية وتنظيم المحطات.',
+      badge: 'المطبخ ومحطات التحضير',
+      path: '/kds',
+      windowName: 'KitchenDisplayWindow',
+      icon: <UtensilsIcon size={26} color="#170e5e" />,
     },
     {
-      key: "order-status-board",
-      title: "شاشة إعلان جاهزية الطلبات (Pickup Board)",
-      description: "شاشة صالة الانتظار والاستلام، تعرض الطلبات قيد التحضير والطلبات الجاهزة للاستلام للعملاء وسائقي التوصيل مع تنبيه صوتي.",
-      badge: "صالة الانتظار والتوصيل",
-      path: "/pos/order-status",
-      windowName: "OrderStatusBoardWindow",
-      iconPath: "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
-      color: "#166534",
+      key: 'order-status-board',
+      title: 'شاشة إعلان جاهزية الطلبات (Pickup Board)',
+      description: 'شاشة صالة الانتظار والاستلام، تعرض الطلبات قيد التحضير والطلبات الجاهزة للاستلام للعملاء وسائقي التوصيل مع نداء صوتي.',
+      badge: 'صالة الانتظار والتوصيل',
+      path: '/pos/order-status',
+      windowName: 'OrderStatusBoardWindow',
+      icon: <CheckCircleIcon size={26} color="#170e5e" />,
     },
     {
-      key: "waiter",
-      title: "محطة الويتر وكابتن الصالة (Captain Station)",
-      description: "واجهة سريعة وخفيفة مخصصة لهواتف وأجهزة التابلت المحمولة باليد لطاقم الخدمة لأخذ الطلبات من الطاولات وإرسالها فورياً للمطبخ.",
-      badge: "طاقم الصالة والخدمة",
-      path: "/pos/waiter",
-      windowName: "WaiterStationWindow",
-      iconPath: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-      color: "#4338ca",
+      key: 'waiter',
+      title: 'محطة الويتر وكابتن الصالة (Captain Station)',
+      description: 'واجهة سريعة وخفيفة مخصصة لهواتف وأجهزة التابلت المحمولة باليد لطاقم الخدمة لأخذ الطلبات من الطاولات وإرسالها فورياً للمطبخ.',
+      badge: 'طاقم الصالة والخدمة',
+      path: '/pos/waiter',
+      windowName: 'WaiterStationWindow',
+      icon: <UsersIcon size={26} color="#170e5e" />,
     },
   ];
 
   const handleOpenNewWindow = (path: string, windowName: string) => {
-    window.open(path, windowName, "menubar=no,toolbar=no,location=no,status=no,resizable=yes");
+    window.open(path, windowName, 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
   };
 
   return (
     <FeatureGate feature="restaurant" featureName="شاشات العرض والتفاعل">
       <div className="page-stack page-shell displays-portal-page" dir="rtl">
-      <main
-        className="document-prototype-column"
-        style={{
-          paddingBottom: "80px",
-          maxWidth: "1280px",
-          margin: "0 auto",
-          width: "100%",
-        }}
-      >
-        <PageHeader
-          title="شاشات العرض والتفاعل"
-          description="مركز تشغيل شاشات العرض المباشرة التفاعلية لنقاط البيع وصالة العرض ومحطات التحضير"
-          badge={<span className="nav-pill">3 شاشات متصلة</span>}
-        />
-
-        {/* Cards Grid Centered */}
-        <div
+        <main
+          className="document-prototype-column"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "24px",
-            marginTop: "24px",
-            justifyContent: "center",
+            paddingBottom: '80px',
+            maxWidth: '1280px',
+            margin: '0 auto',
+            width: '100%',
           }}
         >
-          {cards.map((card) => (
+          <PageHeader
+            title="شاشات العرض والتفاعل"
+            description="مركز تشغيل شاشات العرض المباشرة التفاعلية لنقاط البيع وصالة العرض ومحطات التحضير والمطبخ"
+            badge={<span className="nav-pill">{cards.length} شاشات مفعلة</span>}
+          />
+
+          {/* KPI & Live Infrastructure Strip */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '12px',
+              marginTop: '16px',
+            }}
+          >
             <div
-              key={card.key}
               style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: "16px",
-                padding: "28px 24px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: "20px",
-                boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 28px rgba(15, 23, 42, 0.09)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.borderColor = card.color;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(15, 23, 42, 0.04)";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#e2e8f0";
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
               }}
             >
-              {/* Top Meta: Icon + Badge */}
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "56px",
-                      height: "56px",
-                      borderRadius: "14px",
-                      background: `${card.color}14`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke={card.color}
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d={card.iconPath} />
-                    </svg>
-                  </div>
-
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      backgroundColor: `${card.color}10`,
-                      color: card.color,
-                      border: `1px solid ${card.color}30`,
-                      padding: "4px 10px",
-                      borderRadius: "20px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "6px",
-                        height: "6px",
-                        borderRadius: "50%",
-                        backgroundColor: card.color,
-                        display: "inline-block",
-                      }}
-                    />
-                    <span>{card.badge}</span>
-                  </span>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي محطات العرض</div>
+                <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
+                  {cards.length} شاشات تفاعلية
                 </div>
-
-                {/* Title */}
-                <h3
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: "var(--font-section-title, 1.05rem)",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    letterSpacing: "-0.2px",
-                  }}
-                >
-                  {card.title}
-                </h3>
-
-                {/* Description */}
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "var(--font-subtitle, 0.8125rem)",
-                    color: "#64748b",
-                    lineHeight: 1.65,
-                  }}
-                >
-                  {card.description}
-                </p>
               </div>
-
-              {/* Action Buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  paddingTop: "14px",
-                  borderTop: "1px solid #f1f5f9",
-                }}
-              >
-                {/* Primary Button: Open Fullscreen / In-app */}
-                <button
-                  type="button"
-                  onClick={() => navigate(card.path)}
-                  style={{
-                    width: "100%",
-                    background: card.color,
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "10px",
-                    padding: "11px 16px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    fontWeight: 700,
-                    fontSize: "0.8125rem",
-                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.08)",
-                    transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.filter = "brightness(1.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.filter = "none";
-                  }}
-                >
-                  <span>تشغيل الشاشة (ملء الشاشة)</span>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 12H5M5 12l7-7M5 12l7 7" />
-                  </svg>
-                </button>
-
-                {/* Secondary Button: Open in separate window (Dual monitor / HDMI) */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenNewWindow(card.path, card.windowName)}
-                  style={{
-                    width: "100%",
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    color: "#334155",
-                    borderRadius: "10px",
-                    padding: "9px 14px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    fontWeight: 600,
-                    fontSize: "0.78rem",
-                    transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
-                    e.currentTarget.style.borderColor = "#94a3b8";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#ffffff";
-                    e.currentTarget.style.borderColor = "#cbd5e1";
-                  }}
-                  title="فتح الشاشة في نافذة منفصلة لعرضها على شاشة ثانية HDMI"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  <span>فتح في نافذة مستقلة (شاشة ثانية)</span>
-                </button>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MonitorIcon size={18} color="#170e5e" />
               </div>
             </div>
-          ))}
-        </div>
-      </main>
+
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>نمط التشغيل المدعوم</div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                  Dual-Screen / HDMI / تابلت
+                </div>
+              </div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <SlidersIcon size={18} color="#475569" />
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>زمن المزامنة اللحظية</div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#047857', marginTop: '2px' }}>
+                  0ms لحظي (Local Channel)
+                </div>
+              </div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckShieldIcon size={18} color="#047857" />
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>جاهزية المنظومة</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>متصل وجاهز للبث</span>
+                </div>
+              </div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircleIcon size={18} color="#10b981" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards Grid Centered */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+              gap: '20px',
+              marginTop: '20px',
+            }}
+          >
+            {cards.map((card) => (
+              <div
+                key={card.key}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '24px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  boxSizing: 'border-box',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(23, 14, 94, 0.07)';
+                  e.currentTarget.style.borderColor = '#170e5e';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(15, 23, 42, 0.03)';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                }}
+              >
+                {/* Top Meta: Icon + Badge */}
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '12px',
+                        background: '#eef2ff',
+                        border: '1px solid #c7d2fe',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {card.icon}
+                    </div>
+
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: '#f8fafc',
+                        color: '#475569',
+                        border: '1px solid #e2e8f0',
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: '#10b981',
+                          display: 'inline-block',
+                        }}
+                      />
+                      <span>{card.badge}</span>
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <h3
+                    style={{
+                      margin: '0 0 8px',
+                      fontSize: '15px',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      letterSpacing: '-0.2px',
+                    }}
+                  >
+                    {card.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '12.5px',
+                      color: '#64748b',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {card.description}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    paddingTop: '14px',
+                    borderTop: '1px solid #f1f5f9',
+                  }}
+                >
+                  {/* Primary Button: Open Fullscreen / In-app */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(card.path)}
+                    style={{
+                      width: '100%',
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '10px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontWeight: 800,
+                      fontSize: '12.5px',
+                      boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#10003b';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#170e5e';
+                    }}
+                  >
+                    <Maximize2Icon size={14} color="#ffffff" />
+                    <span>تشغيل الشاشة (ملء الشاشة)</span>
+                    <ArrowRightIcon size={14} color="#ffffff" />
+                  </button>
+
+                  {/* Secondary Button: Open in separate window (Dual monitor / HDMI) */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNewWindow(card.path, card.windowName)}
+                    style={{
+                      width: '100%',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#334155',
+                      borderRadius: '8px',
+                      padding: '9px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      transition: 'background 0.15s ease, border-color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#170e5e';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                    }}
+                    title="فتح الشاشة في نافذة منفصلة لعرضها على شاشة ثانية HDMI"
+                  >
+                    <span>فتح في نافذة مستقلة (شاشة ثانية)</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     </FeatureGate>
   );
 }
+export default DisplaysPortalPage;

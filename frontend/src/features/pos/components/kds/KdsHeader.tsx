@@ -48,11 +48,11 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
             width: 42,
             height: 42,
             borderRadius: 12,
-            background: 'linear-gradient(135deg, #170e5e 0%, #2563eb 100%)',
+            background: '#170e5e',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(23, 14, 94, 0.2)',
+            boxShadow: '0 4px 12px rgba(23, 14, 94, 0.25)',
           }}
         >
           <UtensilsIcon size={20} color="#ffffff" strokeWidth={2} />

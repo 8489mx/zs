@@ -38,67 +38,104 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
             gap: '8px',
           }}
         >
-          <FlameIcon size={18} color="#ea580c" />
+          <TagIcon size={18} color="#170e5e" />
           <span>عروض إضافية بالمعرض</span>
           <span style={{ fontSize: '12px', color: '#64748b' }}>({promoItems.length} عرض متوفر)</span>
         </div>
 
-        {promoItems
-          .filter((_, idx) => idx !== currentIndex)
-          .slice(0, 2)
-          .map((item) => (
+        {promoItems.filter((_, idx) => idx !== currentIndex).length === 0 ? (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+            }}
+          >
             <div
-              key={item.id}
-              onClick={() => {
-                const foundIdx = promoItems.findIndex((p) => p.id === item.id);
-                if (foundIdx !== -1) onSelectItem(foundIdx);
-              }}
               style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '14px',
-                padding: '14px 16px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: '#eef2ff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+                justifyContent: 'center',
+                border: '1px solid #c7d2fe',
+                flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '10px',
-                    backgroundColor: '#f1f5f9',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <TagIcon size={18} color="#170e5e" />
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    {item.name}
-                  </h4>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>{item.categoryName}</span>
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '12px', color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {item.originalPrice.toFixed(2)} {currencyCode}
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
-                  {item.promoPrice.toFixed(2)} {currencyCode}
-                </div>
-              </div>
+              <AwardIcon size={20} color="#170e5e" />
             </div>
-          ))}
+            <div>
+              <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                صفقات وتخفيضات المعرض
+              </h4>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>تصفح منتجاتنا المميزة بأسعار تنافسية وضمان معتمد</span>
+            </div>
+          </div>
+        ) : (
+          promoItems
+            .filter((_, idx) => idx !== currentIndex)
+            .slice(0, 2)
+            .map((item) => (
+              <div
+                key={item.id}
+                onClick={() => {
+                  const foundIdx = promoItems.findIndex((p) => p.id === item.id);
+                  if (foundIdx !== -1) onSelectItem(foundIdx);
+                }}
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <TagIcon size={18} color="#170e5e" />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                      {item.name}
+                    </h4>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>{item.categoryName}</span>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                    {item.originalPrice.toFixed(2)} {currencyCode}
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
+                    {item.promoPrice.toFixed(2)} {currencyCode}
+                  </div>
+                </div>
+              </div>
+            ))
+        )}
       </div>
 
       {/* Showroom Perks Box */}

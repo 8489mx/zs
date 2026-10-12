@@ -99,9 +99,10 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
                   fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  border: `1px solid ${isActive ? '#047857' : '#cbd5e1'}`,
-                  backgroundColor: isActive ? '#047857' : '#ffffff',
+                  border: `1px solid ${isActive ? '#170e5e' : '#cbd5e1'}`,
+                  backgroundColor: isActive ? '#170e5e' : '#ffffff',
                   color: isActive ? '#ffffff' : '#334155',
+                  boxShadow: isActive ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
                 }}
               >
                 {c.label}

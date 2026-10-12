@@ -40,7 +40,14 @@
   flex: 0 1 auto;
   min-width: 0;
   justify-content: flex-start;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.pos-page-header,
+.pos-page-header .page-header-row,
+.pos-page-header .page-header-actions,
+.page-header.pos-page-header .page-header-actions {
+  overflow: visible !important;
 }
 
 .page-header .page-header-actions .actions,
@@ -50,6 +57,7 @@
   gap: 8px;
   flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .page-header .page-header-actions .btn,
@@ -59,6 +67,13 @@
   border-radius: 8px;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.page-header .page-header-actions .btn:hover,
+.page-header .page-header-actions .button:hover,
+.pos-page-header .btn:hover,
+.pos-page-header .button:hover {
+  transform: none !important;
 }
 
 .page-header .nav-pill,
@@ -2100,8 +2115,8 @@
 
 .pos-workspace .pos-cart-qty-btn:hover,
 .pos-workspace .pos-cart-remove-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  transform: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
 .pos-workspace .pos-cart-qty-btn:focus-visible,

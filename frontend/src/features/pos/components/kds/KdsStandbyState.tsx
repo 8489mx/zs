@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckIcon, FlameIcon, UtensilsIcon } from '@/shared/components/icons/AppIcons';
+import { CheckShieldIcon, UtensilsIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export const KdsStandbyState: React.FC = () => {
   return (
@@ -28,15 +28,15 @@ export const KdsStandbyState: React.FC = () => {
             width: 56,
             height: 56,
             borderRadius: '50%',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
+            background: '#eef2ff',
+            border: '1px solid #c7d2fe',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
           }}
         >
-          <CheckIcon size={28} color="#16a34a" strokeWidth={2.5} />
+          <CheckShieldIcon size={28} color="#170e5e" />
         </div>
 
         <div
@@ -44,26 +44,26 @@ export const KdsStandbyState: React.FC = () => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: '#f0fdf4',
-            color: '#166534',
-            border: '1px solid #bbf7d0',
+            backgroundColor: '#f8fafc',
+            color: '#0f172a',
+            border: '1px solid #e2e8f0',
             fontSize: '12px',
             fontWeight: 800,
-            padding: '4px 12px',
+            padding: '4px 14px',
             borderRadius: '20px',
             marginBottom: '12px',
           }}
         >
           <span
             style={{
-              width: '6px',
-              height: '6px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
-              backgroundColor: '#16a34a',
+              backgroundColor: '#10b981',
               display: 'inline-block',
             }}
           />
-          <span>جميع المحطات متصلة وبوضع الجاهزية التامة</span>
+          <span>جميع محطات المطبخ متصلة وبوضع الجاهزية التامة</span>
         </div>
 
         <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
@@ -85,10 +85,10 @@ export const KdsStandbyState: React.FC = () => {
       {/* Live Stations Monitor Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
         {[
-          { name: 'المطبخ الساخن', status: 'جاهز ونشط', icon: <FlameIcon size={16} color="#16a34a" /> },
-          { name: 'المشويات والشواية', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#16a34a" /> },
-          { name: 'المشروبات والبار', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#16a34a" /> },
-          { name: 'المخبوزات والحلويات', status: 'جاهز ونشط', icon: <CheckIcon size={16} color="#16a34a" strokeWidth={2.5} /> },
+          { name: 'المطبخ الساخن', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: 'المشويات والشواية', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: 'المشروبات والبار', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: 'المخبوزات والحلويات', status: 'جاهز ونشط', icon: <CheckIcon size={16} color="#170e5e" strokeWidth={2.5} /> },
         ].map((st, idx) => (
           <div
             key={idx}
@@ -105,7 +105,7 @@ export const KdsStandbyState: React.FC = () => {
           >
             <div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{st.name}</div>
-              <div style={{ fontSize: '11px', color: '#166534', fontWeight: 700, marginTop: '2px' }}>
+              <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginTop: '2px' }}>
                 {st.status}
               </div>
             </div>
@@ -114,10 +114,11 @@ export const KdsStandbyState: React.FC = () => {
                 width: 28,
                 height: 28,
                 borderRadius: 8,
-                backgroundColor: '#f0fdf4',
+                backgroundColor: '#f1f5f9',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                border: '1px solid #e2e8f0',
               }}
             >
               {st.icon}
@@ -128,3 +129,4 @@ export const KdsStandbyState: React.FC = () => {
     </div>
   );
 };
+

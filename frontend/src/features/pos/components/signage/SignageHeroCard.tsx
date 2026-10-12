@@ -36,30 +36,30 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
-                backgroundColor: '#dc2626',
+                backgroundColor: '#170e5e',
                 color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: 900,
-                padding: '6px 16px',
-                borderRadius: '30px',
-                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
+                fontSize: '13px',
+                fontWeight: 800,
+                padding: '5px 14px',
+                borderRadius: '20px',
+                boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
             >
-              <FlameIcon size={14} color="#ffffff" />
+              <TagIcon size={14} color="#ffffff" />
               <span>{activeItem.badge}</span>
             </span>
 
             <span
               style={{
                 backgroundColor: '#f1f5f9',
-                color: '#170e5e',
-                border: '1px solid #cbd5e1',
+                color: '#475569',
+                border: '1px solid #e2e8f0',
                 fontSize: '13px',
-                fontWeight: 800,
-                padding: '6px 14px',
+                fontWeight: 700,
+                padding: '5px 14px',
                 borderRadius: '20px',
               }}
             >
@@ -71,10 +71,10 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
             {activeItem.discountPercent > 0 && (
               <div
                 style={{
-                  backgroundColor: '#f0fdf4',
-                  color: '#166534',
-                  border: '1px solid #bbf7d0',
-                  fontSize: '16px',
+                  backgroundColor: '#eef2ff',
+                  color: '#170e5e',
+                  border: '1px solid #c7d2fe',
+                  fontSize: '15px',
                   fontWeight: 900,
                   padding: '5px 14px',
                   borderRadius: '12px',
@@ -119,8 +119,8 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
               width: '120px',
               height: '120px',
               borderRadius: '18px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)',
-              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -172,17 +172,17 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                 style={{
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: '#eff6ff',
-                  color: '#1d4ed8',
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
                   padding: '3px 10px',
                   borderRadius: '6px',
-                  border: '1px solid #bfdbfe',
+                  border: '1px solid #e2e8f0',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
-                <AwardIcon size={12} color="#1d4ed8" />
+                <AwardIcon size={12} color="#170e5e" />
                 <span>منتج أصلي ومضمون 100%</span>
               </span>
 
@@ -190,17 +190,17 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                 style={{
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: '#f0fdf4',
-                  color: '#166534',
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
                   padding: '3px 10px',
                   borderRadius: '6px',
-                  border: '1px solid #bbf7d0',
+                  border: '1px solid #e2e8f0',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
-                <TruckIcon size={12} color="#166534" />
+                <TruckIcon size={12} color="#170e5e" />
                 <span>تسليم فوري من صالة العرض</span>
               </span>
             </div>
@@ -241,10 +241,10 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
             style={{
               fontSize: '13px',
               fontWeight: 800,
-              color: '#166534',
-              backgroundColor: '#dcfce7',
-              border: '1px solid #bbf7d0',
-              padding: '3px 12px',
+              color: '#170e5e',
+              backgroundColor: '#eef2ff',
+              border: '1px solid #c7d2fe',
+              padding: '4px 14px',
               borderRadius: '20px',
             }}
           >

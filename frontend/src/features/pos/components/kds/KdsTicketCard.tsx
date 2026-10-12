@@ -7,6 +7,7 @@ interface KdsTicketCardProps {
   onAdvanceStatus: (ticketId: number) => void;
   isAdvancing: boolean;
   onItemStatusChange: (ticketId: number, itemId: number, status: KdsItemStatus) => void;
+  isExpoMode?: boolean;
 }
 
 const formatElapsed = (seconds: number) => {
@@ -21,7 +22,7 @@ const getUrgencyBadge = (level: 'normal' | 'warning' | 'critical', elapsedMins: 
       bg: '#fef2f2',
       border: '#fecaca',
       text: '#991b1b',
-      topColor: '#ef4444',
+      topColor: '#dc2626',
       indicator: 'متأخر',
       label: `${elapsedMins} دقيقة`,
     };
@@ -31,15 +32,15 @@ const getUrgencyBadge = (level: 'normal' | 'warning' | 'critical', elapsedMins: 
       bg: '#fffbeb',
       border: '#fde68a',
       text: '#92400e',
-      topColor: '#f59e0b',
+      topColor: '#d97706',
       indicator: 'اقترب الحد',
       label: `${elapsedMins} دقيقة`,
     };
   }
   return {
-    bg: '#f0fdf4',
-    border: '#bbf7d0',
-    text: '#166534',
+    bg: '#f8fafc',
+    border: '#e2e8f0',
+    text: '#0f172a',
     topColor: '#170e5e',
     indicator: 'في الموعد',
     label: `${elapsedMins} دقيقة`,
@@ -56,32 +57,32 @@ const getOrderTypeBadge = (type: string, tableNumber?: string, aggregatorChannel
       : aggregatorChannel.toUpperCase();
     return {
       label: `توصيل (${chName})`,
-      bg: '#fdf2f8',
-      border: '#fbcfe8',
-      text: '#9d174d',
+      bg: '#f8fafc',
+      border: '#cbd5e1',
+      text: '#0f172a',
     };
   }
   if (type === 'dine_in') {
     return {
       label: tableNumber ? `طاولة ${tableNumber}` : 'صالة',
-      bg: '#eff6ff',
-      border: '#bfdbfe',
-      text: '#1e40af',
+      bg: '#eef2ff',
+      border: '#c7d2fe',
+      text: '#170e5e',
     };
   }
   if (type === 'takeaway') {
     return {
       label: 'سفري',
-      bg: '#fefce8',
-      border: '#fef08a',
-      text: '#854d0e',
+      bg: '#f1f5f9',
+      border: '#e2e8f0',
+      text: '#334155',
     };
   }
   return {
     label: 'دليفري',
-    bg: '#fff7ed',
-    border: '#fed7aa',
-    text: '#9a3412',
+    bg: '#f1f5f9',
+    border: '#e2e8f0',
+    text: '#334155',
   };
 };
 
@@ -90,6 +91,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
   onAdvanceStatus,
   isAdvancing,
   onItemStatusChange,
+  isExpoMode = false,
 }) => {
   const urgency = getUrgencyBadge(ticket.urgencyLevel, ticket.elapsedMinutes);
   const orderType = getOrderTypeBadge(ticket.orderType, ticket.tableNumber, ticket.aggregatorChannel);
@@ -436,7 +438,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
           borderTop: '1px solid #e2e8f0',
         }}
       >
-        {ticket.status === 'pending' && (
+        {isExpoMode ? (
           <button
             type="button"
             onClick={() => onAdvanceStatus(ticket.id)}
@@ -445,7 +447,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
               width: '100%',
               padding: '10px',
               borderRadius: '8px',
-              backgroundColor: '#170e5e',
+              backgroundColor: ticket.items.every((i) => i.status === 'ready') ? '#16a34a' : '#d97706',
               color: '#ffffff',
               border: 'none',
               fontSize: '13px',
@@ -455,66 +457,110 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+              boxShadow: ticket.items.every((i) => i.status === 'ready')
+                ? '0 2px 8px rgba(22, 163, 74, 0.3)'
+                : '0 2px 6px rgba(217, 119, 6, 0.2)',
               transition: 'all 0.15s ease',
             }}
           >
-            <span>بدء التحضير</span>
+            {ticket.items.every((i) => i.status === 'ready') ? (
+              <>
+                <CheckIcon size={16} color="#ffffff" />
+                <span>تجميع وتسليم الطلب كاملاً (Expo Release)</span>
+              </>
+            ) : (
+              <>
+                <ClockIcon size={15} color="#ffffff" />
+                <span>
+                  بانتظار اكتمال المحطات ({ticket.items.filter((i) => i.status === 'ready').length} من{' '}
+                  {ticket.items.length} جاهز)
+                </span>
+              </>
+            )}
           </button>
-        )}
+        ) : (
+          <>
+            {ticket.status === 'pending' && (
+              <button
+                type="button"
+                onClick={() => onAdvanceStatus(ticket.id)}
+                disabled={isAdvancing}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>بدء التحضير</span>
+              </button>
+            )}
 
-        {ticket.status === 'cooking' && (
-          <button
-            type="button"
-            onClick={() => onAdvanceStatus(ticket.id)}
-            disabled={isAdvancing}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '8px',
-              backgroundColor: '#16a34a',
-              color: '#ffffff',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.2)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>جاهز للاستلام</span>
-          </button>
-        )}
+            {ticket.status === 'cooking' && (
+              <button
+                type="button"
+                onClick={() => onAdvanceStatus(ticket.id)}
+                disabled={isAdvancing}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#16a34a',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 6px rgba(22, 163, 74, 0.2)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>جاهز للاستلام</span>
+              </button>
+            )}
 
-        {ticket.status === 'ready' && (
-          <button
-            type="button"
-            onClick={() => onAdvanceStatus(ticket.id)}
-            disabled={isAdvancing}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '8px',
-              backgroundColor: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>تم التسليم للعميل</span>
-          </button>
+            {ticket.status === 'ready' && (
+              <button
+                type="button"
+                onClick={() => onAdvanceStatus(ticket.id)}
+                disabled={isAdvancing}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>تم التسليم للعميل</span>
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

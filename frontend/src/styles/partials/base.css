@@ -250,9 +250,9 @@ textarea { min-height: 88px; resize: vertical; }
   font-weight: 700;
   font-size: 13px;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+  transition: box-shadow 0.16s ease, opacity 0.16s ease, background 0.16s ease;
 }
-.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:hover:not(:disabled) { transform: none; }
 .btn:disabled { opacity: 0.65; cursor: not-allowed; }
 .btn-primary { background: var(--primary, #170c5c) !important; color: #fff !important; }
 .btn-primary:hover:not(:disabled) { background: var(--primary2, #10003b) !important; color: #fff !important; }
@@ -271,9 +271,9 @@ textarea { min-height: 88px; resize: vertical; }
   cursor: pointer;
   font-weight: 700;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+  transition: box-shadow 0.16s ease, opacity 0.16s ease, background 0.16s ease;
 }
-.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:hover:not(:disabled) { transform: none; }
 .button:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .secure-password-field {

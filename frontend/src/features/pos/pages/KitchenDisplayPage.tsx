@@ -241,6 +241,86 @@ export function KitchenDisplayPage() {
 
       {/* 4. Main Tickets Grid or Executive Standby State */}
       <main style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
+        {/* Expediter Pass Executive Strip */}
+        {selectedStation === 'expo' && (
+          <div
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              borderRadius: '12px',
+              padding: '12px 18px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 3px 8px rgba(23, 14, 94, 0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  background: '#ffffff',
+                  color: '#170e5e',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  padding: '3px 8px',
+                  borderRadius: '5px',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                EXPO PASS
+              </span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800 }}>
+                  محطة منسق التسليم والتجميع المركزي (Kitchen Expediter Pass)
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#cbd5e1' }}>
+                  مراقبة وتجميع كافة أطباق الوجبة عبر المحطات المتعددة (مشويات، ساخن، بار، حلويات) وتسليم الطلب مكتملاً
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div
+                style={{
+                  background: '#16a34a',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>مكتمل المحطات وجاهز للتسليم:</span>
+                <strong style={{ fontSize: '13px' }}>
+                  {tickets.filter((t) => t.items.length > 0 && t.items.every((i) => i.status === 'ready')).length}
+                </strong>
+              </div>
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>قيد التحضير بالمحطات:</span>
+                <strong style={{ fontSize: '13px' }}>
+                  {tickets.filter((t) => !t.items.every((i) => i.status === 'ready')).length}
+                </strong>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading && !tickets.length ? (
           <div
             style={{
@@ -277,6 +357,7 @@ export function KitchenDisplayPage() {
                 <KdsTicketCard
                   key={ticket.id}
                   ticket={ticket}
+                  isExpoMode={selectedStation === 'expo'}
                   onAdvanceStatus={(id) => advanceMutation.mutate(id)}
                   isAdvancing={advanceMutation.isPending}
                   onItemStatusChange={(tId, iId, status) =>

@@ -94,8 +94,8 @@ export function OrderStatusBoardPage() {
       style={{
         width: '100vw',
         height: '100vh',
-        background: '#0a0f1d',
-        color: '#f8fafc',
+        background: '#f8fafc',
+        color: '#0f172a',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -105,12 +105,13 @@ export function OrderStatusBoardPage() {
       {/* Top Header Bar */}
       <header
         style={{
-          background: '#0f172a',
-          borderBottom: '2px solid #1e293b',
-          padding: '12px 28px',
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '14px 28px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -118,11 +119,11 @@ export function OrderStatusBoardPage() {
             type="button"
             onClick={() => navigate('/displays')}
             style={{
-              background: '#1e293b',
-              border: '1px solid #334155',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
-              padding: '6px 12px',
-              color: '#94a3b8',
+              padding: '7px 14px',
+              color: '#334155',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -131,34 +132,37 @@ export function OrderStatusBoardPage() {
               fontWeight: 700,
             }}
           >
-            <ArrowRightIcon size={14} color="#94a3b8" />
+            <ArrowRightIcon size={14} color="#170e5e" />
             <span>بوابة الشاشات</span>
           </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              شاشة إعلان جاهزية الطلبات (Pickup & Order Status Board)
-            </h1>
-            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-              صالة الانتظار والاستلام • تحديث لحظي مباشر
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ width: '4px', height: '24px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                شاشة إعلان جاهزية الطلبات (Pickup & Order Status Board)
+              </h1>
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                صالة الانتظار والاستلام • نداء حي ولحظي مباشر
+              </p>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           {/* Live Clock Ticker */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              background: '#1e293b',
-              border: '1px solid #334155',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
               padding: '6px 16px',
             }}
           >
-            <ClockIcon size={16} color="#38bdf8" />
-            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '0.05em' }}>
+            <ClockIcon size={16} color="#170e5e" />
+            <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#170e5e', letterSpacing: '0.04em', fontFamily: 'monospace' }}>
               {currentTime}
             </span>
           </div>
@@ -168,17 +172,21 @@ export function OrderStatusBoardPage() {
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
             style={{
-              background: soundEnabled ? '#14532d' : '#1e293b',
-              border: soundEnabled ? '1px solid #22c55e' : '1px solid #334155',
+              background: soundEnabled ? '#eef2ff' : '#f8fafc',
+              border: soundEnabled ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
               borderRadius: '8px',
-              padding: '6px 14px',
-              color: soundEnabled ? '#86efac' : '#94a3b8',
+              padding: '7px 14px',
+              color: soundEnabled ? '#170e5e' : '#64748b',
               fontSize: '12px',
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            {soundEnabled ? 'التنبيه الصوتي: مفعل' : 'التنبيه الصوتي: صامت'}
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: soundEnabled ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
+            <span>{soundEnabled ? 'التنبيه الصوتي: مفعل' : 'التنبيه الصوتي: صامت'}</span>
           </button>
 
           {/* Fullscreen Button */}
@@ -187,13 +195,14 @@ export function OrderStatusBoardPage() {
             onClick={toggleFullscreen}
             style={{
               background: '#170e5e',
-              border: '1px solid #3b82f6',
+              border: 'none',
               borderRadius: '8px',
-              padding: '6px 16px',
+              padding: '7px 18px',
               color: '#ffffff',
               fontSize: '12px',
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
             }}
           >
             ملء الشاشة (TV Mode)
@@ -207,26 +216,27 @@ export function OrderStatusBoardPage() {
           flex: 1,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          padding: '20px 24px',
+          gap: '20px',
+          padding: '20px 28px',
           overflow: 'hidden',
         }}
       >
         {/* COLUMN 1: PREPARING (قيد التجهيز) */}
         <section
           style={{
-            background: '#0d1527',
-            border: '2px solid #1e293b',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: '16px',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
           }}
         >
           <div
             style={{
-              background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
-              borderBottom: '2px solid #334155',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
               padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
@@ -235,31 +245,32 @@ export function OrderStatusBoardPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#fef3c7' }}>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
                 قيد التجهيز (Preparing)
               </h2>
             </div>
             <span
               style={{
-                background: '#78350f',
-                color: '#fef3c7',
+                background: '#fef3c7',
+                color: '#92400e',
+                border: '1px solid #fde68a',
                 padding: '4px 12px',
                 borderRadius: '20px',
                 fontSize: '0.88rem',
                 fontWeight: 800,
               }}
             >
-              {preparingTickets.length} طلب
+              {preparingTickets.length} قيد التحضير
             </span>
           </div>
 
           <div
             style={{
               flex: 1,
-              padding: '16px',
+              padding: '18px',
               overflowY: 'auto',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
               gap: '14px',
               alignContent: 'start',
             }}
@@ -269,13 +280,20 @@ export function OrderStatusBoardPage() {
                 style={{
                   gridColumn: '1 / -1',
                   textAlign: 'center',
-                  padding: '60px 20px',
-                  color: '#475569',
-                  fontSize: '1.1rem',
+                  padding: '90px 20px',
+                  color: '#94a3b8',
+                  fontSize: '1.15rem',
                   fontWeight: 600,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
               >
-                لا توجد طلبات قيد التحضير حالياً.
+                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClockIcon size={24} color="#f59e0b" />
+                </div>
+                <span>لا توجد طلبات قيد التحضير حالياً.</span>
               </div>
             ) : (
               preparingTickets.map((t) => {
@@ -284,32 +302,33 @@ export function OrderStatusBoardPage() {
                   <div
                     key={t.id}
                     style={{
-                      background: '#131e36',
-                      border: '1px solid #334155',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
                       borderRadius: '12px',
-                      padding: '14px 12px',
+                      padding: '16px 12px',
                       textAlign: 'center',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '6px',
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
                     }}
                   >
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.04em' }}>
                       {orderNum}
                     </div>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       {t.tableNumber && (
-                        <span style={{ background: '#1e293b', color: '#94a3b8', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                           طاولة {t.tableNumber}
                         </span>
                       )}
                       {t.aggregatorChannel ? (
-                        <span style={{ background: '#78350f', color: '#fef3c7', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                        <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
                           {t.aggregatorChannel}
                         </span>
                       ) : (
-                        <span style={{ background: '#1e293b', color: '#94a3b8', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                           {t.orderType === 'dine_in' ? 'صالة' : t.orderType === 'takeaway' ? 'سفري' : 'توصيل'}
                         </span>
                       )}
@@ -324,18 +343,19 @@ export function OrderStatusBoardPage() {
         {/* COLUMN 2: READY FOR PICKUP (جاهز للاستلام) */}
         <section
           style={{
-            background: '#09211c',
-            border: '2px solid #166534',
+            background: '#ffffff',
+            border: '2px solid #10b981',
             borderRadius: '16px',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            boxShadow: '0 6px 24px rgba(16, 185, 129, 0.08)',
           }}
         >
           <div
             style={{
-              background: 'linear-gradient(90deg, #14532d 0%, #064e3b 100%)',
-              borderBottom: '2px solid #22c55e',
+              background: '#ecfdf5',
+              borderBottom: '2px solid #a7f3d0',
               padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
@@ -343,19 +363,20 @@ export function OrderStatusBoardPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#dcfce7' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#065f46' }}>
                 جاهز للاستلام (Ready for Pickup)
               </h2>
             </div>
             <span
               style={{
-                background: '#15803d',
+                background: '#047857',
                 color: '#ffffff',
-                padding: '4px 12px',
+                padding: '4px 14px',
                 borderRadius: '20px',
                 fontSize: '0.88rem',
                 fontWeight: 800,
+                border: '1px solid #059669',
               }}
             >
               {readyTickets.length} جاهز
@@ -365,10 +386,10 @@ export function OrderStatusBoardPage() {
           <div
             style={{
               flex: 1,
-              padding: '16px',
+              padding: '18px',
               overflowY: 'auto',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
               gap: '14px',
               alignContent: 'start',
             }}
@@ -378,13 +399,20 @@ export function OrderStatusBoardPage() {
                 style={{
                   gridColumn: '1 / -1',
                   textAlign: 'center',
-                  padding: '60px 20px',
-                  color: '#166534',
-                  fontSize: '1.1rem',
+                  padding: '90px 20px',
+                  color: '#94a3b8',
+                  fontSize: '1.15rem',
                   fontWeight: 600,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
               >
-                بانتظار تجهيز الطلبات من المطبخ...
+                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#10b981' }} />
+                </div>
+                <span>بانتظار خروج الوجبات والطلبات من المطبخ...</span>
               </div>
             ) : (
               readyTickets.map((t) => {
@@ -394,34 +422,34 @@ export function OrderStatusBoardPage() {
                   <div
                     key={t.id}
                     style={{
-                      background: isPulse ? '#14532d' : '#063f2e',
-                      border: isPulse ? '2px solid #4ade80' : '1px solid #16a34a',
+                      background: isPulse ? '#dcfce7' : '#f0fdf4',
+                      border: isPulse ? '2px solid #10b981' : '1.5px solid #a7f3d0',
                       borderRadius: '12px',
-                      padding: '14px 12px',
+                      padding: '16px 12px',
                       textAlign: 'center',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '6px',
-                      boxShadow: isPulse ? '0 0 20px rgba(74, 222, 128, 0.4)' : 'none',
+                      boxShadow: isPulse ? '0 0 24px rgba(16, 185, 129, 0.35)' : '0 2px 8px rgba(16, 185, 129, 0.08)',
                       transition: 'all 0.3s ease',
                     }}
                   >
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: '#4ade80', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '2.6rem', fontWeight: 900, color: '#047857', letterSpacing: '0.04em' }}>
                       {orderNum}
                     </div>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       {t.tableNumber && (
-                        <span style={{ background: '#14532d', color: '#bbf7d0', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        <span style={{ background: '#dcfce7', color: '#065f46', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                           طاولة {t.tableNumber}
                         </span>
                       )}
                       {t.aggregatorChannel ? (
-                        <span style={{ background: '#166534', color: '#ffffff', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                        <span style={{ background: '#047857', color: '#ffffff', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
                           {t.aggregatorChannel}
                         </span>
                       ) : (
-                        <span style={{ background: '#14532d', color: '#bbf7d0', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        <span style={{ background: '#dcfce7', color: '#065f46', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                           {t.orderType === 'dine_in' ? 'صالة' : t.orderType === 'takeaway' ? 'سفري' : 'توصيل'}
                         </span>
                       )}
@@ -437,14 +465,15 @@ export function OrderStatusBoardPage() {
       {/* Bottom Footer Info */}
       <footer
         style={{
-          background: '#090d16',
-          borderTop: '1px solid #1e293b',
-          padding: '8px 24px',
+          background: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          padding: '10px 28px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontSize: '11.5px',
+          fontSize: '12px',
           color: '#64748b',
+          fontWeight: 600,
         }}
       >
         <span>يرجى التوجه إلى كاونتر الاستلام فور ظهور رقم طلبك في قائمة «جاهز للاستلام».</span>

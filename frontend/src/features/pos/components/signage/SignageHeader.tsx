@@ -49,11 +49,11 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
               width: '44px',
               height: '44px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #170e5e 0%, #2563eb 100%)',
+              background: '#170e5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(23, 14, 94, 0.2)',
+              boxShadow: '0 4px 12px rgba(23, 14, 94, 0.25)',
             }}
           >
             <ShoppingCartIcon size={22} color="#ffffff" />
@@ -75,9 +75,9 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 style={{
                   fontSize: '11px',
                   fontWeight: 800,
-                  backgroundColor: '#f0fdf4',
-                  color: '#166534',
-                  border: '1px solid #bbf7d0',
+                  backgroundColor: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #e2e8f0',
                   padding: '2px 8px',
                   borderRadius: '20px',
                   display: 'flex',
@@ -90,7 +90,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    backgroundColor: '#16a34a',
+                    backgroundColor: '#10b981',
                     display: 'inline-block',
                   }}
                 />
