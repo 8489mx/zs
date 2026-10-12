@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { addPosItem, getProductPrice, isOfferHappyHourActive, repriceCartLine, syncPosCartStock, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import type { Product } from '@/types/domain';
 
@@ -160,30 +160,37 @@ describe('POS stock handling', () => {
   });
 
   it('respects happy hours and days of week scheduling in POS', () => {
-    const scheduledProduct: Product = {
-      ...product,
-      retailPrice: 100,
-      stock: 20,
-      offers: [{
-        id: 'hh-1',
-        type: 'percent',
-        value: 20,
-        happyHourStart: '14:00',
-        happyHourEnd: '18:00',
-        daysOfWeek: '1,2,3', // Monday, Tuesday, Wednesday
-        from: localIsoDate(),
-        to: null,
-      }],
-    };
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-14T15:00:00')); // Tuesday at 15:00
 
-    // Tuesday at 15:00 (inside window and valid day)
-    const cartValid = addPosItem([], scheduledProduct, { priceType: 'retail' });
-    // repricing with time
-    const repricedValid = repriceCartLine(cartValid[0], scheduledProduct, 1);
-    expect(repricedValid.offerName).toContain('20%');
+    try {
+      const scheduledProduct: Product = {
+        ...product,
+        retailPrice: 100,
+        stock: 20,
+        offers: [{
+          id: 'hh-1',
+          type: 'percent',
+          value: 20,
+          happyHourStart: '14:00',
+          happyHourEnd: '18:00',
+          daysOfWeek: '1,2,3', // Monday, Tuesday, Wednesday
+          from: '2026-04-01',
+          to: null,
+        }],
+      };
 
-    // Tuesday at 20:00 (outside window)
-    const outsideTime = new Date('2026-04-14T20:00:00');
-    expect(isOfferHappyHourActive(scheduledProduct.offers![0], outsideTime)).toBe(false);
+      // Tuesday at 15:00 (inside window and valid day)
+      const cartValid = addPosItem([], scheduledProduct, { priceType: 'retail' });
+      // repricing with time
+      const repricedValid = repriceCartLine(cartValid[0], scheduledProduct, 1);
+      expect(repricedValid.offerName).toContain('20%');
+
+      // Tuesday at 20:00 (outside window)
+      const outsideTime = new Date('2026-04-14T20:00:00');
+      expect(isOfferHappyHourActive(scheduledProduct.offers![0], outsideTime)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
