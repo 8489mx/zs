@@ -213,6 +213,9 @@ export class VanSalesController {
       deliveryProofPhoto?: string;
       packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
       clientTxId?: string;
+      cashDiscountAmount?: number;
+      supervisorOverridePin?: string;
+      supervisorOverrideReason?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
@@ -518,6 +521,33 @@ export class VanSalesController {
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.getCustomerPackagingBalance(customerId, driver.tenantId);
+  }
+
+  @Get('customers/:customerId/suggested-order')
+  async getCustomerSuggestedOrder(
+    @Headers('authorization') authHeader: string,
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getCustomerSuggestedOrder(driver.tenantId, driver.accountId, driver.repId, customerId);
+  }
+
+  @Get('customers/:customerId/last-prices')
+  async getCustomerLastSoldPrices(
+    @Headers('authorization') authHeader: string,
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getCustomerLastSoldPrices(driver.tenantId, customerId);
+  }
+
+  @Get('customers/:customerId/field-statement')
+  async getCustomerFieldStatement(
+    @Headers('authorization') authHeader: string,
+    @Param('customerId', ParseIntPipe) customerId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.getCustomerFieldStatement(driver.tenantId, customerId);
   }
 }
 

@@ -1194,6 +1194,7 @@ export class VanSalesService {
       clientTxId?: string;
       supervisorOverridePin?: string;
       supervisorOverrideReason?: string;
+      cashDiscountAmount?: number;
     },
   ): Promise<{
     ok: boolean;
@@ -1631,6 +1632,11 @@ export class VanSalesService {
       creditOwed = 0;
 
       if (isCash) {
+        const cashDiscount = Math.max(0, Number(payload.cashDiscountAmount || 0));
+        if (cashDiscount > 0 && cashDiscount < totalSale) {
+          totalSale = Number((totalSale - cashDiscount).toFixed(2));
+          discountSale = Number((discountSale + cashDiscount).toFixed(2));
+        }
         cashPaid = totalSale;
         creditOwed = 0;
       } else if (isCredit) {
@@ -1729,6 +1735,42 @@ export class VanSalesService {
           }
           const isFieldCreatedCustomer = Boolean(custMeta?.created_by_rep_id) || isNewCustomer;
 
+          // Financial Governance: Check for overdue unpaid credit sales past allowed grace period
+          const allowedCreditDays = Number(custMeta?.credit_days || custMeta?.credit_terms_days || 30);
+          const overdueCutoffDate = new Date();
+          overdueCutoffDate.setDate(overdueCutoffDate.getDate() - allowedCreditDays);
+
+          const overdueSales = await trxAny
+            .selectFrom('sales')
+            .select([
+              'id',
+              'doc_no',
+              'total',
+              'paid_amount',
+              'created_at',
+              sql<number>`cast(total - coalesce(paid_amount, 0) as numeric)`.as('remaining'),
+            ])
+            .where('tenant_id', '=', tenantId)
+            .where('customer_id', '=', resolvedCustomerId)
+            .where('payment_type', '=', 'credit')
+            .where('status', 'in', ['posted', 'completed'])
+            .where(sql`total - coalesce(paid_amount, 0) > 0.05`)
+            .where('created_at', '<', overdueCutoffDate)
+            .orderBy('created_at', 'asc')
+            .execute();
+
+          const hasOverdueInvoices = overdueSales.length > 0;
+          let oldestOverdueDays = 0;
+          let overdueAmount = 0;
+          if (hasOverdueInvoices) {
+            const oldest = overdueSales[0];
+            const oldestDate = new Date(oldest.created_at);
+            oldestOverdueDays = Math.max(0, Math.floor((Date.now() - oldestDate.getTime()) / (1000 * 60 * 60 * 24)));
+            overdueAmount = Number(
+              overdueSales.reduce((sum: number, s: any) => sum + Number(s.remaining || 0), 0).toFixed(2),
+            );
+          }
+
           const creditCheck = evaluateCreditLimitCheck({
             customerId: resolvedCustomerId,
             customerName: custRecord.name || customerName,
@@ -1739,6 +1781,9 @@ export class VanSalesService {
             customerType: custRecord.customer_type,
             isFieldCreatedCustomer,
             requestedCreditAmount: creditOwed,
+            hasOverdueInvoices,
+            oldestOverdueDays,
+            overdueAmount,
             supervisorOverride: supervisorOverrideApproved ? {
               approved: true,
               supervisorId: overrideSupervisorId || undefined,
@@ -4191,4 +4236,273 @@ export class VanSalesService {
       },
     };
   }
+
+  // =========================================================================
+  // FIELD WHOLESALE DOMINANCE: SUGGESTED ORDER & RE-ORDER
+  // =========================================================================
+
+  async getCustomerSuggestedOrder(tenantId: string, accountId: string, repId: number, customerId: number) {
+    const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
+
+    const recentSales = await this.anyDb
+      .selectFrom('sales')
+      .select(['id', 'doc_no', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('customer_id', '=', customerId)
+      .where('status', 'in', ['posted', 'completed'])
+      .orderBy('id', 'desc')
+      .limit(3)
+      .execute();
+
+    if (!recentSales.length) {
+      return {
+        ok: true,
+        customerId,
+        lastOrderDocNo: null,
+        lastOrderDate: null,
+        items: [],
+        hasPreviousOrders: false,
+      };
+    }
+
+    const latestSaleId = Number(recentSales[0].id);
+    const latestDocNo = String(recentSales[0].doc_no || '');
+    const latestDate = recentSales[0].created_at;
+
+    const saleItems = await this.anyDb
+      .selectFrom('sale_items as si')
+      .leftJoin('products as p', 'p.id', 'si.product_id')
+      .leftJoin('packaging_units as pu', 'pu.id', 'p.packaging_unit_id')
+      .select([
+        'si.product_id as productId',
+        sql<string>`coalesce(si.product_name, p.name, '')`.as('productName'),
+        sql<number>`cast(coalesce(si.quantity, 0) as numeric)`.as('qty'),
+        sql<number>`cast(coalesce(si.unit_price, 0) as numeric)`.as('unitPrice'),
+        sql<string>`coalesce(si.unit_name, pu.name, 'قطعة')`.as('unitName'),
+        sql<number>`cast(coalesce(si.unit_multiplier, 1) as numeric)`.as('unitMultiplier'),
+        'p.barcode',
+        sql<number>`cast(coalesce(p.retail_price, 0) as numeric)`.as('retailPrice'),
+      ])
+      .where('si.sale_id', '=', latestSaleId)
+      .where('si.tenant_id', '=', tenantId)
+      .execute();
+
+    const productIds = saleItems.map((it: any) => Number(it.productId)).filter((id: number) => id > 0);
+    const vanStocksMap = new Map<number, number>();
+
+    if (productIds.length > 0) {
+      const vanStocks = await this.anyDb
+        .selectFrom('product_location_stock')
+        .select(['product_id', sql<number>`cast(coalesce(qty, 0) as numeric)`.as('qty')])
+        .where('location_id', '=', vanLoc.id)
+        .where('tenant_id', '=', tenantId)
+        .where('product_id', 'in', productIds)
+        .execute();
+
+      for (const vs of vanStocks) {
+        vanStocksMap.set(Number(vs.product_id), Number(vs.qty || 0));
+      }
+    }
+
+    const items = saleItems.map((it: any) => {
+      const pid = Number(it.productId);
+      const availableVanQty = vanStocksMap.get(pid) || 0;
+      return {
+        productId: pid,
+        productName: String(it.productName || `صنف #${pid}`),
+        suggestedQty: Number(it.qty || 1),
+        unitPrice: Number(it.unitPrice || it.retailPrice || 0),
+        unitName: String(it.unitName || 'قطعة'),
+        unitMultiplier: Number(it.unitMultiplier || 1),
+        barcode: it.barcode || null,
+        availableVanQty,
+        isAvailableInVan: availableVanQty > 0,
+      };
+    });
+
+    return {
+      ok: true,
+      customerId,
+      lastOrderDocNo: latestDocNo,
+      lastOrderDate: latestDate,
+      hasPreviousOrders: true,
+      items,
+    };
+  }
+
+  // =========================================================================
+  // FIELD WHOLESALE DOMINANCE: LAST SOLD PRICES PER CUSTOMER
+  // =========================================================================
+
+  async getCustomerLastSoldPrices(tenantId: string, customerId: number) {
+    const lastSales = await this.anyDb
+      .selectFrom('sale_items as si')
+      .innerJoin('sales as s', 's.id', 'si.sale_id')
+      .select([
+        'si.product_id as productId',
+        sql<number>`cast(si.unit_price as numeric)`.as('lastPrice'),
+        's.created_at as lastSaleDate',
+        's.doc_no as lastDocNo',
+      ])
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.customer_id', '=', customerId)
+      .where('s.status', 'in', ['posted', 'completed'])
+      .distinctOn('si.product_id')
+      .orderBy('si.product_id')
+      .orderBy('s.id', 'desc')
+      .execute();
+
+    const pricesMap: Record<number, { lastPrice: number; lastSaleDate: string; lastDocNo: string }> = {};
+    for (const row of lastSales) {
+      pricesMap[Number(row.productId)] = {
+        lastPrice: Number(row.lastPrice || 0),
+        lastSaleDate: row.lastSaleDate ? new Date(row.lastSaleDate).toISOString().slice(0, 10) : '',
+        lastDocNo: String(row.lastDocNo || ''),
+      };
+    }
+
+    return {
+      ok: true,
+      customerId,
+      lastPrices: pricesMap,
+    };
+  }
+
+  // =========================================================================
+  // FIELD WHOLESALE DOMINANCE: ON-THE-SPOT FIELD CUSTOMER STATEMENT
+  // =========================================================================
+
+  async getCustomerFieldStatement(tenantId: string, customerId: number) {
+    const customer = await this.anyDb
+      .selectFrom('customers')
+      .select([
+        'id',
+        'name',
+        'phone',
+        'address',
+        sql<number>`cast(coalesce(balance, 0) as numeric)`.as('balance'),
+        sql<number>`cast(coalesce(credit_limit, 0) as numeric)`.as('creditLimit'),
+        'is_credit_blocked as isCreditBlocked',
+        'customer_type as customerType',
+        'metadata',
+      ])
+      .where('id', '=', customerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!customer) {
+      throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+    }
+
+    const packaging = await this.getCustomerPackagingBalance(customerId, tenantId);
+
+    const recentSales = await this.anyDb
+      .selectFrom('sales')
+      .select([
+        'id',
+        'doc_no as docNo',
+        'created_at as saleDate',
+        'payment_type as paymentType',
+        sql<number>`cast(total as numeric)`.as('total'),
+        sql<number>`cast(coalesce(paid_amount, 0) as numeric)`.as('paidAmount'),
+        sql<number>`cast(total - coalesce(paid_amount, 0) as numeric)`.as('remaining'),
+        'status',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('customer_id', '=', customerId)
+      .where('status', 'in', ['posted', 'completed'])
+      .orderBy('id', 'desc')
+      .limit(5)
+      .execute();
+
+    const recentCollections = await this.anyDb
+      .selectFrom('sale_payments')
+      .select([
+        'id',
+        'receipt_number as receiptNumber',
+        'payment_date as paymentDate',
+        sql<number>`cast(amount as numeric)`.as('amount'),
+        'payment_method as paymentMethod',
+        'notes',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('customer_id', '=', customerId)
+      .orderBy('id', 'desc')
+      .limit(5)
+      .execute();
+
+    let custMeta: any = {};
+    if (typeof customer.metadata === 'string') {
+      try { custMeta = JSON.parse(customer.metadata); } catch { custMeta = {}; }
+    } else if (customer.metadata && typeof customer.metadata === 'object') {
+      custMeta = customer.metadata;
+    }
+    const allowedCreditDays = Number(custMeta?.credit_days || custMeta?.credit_terms_days || 30);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - allowedCreditDays);
+
+    const overdueInvoices = await this.anyDb
+      .selectFrom('sales')
+      .select([
+        'id',
+        'doc_no as docNo',
+        'created_at as saleDate',
+        sql<number>`cast(total - coalesce(paid_amount, 0) as numeric)`.as('remaining'),
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('customer_id', '=', customerId)
+      .where('payment_type', '=', 'credit')
+      .where('status', 'in', ['posted', 'completed'])
+      .where(sql`total - coalesce(paid_amount, 0) > 0.05`)
+      .where('created_at', '<', cutoffDate)
+      .orderBy('created_at', 'asc')
+      .execute();
+
+    const totalOverdueAmount = Number(
+      overdueInvoices.reduce((sum: number, inv: any) => sum + Number(inv.remaining || 0), 0).toFixed(2),
+    );
+    const oldestOverdueDays = overdueInvoices.length > 0
+      ? Math.max(0, Math.floor((Date.now() - new Date(overdueInvoices[0].saleDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    return {
+      ok: true,
+      customer: {
+        id: Number(customer.id),
+        name: String(customer.name),
+        phone: String(customer.phone || ''),
+        address: String(customer.address || ''),
+        balance: Number(customer.balance || 0),
+        creditLimit: Number(customer.creditLimit || 0),
+        customerType: customer.customerType || 'cash',
+        isCreditBlocked: Boolean(customer.isCreditBlocked),
+        allowedCreditDays,
+      },
+      overdueAnalysis: {
+        hasOverdueInvoices: overdueInvoices.length > 0,
+        overdueCount: overdueInvoices.length,
+        totalOverdueAmount,
+        oldestOverdueDays,
+      },
+      packagingBalance: packaging?.packages || [],
+      recentSales: recentSales.map((s: any) => ({
+        id: Number(s.id),
+        docNo: String(s.docNo || `INV-${s.id}`),
+        saleDate: s.saleDate,
+        paymentType: s.paymentType,
+        total: Number(s.total || 0),
+        paidAmount: Number(s.paidAmount || 0),
+        remaining: Number(s.remaining || 0),
+      })),
+      recentCollections: recentCollections.map((c: any) => ({
+        id: Number(c.id),
+        receiptNumber: String(c.receiptNumber || `REC-${c.id}`),
+        paymentDate: c.paymentDate,
+        amount: Number(c.amount || 0),
+        paymentMethod: c.paymentMethod || 'cash',
+        notes: c.notes || '',
+      })),
+    };
+  }
 }
+

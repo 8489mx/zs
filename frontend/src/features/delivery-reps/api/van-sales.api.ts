@@ -744,6 +744,7 @@ export const vanSalesApi = {
     deliveryProofPhoto?: string;
     packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
     clientTxId?: string;
+    cashDiscountAmount?: number;
     supervisorOverridePin?: string;
     supervisorOverrideReason?: string;
   }): Promise<{
@@ -1717,6 +1718,82 @@ export const vanSalesApi = {
     if (filters?.limit) params.set('limit', String(filters.limit));
     const q = params.toString();
     return http(`/api/van-sales/admin/fraud-radar/events${q ? `?${q}` : ''}`);
+  },
+
+  getCustomerSuggestedOrder: async (customerId: number): Promise<{
+    ok: boolean;
+    customerId: number;
+    lastOrderDocNo: string | null;
+    lastOrderDate: string | null;
+    hasPreviousOrders: boolean;
+    items: Array<{
+      productId: number;
+      productName: string;
+      suggestedQty: number;
+      unitPrice: number;
+      unitName: string;
+      unitMultiplier: number;
+      barcode?: string | null;
+      availableVanQty: number;
+      isAvailableInVan: boolean;
+    }>;
+  }> => {
+    return http(`/api/driver-portal/van-sales/customers/${customerId}/suggested-order`, {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  getCustomerLastSoldPrices: async (customerId: number): Promise<{
+    ok: boolean;
+    customerId: number;
+    lastPrices: Record<number, { lastPrice: number; lastSaleDate: string; lastDocNo: string }>;
+  }> => {
+    return http(`/api/driver-portal/van-sales/customers/${customerId}/last-prices`, {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  getCustomerFieldStatement: async (customerId: number): Promise<{
+    ok: boolean;
+    customer: {
+      id: number;
+      name: string;
+      phone: string;
+      address: string;
+      balance: number;
+      creditLimit: number;
+      customerType: string;
+      isCreditBlocked: boolean;
+      allowedCreditDays: number;
+    };
+    overdueAnalysis: {
+      hasOverdueInvoices: boolean;
+      overdueCount: number;
+      totalOverdueAmount: number;
+      oldestOverdueDays: number;
+    };
+    packagingBalance: Array<{ packageType: string; totalDelivered: number; totalReturned: number; netOwedToCompany: number }>;
+    recentSales: Array<{
+      id: number;
+      docNo: string;
+      saleDate: string;
+      paymentType: string;
+      total: number;
+      paidAmount: number;
+      remaining: number;
+    }>;
+    recentCollections: Array<{
+      id: number;
+      receiptNumber: string;
+      paymentDate: string;
+      amount: number;
+      paymentMethod: string;
+      notes: string;
+    }>;
+  }> => {
+    return http(`/api/driver-portal/van-sales/customers/${customerId}/field-statement`, {
+      headers: getDriverAuthHeaders(),
+    });
   },
 };
 

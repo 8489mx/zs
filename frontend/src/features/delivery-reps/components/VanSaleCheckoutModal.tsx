@@ -52,6 +52,7 @@ export interface VanSaleCheckoutModalProps {
   onConfirmCheckout: (data: {
     paymentMethod: VanPaymentMethod;
     paidAmount?: number;
+    cashDiscountAmount?: number;
     notes?: string;
     cartonsCount?: number;
     deliveryProofPhoto?: string;
@@ -82,6 +83,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
 }) => {
   const [paymentMethod, setPaymentMethod] = useState<VanPaymentMethod>('cash');
   const [cashInput, setCashInput] = useState<string>(cartTotal.toFixed(2));
+  const [cashDiscountAmount, setCashDiscountAmount] = useState<number>(0);
   const [localNotes, setLocalNotes] = useState<string>(propNotes);
   const [validationError, setValidationError] = useState<string>('');
   const [supervisorPin, setSupervisorPin] = useState<string>('');
@@ -93,6 +95,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   useEffect(() => {
     if (open) {
       setCashInput(cartTotal.toFixed(2));
+      setCashDiscountAmount(0);
       setPaymentMethod('cash');
       setValidationError('');
       setLocalNotes(propNotes);
@@ -251,8 +254,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       }
     }
 
-    if (paymentMethod === 'cash' && cashPaid < cartTotal) {
-      setValidationError('المبلغ المدفوع أقل من إجمالي الفاتورة. إذا كان العميل سيدفع الباقي لاحقاً، يرجى اختيار "دفع مركب (جزء كاش وجزء آجل)".');
+    const netCashTotal = Math.max(0, Number((cartTotal - cashDiscountAmount).toFixed(2)));
+    if (paymentMethod === 'cash' && cashPaid < netCashTotal) {
+      setValidationError(`المبلغ المدفوع أقل من صافي الفاتورة المطلوبة (${netCashTotal.toFixed(2)} ج.م). إذا كان العميل سيدفع الباقي لاحقاً، يرجى اختيار "دفع مركب (جزء كاش وجزء آجل)".`);
       return;
     }
 
@@ -289,7 +293,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
 
     onConfirmCheckout({
       paymentMethod,
-      paidAmount: paymentMethod === 'cash' ? cartTotal : (paymentMethod === 'split' ? cashPaid : (paymentMethod === 'card' ? cartTotal : 0)),
+      paidAmount: paymentMethod === 'cash' ? netCashTotal : (paymentMethod === 'split' ? cashPaid : (paymentMethod === 'card' ? cartTotal : 0)),
+      cashDiscountAmount: paymentMethod === 'cash' && cashDiscountAmount > 0 ? cashDiscountAmount : undefined,
       notes: localNotes,
       cartonsCount: Number(cartonsCount) || undefined,
       deliveryProofPhoto: deliveryProofPhoto || undefined,
@@ -702,6 +707,72 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     {opt.toFixed(0)} ج.م
                   </button>
                 ))}
+              </div>
+
+              {/* Cash Settlement Discount Section */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155' }}>
+                    خصم تعجيل دفع نقدي (كاش ديسكاونت اختياري):
+                  </span>
+                  {cashDiscountAmount > 0 && (
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>
+                      الصافي المطلوب: {(Math.max(0, cartTotal - cashDiscountAmount)).toFixed(2)} ج.م
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max={cartTotal}
+                    value={cashDiscountAmount || ''}
+                    onChange={(e) => {
+                      const val = Math.max(0, Math.min(cartTotal, Number(e.target.value) || 0));
+                      setCashDiscountAmount(val);
+                      setCashInput((Math.max(0, cartTotal - val)).toFixed(2));
+                    }}
+                    placeholder="قيمة الخصم النقدي (0.00)"
+                    style={{
+                      width: '130px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      backgroundColor: '#ffffff',
+                    }}
+                  />
+                  {[0, 0.01, 0.02, 0.03, 0.05].map((pct) => {
+                    const discountVal = Number((cartTotal * pct).toFixed(2));
+                    const label = pct === 0 ? 'إلغاء الخصم' : `${pct * 100}% (${discountVal} ج.م)`;
+                    const isSelected = Math.abs(cashDiscountAmount - discountVal) < 0.01;
+                    return (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => {
+                          setCashDiscountAmount(discountVal);
+                          setCashInput((Math.max(0, cartTotal - discountVal)).toFixed(2));
+                        }}
+                        style={{
+                          padding: '3px 7px',
+                          borderRadius: '5px',
+                          border: isSelected ? '1px solid #059669' : '1px solid #cbd5e1',
+                          backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
+                          color: isSelected ? '#065f46' : '#475569',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

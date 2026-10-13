@@ -23,8 +23,10 @@ import {
   CreditCardIcon,
   ReceiptIcon,
   RotateCcwIcon,
+  FileTextIcon,
 } from '@/shared/components/icons/AppIcons';
 import { catalogApi } from '@/lib/api/catalog';
+import { VanCustomerStatementModal } from './VanCustomerStatementModal';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
@@ -473,6 +475,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const [postponedDate, setPostponedDate] = useState('');
   const [negativeNotes, setNegativeNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statementModalCust, setStatementModalCust] = useState<VanCustomerItineraryItem | null>(null);
 
   // Extract unique routes
   const routes = useMemo(() => {
@@ -1380,6 +1383,50 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
                   محل مغلق / لم يشترِ
+                </p>
+              </div>
+
+              {/* Tile 5: Field Statement */}
+              <div
+                onClick={() => {
+                  setStatementModalCust(selectedCustomerForHub);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#e0f2fe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <FileTextIcon size={18} color="#0284c7" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  كشف حساب
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  مطابقة وإيصال حراري
                 </p>
               </div>
             </div>
@@ -2903,6 +2950,16 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             </div>
           </div>
         </StandardDialog>
+      )}
+
+      {/* Field Customer Statement Modal */}
+      {statementModalCust && (
+        <VanCustomerStatementModal
+          open={Boolean(statementModalCust)}
+          onClose={() => setStatementModalCust(null)}
+          customerId={statementModalCust.customerId}
+          customerName={statementModalCust.customerName}
+        />
       )}
     </div>
   );

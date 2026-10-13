@@ -3119,6 +3119,7 @@ export default function VanSalesMobilePage() {
               customerName: newCustomerName || undefined,
               paymentMethod: checkoutData.paymentMethod,
               paidAmount: checkoutData.paidAmount,
+              cashDiscountAmount: checkoutData.cashDiscountAmount,
               subtotal: cartSubtotal,
               discount: cartDiscount,
               notes: checkoutData.notes,

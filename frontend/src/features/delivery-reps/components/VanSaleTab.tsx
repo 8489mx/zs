@@ -1,16 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { VanStockItem } from '../api/van-sales.api';
+import { VanStockItem, vanSalesApi } from '../api/van-sales.api';
 import {
   PlusIcon,
   PackageIcon,
   ShoppingCartIcon,
   ReceiptIcon,
   CreditCardIcon,
+  FileTextIcon,
+  RefreshCwIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { VanCustomerStatementModal } from './VanCustomerStatementModal';
 import { VanFloatingActionBar } from './VanFloatingActionBar';
 
 export interface CartItem {
@@ -104,6 +108,61 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
+  const [lastPricesMap, setLastPricesMap] = useState<Record<number, { lastPrice: number; lastSaleDate: string; lastDocNo: string }>>({});
+  const [isLoadingSuggested, setIsLoadingSuggested] = useState(false);
+  const [statementModalOpen, setStatementModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      vanSalesApi.getCustomerLastSoldPrices(Number(selectedCustomerId)).then((res) => {
+        if (res && res.lastPrices) {
+          setLastPricesMap(res.lastPrices);
+        }
+      }).catch(() => {});
+    } else {
+      setLastPricesMap({});
+    }
+  }, [selectedCustomerId]);
+
+  const handleLoadSuggestedOrder = async () => {
+    if (!selectedCustomerId) return;
+    setIsLoadingSuggested(true);
+    try {
+      const res = await vanSalesApi.getCustomerSuggestedOrder(Number(selectedCustomerId));
+      if (!res || !res.items || res.items.length === 0) {
+        toast.info('لا توجد طلبيات سابقة مسجلة لهذا العميل');
+        return;
+      }
+      let addedCount = 0;
+      let missingStockCount = 0;
+      for (const item of res.items) {
+        const invItem = inventory.find((inv) => inv.productId === item.productId);
+        if (invItem && invItem.qty > 0 && onAddToCart) {
+          const qtyToAdd = Math.min(invItem.qty, item.suggestedQty || 1);
+          const alreadyInCart = cart.find((c) => c.productId === item.productId);
+          if (!alreadyInCart) {
+            onAddToCart(invItem);
+            if (qtyToAdd > 1) {
+              onUpdateCartQty(item.productId, qtyToAdd - 1);
+            }
+            addedCount++;
+          }
+        } else if (!invItem || invItem.qty <= 0) {
+          missingStockCount++;
+        }
+      }
+      if (addedCount > 0) {
+        toast.success(`تم إدراج ${addedCount} أصناف من الطلب المعتاد للعميل بالسلة بنجاح`);
+      }
+      if (missingStockCount > 0) {
+        toast.warning(`يوجد ${missingStockCount} أصناف من الطلب المعتاد غير متوفرة في سيارة التوزيع حالياً`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر جلب الطلب المعتاد للعميل');
+    } finally {
+      setIsLoadingSuggested(false);
+    }
+  };
 
   const availableInventory = useMemo(() => {
     return inventory.filter((item) => item.qty > 0);
@@ -271,6 +330,54 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               <span>سقف الائتمان: <strong>{selectedCustomer.creditLimit.toFixed(2)} <CurrencySymbol /></strong></span>
             ) : null}
             {selectedCustomer.phone && <span>الهاتف: <strong style={{ color: '#0f172a' }}>{selectedCustomer.phone}</strong></span>}
+          </div>
+
+          {/* Quick Action Buttons for Suggested Order & Field Statement */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', borderTop: '1px dashed #bbf7d0', paddingTop: '5px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleLoadSuggestedOrder}
+              disabled={isLoadingSuggested}
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #16a34a',
+                color: '#15803d',
+                borderRadius: '5px',
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="استدعاء تشكيلة الأصناف والكميات التي يشتريها العميل عادة وتنزيلها بالسلة فوراً"
+            >
+              <RefreshCwIcon size={12} color="#15803d" className={isLoadingSuggested ? 'animate-spin' : undefined} />
+              <span>{isLoadingSuggested ? 'جاري التحميل...' : 'تكرار الطلب المعتاد'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStatementModalOpen(true)}
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #0284c7',
+                color: '#0369a1',
+                borderRadius: '5px',
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="معاينة كشف حساب العميل وطباعته حرارياً أو إرساله بواتساب"
+            >
+              <FileTextIcon size={12} color="#0369a1" />
+              <span>كشف حساب ميداني</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -721,6 +828,22 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                             صلاحية: {item.earliestExpiryDate}
                           </span>
                         )}
+                        {lastPricesMap[item.productId] && (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              backgroundColor: '#e0e7ff',
+                              color: '#3730a3',
+                              border: '1px solid #c7d2fe',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                            }}
+                            title={`آخر سعر مسجل لهذا العميل (فاتورة ${lastPricesMap[item.productId].lastDocNo || ''})`}
+                          >
+                            آخر سعر للعميل: {lastPricesMap[item.productId].lastPrice.toFixed(2)} ج.م ({lastPricesMap[item.productId].lastSaleDate})
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -810,6 +933,16 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
         actionText="إتمام البيع"
         onAction={onSubmitSale}
       />
+
+      {/* Field Customer Statement Modal */}
+      {selectedCustomerId && (
+        <VanCustomerStatementModal
+          open={statementModalOpen}
+          onClose={() => setStatementModalOpen(false)}
+          customerId={Number(selectedCustomerId)}
+          customerName={selectedCustomer?.name}
+        />
+      )}
     </div>
   );
 };
