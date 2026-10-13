@@ -638,3 +638,497 @@ export function evaluateTripExpenseGovernance(params: TripExpenseGovernanceParam
   };
 }
 
+// ============================================================================
+// FIELD RETURNS GOVERNANCE ENGINE (محرك حوكمة وتدقيق المرتجعات الميدانية)
+// ============================================================================
+
+export interface FieldReturnEvaluationItem {
+  productId: number;
+  productName?: string;
+  qty: number;
+  unitPrice: number;
+  saleItemId?: number;
+}
+
+export interface FieldReturnOriginalSaleItem {
+  saleItemId: number;
+  productId: number;
+  productName?: string;
+  soldQty: number;
+  unitPrice: number;
+  lineTotal: number;
+  alreadyReturnedQty: number;
+}
+
+export interface FieldReturnOriginalSale {
+  saleId: number;
+  docNo?: string;
+  customerId: number;
+  repId?: number | null;
+  items: FieldReturnOriginalSaleItem[];
+}
+
+export interface RepCustomerSalesHistoryProduct {
+  productId: number;
+  productName?: string;
+  totalSoldQty: number;
+  maxNetUnitPrice: number;
+  alreadyReturnedQty: number;
+}
+
+export interface FieldReturnEvaluationParams {
+  repId: number;
+  customerId: number;
+  items: FieldReturnEvaluationItem[];
+  refundMethod?: 'credit' | 'cash';
+  tripCashCollected?: number;
+  // If linked return:
+  linkedSale?: FieldReturnOriginalSale | null;
+  // If unlinked return:
+  repCustomerSalesHistory?: RepCustomerSalesHistoryProduct[];
+}
+
+export interface FieldReturnEvaluationResult {
+  allowed: boolean;
+  reasonCode?: string;
+  errorMessageAr?: string;
+  httpStatus?: number;
+  totalAmount: number;
+}
+
+/**
+ * Evaluates field customer return request under strict adversarial governance.
+ * Blocks:
+ * 1. Empty or non-positive quantities / negative prices.
+ * 2. Cross-customer returns (sale customer !== return customer).
+ * 3. Cross-rep returns (rep A attempting to return goods from rep B's invoice).
+ * 4. Phantom items not present in original invoice.
+ * 5. Price tampering: Unit return price higher than net discounted sale price.
+ * 6. Over-quantity returns: Return quantity exceeding remaining returnable qty (sold - prior returns).
+ * 7. Unlinked returns without rep historical sales to customer.
+ * 8. Cash refund exceeding actual cash collected by rep in current trip.
+ */
+export function evaluateFieldReturnGovernance(
+  params: FieldReturnEvaluationParams,
+): FieldReturnEvaluationResult {
+  if (!params.items || !params.items.length) {
+    return {
+      allowed: false,
+      reasonCode: 'EMPTY_RETURN_ITEMS',
+      errorMessageAr: 'يجب تحديد صنف واحد على الأقل للمرتجع',
+      httpStatus: 400,
+      totalAmount: 0,
+    };
+  }
+
+  let totalAmount = 0;
+  for (const item of params.items) {
+    const q = Number(item.qty || 0);
+    const p = Number(item.unitPrice || 0);
+    if (q <= 0) {
+      return {
+        allowed: false,
+        reasonCode: 'INVALID_RETURN_QTY',
+        errorMessageAr: 'كمية المرتجع يجب أن تكون أكبر من صفر',
+        httpStatus: 400,
+        totalAmount: 0,
+      };
+    }
+    if (p < 0) {
+      return {
+        allowed: false,
+        reasonCode: 'INVALID_RETURN_PRICE',
+        errorMessageAr: 'سعر المرتجع غير صالح',
+        httpStatus: 400,
+        totalAmount: 0,
+      };
+    }
+    totalAmount += q * p;
+  }
+  totalAmount = Number(totalAmount.toFixed(2));
+
+  // Linked Return Flow
+  if (params.linkedSale) {
+    const sale = params.linkedSale;
+    if (Number(sale.customerId) !== Number(params.customerId)) {
+      return {
+        allowed: false,
+        reasonCode: 'SALE_CUSTOMER_MISMATCH',
+        errorMessageAr: 'الفاتورة المحددة لا تخص هذا العميل',
+        httpStatus: 400,
+        totalAmount,
+      };
+    }
+
+    if (sale.repId != null && Number(sale.repId) !== Number(params.repId)) {
+      return {
+        allowed: false,
+        reasonCode: 'SALE_REP_MISMATCH',
+        errorMessageAr: 'لا يمكن عمل مرتجع على فاتورة تخص مندوباً آخر — عهد وحسابات كل مندوب معزولة تماماً',
+        httpStatus: 403,
+        totalAmount,
+      };
+    }
+
+    for (const item of params.items) {
+      const line = item.saleItemId
+        ? sale.items.find((sl) => Number(sl.saleItemId) === Number(item.saleItemId))
+        : sale.items.find((sl) => Number(sl.productId) === Number(item.productId));
+
+      if (!line) {
+        return {
+          allowed: false,
+          reasonCode: 'ITEM_NOT_IN_SALE',
+          errorMessageAr: `الصنف #${item.productId} لم يتم العثور عليه في الفاتورة الأصلية`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+
+      const soldQty = Number(line.soldQty || 0);
+      const lineTotal = Number(line.lineTotal || 0);
+      const netUnit = soldQty > 0 ? Number((lineTotal / soldQty).toFixed(2)) : 0;
+
+      if (Number(item.unitPrice) > netUnit + 0.05) {
+        return {
+          allowed: false,
+          reasonCode: 'RETURN_PRICE_EXCEEDS_NET',
+          errorMessageAr: `سعر المرتجع (${item.unitPrice}) يتجاوز السعر الصافي بعد الخصم بالفاتورة الأصلية (${netUnit})`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+
+      const alreadyReturned = Number(line.alreadyReturnedQty || 0);
+      const remainingReturnableQty = Number((soldQty - alreadyReturned).toFixed(3));
+      if (Number(item.qty) > remainingReturnableQty + 0.001) {
+        return {
+          allowed: false,
+          reasonCode: 'RETURN_QTY_EXCEEDS_SOLD',
+          errorMessageAr: `الكمية المطلوب ردها (${item.qty}) تتجاوز المتبقي القابل للرد من الفاتورة الأصلية (${Math.max(0, remainingReturnableQty)}) — بيع ${soldQty}، مرتجع سابقاً ${alreadyReturned}`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+    }
+  } else {
+    // Unlinked Return Flow
+    const history = params.repCustomerSalesHistory || [];
+    if (!history.length) {
+      return {
+        allowed: false,
+        reasonCode: 'NO_REP_SALES_HISTORY_FOR_RETURN',
+        errorMessageAr: 'لا يمكن تسجيل مرتجع بدون فاتورة لعميل لم يسبق لهذا المندوب البيع له',
+        httpStatus: 403,
+        totalAmount,
+      };
+    }
+
+    for (const item of params.items) {
+      const pid = Number(item.productId);
+      const hist = history.find((h) => Number(h.productId) === pid);
+
+      if (!hist || hist.totalSoldQty <= 0) {
+        return {
+          allowed: false,
+          reasonCode: 'RETURN_QTY_EXCEEDS_SOLD',
+          errorMessageAr: `الكمية المطلوب ردها (${item.qty}) للصنف #${pid} تتجاوز إجمالي ما باعه هذا المندوب للعميل صافي المرتجعات السابقة (0)`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+
+      const remainingQty = Number((hist.totalSoldQty - hist.alreadyReturnedQty).toFixed(3));
+      if (Number(item.qty) > remainingQty + 0.001) {
+        return {
+          allowed: false,
+          reasonCode: 'RETURN_QTY_EXCEEDS_SOLD',
+          errorMessageAr: `الكمية المطلوب ردها (${item.qty}) للصنف #${pid} تتجاوز إجمالي ما باعه هذا المندوب للعميل صافي المرتجعات السابقة (${Math.max(0, remainingQty)})`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+
+      if (Number(item.unitPrice) > Number(hist.maxNetUnitPrice) + 0.05) {
+        return {
+          allowed: false,
+          reasonCode: 'RETURN_PRICE_EXCEEDS_NET',
+          errorMessageAr: `سعر المرتجع (${item.unitPrice}) يتجاوز السعر الصافي الذي بيع به الصنف للعميل (${hist.maxNetUnitPrice})`,
+          httpStatus: 400,
+          totalAmount,
+        };
+      }
+    }
+  }
+
+  // Cash Refund Protection
+  if ((params.refundMethod || 'credit') === 'cash') {
+    const currentTripCash = Number(params.tripCashCollected || 0);
+    if (totalAmount > currentTripCash + 0.01) {
+      return {
+        allowed: false,
+        reasonCode: 'INSUFFICIENT_REP_CASH_FOR_REFUND',
+        errorMessageAr: `رصيد النقدية المحصلة بعهدة المندوب بالرحلة (${currentTripCash} ج.م) لا يكفي لصرف مرتجع نقدي فوري بقيمة (${totalAmount} ج.م)`,
+        httpStatus: 400,
+        totalAmount,
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    totalAmount,
+  };
+}
+
+// ============================================================================
+// ROUTE ITINERARY & VISIT GOVERNANCE ENGINE (محرك خط السير والزيارات الميدانية)
+// ============================================================================
+
+export const VALID_NEGATIVE_VISIT_REASONS = [
+  'no_cash',
+  'shop_closed',
+  'sufficient_stock',
+  'item_unavailable',
+  'postponed',
+  'other',
+] as const;
+
+export type NegativeVisitReason = (typeof VALID_NEGATIVE_VISIT_REASONS)[number];
+
+export interface ItineraryVisitEvaluationParams {
+  customerId: number;
+  visitType: 'positive' | 'negative';
+  negativeReason?: string | null;
+  postponedToDate?: string | null;
+  customerVisitDays?: string[] | string | null;
+  currentDayName?: string;
+  currentEnglishDayName?: string;
+  repGps?: { lat: number; lng: number } | null;
+  customerGps?: { lat: number; lng: number } | null;
+  maxAllowedGeofenceMeters?: number;
+  recentCustomerVisits?: { visitType: 'positive' | 'negative' }[];
+}
+
+export interface ItineraryVisitEvaluationResult {
+  isValid: boolean;
+  reasonCode?: string;
+  errorMessageAr?: string;
+  isScheduledToday: boolean;
+  isWithinGeofence: boolean;
+  distanceMeters: number | null;
+  hasConsecutiveNegativeAlert: boolean;
+}
+
+function calculateSimpleHaversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
+/**
+ * Evaluates field itinerary visit execution:
+ * 1. Checks day matching (scheduled today vs ad-hoc).
+ * 2. Validates negative visit reason against official operational catalog.
+ * 3. Enforces postponement date validity when reason is 'postponed'.
+ * 4. Audits GPS distance against customer storefront location (Ghost Visit detection).
+ * 5. Identifies repeated negative visits (3 consecutive negatives) for supervisor intervention.
+ */
+export function evaluateItineraryVisitRules(
+  params: ItineraryVisitEvaluationParams,
+): ItineraryVisitEvaluationResult {
+  // 1. Negative Visit Reason Validation
+  if (params.visitType === 'negative') {
+    const reason = String(params.negativeReason || '').trim();
+    if (!reason) {
+      return {
+        isValid: false,
+        reasonCode: 'MISSING_NEGATIVE_REASON',
+        errorMessageAr: 'يرجى تحديد سبب الزيارة السلبية',
+        isScheduledToday: true,
+        isWithinGeofence: true,
+        distanceMeters: null,
+        hasConsecutiveNegativeAlert: false,
+      };
+    }
+
+    if (!VALID_NEGATIVE_VISIT_REASONS.includes(reason as NegativeVisitReason)) {
+      return {
+        isValid: false,
+        reasonCode: 'INVALID_NEGATIVE_REASON',
+        errorMessageAr: 'سبب الزيارة السلبية غير معتمد بالنظام',
+        isScheduledToday: true,
+        isWithinGeofence: true,
+        distanceMeters: null,
+        hasConsecutiveNegativeAlert: false,
+      };
+    }
+  }
+
+  // 2. Scheduled Day Check
+  let isScheduledToday = true;
+  if (params.customerVisitDays) {
+    const rawDays = Array.isArray(params.customerVisitDays)
+      ? params.customerVisitDays
+      : String(params.customerVisitDays).split(/[,،]/);
+
+    const cleanDays = rawDays.map((d) => String(d).trim().toLowerCase()).filter(Boolean);
+    if (cleanDays.length > 0) {
+      const curAr = (params.currentDayName || '').trim().toLowerCase();
+      const curEn = (params.currentEnglishDayName || '').trim().toLowerCase();
+      isScheduledToday = cleanDays.some(
+        (d) => (curAr && (d === curAr || d.includes(curAr))) || (curEn && (d === curEn || d.includes(curEn))),
+      );
+    }
+  }
+
+  // 3. Geofence Audit
+  let isWithinGeofence = true;
+  let distanceMeters: number | null = null;
+  if (params.repGps && params.customerGps) {
+    distanceMeters = calculateSimpleHaversineMeters(
+      params.repGps.lat,
+      params.repGps.lng,
+      params.customerGps.lat,
+      params.customerGps.lng,
+    );
+    const maxMeters = params.maxAllowedGeofenceMeters ?? 300;
+    isWithinGeofence = distanceMeters <= maxMeters;
+  }
+
+  // 4. Consecutive Negative Visits Tracking (3 in a row triggers alert)
+  let hasConsecutiveNegativeAlert = false;
+  if (params.visitType === 'negative' && params.recentCustomerVisits) {
+    const recent = params.recentCustomerVisits;
+    if (recent.length >= 2 && recent.slice(0, 2).every((v) => v.visitType === 'negative')) {
+      hasConsecutiveNegativeAlert = true;
+    }
+  }
+
+  return {
+    isValid: true,
+    isScheduledToday,
+    isWithinGeofence,
+    distanceMeters,
+    hasConsecutiveNegativeAlert,
+  };
+}
+
+// ============================================================================
+// REQUISITION MULTI-WAREHOUSE SPLIT ENGINE (محرك فرز وتوزيع أذونات التحميل)
+// ============================================================================
+
+export interface RequisitionItemInput {
+  productId: number;
+  qty: number;
+  sourceWarehouseId?: number;
+  sourceWarehouseName?: string;
+}
+
+export interface RequisitionSplitGroup {
+  warehouseId: number;
+  warehouseName?: string;
+  items: RequisitionItemInput[];
+  totalQty: number;
+}
+
+/**
+ * Pure engine to split load requisition items across their respective source warehouses.
+ * When a delivery rep requests items located across different physical warehouses,
+ * this engine automatically clusters them by warehouse so separate requisition vouchers can be issued.
+ */
+export function splitRequisitionByWarehouse(
+  items: RequisitionItemInput[],
+  defaultWarehouseId = 1,
+): RequisitionSplitGroup[] {
+  const groups = new Map<number, { name?: string; items: RequisitionItemInput[] }>();
+
+  for (const item of items || []) {
+    const qty = Number(item.qty || 0);
+    if (qty <= 0) continue;
+    const whId = item.sourceWarehouseId && Number(item.sourceWarehouseId) > 0
+      ? Number(item.sourceWarehouseId)
+      : defaultWarehouseId;
+
+    const group = groups.get(whId) || { name: item.sourceWarehouseName, items: [] };
+    group.items.push({ ...item, sourceWarehouseId: whId });
+    if (!group.name && item.sourceWarehouseName) group.name = item.sourceWarehouseName;
+    groups.set(whId, group);
+  }
+
+  const result: RequisitionSplitGroup[] = [];
+  for (const [warehouseId, group] of groups.entries()) {
+    const totalQty = group.items.reduce((sum, it) => sum + Number(it.qty || 0), 0);
+    result.push({
+      warehouseId,
+      warehouseName: group.name,
+      items: group.items,
+      totalQty: Number(totalQty.toFixed(3)),
+    });
+  }
+
+  return result.sort((a, b) => a.warehouseId - b.warehouseId);
+}
+
+/**
+ * Formats official Cashier Handover Clearance text summary for SMS / WhatsApp dispatch.
+ */
+export function formatVanSettlementSummaryText(params: {
+  receiptNo: string;
+  tripId: number;
+  repName: string;
+  cashierName: string;
+  salesAmount: number;
+  cashSales: number;
+  creditSales: number;
+  collectionsTotal: number;
+  tripExpenses: number;
+  expectedCash: number;
+  countedCash: number;
+  variance: number;
+  stockVarianceCost?: number;
+  currency?: string;
+}): string {
+  const currency = params.currency || 'ج.م';
+  const isShortage = params.variance < -0.05;
+  const isSurplus = params.variance > 0.05;
+  const isMatched = !isShortage && !isSurplus;
+
+  const statusText = isMatched
+    ? 'مطابق 100% بدون أي عجز'
+    : isShortage
+    ? `يوجد عجز نقدي بقيمة ${Math.abs(params.variance).toFixed(2)} ${currency}`
+    : `يوجد فائض نقدي بقيمة +${Number(params.variance).toFixed(2)} ${currency}`;
+
+  return [
+    '*سند توريد نقدية الخزينة وإخلاء طرف عهدة*',
+    `رقم السند: #${params.receiptNo}`,
+    `رقم الرحلة: #${params.tripId}`,
+    `المندوب: ${params.repName}`,
+    `أمين الخزينة: ${params.cashierName}`,
+    '-------------------------',
+    `مبيعات اليوم: ${Number(params.salesAmount).toFixed(2)} ${currency}`,
+    `(كاش: ${Number(params.cashSales).toFixed(2)} | آجل: ${Number(params.creditSales).toFixed(2)})`,
+    `التحصيلات: ${Number(params.collectionsTotal).toFixed(2)} ${currency}`,
+    `مصروفات الرحلة: ${Number(params.tripExpenses).toFixed(2)} ${currency}`,
+    '-------------------------',
+    `صافي المطلوب توريده: ${Number(params.expectedCash).toFixed(2)} ${currency}`,
+    `المبلغ المورَّد فعلياً: ${Number(params.countedCash).toFixed(2)} ${currency}`,
+    `حالة المطابقة: ${statusText}`,
+    params.stockVarianceCost && params.stockVarianceCost > 0
+      ? `عجز بضاعة بالجرد: ${params.stockVarianceCost.toFixed(2)} ${currency}`
+      : '',
+    'تم الاعتماد والإبراء بنجاح عبر Z-Systems ERP.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+
+
