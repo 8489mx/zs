@@ -210,29 +210,28 @@ export class VanSalesService {
     if (repId && Number(repId) > 0) {
       const repRow = await dbConn
         .selectFrom('delivery_representatives')
-        .select(['user_id', 'pin_hash', 'name'])
+        .select(['pin_hash', 'name', 'phone'])
         .where('id', '=', Number(repId))
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      if (repRow?.user_id) {
-        repUserId = Number(repRow.user_id);
-      }
-      if (repRow?.pin_hash && String(repRow.pin_hash).trim() === cleanPin) {
-        repPinMatch = true;
-      }
-      if (repUserId) {
+      if (repRow?.phone) {
         const repUser = await dbConn
           .selectFrom('users')
           .select(['id', 'pin', 'pin_hash'])
-          .where('id', '=', repUserId)
           .where('tenant_id', '=', tenantId)
+          .where(sql<boolean>`(phone = ${String(repRow.phone)} or username = ${String(repRow.phone)})`)
           .executeTakeFirst();
-        if (
-          repUser &&
-          (String(repUser.pin || '').trim() === cleanPin || String(repUser.pin_hash || '').trim() === cleanPin)
-        ) {
-          repPinMatch = true;
+        if (repUser) {
+          repUserId = Number(repUser.id);
+          if (
+            (String(repUser.pin || '').trim() === cleanPin || String(repUser.pin_hash || '').trim() === cleanPin)
+          ) {
+            repPinMatch = true;
+          }
         }
+      }
+      if (repRow?.pin_hash && String(repRow.pin_hash).trim() === cleanPin) {
+        repPinMatch = true;
       }
     }
 
@@ -2467,20 +2466,29 @@ export class VanSalesService {
     // Lookup rep details to check Maker-Checker against linked user
     const rep = await this.anyDb
       .selectFrom('delivery_representatives')
-      .select(['id', 'name', 'phone', 'user_id'])
+      .select(['id', 'name', 'phone'])
       .where('id', '=', repId)
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
 
     const actorUserId = authContext?.userId ? Number(authContext.userId) : 0;
-    const repUserId = (rep as any)?.user_id ? Number((rep as any).user_id) : null;
+    let repUserId: number | null = null;
+    if (rep?.phone) {
+      const linkedUser = await this.anyDb
+        .selectFrom('users')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where(sql<boolean>`(phone = ${String(rep.phone)} or username = ${String(rep.phone)})`)
+        .executeTakeFirst();
+      if (linkedUser?.id) repUserId = Number(linkedUser.id);
+    }
 
     if (authContext) {
       const isSupervisor =
         ['admin', 'super_admin'].includes(authContext.role) ||
         (authContext.permissions &&
           authContext.permissions.some((p: string) =>
-            ['deliveryReps', 'sales', 'accounting', 'inventory'].includes(p),
+            ['deliveryReps', 'accounting'].includes(p),
           ));
 
       const makerChecker = evaluateMakerCheckerSettlement({

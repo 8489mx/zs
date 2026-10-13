@@ -5,10 +5,8 @@ import { Button } from '@/shared/ui/button';
 import {
   PrinterIcon,
   AlertTriangleIcon,
-  CheckCircleIcon,
-  ShareIcon,
+  Share2Icon,
   RefreshCwIcon,
-  FileTextIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { vanSalesApi } from '../api/van-sales.api';
@@ -288,7 +286,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                 border: 'none',
               }}
             >
-              <ShareIcon size={14} color="#ffffff" />
+              <Share2Icon size={14} color="#ffffff" />
               <span>إرسال واتساب</span>
             </Button>
 

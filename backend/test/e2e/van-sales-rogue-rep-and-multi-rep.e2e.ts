@@ -906,6 +906,7 @@ async function main(): Promise<void> {
       .insertInto('users')
       .values({
         username: `rep1-user-${Date.now()}`,
+        phone: '01000000001',
         display_name: 'أحمد المندوب الأول',
         password_hash: 'x',
         password_salt: 'x',
