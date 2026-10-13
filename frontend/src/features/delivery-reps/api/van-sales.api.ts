@@ -2003,23 +2003,26 @@ export const vanSalesApi = {
     latitude?: number | null;
     longitude?: number | null;
   }): Promise<{ ok: boolean; visitId: number; customerName: string; geofence: any; checkInAt: string }> => {
-    return http('/api/van-sales/visits/check-in', {
+    return http('/api/driver-portal/van-sales/visits/check-in', {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: getDriverAuthHeaders(),
     });
   },
 
   recordVisitInventory: async (visitId: number, payload: { items: any[] }): Promise<{ ok: boolean; visitId: number }> => {
-    return http(`/api/van-sales/visits/${visitId}/inventory`, {
+    return http(`/api/driver-portal/van-sales/visits/${visitId}/inventory`, {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: getDriverAuthHeaders(),
     });
   },
 
   recordVisitNoSale: async (visitId: number, payload: { noSaleReason: string; noSaleNotes?: string }): Promise<{ ok: boolean; visitId: number; reason: string }> => {
-    return http(`/api/van-sales/visits/${visitId}/no-sale`, {
+    return http(`/api/driver-portal/van-sales/visits/${visitId}/no-sale`, {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: getDriverAuthHeaders(),
     });
   },
 
@@ -2030,23 +2033,26 @@ export const vanSalesApi = {
     hasCollection?: boolean;
     collectionAmount?: number;
   }): Promise<{ ok: boolean; visitId: number; dwellTimeSeconds: number; dwellTimeMinutes: number }> => {
-    return http(`/api/van-sales/visits/${visitId}/check-out`, {
+    return http(`/api/driver-portal/van-sales/visits/${visitId}/check-out`, {
       method: 'POST',
       body: JSON.stringify(payload || {}),
+      headers: getDriverAuthHeaders(),
     });
   },
 
   recordTradeSurvey: async (payload: any): Promise<{ ok: boolean; surveyId: number }> => {
-    return http('/api/van-sales/trade-surveys', {
+    return http('/api/driver-portal/van-sales/trade-surveys', {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: getDriverAuthHeaders(),
     });
   },
 
   recordBreadcrumb: async (payload: { tripId: number; latitude: number; longitude: number; speedKmh?: number; batteryLevel?: number }): Promise<{ ok: boolean }> => {
-    return http('/api/van-sales/breadcrumbs', {
+    return http('/api/driver-portal/van-sales/breadcrumbs', {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: getDriverAuthHeaders(),
     });
   },
 
