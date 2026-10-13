@@ -148,6 +148,8 @@ export const settingsFormSchema = z.object({
       port: z.coerce.number().int().min(1).max(65535).default(8080),
       enabled: z.boolean().default(true),
       isDefault: z.boolean().optional().default(false),
+      pairingKey: z.string().optional().default(''),
+      terminalTid: z.string().optional().default(''),
     })
   ).optional().default([]),
 

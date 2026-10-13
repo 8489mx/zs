@@ -625,6 +625,38 @@ const PosTerminalCard = memo(function PosTerminalCard({
             style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
           />
         </div>
+
+        {/* Pairing Key (Optional) */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            رمز الاقتران الأمني (Pairing Key - اختياري)
+          </label>
+          <input
+            className="purchase-prototype-field-input"
+            value={terminal.pairingKey || ''}
+            onChange={(e) => onUpdate({ ...terminal, pairingKey: e.target.value })}
+            disabled={isCardDisabled}
+            placeholder="مثال: 1234 (إن وُجد بالماكينة)"
+            dir="ltr"
+            style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
+          />
+        </div>
+
+        {/* Terminal TID (Optional) */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+            معرف الطرفية السحابي (Terminal TID - اختياري)
+          </label>
+          <input
+            className="purchase-prototype-field-input"
+            value={terminal.terminalTid || ''}
+            onChange={(e) => onUpdate({ ...terminal, terminalTid: e.target.value })}
+            disabled={isCardDisabled}
+            placeholder="مثال: TID-884192"
+            dir="ltr"
+            style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
+          />
+        </div>
       </div>
 
       {/* Action Button: Ping & ECR Handshake */}
@@ -860,6 +892,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       port: 8080,
       enabled: true,
       isDefault: false,
+      pairingKey: '',
+      terminalTid: '',
     };
     const next = [...terminalsList, newTerminal];
     syncTerminalsAndPrimary(next);

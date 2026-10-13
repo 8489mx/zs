@@ -137,4 +137,6 @@ export interface PosTerminalDeviceConfig {
   port: number;
   enabled: boolean;
   isDefault?: boolean;
+  pairingKey?: string;
+  terminalTid?: string;
 }

@@ -441,10 +441,13 @@ export function PosCheckoutPaymentSection({
               message: `تمت الموافقة بنجاح (تفويض: ${authCode})`,
               approvalCode: authCode
             });
+            const approvedAmount = Number(res.data.amount || (pos.cardAmount > 0 ? pos.cardAmount : (pos.totals.total || 0)));
             pos.setPaymentChannel('card');
-            pos.setCardAmount(res.data.amount || Number(pos.totals.total || 0));
-            pos.setCashAmount(0);
-            pos.setTransferAmount(0);
+            pos.setCardAmount(approvedAmount);
+            if (!pos.cashAmount || pos.cashAmount <= 0) {
+              pos.setCashAmount(0);
+              pos.setTransferAmount(0);
+            }
 
             pos.setTerminalPaymentDetails?.({
               terminalId,
@@ -465,6 +468,11 @@ export function PosCheckoutPaymentSection({
               status: res.data.status,
               message: res.data.message || 'تم إلغاء أو رفض العملية من الجهاز'
             });
+          } else if (res.data?.message && res.data.message !== terminalSession.message) {
+            setTerminalSession((prev) => ({
+              ...prev,
+              message: res.data.message,
+            }));
           }
         } catch {
           // ignore network poll jitter

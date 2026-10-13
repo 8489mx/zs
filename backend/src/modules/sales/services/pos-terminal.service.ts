@@ -17,6 +17,91 @@ export interface PosTerminalInfo {
   ipAddress?: string;
   provider?: string;
   isDefault?: boolean;
+  pairingKey?: string;
+  terminalTid?: string;
+}
+
+export function isPrivateSubnetIp(ip: string): boolean {
+  if (!ip) return false;
+  const clean = ip.trim().toLowerCase();
+  if (clean === '127.0.0.1' || clean === 'localhost') return true;
+  if (clean.startsWith('192.168.') || clean.startsWith('10.')) return true;
+  const match172 = clean.match(/^172\.(\d+)\./);
+  if (match172) {
+    const octet = parseInt(match172[1], 10);
+    return octet >= 16 && octet <= 31;
+  }
+  return false;
+}
+
+export function parseTerminalHostAndPort(rawHost: string, fallbackPort = 8080): { host: string; port: number; protocol: 'http' | 'https' } {
+  if (!rawHost) return { host: '192.168.1.150', port: fallbackPort, protocol: 'http' };
+
+  let clean = rawHost.trim();
+  let protocol: 'http' | 'https' = 'http';
+
+  if (clean.toLowerCase().startsWith('https://')) {
+    protocol = 'https';
+    clean = clean.slice(8);
+  } else if (clean.toLowerCase().startsWith('http://')) {
+    protocol = 'http';
+    clean = clean.slice(7);
+  }
+
+  clean = clean.split('/')[0].trim();
+
+  const colonIdx = clean.lastIndexOf(':');
+  if (colonIdx !== -1) {
+    const portPart = clean.slice(colonIdx + 1);
+    const parsedPort = parseInt(portPart, 10);
+    if (!isNaN(parsedPort) && parsedPort > 0 && parsedPort <= 65535) {
+      const hostPart = clean.slice(0, colonIdx).trim();
+      if (parsedPort === 443 || parsedPort === 8443) protocol = 'https';
+      return { host: hostPart || '192.168.1.150', port: parsedPort, protocol };
+    }
+  }
+
+  const finalPort = Number.isFinite(fallbackPort) && fallbackPort > 0 ? fallbackPort : 8080;
+  if (finalPort === 443 || finalPort === 8443) protocol = 'https';
+  return { host: clean || '192.168.1.150', port: finalPort, protocol };
+}
+
+export function translateBankResponseCode(rawCode?: string, fallbackMessage?: string): string {
+  if (!rawCode) return fallbackMessage || 'تم رفض العملية من البنك أو تم إلغاؤها';
+  const clean = String(rawCode).trim().toUpperCase();
+
+  const codeMap: Record<string, string> = {
+    '00': 'تمت الموافقة بنجاح',
+    '000': 'تمت الموافقة بنجاح',
+    '000000': 'تمت الموافقة بنجاح',
+    '01': 'يرجى مراجعة البنك المصدر للبطاقة',
+    '04': 'يرجى حجز البطاقة (بطاقة مسروقة أو ملغاة)',
+    '05': 'رفض من البنك المصدر (Do Not Honor)',
+    '12': 'عملية غير صالحة',
+    '13': 'مبلغ غير صالح',
+    '14': 'رقم بطاقة غير صالح',
+    '30': 'خطأ في تنسيق الرسالة البنكية',
+    '41': 'بطاقة مفقودة - يرجى مصادرتها',
+    '43': 'بطاقة مسروقة - يرجى مصادرتها',
+    '51': 'تم الرفض: الرصيد غير كافٍ في بطاقة العميل',
+    '54': 'تم الرفض: البطاقة منتهية الصلاحية',
+    '55': 'تم الرفض: الرقم السري (PIN) غير صحيح',
+    '57': 'العملية غير مسموح بها لحامل هذه البطاقة',
+    '58': 'العملية غير مسموح بها في هذا النوع من المتاجر',
+    '61': 'تم الرفض: تجاوز الحد الأقصى المسموح للسحب اليومي',
+    '62': 'بطاقة مقيدة أو محظورة',
+    '65': 'تجاوز عدد مرات السحب المسموح بها',
+    '75': 'تم الرفض: تم تجاوز عدد محاولات إدخال الرقم السري المسموحة',
+    '91': 'تم الرفض: تعذر الاتصال بمركز معالجة بنك العميل',
+    '94': 'معاملة مكررة',
+    '96': 'تم الرفض: عطل مؤقت في نظام البنك المعالج، يرجى المحاولة لاحقاً',
+    '99': 'تم إلغاء العملية بواسطة حامل البطاقة',
+    'CANCELLED': 'تم إلغاء العملية بواسطة العميل',
+    'CANCELED': 'تم إلغاء العملية بواسطة العميل',
+    'TIMEOUT': 'انتهت مهلة إدخال البطاقة أو الرقم السري',
+  };
+
+  return codeMap[clean] || fallbackMessage || `تم رفض العملية من البنك (رمز الاستجابة: ${clean})`;
 }
 
 export interface TerminalPaymentRequest {
@@ -128,16 +213,17 @@ export class PosTerminalService {
           .filter((t: any) => t && t.enabled !== false)
           .map((t: any, idx: number) => {
             const providerKey = t.provider || 'fawry';
-            const tIp = String(t.ip || '192.168.1.150').trim();
-            const tPort = Number(t.port || 8080);
+            const parsed = parseTerminalHostAndPort(String(t.ip || '192.168.1.150'), Number(t.port || 8080));
             return {
               id: String(t.id || `term-${idx + 1}`),
               name: `${t.name || `ماكينة ${idx + 1}`} - ${providerDisplayNames[providerKey] || providerKey}`,
               type: 'edc_standalone' as const,
               status: 'online' as const,
               provider: providerDisplayNames[providerKey] || providerKey,
-              ipAddress: `${tIp}:${tPort}`,
+              ipAddress: `${parsed.host}:${parsed.port}`,
               isDefault: Boolean(t.isDefault),
+              pairingKey: t.pairingKey ? String(t.pairingKey).trim() : undefined,
+              terminalTid: t.terminalTid ? String(t.terminalTid).trim() : undefined,
             };
           });
       }
@@ -146,8 +232,7 @@ export class PosTerminalService {
       if (terminalsList.length === 0) {
         const name = settingsMap.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)';
         const provider = settingsMap.posTerminalProvider || 'mock_sandbox';
-        const ipAddress = settingsMap.posTerminalIp || '192.168.1.150';
-        const port = Number(settingsMap.posTerminalPort || 8080);
+        const parsed = parseTerminalHostAndPort(settingsMap.posTerminalIp || '192.168.1.150', Number(settingsMap.posTerminalPort || 8080));
 
         terminalsList = [
           {
@@ -156,7 +241,7 @@ export class PosTerminalService {
             type: 'edc_standalone',
             status: 'online',
             provider: providerDisplayNames[provider] || provider,
-            ipAddress: `${ipAddress}:${port}`,
+            ipAddress: `${parsed.host}:${parsed.port}`,
             isDefault: true,
           },
         ];
@@ -194,12 +279,19 @@ export class PosTerminalService {
 
     const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals.find(t => t.isDefault) || terminals[0];
     this.pruneExpiredSessions();
+
+    // Prevent concurrent charges on the exact same terminal
+    const isTerminalBusy = Array.from(this.activeSessions.values()).some(
+      s => s.tenantId === tenantId && s.terminalId === selectedTerminal.id && (s.status === 'processing' || s.status === 'pending')
+    );
+    if (isTerminalBusy) {
+      throw new BadRequestException(`ماكينة الدفع (${selectedTerminal.name}) مشغولة حالياً بعملية دفع أخرى قيد التنفيذ؛ يرجى إنهاء المعاملة الجارية أو إلغاؤها أولاً.`);
+    }
+
     const transactionId = `EDC-${randomUUID()}`;
 
-    // Extract IP and Port from terminal configuration
-    const [rawIp, rawPort] = (selectedTerminal.ipAddress || '192.168.1.150:8080').split(':');
-    const cleanIp = (rawIp || '192.168.1.150').trim();
-    const port = Number(rawPort || 8080);
+    // Extract IP and Port from terminal configuration safely
+    const { host: cleanIp, port } = parseTerminalHostAndPort(selectedTerminal.ipAddress || '192.168.1.150:8080', 8080);
     const prov = (selectedTerminal.provider || '').toLowerCase();
 
     // Determine if session should run in simulation / sandbox mode
@@ -227,7 +319,7 @@ export class PosTerminalService {
 
     // If real device, launch background protocol transaction
     if (!isMock) {
-      this.executeTerminalCharge(session, cleanIp, port, prov, request).catch((err) => {
+      this.executeTerminalCharge(session, cleanIp, port, prov, selectedTerminal, request).catch((err) => {
         this.logger.error(`Terminal charge background error for ${transactionId}:`, err);
       });
     }
@@ -298,9 +390,7 @@ export class PosTerminalService {
       const terminals = await this.getTerminals(tenantId).catch(() => []);
       const term = terminals.find(t => t.id === session.terminalId);
       if (term?.ipAddress) {
-        const [rawIp, rawPort] = term.ipAddress.split(':');
-        const cleanIp = (rawIp || '').trim();
-        const port = Number(rawPort || 8080);
+        const { host: cleanIp, port } = parseTerminalHostAndPort(term.ipAddress, 8080);
         const prov = (term.provider || '').toLowerCase();
         if (cleanIp) {
           this.dispatchTerminalCancel(cleanIp, port, prov, transactionId).catch(() => {});
@@ -319,17 +409,18 @@ export class PosTerminalService {
     ip: string,
     port: number,
     provider: string,
+    terminal: PosTerminalInfo,
     request: TerminalPaymentRequest
   ): Promise<void> {
     if (provider.includes('geidea')) {
-      await this.executeGeideaCharge(session, ip, port, request);
+      await this.executeGeideaCharge(session, ip, port, terminal, request);
     } else if (provider.includes('fawry') || provider.includes('pax')) {
-      await this.executePaxFawryCharge(session, ip, port, request);
+      await this.executePaxFawryCharge(session, ip, port, terminal, request);
     } else if (provider.includes('paymob')) {
-      await this.executePaymobCharge(session, ip, port, request);
+      await this.executePaymobCharge(session, ip, port, terminal, request);
     } else {
       // Default standard ECR REST
-      await this.executeGeideaCharge(session, ip, port, request);
+      await this.executeGeideaCharge(session, ip, port, terminal, request);
     }
   }
 
@@ -340,24 +431,45 @@ export class PosTerminalService {
     session: TerminalPaymentSession,
     ip: string,
     port: number,
+    terminal: PosTerminalInfo,
     request: TerminalPaymentRequest
   ): Promise<void> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 65000);
+    const timeoutId = setTimeout(() => controller.abort(), 95000);
 
     try {
       session.status = 'processing';
       session.message = 'جاري التخاطب مع ماكينة جيديا... يرجى إدخال أو تمرير البطاقة';
       session.updatedAt = Date.now();
 
-      const payload = {
+      const amountDec = Number(request.amount.toFixed(2));
+      const amountMinor = Math.round(request.amount * 100);
+
+      const payload: Record<string, any> = {
         transactionType: 'PURCHASE',
-        amount: Number(request.amount.toFixed(2)),
+        amount: amountDec,
+        amountInCents: amountMinor,
+        amountInHalalas: amountMinor,
         currency: session.currency || 'SAR',
         referenceId: session.transactionId,
         ecrReference: session.transactionId,
         printReceipt: true,
       };
+
+      if (terminal?.terminalTid) {
+        payload.terminalId = terminal.terminalTid;
+        payload.terminalTid = terminal.terminalTid;
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+
+      if (terminal?.pairingKey) {
+        headers['x-pairing-key'] = terminal.pairingKey;
+        headers['Authorization'] = `Bearer ${terminal.pairingKey}`;
+      }
 
       let res: Response | null = null;
       let targetUrl = `http://${ip}:${port}/api/v1/transaction`;
@@ -365,17 +477,16 @@ export class PosTerminalService {
       try {
         res = await fetch(targetUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers,
           body: JSON.stringify(payload),
           signal: controller.signal,
         });
       } catch (err: any) {
         if (err.name === 'AbortError') throw err;
-        // Fallback endpoint
         targetUrl = `http://${ip}:${port}/ecr/sale`;
         res = await fetch(targetUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers,
           body: JSON.stringify(payload),
           signal: controller.signal,
         });
@@ -400,23 +511,44 @@ export class PosTerminalService {
         session.status = 'approved';
         session.approvalCode = String(data.authCode || data.approvalCode || data.authorizationCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
         session.rrn = String(data.rrn || data.retrievalReferenceNumber || data.referenceNo || session.transactionId);
-        session.cardScheme = String(data.cardScheme || data.scheme || data.cardType || 'mada').toLowerCase();
+        
+        const rawScheme = String(data.cardScheme || data.scheme || data.cardType || 'mada').toLowerCase();
+        let mappedScheme = 'mada';
+        if (rawScheme.includes('knet')) mappedScheme = 'knet';
+        else if (rawScheme.includes('meeza')) mappedScheme = 'meeza';
+        else if (rawScheme.includes('master')) mappedScheme = 'mastercard';
+        else if (rawScheme.includes('visa')) mappedScheme = 'visa';
+        else if (rawScheme.includes('mada')) mappedScheme = 'mada';
+        else mappedScheme = rawScheme;
+        session.cardScheme = mappedScheme;
+
         session.cardLastFour = String(data.cardLastFour || data.last4 || (data.maskedPan ? data.maskedPan.slice(-4) : ''));
         session.message = 'تمت الموافقة من بنك التاجر بنجاح!';
         session.updatedAt = Date.now();
         this.logger.log(`Geidea ECR approved: Auth=${session.approvalCode}, RRN=${session.rrn}`);
       } else {
-        session.status = 'declined';
-        session.message = data.message || data.responseMessage || 'تم رفض العملية من الماكينة أو تم إلغاؤها من قبل العميل';
+        const isUserCancel = statusRaw === 'CANCELLED' || statusRaw === 'CANCELED' || data.responseCode === '99';
+        session.status = isUserCancel ? 'cancelled' : 'declined';
+        const rawCode = String(data.responseCode || data.resultCode || statusRaw || '');
+        session.message = translateBankResponseCode(rawCode, data.message || data.responseMessage || data.responseDescription);
         session.updatedAt = Date.now();
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       session.status = 'declined';
       const isAbort = err.name === 'AbortError';
-      const errMsg = isAbort
-        ? 'انتهت مهلة الانتظار (65 ثانية) دون تمرير البطاقة على الماكينة'
-        : `تعذر الاتصال بماكينة جيديا على ${ip}:${port} (${err.code || err.message}). تأكد من تشغيل الماكينة وتفعيل خدمة ECR.`;
+      const isPrivateSub = isPrivateSubnetIp(ip);
+      const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+      let errMsg = isAbort
+        ? 'انتهت مهلة الانتظار (95 ثانية) دون تمرير البطاقة على الماكينة'
+        : `تعذر الاتصال بماكينة جيديا على ${ip}:${port} (${err.code || err.message}).`;
+
+      if (isCloudEnv && isPrivateSub && !isAbort) {
+        errMsg += ' (ملاحظة السحابة: السيرفر السحابي لا يستطيع الدخول لشبكة الراوتر المحلي؛ استخدم تطبيق ديسكتوب Z-Systems أو فعّل Geidea Cloud ECR).';
+      } else if (!isAbort) {
+        errMsg += ' تأكد من تشغيل الماكينة وتفعيل خدمة ECR.';
+      }
+
       session.message = errMsg;
       session.updatedAt = Date.now();
       this.logger.warn(`Geidea ECR error: ${errMsg}`);
@@ -424,82 +556,238 @@ export class PosTerminalService {
   }
 
   /**
+   * PAX POSLink Raw TCP Socket Driver
+   * Standard framing for PAX A920 / A960 / S900 / D210 on ports 10009 / 20008:
+   * [STX (0x02)] + [Data] + [ETX (0x03)] + [LRC (XOR Checksum)]
+   */
+  private checkOrSendPaxRawTcpSocket(
+    ip: string,
+    port: number,
+    payloadObj: any,
+    timeoutMs = 60000
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const client = new net.Socket();
+      let buffer = Buffer.alloc(0);
+      let settled = false;
+
+      const finish = (err?: Error, result?: any) => {
+        if (settled) return;
+        settled = true;
+        client.destroy();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
+      client.setTimeout(timeoutMs);
+
+      client.on('connect', () => {
+        const jsonStr = JSON.stringify(payloadObj);
+        const dataBuf = Buffer.from(jsonStr, 'utf8');
+
+        // Calculate LRC: XOR of all bytes from after STX up to and including ETX
+        let lrc = 0x03; // ETX is 0x03
+        for (let i = 0; i < dataBuf.length; i++) {
+          lrc ^= dataBuf[i];
+        }
+
+        const packet = Buffer.concat([
+          Buffer.from([0x02]), // STX
+          dataBuf,
+          Buffer.from([0x03, lrc]), // ETX + LRC
+        ]);
+
+        client.write(packet);
+      });
+
+      client.on('data', (chunk) => {
+        buffer = Buffer.concat([buffer, chunk]);
+
+        const etxIdx = buffer.indexOf(0x03);
+        if (etxIdx !== -1 && buffer.length > etxIdx) {
+          let stxIdx = buffer.indexOf(0x02);
+          if (stxIdx === -1) stxIdx = 0;
+          else stxIdx += 1;
+
+          const msgBuf = buffer.subarray(stxIdx, etxIdx);
+          const rawMsg = msgBuf.toString('utf8');
+
+          // Send ACK (0x06) to terminal to acknowledge clean frame receipt
+          try {
+            client.write(Buffer.from([0x06]));
+          } catch {
+            // Ignore write error if socket closing
+          }
+
+          try {
+            const parsed = JSON.parse(rawMsg);
+            finish(undefined, parsed);
+          } catch {
+            const parts = rawMsg.split('^');
+            finish(undefined, {
+              responseCode: parts[0] || '000000',
+              authCode: parts[1] || '',
+              refNum: parts[2] || '',
+              raw: rawMsg,
+            });
+          }
+        }
+      });
+
+      client.on('timeout', () => {
+        finish(new Error('انتهت مهلة انتظار الماكينة (Socket Timeout)'));
+      });
+
+      client.on('error', (err) => {
+        finish(err);
+      });
+
+      client.connect(port, ip);
+    });
+  }
+
+  /**
    * PAX POSLink / Fawry ECR Protocol Driver
+   * Supports both Raw TCP Socket (ports 10009 / 20008) and HTTP POSLink (port 8080)
    */
   private async executePaxFawryCharge(
     session: TerminalPaymentSession,
     ip: string,
     port: number,
+    terminal: PosTerminalInfo,
     request: TerminalPaymentRequest
   ): Promise<void> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 65000);
+    const timeoutId = setTimeout(() => controller.abort(), 95000);
 
     try {
       session.status = 'processing';
       session.message = 'جاري التخاطب مع ماكينة فوري / باكس... يرجى إدخال أو تمرير البطاقة';
       session.updatedAt = Date.now();
 
-      const payload = {
+      const amountDec = Number(request.amount.toFixed(2));
+      const amountMinorStr = Math.round(request.amount * 100).toString();
+      const amountMinorNum = Math.round(request.amount * 100);
+      const payload: Record<string, any> = {
         command: 'DO_TRANSACTION',
         transType: '01', // SALE
-        amount: Math.round(request.amount * 100).toString(),
+        amount: amountMinorStr,
+        transAmount: amountMinorStr,
+        amountInCents: amountMinorNum,
+        amountDecimal: amountDec,
         ecrRefNum: session.transactionId,
+        referenceNum: session.transactionId,
         currencyCode: session.currency || 'EGP',
+        printReceipt: '1',
+        printCustomerReceipt: '1',
       };
 
-      let res: Response | null = null;
-      let targetUrl = `http://${ip}:${port}/poslink`;
+      if (terminal?.terminalTid) {
+        payload.tid = terminal.terminalTid;
+      }
 
-      try {
-        res = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-      } catch (err: any) {
-        if (err.name === 'AbortError') throw err;
-        targetUrl = `http://${ip}:${port}/`;
-        res = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
+      const isRawTcpPort = port === 10009 || port === 20008;
+      let data: any = null;
+
+      if (isRawTcpPort) {
+        try {
+          data = await this.checkOrSendPaxRawTcpSocket(ip, port, payload, 90000);
+        } catch (rawErr: any) {
+          this.logger.warn(`PAX Raw TCP failed on ${ip}:${port}, trying HTTP fallback: ${rawErr.message}`);
+        }
+      }
+
+      if (!data) {
+        let res: Response | null = null;
+        let targetUrl = `http://${ip}:${port}/poslink`;
+
+        try {
+          res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+        } catch (err: any) {
+          if (err.name === 'AbortError') throw err;
+          targetUrl = `http://${ip}:${port}/`;
+          res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+        }
+
+        if (res && res.ok) {
+          data = await res.json();
+        } else if (!isRawTcpPort) {
+          try {
+            data = await this.checkOrSendPaxRawTcpSocket(ip, port, payload, 90000);
+          } catch {
+            // Keep error
+          }
+        }
       }
 
       clearTimeout(timeoutId);
 
-      if (!res.ok) {
-        throw new Error(`الماكينة أعادت خطأ كود ${res.status}: ${res.statusText}`);
+      if (!data) {
+        throw new Error(`تعذر التخاطب مع ماكينة باكس عبر HTTP أو Raw TCP Socket على ${ip}:${port}`);
       }
 
-      const data: any = await res.json();
-      const code = String(data.responseCode || data.resultCode || '').trim();
-      const isApproved = code === '000000' || code === '00' || code === 'OK' || data.status === 'APPROVED';
+      const code = String(data.responseCode || data.resultCode || data.status || '').trim();
+      const isApproved =
+        code === '000000' ||
+        code === '00' ||
+        code === '0' ||
+        code === 'OK' ||
+        code === 'APPROVED' ||
+        data.status === 'APPROVED' ||
+        data.transResult === 'APPROVED';
 
       if (isApproved) {
         session.status = 'approved';
-        session.approvalCode = String(data.authCode || data.approvalCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
-        session.rrn = String(data.refNum || data.rrn || session.transactionId);
-        session.cardScheme = String(data.cardType || data.cardScheme || 'Visa').toLowerCase();
-        session.cardLastFour = String(data.cardLastFour || data.last4 || (data.bogusPan ? data.bogusPan.slice(-4) : ''));
+        session.approvalCode = String(data.authCode || data.approvalCode || data.authNum || data.extData?.AuthCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
+        session.rrn = String(data.refNum || data.rrn || data.extData?.RRN || session.transactionId);
+        
+        const rawScheme = String(data.cardType || data.cardScheme || data.extData?.CardType || 'Visa').toLowerCase();
+        let mappedScheme = 'visa';
+        if (rawScheme.includes('mada')) mappedScheme = 'mada';
+        else if (rawScheme.includes('knet')) mappedScheme = 'knet';
+        else if (rawScheme.includes('meeza') || rawScheme === '07') mappedScheme = 'meeza';
+        else if (rawScheme.includes('master') || rawScheme === '02') mappedScheme = 'mastercard';
+        else if (rawScheme.includes('visa') || rawScheme === '01') mappedScheme = 'visa';
+        else mappedScheme = rawScheme;
+        session.cardScheme = mappedScheme;
+
+        session.cardLastFour = String(data.cardLastFour || data.last4 || (data.bogusPan ? data.bogusPan.slice(-4) : (data.extData?.Pan ? data.extData.Pan.slice(-4) : '')));
         session.message = 'تمت الموافقة بنجاح!';
         session.updatedAt = Date.now();
         this.logger.log(`PAX/Fawry ECR approved: Auth=${session.approvalCode}, RRN=${session.rrn}`);
       } else {
-        session.status = 'declined';
-        session.message = data.responseMessage || data.message || 'تم رفض العملية من جهاز فوري / باكس';
+        const isUserCancel = code === 'CANCELLED' || code === 'CANCELED' || code === '99' || data.responseCode === '99';
+        session.status = isUserCancel ? 'cancelled' : 'declined';
+        const rawCode = String(data.responseCode || data.resultCode || code || '');
+        session.message = translateBankResponseCode(rawCode, data.responseMessage || data.message);
         session.updatedAt = Date.now();
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       session.status = 'declined';
       const isAbort = err.name === 'AbortError';
-      const errMsg = isAbort
-        ? 'انتهت مهلة الانتظار (65 ثانية) دون تمرير البطاقة على جهاز باكس'
-        : `تعذر الاتصال بماكينة فوري / باكس على ${ip}:${port} (${err.code || err.message}). تأكد من تشغيل تطبيق ECR على الماكينة.`;
+      const isPrivateSub = isPrivateSubnetIp(ip);
+      const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+      let errMsg = isAbort
+        ? 'انتهت مهلة الانتظار (95 ثانية) دون تمرير البطاقة على جهاز باكس'
+        : `تعذر الاتصال بماكينة فوري / باكس على ${ip}:${port} (${err.code || err.message}).`;
+
+      if (isCloudEnv && isPrivateSub && !isAbort) {
+        errMsg += ' (ملاحظة السحابة: السيرفر السحابي لا يستطيع الدخول لشبكة الراوتر المحلي؛ استخدم تطبيق ديسكتوب Z-Systems للربط المباشر).';
+      } else if (!isAbort) {
+        errMsg += ' تأكد من تشغيل تطبيق ECR على الماكينة.';
+      }
+
       session.message = errMsg;
       session.updatedAt = Date.now();
       this.logger.warn(`PAX/Fawry ECR error: ${errMsg}`);
@@ -513,10 +801,11 @@ export class PosTerminalService {
     session: TerminalPaymentSession,
     ip: string,
     port: number,
+    terminal: PosTerminalInfo,
     request: TerminalPaymentRequest
   ): Promise<void> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 65000);
+    const timeoutId = setTimeout(() => controller.abort(), 95000);
 
     try {
       session.status = 'processing';
@@ -555,7 +844,20 @@ export class PosTerminalService {
     } catch (err: any) {
       clearTimeout(timeoutId);
       session.status = 'declined';
-      session.message = `تعذر الاتصال بماكينة Paymob على ${ip}:${port} (${err.code || err.message})`;
+      const isAbort = err.name === 'AbortError';
+      const isPrivateSub = isPrivateSubnetIp(ip);
+      const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+      let errMsg = isAbort
+        ? 'انتهت مهلة الانتظار (95 ثانية) دون تمرير البطاقة على ماكينة Paymob'
+        : `تعذر الاتصال بماكينة Paymob على ${ip}:${port} (${err.code || err.message}).`;
+
+      if (isCloudEnv && isPrivateSub && !isAbort) {
+        errMsg += ' (ملاحظة السحابة: السيرفر السحابي لا يستطيع الدخول لشبكة الراوتر المحلي؛ استخدم تطبيق ديسكتوب Z-Systems للربط المباشر).';
+      } else if (!isAbort) {
+        errMsg += ' تأكد من تشغيل تطبيق ECR على الماكينة.';
+      }
+
+      session.message = errMsg;
       session.updatedAt = Date.now();
     }
   }
@@ -574,16 +876,33 @@ export class PosTerminalService {
         await fetch(`http://${ip}:${port}/api/v1/transaction/cancel`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ referenceId: transactionId }),
+          body: JSON.stringify({ referenceId: transactionId, ecrReference: transactionId }),
           signal: AbortSignal.timeout(4000),
+        }).catch(async () => {
+          await fetch(`http://${ip}:${port}/ecr/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referenceId: transactionId, ecrReference: transactionId }),
+            signal: AbortSignal.timeout(4000),
+          }).catch(() => {});
         });
       } else if (provider.includes('fawry') || provider.includes('pax')) {
-        await fetch(`http://${ip}:${port}/poslink`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'CANCEL_TRANSACTION', ecrRefNum: transactionId }),
-          signal: AbortSignal.timeout(4000),
-        });
+        const isRawTcpPort = port === 10009 || port === 20008;
+        if (isRawTcpPort) {
+          await this.checkOrSendPaxRawTcpSocket(
+            ip,
+            port,
+            { command: 'CANCEL_TRANSACTION', ecrRefNum: transactionId },
+            4000
+          ).catch(() => {});
+        } else {
+          await fetch(`http://${ip}:${port}/poslink`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: 'CANCEL_TRANSACTION', ecrRefNum: transactionId }),
+            signal: AbortSignal.timeout(4000),
+          }).catch(() => {});
+        }
       }
     } catch {
       // Best-effort cancel
@@ -597,12 +916,13 @@ export class PosTerminalService {
     tenantId: string,
     payload: { ip?: string; port?: number; provider?: string }
   ): Promise<TerminalConnectionTestResult> {
-    let cleanIp = (payload?.ip || '').trim();
-    let port = Number(payload?.port || 8080);
+    const parsed = parseTerminalHostAndPort(payload?.ip || '', Number(payload?.port || 8080));
+    let cleanIp = parsed.host;
+    let port = parsed.port;
     const provider = payload?.provider || 'fawry';
 
     // If no IP supplied, fetch configured settings for tenant
-    if (!cleanIp) {
+    if (!payload?.ip) {
       if (this.db) {
         try {
           const rows = await this.db
@@ -618,8 +938,9 @@ export class PosTerminalService {
               settingsMap[row.key] = row.value;
             }
           }
-          cleanIp = (settingsMap.posTerminalIp || '192.168.1.150').trim();
-          port = Number(settingsMap.posTerminalPort || 8080);
+          const fromDb = parseTerminalHostAndPort(settingsMap.posTerminalIp || '192.168.1.150', Number(settingsMap.posTerminalPort || 8080));
+          cleanIp = fromDb.host;
+          port = fromDb.port;
         } catch {
           cleanIp = '192.168.1.150';
         }
@@ -718,6 +1039,21 @@ export class PosTerminalService {
     }
 
     // Case 3: Completely unreachable
+    const isPrivateSub = isPrivateSubnetIp(cleanIp);
+    const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+    if (isCloudEnv && isPrivateSub) {
+      return {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: cleanIp,
+        port,
+        message: `تعذر الوصول لماكينة الدفع (${cleanIp}) من بيئة السيرفر السحابي (Cloud SaaS)`,
+        details: `العنوان ${cleanIp} يقع ضمن الشبكة المحلية (LAN) الخاصة بفرعك. السيرفر السحابي المعزول لا يستطيع الوصول للراوتر المحلي عبر الإنترنت العام. للربط المباشر مع ماكينات الشبكة المحلية، يرجى تشغيل تطبيق Z-Systems Desktop للكاشير على نفس الشبكة، أو استخدام وضع الربط السحابي مع المزود (مثل Geidea Cloud ECR بتعيين Terminal TID).`,
+        provider,
+      };
+    }
+
     return {
       reachable: false,
       pingSucceeded: false,
