@@ -2545,6 +2545,18 @@ export class VanSalesService {
     unloadedItemsCount: number;
     distanceKm: number;
     status: 'settled';
+    cashierName?: string;
+    cashierId?: number | null;
+    repName?: string;
+    settledAt?: string;
+    salesAmount?: number;
+    cashSales?: number;
+    creditSales?: number;
+    collectionsTotal?: number;
+    returnsAmount?: number;
+    cashRefunds?: number;
+    creditReturns?: number;
+    stockVariances?: any[];
   }> {
     const trip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
@@ -2656,6 +2668,7 @@ export class VanSalesService {
     let unloadedItemsCount = 0;
     let totalStockVarianceCost = 0;
     let totalUnloadedCost = 0;
+    let stockAuditResult: ReturnType<typeof reconcileVanStockAudit> | null = null;
 
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
@@ -2691,7 +2704,7 @@ export class VanSalesService {
         };
       });
 
-      const stockAuditResult = reconcileVanStockAudit(auditItems);
+      stockAuditResult = reconcileVanStockAudit(auditItems);
       totalStockVarianceCost = stockAuditResult.totalStockShortageCost;
 
       // Deduct missing stock items if shortage was detected
@@ -2819,7 +2832,7 @@ export class VanSalesService {
           settled_by: actorUserId || null,
           supervisor_id: actorUserId || null,
           stock_variance_amount: totalStockVarianceCost,
-          stock_variance_details: stockAuditResult.itemVariances.length ? JSON.stringify(stockAuditResult.itemVariances) : null,
+          stock_variance_details: stockAuditResult?.itemVariances?.length ? JSON.stringify(stockAuditResult.itemVariances) : null,
           night_stock_approved: Boolean(payload.nightStockApproved),
           night_stock_approved_by: payload.nightStockApproved ? (actorUserId || null) : null,
           night_stock_notes: payload.nightStockNotes || null,
@@ -2971,7 +2984,7 @@ export class VanSalesService {
       returnsAmount,
       cashRefunds,
       creditReturns,
-      stockVariances: stockAuditResult.itemVariances || [],
+      stockVariances: (stockAuditResult as any)?.itemVariances || [],
     };
   }
 

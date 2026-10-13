@@ -99,7 +99,7 @@ describe('Hardware POS Printing Engine', () => {
   it('tryPrintViaHardware prints silently and returns true when hardware is online', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation((url, options) => {
+      vi.fn().mockImplementation((_url, options) => {
         if (options?.method === 'OPTIONS') {
           return Promise.resolve({ ok: true, status: 200 });
         }

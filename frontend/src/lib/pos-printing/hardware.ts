@@ -175,7 +175,7 @@ export function formatSaleForHardwarePrinter(sale: Sale, options?: HardwarePrint
 
 export async function printViaHardwarePrinter(
   sale: Sale,
-  options?: PrintReceiptOptions
+  options?: HardwarePrintOptions
 ): Promise<HardwarePrinterResponse> {
   const targetUrl = getHardwarePrinterUrl(options);
   const printData = formatSaleForHardwarePrinter(sale, options);
@@ -200,7 +200,7 @@ export async function printViaHardwarePrinter(
 
 export async function tryPrintViaHardware(
   sale: Sale,
-  options?: PrintReceiptOptions
+  options?: HardwarePrintOptions
 ): Promise<boolean> {
   const targetUrl = getHardwarePrinterUrl(options);
   const available = await isHardwarePrinterAvailable(targetUrl);

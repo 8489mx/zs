@@ -43,6 +43,7 @@ export interface TerminalPaymentSession {
   updatedAt: number;
   message?: string;
   provider?: string;
+  isSimulated?: boolean;
 }
 
 export interface TerminalConnectionTestResult {
@@ -195,6 +196,15 @@ export class PosTerminalService {
     this.pruneExpiredSessions();
     const transactionId = `EDC-${randomUUID()}`;
 
+    // Extract IP and Port from terminal configuration
+    const [rawIp, rawPort] = (selectedTerminal.ipAddress || '192.168.1.150:8080').split(':');
+    const cleanIp = (rawIp || '192.168.1.150').trim();
+    const port = Number(rawPort || 8080);
+    const prov = (selectedTerminal.provider || '').toLowerCase();
+
+    // Determine if session should run in simulation / sandbox mode
+    const isMock = prov.includes('mock') || prov.includes('sandbox') || cleanIp === '127.0.0.1' || cleanIp === 'localhost';
+
     const session: TerminalPaymentSession = {
       tenantId,
       transactionId,
@@ -202,15 +212,25 @@ export class PosTerminalService {
       terminalName: selectedTerminal.name,
       amount: request.amount,
       currency: request.currency || 'SAR',
-      status: 'pending',
+      status: isMock ? 'pending' : 'processing',
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      message: 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع...',
+      message: isMock
+        ? 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع...'
+        : `جاري الاتصال بماكينة الدفع (${cleanIp}:${port})... يرجى تمرير البطاقة`,
       provider: selectedTerminal.provider,
+      isSimulated: isMock,
     };
 
     this.activeSessions.set(transactionId, session);
-    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount} on ${selectedTerminal.name}`);
+    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount} on ${selectedTerminal.name} (Simulated: ${isMock})`);
+
+    // If real device, launch background protocol transaction
+    if (!isMock) {
+      this.executeTerminalCharge(session, cleanIp, port, prov, request).catch((err) => {
+        this.logger.error(`Terminal charge background error for ${transactionId}:`, err);
+      });
+    }
 
     return session;
   }
@@ -225,36 +245,35 @@ export class PosTerminalService {
       throw new BadRequestException('معاملة الدفع غير موجودة أو منتهية الصلاحية');
     }
 
-    const elapsedMs = Date.now() - session.createdAt;
+    // Only apply timer simulation if the session was explicitly marked as simulated
+    if (session.isSimulated) {
+      const elapsedMs = Date.now() - session.createdAt;
 
-    // Simulate real device approval progression:
-    // 0s-2.5s: 'pending' (waiting for card tap)
-    // 2.5s-4.5s: 'processing' (authorizing with bank)
-    // > 4.5s: 'approved' with generated approval code
-    if (session.status === 'pending' && elapsedMs > 2500) {
-      session.status = 'processing';
-      session.message = 'جاري معالجة البطاقة والاتصال بالبنك...';
-      session.updatedAt = Date.now();
-    } else if (session.status === 'processing' && elapsedMs > 4500) {
-      session.status = 'approved';
-      session.approvalCode = `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
-      session.rrn = `RRN${Date.now().toString().slice(-9)}`;
+      if (session.status === 'pending' && elapsedMs > 2500) {
+        session.status = 'processing';
+        session.message = 'جاري معالجة البطاقة والاتصال بالبنك...';
+        session.updatedAt = Date.now();
+      } else if (session.status === 'processing' && elapsedMs > 4500) {
+        session.status = 'approved';
+        session.approvalCode = `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+        session.rrn = `RRN${Date.now().toString().slice(-9)}`;
 
-      const curr = (session.currency || '').toUpperCase();
-      const prov = (session.provider || '').toLowerCase();
-      if (curr === 'KWD' || prov.includes('knet')) {
-        session.cardScheme = 'knet';
-      } else if (curr === 'SAR' || prov.includes('geidea') || prov.includes('mada')) {
-        session.cardScheme = 'mada';
-      } else if (curr === 'AED' || prov.includes('network')) {
-        session.cardScheme = Math.random() > 0.5 ? 'Visa' : 'Mastercard';
-      } else {
-        session.cardScheme = Math.random() > 0.4 ? 'Visa' : 'Meeza';
+        const curr = (session.currency || '').toUpperCase();
+        const prov = (session.provider || '').toLowerCase();
+        if (curr === 'KWD' || prov.includes('knet')) {
+          session.cardScheme = 'knet';
+        } else if (curr === 'SAR' || prov.includes('geidea') || prov.includes('mada')) {
+          session.cardScheme = 'mada';
+        } else if (curr === 'AED' || prov.includes('network')) {
+          session.cardScheme = Math.random() > 0.5 ? 'Visa' : 'Mastercard';
+        } else {
+          session.cardScheme = Math.random() > 0.4 ? 'Visa' : 'Meeza';
+        }
+
+        session.cardLastFour = String(Math.floor(1000 + Math.random() * 9000));
+        session.message = 'تمت الموافقة بنجاح!';
+        session.updatedAt = Date.now();
       }
-
-      session.cardLastFour = String(Math.floor(1000 + Math.random() * 9000));
-      session.message = 'تمت الموافقة بنجاح!';
-      session.updatedAt = Date.now();
     }
 
     return session;
@@ -274,7 +293,301 @@ export class PosTerminalService {
     session.message = 'تم إلغاء عملية الدفع بواسطة الكاشير';
     session.updatedAt = Date.now();
 
+    // If real device, dispatch remote cancel best-effort
+    if (!session.isSimulated) {
+      const terminals = await this.getTerminals(tenantId).catch(() => []);
+      const term = terminals.find(t => t.id === session.terminalId);
+      if (term?.ipAddress) {
+        const [rawIp, rawPort] = term.ipAddress.split(':');
+        const cleanIp = (rawIp || '').trim();
+        const port = Number(rawPort || 8080);
+        const prov = (term.provider || '').toLowerCase();
+        if (cleanIp) {
+          this.dispatchTerminalCancel(cleanIp, port, prov, transactionId).catch(() => {});
+        }
+      }
+    }
+
     return session;
+  }
+
+  /**
+   * Execute real-device protocol communication (Geidea, Fawry/PAX, Paymob, NI)
+   */
+  private async executeTerminalCharge(
+    session: TerminalPaymentSession,
+    ip: string,
+    port: number,
+    provider: string,
+    request: TerminalPaymentRequest
+  ): Promise<void> {
+    if (provider.includes('geidea')) {
+      await this.executeGeideaCharge(session, ip, port, request);
+    } else if (provider.includes('fawry') || provider.includes('pax')) {
+      await this.executePaxFawryCharge(session, ip, port, request);
+    } else if (provider.includes('paymob')) {
+      await this.executePaymobCharge(session, ip, port, request);
+    } else {
+      // Default standard ECR REST
+      await this.executeGeideaCharge(session, ip, port, request);
+    }
+  }
+
+  /**
+   * Geidea ECR Local REST Protocol Driver (Standard for Geidea Smart POS in KSA & Egypt)
+   */
+  private async executeGeideaCharge(
+    session: TerminalPaymentSession,
+    ip: string,
+    port: number,
+    request: TerminalPaymentRequest
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
+
+    try {
+      session.status = 'processing';
+      session.message = 'جاري التخاطب مع ماكينة جيديا... يرجى إدخال أو تمرير البطاقة';
+      session.updatedAt = Date.now();
+
+      const payload = {
+        transactionType: 'PURCHASE',
+        amount: Number(request.amount.toFixed(2)),
+        currency: session.currency || 'SAR',
+        referenceId: session.transactionId,
+        ecrReference: session.transactionId,
+        printReceipt: true,
+      };
+
+      let res: Response | null = null;
+      let targetUrl = `http://${ip}:${port}/api/v1/transaction`;
+
+      try {
+        res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+        // Fallback endpoint
+        targetUrl = `http://${ip}:${port}/ecr/sale`;
+        res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      }
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        throw new Error(`الماكينة أعادت خطأ كود ${res.status}: ${res.statusText}`);
+      }
+
+      const data: any = await res.json();
+      const statusRaw = String(data.status || data.responseCode || '').toUpperCase();
+      const isApproved =
+        statusRaw === 'APPROVED' ||
+        statusRaw === 'SUCCESS' ||
+        data.responseCode === '00' ||
+        data.responseCode === '000' ||
+        data.isSuccess === true;
+
+      if (isApproved) {
+        session.status = 'approved';
+        session.approvalCode = String(data.authCode || data.approvalCode || data.authorizationCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
+        session.rrn = String(data.rrn || data.retrievalReferenceNumber || data.referenceNo || session.transactionId);
+        session.cardScheme = String(data.cardScheme || data.scheme || data.cardType || 'mada').toLowerCase();
+        session.cardLastFour = String(data.cardLastFour || data.last4 || (data.maskedPan ? data.maskedPan.slice(-4) : ''));
+        session.message = 'تمت الموافقة من بنك التاجر بنجاح!';
+        session.updatedAt = Date.now();
+        this.logger.log(`Geidea ECR approved: Auth=${session.approvalCode}, RRN=${session.rrn}`);
+      } else {
+        session.status = 'declined';
+        session.message = data.message || data.responseMessage || 'تم رفض العملية من الماكينة أو تم إلغاؤها من قبل العميل';
+        session.updatedAt = Date.now();
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      session.status = 'declined';
+      const isAbort = err.name === 'AbortError';
+      const errMsg = isAbort
+        ? 'انتهت مهلة الانتظار (65 ثانية) دون تمرير البطاقة على الماكينة'
+        : `تعذر الاتصال بماكينة جيديا على ${ip}:${port} (${err.code || err.message}). تأكد من تشغيل الماكينة وتفعيل خدمة ECR.`;
+      session.message = errMsg;
+      session.updatedAt = Date.now();
+      this.logger.warn(`Geidea ECR error: ${errMsg}`);
+    }
+  }
+
+  /**
+   * PAX POSLink / Fawry ECR Protocol Driver
+   */
+  private async executePaxFawryCharge(
+    session: TerminalPaymentSession,
+    ip: string,
+    port: number,
+    request: TerminalPaymentRequest
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
+
+    try {
+      session.status = 'processing';
+      session.message = 'جاري التخاطب مع ماكينة فوري / باكس... يرجى إدخال أو تمرير البطاقة';
+      session.updatedAt = Date.now();
+
+      const payload = {
+        command: 'DO_TRANSACTION',
+        transType: '01', // SALE
+        amount: Math.round(request.amount * 100).toString(),
+        ecrRefNum: session.transactionId,
+        currencyCode: session.currency || 'EGP',
+      };
+
+      let res: Response | null = null;
+      let targetUrl = `http://${ip}:${port}/poslink`;
+
+      try {
+        res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+        targetUrl = `http://${ip}:${port}/`;
+        res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      }
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        throw new Error(`الماكينة أعادت خطأ كود ${res.status}: ${res.statusText}`);
+      }
+
+      const data: any = await res.json();
+      const code = String(data.responseCode || data.resultCode || '').trim();
+      const isApproved = code === '000000' || code === '00' || code === 'OK' || data.status === 'APPROVED';
+
+      if (isApproved) {
+        session.status = 'approved';
+        session.approvalCode = String(data.authCode || data.approvalCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
+        session.rrn = String(data.refNum || data.rrn || session.transactionId);
+        session.cardScheme = String(data.cardType || data.cardScheme || 'Visa').toLowerCase();
+        session.cardLastFour = String(data.cardLastFour || data.last4 || (data.bogusPan ? data.bogusPan.slice(-4) : ''));
+        session.message = 'تمت الموافقة بنجاح!';
+        session.updatedAt = Date.now();
+        this.logger.log(`PAX/Fawry ECR approved: Auth=${session.approvalCode}, RRN=${session.rrn}`);
+      } else {
+        session.status = 'declined';
+        session.message = data.responseMessage || data.message || 'تم رفض العملية من جهاز فوري / باكس';
+        session.updatedAt = Date.now();
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      session.status = 'declined';
+      const isAbort = err.name === 'AbortError';
+      const errMsg = isAbort
+        ? 'انتهت مهلة الانتظار (65 ثانية) دون تمرير البطاقة على جهاز باكس'
+        : `تعذر الاتصال بماكينة فوري / باكس على ${ip}:${port} (${err.code || err.message}). تأكد من تشغيل تطبيق ECR على الماكينة.`;
+      session.message = errMsg;
+      session.updatedAt = Date.now();
+      this.logger.warn(`PAX/Fawry ECR error: ${errMsg}`);
+    }
+  }
+
+  /**
+   * Paymob Smart POS Protocol Driver
+   */
+  private async executePaymobCharge(
+    session: TerminalPaymentSession,
+    ip: string,
+    port: number,
+    request: TerminalPaymentRequest
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
+
+    try {
+      session.status = 'processing';
+      session.message = 'جاري التخاطب مع ماكينة Paymob Smart POS...';
+      session.updatedAt = Date.now();
+
+      const payload = {
+        amount_cents: Math.round(request.amount * 100),
+        transaction_id: session.transactionId,
+        currency: session.currency || 'EGP',
+      };
+
+      const res = await fetch(`http://${ip}:${port}/paymob/ecr/sale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data: any = await res.json();
+      if (data.success || data.status === 'APPROVED') {
+        session.status = 'approved';
+        session.approvalCode = String(data.auth_code || data.approvalCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`);
+        session.rrn = String(data.rrn || session.transactionId);
+        session.cardScheme = String(data.card_type || 'Visa').toLowerCase();
+        session.cardLastFour = String(data.last_four || '');
+        session.message = 'تمت الموافقة بنجاح!';
+        session.updatedAt = Date.now();
+      } else {
+        session.status = 'declined';
+        session.message = data.message || 'تم رفض العملية من جهاز Paymob';
+        session.updatedAt = Date.now();
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      session.status = 'declined';
+      session.message = `تعذر الاتصال بماكينة Paymob على ${ip}:${port} (${err.code || err.message})`;
+      session.updatedAt = Date.now();
+    }
+  }
+
+  /**
+   * Cancel ongoing terminal transaction remotely
+   */
+  private async dispatchTerminalCancel(
+    ip: string,
+    port: number,
+    provider: string,
+    transactionId: string
+  ): Promise<void> {
+    try {
+      if (provider.includes('geidea')) {
+        await fetch(`http://${ip}:${port}/api/v1/transaction/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referenceId: transactionId }),
+          signal: AbortSignal.timeout(4000),
+        });
+      } else if (provider.includes('fawry') || provider.includes('pax')) {
+        await fetch(`http://${ip}:${port}/poslink`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'CANCEL_TRANSACTION', ecrRefNum: transactionId }),
+          signal: AbortSignal.timeout(4000),
+        });
+      }
+    } catch {
+      // Best-effort cancel
+    }
   }
 
   /**

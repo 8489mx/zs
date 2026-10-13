@@ -70,3 +70,5 @@ backend/runtime/
 *.production.local
 .last_migrated_*
 **/.last_migrated_*
+*.apk
+*.aab

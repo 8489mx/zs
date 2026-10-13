@@ -8,12 +8,7 @@ import {
   paymentLabel,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
-import {
-  tryPrintViaHardware,
-  printViaHardwarePrinter,
-  isHardwarePrinterAvailable,
-  formatSaleForHardwarePrinter,
-} from '@/lib/pos-printing/hardware';
+import { tryPrintViaHardware } from '@/lib/pos-printing/hardware';
 
 export interface PrintReceiptOptions {
   pageSize?: PosPrintPageSize;
