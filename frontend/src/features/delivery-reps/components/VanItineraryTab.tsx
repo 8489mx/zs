@@ -914,21 +914,22 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <a
                     href={`tel:${selectedCustomerForHub.customerPhone}`}
                     style={{
-                      backgroundColor: '#dcfce7',
-                      border: '1px solid #bbf7d0',
-                      color: '#15803d',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#1e293b',
                       borderRadius: '8px',
                       padding: '4px 8px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '10.5px',
-                      fontWeight: 800,
+                      fontWeight: 700,
                       textDecoration: 'none',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                     }}
                     title={selectedCustomerForHub.customerPhone}
                   >
-                    <PhoneIcon size={12} color="#15803d" />
+                    <PhoneIcon size={12} color="#170e5e" />
                     <span>اتصال</span>
                   </a>
                 ) : null}
@@ -939,20 +940,21 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     target="_blank"
                     rel="noreferrer"
                     style={{
-                      backgroundColor: '#e0f2fe',
-                      border: '1px solid #bae6fd',
-                      color: '#0284c7',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#1e293b',
                       borderRadius: '8px',
                       padding: '4px 8px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '10.5px',
-                      fontWeight: 800,
+                      fontWeight: 700,
                       textDecoration: 'none',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                     }}
                   >
-                    <MapPinIcon size={12} color="#0284c7" />
+                    <MapPinIcon size={12} color="#170e5e" />
                     <span>GPS</span>
                   </a>
                 ) : null}
@@ -1033,7 +1035,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
                 المديونية المستحقة
               </span>
-              <strong style={{ fontSize: '14px', fontWeight: 900, color: selectedCustomerForHub.balance > 0 ? '#dc2626' : '#15803d', display: 'block', lineHeight: 1.15 }}>
+              <strong style={{ fontSize: '14px', fontWeight: 900, color: selectedCustomerForHub.balance > 0 ? '#b91c1c' : '#0f172a', display: 'block', lineHeight: 1.15 }}>
                 {selectedCustomerForHub.balance.toFixed(0)} <CurrencySymbol />
               </strong>
             </div>
@@ -1067,14 +1069,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div
               style={{
                 width: '100%',
-                backgroundColor: '#f0fdf4',
-                border: '1.5px solid #86efac',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRight: '3.5px solid #170e5e',
                 borderRadius: '12px',
                 padding: '8px 14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 boxSizing: 'border-box',
               }}
             >
@@ -1084,25 +1087,25 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '30px',
                     height: '30px',
                     borderRadius: '8px',
-                    backgroundColor: '#dcfce7',
+                    backgroundColor: '#eef2ff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <ClockIcon size={16} color="#15803d" />
+                  <ClockIcon size={16} color="#170e5e" />
                 </div>
                 <div>
-                  <span style={{ fontSize: '10px', color: '#15803d', fontWeight: 700, display: 'block' }}>
+                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>
                     الزيارة الميدانية جارية الآن
                   </span>
                   <span
                     style={{
                       fontFamily: 'monospace',
-                      fontSize: '15px',
+                      fontSize: '14px',
                       fontWeight: 900,
-                      color: '#166534',
+                      color: '#0f172a',
                       letterSpacing: '0.5px',
                       lineHeight: 1.1,
                     }}
@@ -1116,9 +1119,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 type="button"
                 onClick={() => onEndVisit?.()}
                 style={{
-                  backgroundColor: '#fee2e2',
+                  backgroundColor: '#ffffff',
                   color: '#b91c1c',
-                  border: '1px solid #fca5a5',
+                  border: '1px solid #fecaca',
                   borderRadius: '8px',
                   padding: '5px 12px',
                   fontSize: '11px',
@@ -1127,6 +1130,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                 }}
               >
                 <span>إنهاء الزيارة</span>
@@ -1217,14 +1221,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '12px',
-                    backgroundColor: '#f3e8ff',
+                    backgroundColor: '#eef2ff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <ReceiptIcon size={18} color="#7c3aed" strokeWidth={2} />
+                  <ReceiptIcon size={18} color="#170e5e" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   فاتورة بيع جديدة
@@ -1270,14 +1274,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '12px',
-                    backgroundColor: '#ffedd5',
+                    backgroundColor: '#f1f5f9',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <RotateCcwIcon size={18} color="#ea580c" strokeWidth={2} />
+                  <RotateCcwIcon size={18} color="#475569" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   مرتجع بضاعة
@@ -1324,14 +1328,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '12px',
-                    backgroundColor: '#dcfce7',
+                    backgroundColor: '#f0fdf4',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <CreditCardIcon size={18} color="#16a34a" strokeWidth={2} />
+                  <CreditCardIcon size={18} color="#15803d" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   سند تحصيل نقدية
@@ -1369,14 +1373,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '12px',
-                    backgroundColor: '#fee2e2',
+                    backgroundColor: '#f8fafc',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  <XCircleIcon size={18} color="#dc2626" strokeWidth={2} />
+                  <XCircleIcon size={18} color="#64748b" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   تسجيل زيارة سلبية
@@ -1413,14 +1418,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '12px',
-                    backgroundColor: '#e0f2fe',
+                    backgroundColor: '#f8fafc',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  <FileTextIcon size={18} color="#0284c7" strokeWidth={2} />
+                  <FileTextIcon size={18} color="#170e5e" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   كشف حساب
@@ -1487,22 +1493,24 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             style={{
               flex: '1 1 0',
               minWidth: 0,
-              backgroundColor: statusFilter === 'positive' ? '#d1fae5' : '#f0fdf4',
+              backgroundColor: statusFilter === 'positive' ? '#15803d' : '#f0fdf4',
               borderRadius: '6px',
               padding: '2px 4px',
-              border: statusFilter === 'positive' ? '1.5px solid #059669' : '1px solid #bbf7d0',
+              border: statusFilter === 'positive' ? '1.5px solid #15803d' : '1px solid #bbf7d0',
               cursor: 'pointer',
               userSelect: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               height: '28px',
+              transition: 'all 0.15s ease',
             }}
             title="المحلات التي تم البيع لها"
           >
-            <span style={{ fontSize: '10px', color: '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>تم البيع:</span>
-            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#15803d' }}>{positiveCount}</strong>
+            <CheckCircleIcon size={12} color={statusFilter === 'positive' ? '#ffffff' : '#166534'} />
+            <span style={{ fontSize: '10px', color: statusFilter === 'positive' ? '#ffffff' : '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>تم البيع:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'positive' ? '#ffffff' : '#15803d' }}>{positiveCount}</strong>
           </div>
 
           <div
@@ -1510,22 +1518,24 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             style={{
               flex: '1 1 0',
               minWidth: 0,
-              backgroundColor: statusFilter === 'negative' ? '#fee2e2' : '#fef2f2',
+              backgroundColor: statusFilter === 'negative' ? '#b91c1c' : '#fef2f2',
               borderRadius: '6px',
               padding: '2px 4px',
-              border: statusFilter === 'negative' ? '1.5px solid #dc2626' : '1px solid #fecaca',
+              border: statusFilter === 'negative' ? '1.5px solid #b91c1c' : '1px solid #fecaca',
               cursor: 'pointer',
               userSelect: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               height: '28px',
+              transition: 'all 0.15s ease',
             }}
             title="الزيارات السلبية"
           >
-            <span style={{ fontSize: '10px', color: '#991b1b', fontWeight: 700, whiteSpace: 'nowrap' }}>سلبية:</span>
-            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#b91c1c' }}>{negativeCount}</strong>
+            <XCircleIcon size={12} color={statusFilter === 'negative' ? '#ffffff' : '#991b1b'} />
+            <span style={{ fontSize: '10px', color: statusFilter === 'negative' ? '#ffffff' : '#991b1b', fontWeight: 700, whiteSpace: 'nowrap' }}>سلبية:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'negative' ? '#ffffff' : '#b91c1c' }}>{negativeCount}</strong>
           </div>
 
           <div
@@ -1533,22 +1543,24 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             style={{
               flex: '1 1 0',
               minWidth: 0,
-              backgroundColor: statusFilter === 'pending' ? '#e2e8f0' : '#f8fafc',
+              backgroundColor: statusFilter === 'pending' ? '#170e5e' : '#f8fafc',
               borderRadius: '6px',
               padding: '2px 4px',
-              border: statusFilter === 'pending' ? '1.5px solid #334155' : '1px solid #e2e8f0',
+              border: statusFilter === 'pending' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
               cursor: 'pointer',
               userSelect: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '4px',
               height: '28px',
+              transition: 'all 0.15s ease',
             }}
             title="المحلات المتبقية للزيارة"
           >
-            <span style={{ fontSize: '10px', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>متبقي:</span>
-            <strong style={{ fontSize: '12px', fontWeight: 900, color: '#1e293b' }}>{pendingCount}</strong>
+            <ClockIcon size={12} color={statusFilter === 'pending' ? '#ffffff' : '#475569'} />
+            <span style={{ fontSize: '10px', color: statusFilter === 'pending' ? '#ffffff' : '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>متبقي:</span>
+            <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'pending' ? '#ffffff' : '#0f172a' }}>{pendingCount}</strong>
           </div>
         </div>
 
@@ -2019,14 +2031,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         style={{
                           fontSize: '10px',
                           fontWeight: 700,
-                          backgroundColor: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#dcfce7' : '#e0f2fe',
-                          color: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#15803d' : '#0369a1',
+                          backgroundColor: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#eef2ff' : '#f1f5f9',
+                          color: group.visitedCount === group.totalCount && group.totalCount > 0 ? '#170e5e' : '#475569',
                           padding: '1px 6px',
                           borderRadius: '4px',
                           marginInlineStart: '6px',
                         }}
                       >
-                        {group.visitedCount} / {group.totalCount} تمت زيارتهم
+                        {group.visitedCount} من {group.totalCount} تمت زيارتهم
                       </span>
                     </div>
                   </div>
@@ -2088,17 +2100,17 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         key={item.customerId}
                         onClick={() => setSelectedCustomerForHub(item)}
                         style={{
-                          backgroundColor: isActiveVisiting ? '#eff6ff' : '#ffffff',
+                          backgroundColor: isActiveVisiting ? '#f8faff' : '#ffffff',
                           borderRadius: '8px',
                           border: isActiveVisiting
-                            ? '2px solid #2563eb'
+                            ? '1.5px solid #2563eb'
                             : isPositive
-                            ? '1.5px solid #10b981'
+                            ? '1px solid #bbf7d0'
                             : isNegative
-                            ? '1.5px solid #f87171'
+                            ? '1px solid #fecaca'
                             : '1px solid #e2e8f0',
                           padding: '8px 10px',
-                          boxShadow: isActiveVisiting ? '0 0 0 3px rgba(37,99,235,0.1)' : '0 1px 2px rgba(0,0,0,0.02)',
+                          boxShadow: isActiveVisiting ? '0 2px 8px rgba(37,99,235,0.08)' : '0 1px 2px rgba(0,0,0,0.02)',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '5px',
@@ -2126,7 +2138,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                             >
                               {item.globalSeq}
                             </span>
-                            <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#0369a1', flexShrink: 0 }}>
+                            <span style={{ fontSize: '10.5px', fontFamily: 'monospace', fontWeight: 800, color: '#475569', flexShrink: 0 }}>
                               [{item.customerCode.replace(/^#/, '')}]
                             </span>
                             <h4
@@ -2151,8 +2163,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                             {isActiveVisiting && (
                               <span
                                 style={{
-                                  backgroundColor: '#dbeafe',
-                                  color: '#1e40af',
+                                  backgroundColor: '#eff6ff',
+                                  color: '#1d4ed8',
                                   fontSize: '10px',
                                   fontWeight: 800,
                                   padding: '1px 6px',
@@ -2302,8 +2314,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           </div>
                           <div>
                             <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
-                            <strong style={{ color: item.balance > 0 ? '#b91c1c' : '#047857', fontSize: '11.5px' }}>
-                              {item.balance.toFixed(0)} <CurrencySymbol />
+                            <strong style={{ color: item.balance > 0 ? '#b91c1c' : item.balance < 0 ? '#0369a1' : '#475569', fontSize: '11.5px' }}>
+                              {item.balance === 0 ? 'خالص (0)' : item.balance.toFixed(0)} <CurrencySymbol />
                             </strong>
                           </div>
                         </div>

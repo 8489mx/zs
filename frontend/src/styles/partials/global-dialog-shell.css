@@ -19,7 +19,7 @@ body.dialog-shell-open #root {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: max(20px, calc(env(safe-area-inset-top, 0px) + 16px)) 16px max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px)) !important;
   overflow-x: hidden;
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.45);
@@ -483,7 +483,7 @@ body.dialog-shell-open #root {
 
 .system-toast-container {
   position: fixed !important;
-  top: 24px !important;
+  top: max(20px, calc(env(safe-area-inset-top, 0px) + 12px)) !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 100000 !important;

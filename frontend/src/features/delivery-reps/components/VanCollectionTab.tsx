@@ -97,24 +97,31 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
 
   // Collections state & filters
   const [collectionSearch, setCollectionSearch] = useState('');
-  const [showManualCustomerSelect, setShowManualCustomerSelect] = useState(false);
+  const [filterMode, setFilterMode] = useState<'indebted' | 'all'>('indebted');
   const collectionFormRef = useRef<HTMLDivElement>(null);
 
-  // Filter customers with positive debt and sort descending (highest to lowest)
-  const indebtedCustomers = useMemo(() => {
-    return customers
-      .filter((c) => Number(c.balance || 0) > 0)
-      .sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+  // 1. Sort all customers by balance descending (highest positive debt first, then 0, then credit/negative)
+  const sortedCustomers = useMemo(() => {
+    return [...customers].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
   }, [customers]);
+
+  // 2. Customers with positive balance (debtors)
+  const indebtedCustomers = useMemo(() => {
+    return sortedCustomers.filter((c) => Number(c.balance || 0) > 0);
+  }, [sortedCustomers]);
 
   const totalIndebtedAmount = useMemo(() => {
     return indebtedCustomers.reduce((sum, c) => sum + Number(c.balance || 0), 0);
   }, [indebtedCustomers]);
 
-  const filteredIndebtedCustomers = useMemo(() => {
-    if (!collectionSearch.trim()) return indebtedCustomers;
+  // 3. Fallback: If no customers have debt, show 'all' automatically so page is never empty
+  const activeFilterMode = indebtedCustomers.length === 0 ? 'all' : filterMode;
+  const baseList = activeFilterMode === 'indebted' ? indebtedCustomers : sortedCustomers;
+
+  const displayCustomers = useMemo(() => {
+    if (!collectionSearch.trim()) return baseList;
     const q = collectionSearch.trim().toLowerCase();
-    return indebtedCustomers.filter((c) => {
+    return baseList.filter((c) => {
       const name = (c.name || '').toLowerCase();
       const phone = (c.phone || '').toLowerCase();
       const code = (c.customerCode || '').toLowerCase();
@@ -122,7 +129,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
       const district = (c.district || '').toLowerCase();
       return name.includes(q) || phone.includes(q) || code.includes(q) || route.includes(q) || district.includes(q);
     });
-  }, [indebtedCustomers, collectionSearch]);
+  }, [baseList, collectionSearch]);
 
   const selectedCustomer = useMemo(() => {
     if (!colCustomerId) return null;
@@ -314,14 +321,14 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           style={{
             flex: '1 1 0',
             minWidth: 0,
-            padding: '8px 8px',
-            borderRadius: '8px',
+            padding: '5px 6px',
+            borderRadius: '6px',
             border: 'none',
             cursor: 'pointer',
             backgroundColor: subMode === 'return' ? '#ffffff' : 'transparent',
             color: subMode === 'return' ? '#170e5e' : '#64748b',
             fontWeight: 800,
-            fontSize: '12.5px',
+            fontSize: '11.5px',
             boxShadow: subMode === 'return' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
             whiteSpace: 'nowrap',
             textAlign: 'center',
@@ -338,74 +345,50 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
+              gap: '6px',
               borderBottom: '1px solid #f1f5f9',
-              paddingBottom: '10px',
+              paddingBottom: '8px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  تحصيل مديونيات العملاء في خط السير
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '3px', height: '13px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                  تحصيل مديونيات العملاء
                 </h3>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  مرتبة تلقائياً من الأعلى مديونية إلى الأقل لتسريع التحصيل الميداني
-                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowManualCustomerSelect(!showManualCustomerSelect)}
-                style={{
-                  background: 'none',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer',
-                }}
-              >
-                {showManualCustomerSelect ? 'إخفاء الاختيار اليدوي' : 'تحصيل من عميل آخر / دفعة مقدمة'}
-              </button>
             </div>
 
-            {/* KPI Badges */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <div
-                style={{
-                  flex: '1 1 140px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '3px',
-                }}
-              >
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>إجمالي المديونيات المطلوبة:</span>
-                <strong style={{ fontSize: '16px', color: '#0f172a', fontWeight: 900 }}>
-                  {totalIndebtedAmount.toFixed(2)} <CurrencySymbol />
+            {/* Compact 1-Row KPI Strip */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '5px 8px',
+                textAlign: 'center',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ flex: '1 1 0', borderInlineEnd: '1px solid #e2e8f0', padding: '1px 4px' }}>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>إجمالي المديونيات</span>
+                <strong style={{ fontSize: '12px', color: '#0f172a', fontWeight: 900 }}>
+                  {totalIndebtedAmount.toFixed(0)} <CurrencySymbol />
                 </strong>
               </div>
-              <div
-                style={{
-                  flex: '1 1 120px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '3px',
-                }}
-              >
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>عدد العملاء المدينين:</span>
-                <strong style={{ fontSize: '16px', color: '#170e5e', fontWeight: 900 }}>
-                  {indebtedCustomers.length} <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>عميل</span>
+              <div style={{ flex: '1 1 0', borderInlineEnd: '1px solid #e2e8f0', padding: '1px 4px' }}>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>عملاء مدينين</span>
+                <strong style={{ fontSize: '12px', color: '#170e5e', fontWeight: 900 }}>
+                  {indebtedCustomers.length} {indebtedCustomers.length === 1 ? 'عميل' : indebtedCustomers.length === 2 ? 'عميلان' : indebtedCustomers.length <= 10 ? 'عملاء' : 'عميل'}
+                </strong>
+              </div>
+              <div style={{ flex: '1 1 0', padding: '1px 4px' }}>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>إجمالي الخط</span>
+                <strong style={{ fontSize: '12px', color: '#0f172a', fontWeight: 900 }}>
+                  {customers.length} {customers.length === 1 ? 'عميل' : customers.length === 2 ? 'عميلان' : customers.length <= 10 ? 'عملاء' : 'عميل'}
                 </strong>
               </div>
             </div>
@@ -416,15 +399,15 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 type="text"
                 value={collectionSearch}
                 onChange={(e) => setCollectionSearch(e.target.value)}
-                placeholder="بحث باسم العميل، الكود، الحي، أو رقم الهاتف..."
+                placeholder="بحث باسم العميل، الكود، الحي، أو الهاتف..."
                 style={{
                   width: '100%',
-                  height: '38px',
+                  height: '32px',
                   backgroundColor: '#f8fafc',
                   border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '0 32px 0 10px',
-                  fontSize: '12.5px',
+                  borderRadius: '6px',
+                  padding: '0 28px 0 8px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   boxSizing: 'border-box',
                 }}
@@ -433,7 +416,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 style={{
                   position: 'absolute',
                   top: '50%',
-                  right: '10px',
+                  right: '8px',
                   transform: 'translateY(-50%)',
                   pointerEvents: 'none',
                   color: '#94a3b8',
@@ -441,7 +424,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   alignItems: 'center',
                 }}
               >
-                <SearchIcon size={15} />
+                <SearchIcon size={13} />
               </div>
               {collectionSearch && (
                 <button
@@ -459,52 +442,75 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     padding: '2px',
                   }}
                 >
-                  <XIcon size={14} />
+                  <XIcon size={13} />
                 </button>
               )}
             </div>
+
+            {/* Smart Filter Pills */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setFilterMode('indebted')}
+                style={{
+                  flex: 1,
+                  height: '28px',
+                  padding: '0 8px',
+                  borderRadius: '6px',
+                  border: activeFilterMode === 'indebted' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  backgroundColor: activeFilterMode === 'indebted' ? '#170e5e' : '#f8fafc',
+                  color: activeFilterMode === 'indebted' ? '#ffffff' : '#475569',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>المدينين فقط ({indebtedCustomers.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterMode('all')}
+                style={{
+                  flex: 1,
+                  height: '28px',
+                  padding: '0 8px',
+                  borderRadius: '6px',
+                  border: activeFilterMode === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  backgroundColor: activeFilterMode === 'all' ? '#170e5e' : '#f8fafc',
+                  color: activeFilterMode === 'all' ? '#ffffff' : '#475569',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>كل العملاء ({customers.length})</span>
+              </button>
+            </div>
           </div>
 
-          {/* 2. Manual Customer Select Fallback */}
-          {showManualCustomerSelect && (
-            <div style={{ padding: '12px', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                اختيار أي عميل من القائمة الشاملة:
-              </label>
-              <CustomSelect
-                value={colCustomerId ? String(colCustomerId) : ''}
-                onChange={(val) => {
-                  onColCustomerChange(val ? Number(val) : '');
-                  const found = customers.find((c) => c.id === Number(val));
-                  if (found) onColAmountChange(String(found.balance > 0 ? found.balance : ''));
-                }}
-                options={[
-                  { value: '', label: '-- اختر العميل --' },
-                  ...customers.map((c) => ({
-                    value: String(c.id),
-                    label: `${c.customerCode ? `[${c.customerCode.replace(/^#/, '')}] ` : ''}${c.name}${c.district ? ` - ${c.district}` : c.route ? ` (${c.route})` : ''}`,
-                    hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}${c.creditLimit ? ` | سقف: ${c.creditLimit.toFixed(2)}` : ''}`,
-                  })),
-                ]}
-                placeholder="اختر العميل المطلوب تحصيل حسابه"
-              />
-            </div>
-          )}
-
-          {/* 3. Focused Active Collection Box (When a customer is selected) */}
+          {/* Focused Active Collection Box (When a customer is selected) */}
           {selectedCustomer && (
             <div
               ref={collectionFormRef}
               style={{
                 backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #c7d2fe',
                 borderTop: '3px solid #170e5e',
                 borderRadius: '14px',
                 padding: '14px 16px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
-                boxShadow: '0 3px 12px rgba(15, 23, 42, 0.04)',
+                boxShadow: '0 4px 14px rgba(23, 14, 94, 0.08)',
               }}
             >
               {/* Row 1: Customer Info on Right & Debt Card on Left */}
@@ -527,25 +533,30 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 {/* Current Debt Box */}
                 <div
                   style={{
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: selectedCustomer.balance > 0 ? '#fef2f2' : selectedCustomer.balance < 0 ? '#eff6ff' : '#f0fdf4',
+                    border: `1px solid ${selectedCustomer.balance > 0 ? '#fecaca' : selectedCustomer.balance < 0 ? '#bfdbfe' : '#bbf7d0'}`,
                     borderRadius: '8px',
                     padding: '6px 12px',
                     textAlign: 'left',
                     flexShrink: 0,
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>
-                    المديونية الحالية:
+                  <div style={{ fontSize: '10px', color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1e40af' : '#166534', fontWeight: 700, marginBottom: '2px' }}>
+                    {selectedCustomer.balance > 0 ? 'المديونية الحالية:' : selectedCustomer.balance < 0 ? 'رصيد دائن:' : 'حساب خالص:'}
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#991b1b' : '#0f172a', whiteSpace: 'nowrap' }}>
-                    {selectedCustomer.balance.toFixed(2)} <CurrencySymbol />
+                  <div style={{ fontSize: '15px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1d4ed8' : '#15803d', whiteSpace: 'nowrap' }}>
+                    {selectedCustomer.balance > 0
+                      ? `${selectedCustomer.balance.toFixed(2)} `
+                      : selectedCustomer.balance < 0
+                      ? `${Math.abs(selectedCustomer.balance).toFixed(2)}- `
+                      : '0.00 '}
+                    <CurrencySymbol />
                   </div>
                 </div>
               </div>
 
-              {/* Row 2: Quick Amount Presets (Side by Side with Room to Breathe) */}
-              {selectedCustomer.balance > 0 && (
+              {/* Row 2: Quick Amount Presets */}
+              {selectedCustomer.balance > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <button
                     type="button"
@@ -598,6 +609,30 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       ({(selectedCustomer.balance / 2) % 1 === 0 ? (selectedCustomer.balance / 2).toFixed(0) : (selectedCustomer.balance / 2).toFixed(2)})
                     </span>
                   </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[100, 200, 500, 1000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => onColAmountChange(String(amt))}
+                      style={{
+                        flex: 1,
+                        minWidth: '60px',
+                        height: '32px',
+                        backgroundColor: colAmount === String(amt) ? '#eef2ff' : '#f8fafc',
+                        border: colAmount === String(amt) ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        color: colAmount === String(amt) ? '#170e5e' : '#334155',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {amt} ج.م
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -676,16 +711,22 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
             </div>
           )}
 
-          {/* 4. The Indebted Customers Grid */}
+          {/* 4. The Indebted / All Customers Grid */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-              <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                قائمة العملاء المطلوب تحصيل مديونياتهم ({filteredIndebtedCustomers.length}):
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                  {activeFilterMode === 'indebted' ? 'العملاء المطلوب تحصيل مديونياتهم' : 'كافة عملاء خط السير'}{' '}
+                  ({displayCustomers.length}):
+                </span>
+              </div>
+              <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                مرتبة تنازلياً من الأعلى مديونية
               </span>
             </div>
 
-            {filteredIndebtedCustomers.length === 0 ? (
+            {displayCustomers.length === 0 ? (
               <div
                 style={{
                   textAlign: 'center',
@@ -699,180 +740,231 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   <CheckCircleIcon size={32} color="#170e5e" />
                 </div>
                 <h4 style={{ margin: '0 0 4px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {collectionSearch ? 'لا توجد نتائج مطابقة لبحثك' : 'لا توجد أي مديونيات مستحقة على عملاء خط السير اليوم'}
+                  {collectionSearch
+                    ? 'لا توجد نتائج مطابقة لبحثك'
+                    : activeFilterMode === 'indebted'
+                    ? 'لا توجد أي مديونيات مستحقة على عملاء خط السير حالياً'
+                    : 'لا يوجد عملاء مسجلين بالخط'}
                 </h4>
                 <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
-                  {collectionSearch
-                    ? 'جرب البحث بكلمة أخرى أو اضغط على إلغاء البحث'
-                    : 'كافة حسابات العملاء مسددة بالكامل. يمكنك استخدام زر "تحصيل من عميل آخر" لتسجيل دفعات مقدمة.'}
+                  {activeFilterMode === 'indebted' && indebtedCustomers.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setFilterMode('all')}
+                      style={{
+                        marginTop: '6px',
+                        background: '#eef2ff',
+                        border: '1px solid #c7d2fe',
+                        color: '#170e5e',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      عرض كل العملاء لتسجيل دفعات نقدية مقدمة
+                    </button>
+                  ) : collectionSearch ? (
+                    'جرب البحث بكلمة أخرى أو اضغط على إلغاء البحث'
+                  ) : null}
                 </p>
               </div>
             ) : (
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                   gap: '10px',
+                  paddingBottom: '24px',
                 }}
               >
-                {filteredIndebtedCustomers.map((c, idx) => {
+                {displayCustomers.map((c, idx) => {
                   const isSelected = selectedCustomer?.id === c.id;
+                  const hasDebt = c.balance > 0;
+                  const isCredit = c.balance < 0;
+
                   return (
                     <div
                       key={c.id}
                       style={{
                         backgroundColor: '#ffffff',
                         border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        padding: '12px',
+                        borderRadius: '9px',
+                        padding: '8px 10px',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '10px',
-                        boxShadow: isSelected ? '0 3px 10px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+                        gap: '6px',
+                        boxShadow: isSelected ? '0 2px 8px rgba(23, 14, 94, 0.08)' : '0 1px 2px rgba(0,0,0,0.02)',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {/* Top Row: Rank & Name */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      {/* Row 1: [#1] Store Name [Code] on Right, Balance on Left */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
                           <span
                             style={{
-                              background: '#f1f5f9',
-                              color: '#475569',
-                              border: '1px solid #e2e8f0',
-                              fontSize: '10.5px',
+                              background: hasDebt ? '#fee2e2' : '#f1f5f9',
+                              color: hasDebt ? '#991b1b' : '#475569',
+                              border: hasDebt ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                              fontSize: '10px',
                               fontWeight: 800,
-                              padding: '1px 6px',
+                              padding: '1px 5px',
                               borderRadius: '4px',
+                              flexShrink: 0,
                             }}
                           >
                             #{idx + 1}
                           </span>
-                          <span style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f8fafc', padding: '1px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                            [{c.customerCode ? c.customerCode.replace(/^#/, '') : `C-${String(c.id).padStart(4, '0')}`}]
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              lineHeight: 1.25,
+                            }}
+                            title={c.name}
+                          >
+                            {c.name}
                           </span>
+                          {c.customerCode && (
+                            <span style={{ fontSize: '9.5px', color: '#64748b', fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f8fafc', padding: '1px 4px', borderRadius: '3px', border: '1px solid #e2e8f0', flexShrink: 0 }}>
+                              [{c.customerCode.replace(/^#/, '')}]
+                            </span>
+                          )}
                         </div>
-                        <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
-                          {c.name}
-                        </h4>
+
+                        {/* Financial Status on Left */}
+                        <div style={{ flexShrink: 0, textAlign: 'left', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>
+                            {hasDebt ? 'مطلوب:' : isCredit ? 'دائن:' : 'خالص:'}
+                          </span>
+                          <strong style={{ fontSize: '12.5px', color: hasDebt ? '#991b1b' : isCredit ? '#0369a1' : '#0f172a', fontWeight: 900 }}>
+                            {hasDebt
+                              ? `${c.balance.toFixed(2)} `
+                              : isCredit
+                              ? `${Math.abs(c.balance).toFixed(2)}- `
+                              : '0.00 '}
+                            <CurrencySymbol />
+                          </strong>
+                        </div>
                       </div>
 
-                      {/* Meta Tags: District / Route / Phone */}
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', fontSize: '11px' }}>
-                        <span
+                      {/* Row 2: Metadata (Route, Phone, Map) on Right, Action Button on Left */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed #f1f5f9', paddingTop: '5px' }}>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', fontSize: '10px', minWidth: 0, flex: 1 }}>
+                          {c.route && (
+                            <span
+                              style={{
+                                background: '#f8fafc',
+                                color: '#475569',
+                                border: '1px solid #e2e8f0',
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                maxWidth: '130px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                              title={c.route}
+                            >
+                              <MapPinIcon size={9} color="#64748b" />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.route}</span>
+                            </span>
+                          )}
+                          {c.phone && (
+                            <a
+                              href={`tel:${c.phone}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                color: '#475569',
+                                textDecoration: 'none',
+                                fontSize: '10px',
+                                direction: 'ltr',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              <PhoneIcon size={9} color="#64748b" />
+                              <span>{c.phone}</span>
+                            </a>
+                          )}
+                          {c.locationUrl && (
+                            <a
+                              href={c.locationUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                color: '#475569',
+                                fontSize: '10px',
+                                textDecoration: 'none',
+                                fontWeight: 600,
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              <span>خريطة ↗</span>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Action Button on Left of Row 2 */}
+                        <button
+                          type="button"
+                          onClick={() => handleSelectCustomerForCollection(c)}
                           style={{
-                            background: '#f8fafc',
-                            color: '#475569',
-                            border: '1px solid #e2e8f0',
+                            height: '27px',
+                            padding: '0 9px',
+                            border: isSelected ? '1.5px solid #170e5e' : !hasDebt ? '1px solid #cbd5e1' : 'none',
+                            borderRadius: '6px',
+                            backgroundColor: isSelected ? '#eef2ff' : hasDebt ? '#170e5e' : '#f8fafc',
+                            color: isSelected ? '#170e5e' : hasDebt ? '#ffffff' : '#170e5e',
+                            fontWeight: 700,
                             fontSize: '10.5px',
-                            fontWeight: 600,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
                           }}
                         >
-                          {c.district || c.route || 'الخط العام'}
-                        </span>
-                        {c.phone && (
-                          <a
-                            href={`tel:${c.phone}`}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              color: '#475569',
-                              textDecoration: 'none',
-                              fontSize: '10.5px',
-                              direction: 'ltr',
-                              background: '#f8fafc',
-                              border: '1px solid #e2e8f0',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontWeight: 600,
-                            }}
-                          >
-                            <PhoneIcon size={10} />
-                            {c.phone}
-                          </a>
-                        )}
-                        {c.locationUrl && (
-                          <a
-                            href={c.locationUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                              color: '#170e5e',
-                              fontSize: '10.5px',
-                              textDecoration: 'none',
-                              fontWeight: 700,
-                              background: '#f8fafc',
-                              border: '1px solid #e2e8f0',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                            }}
-                          >
-                            <MapPinIcon size={11} />
-                            خريطة
-                          </a>
-                        )}
+                          {isSelected ? (
+                            <>
+                              <CheckCircleIcon size={12} color="#170e5e" />
+                              <span>محدد أعلاه</span>
+                            </>
+                          ) : hasDebt ? (
+                            <>
+                              <CreditCardIcon size={12} color="#ffffff" />
+                              <span>تحصيل نقدية</span>
+                            </>
+                          ) : (
+                            <>
+                              <CreditCardIcon size={12} color="#170e5e" />
+                              <span>+ دفعة نقدية</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-
-                      {/* Financial Debt Box */}
-                      <div
-                        style={{
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
-                          المديونية المستحقة:
-                        </span>
-                        <strong style={{ fontSize: '14.5px', color: '#991b1b', fontWeight: 900 }}>
-                          {c.balance.toFixed(2)} <CurrencySymbol />
-                        </strong>
-                      </div>
-
-                      {/* Action Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleSelectCustomerForCollection(c)}
-                        style={{
-                          width: '100%',
-                          height: '34px',
-                          border: isSelected ? '1px solid #c7d2fe' : 'none',
-                          borderRadius: '7px',
-                          backgroundColor: isSelected ? '#eef2ff' : '#170e5e',
-                          color: isSelected ? '#170e5e' : '#ffffff',
-                          fontWeight: 800,
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          transition: 'background-color 0.15s ease',
-                        }}
-                      >
-                        {isSelected ? (
-                          <>
-                            <CheckCircleIcon size={13} color="#170e5e" />
-                            <span>محدد للتحصيل حالياً</span>
-                          </>
-                        ) : (
-                          <>
-                            <CreditCardIcon size={13} color="#ffffff" />
-                            <span>تحصيل الآن</span>
-                          </>
-                        )}
-                      </button>
                     </div>
                   );
                 })}

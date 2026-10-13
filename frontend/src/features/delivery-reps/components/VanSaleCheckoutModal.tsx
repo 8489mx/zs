@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -105,7 +105,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   onClose,
   cartTotal,
   cartSubtotal: _cartSubtotal,
-  cartDiscount,
+  cartDiscount: _cartDiscount,
   cartItemsCount,
   cartTotalPieces,
   cart,
@@ -120,16 +120,18 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   isSubmitting,
   onConfirmCheckout,
 }) => {
-  const [paymentMethod, setPaymentMethod] = useState<VanPaymentMethod>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
   const [cashInput, setCashInput] = useState<string>(cartTotal.toFixed(2));
   const [cashDiscountAmount, setCashDiscountAmount] = useState<number>(0);
+  const [showCashDiscount, setShowCashDiscount] = useState<boolean>(false);
+  const [showItemsPreview, setShowItemsPreview] = useState<boolean>(false);
   const [localNotes, setLocalNotes] = useState<string>(propNotes);
   const [validationError, setValidationError] = useState<string>('');
   const [supervisorPin, setSupervisorPin] = useState<string>('');
   const [supervisorReason, setSupervisorReason] = useState<string>('');
   const [showSignaturePad, setShowSignaturePad] = useState<boolean>(false);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isGeofenceViolation, setIsGeofenceViolation] = useState<boolean>(false);
   const [geofenceDistance, setGeofenceDistance] = useState<number | null>(null);
 
@@ -137,6 +139,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     if (open) {
       setCashInput(cartTotal.toFixed(2));
       setCashDiscountAmount(0);
+      setShowCashDiscount(false);
+      setShowItemsPreview(false);
       setPaymentMethod('cash');
       setValidationError('');
       setLocalNotes(propNotes);
@@ -223,65 +227,57 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     return isNaN(val) || val < 0 ? 0 : val;
   }, [cashInput]);
 
-  // Denomination shortcuts for quick cash payment
-  const quickCashOptions = useMemo(() => {
-    const ceil50 = Math.ceil(cartTotal / 50) * 50;
-    const ceil100 = Math.ceil(cartTotal / 100) * 100;
-    const ceil200 = Math.ceil(cartTotal / 200) * 200;
-    const options = [cartTotal];
-    if (ceil50 > cartTotal) options.push(ceil50);
-    if (ceil100 > ceil50) options.push(ceil100);
-    if (ceil200 > ceil100) options.push(ceil200);
-    return Array.from(new Set(options)).slice(0, 4);
-  }, [cartTotal]);
+  const netCashDue = useMemo(() => {
+    return Math.max(0, Number((cartTotal - cashDiscountAmount).toFixed(2)));
+  }, [cartTotal, cashDiscountAmount]);
 
   const changeDue = useMemo(() => {
     if (paymentMethod !== 'cash') return 0;
-    return Math.max(0, Number((cashPaid - cartTotal).toFixed(2)));
-  }, [paymentMethod, cashPaid, cartTotal]);
-
-  const remainingCashShortage = useMemo(() => {
-    if (paymentMethod !== 'cash') return 0;
-    return Math.max(0, Number((cartTotal - cashPaid).toFixed(2)));
-  }, [paymentMethod, cashPaid, cartTotal]);
+    return Math.max(0, Number((cashPaid - netCashDue).toFixed(2)));
+  }, [paymentMethod, cashPaid, netCashDue]);
 
   const splitCreditDebt = useMemo(() => {
-    if (paymentMethod !== 'split') return 0;
-    return Math.max(0, Number((cartTotal - cashPaid).toFixed(2)));
-  }, [paymentMethod, cashPaid, cartTotal]);
+    if (paymentMethod === 'credit') return cartTotal;
+    if (paymentMethod === 'cash' && cashPaid < netCashDue) {
+      return Math.max(0, Number((netCashDue - cashPaid).toFixed(2)));
+    }
+    return 0;
+  }, [paymentMethod, cashPaid, netCashDue, cartTotal]);
+
+  const isActuallySplit = useMemo(() => {
+    return paymentMethod === 'cash' && cashPaid > 0 && cashPaid < netCashDue;
+  }, [paymentMethod, cashPaid, netCashDue]);
 
   const customerBalanceAfter = useMemo(() => {
     const curBal = Number(customer?.balance || 0);
     if (paymentMethod === 'credit') {
       return curBal + cartTotal;
     }
-    if (paymentMethod === 'split') {
+    if (paymentMethod === 'cash' && cashPaid < netCashDue) {
       return curBal + splitCreditDebt;
     }
     return curBal;
-  }, [customer?.balance, paymentMethod, cartTotal, splitCreditDebt]);
-
-  const isCreditExceeded = useMemo(() => {
-    if (paymentMethod !== 'credit' && paymentMethod !== 'split') return false;
-    if (!customer?.creditLimit || customer.creditLimit <= 0) return false;
-    return customerBalanceAfter > customer.creditLimit;
-  }, [paymentMethod, customer?.creditLimit, customerBalanceAfter]);
-
-  const isCashOnlyCustomerCredit = useMemo(() => {
-    const isCredit = paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
-    return isCredit && Boolean(customer?.id) && (!customer?.creditLimit || Number(customer.creditLimit) <= 0);
-  }, [paymentMethod, splitCreditDebt, customer?.id, customer?.creditLimit]);
-
-  const isNewCustomerCredit = useMemo(() => {
-    const isCredit = paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
-    return isCredit && !customer?.id && Boolean(newCustomerName && newCustomerName.trim());
-  }, [paymentMethod, splitCreditDebt, customer?.id, newCustomerName]);
-
-  const isCardPayment = paymentMethod === 'card';
+  }, [customer?.balance, paymentMethod, cartTotal, cashPaid, netCashDue, splitCreditDebt]);
 
   const isCreditOrSplitDebt = useMemo(() => {
-    return paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
-  }, [paymentMethod, splitCreditDebt]);
+    return paymentMethod === 'credit' || isActuallySplit;
+  }, [paymentMethod, isActuallySplit]);
+
+  const isCreditExceeded = useMemo(() => {
+    if (!isCreditOrSplitDebt) return false;
+    if (!customer?.creditLimit || customer.creditLimit <= 0) return false;
+    return customerBalanceAfter > customer.creditLimit;
+  }, [isCreditOrSplitDebt, customer?.creditLimit, customerBalanceAfter]);
+
+  const isCashOnlyCustomerCredit = useMemo(() => {
+    return isCreditOrSplitDebt && Boolean(customer?.id) && (!customer?.creditLimit || Number(customer.creditLimit) <= 0);
+  }, [isCreditOrSplitDebt, customer?.id, customer?.creditLimit]);
+
+  const isNewCustomerCredit = useMemo(() => {
+    return isCreditOrSplitDebt && !customer?.id && Boolean(newCustomerName && newCustomerName.trim());
+  }, [isCreditOrSplitDebt, customer?.id, newCustomerName]);
+
+  const isCardPayment = paymentMethod === 'card';
 
   const isGeofenceBlocked = useMemo(() => {
     return isGeofenceViolation && isCreditOrSplitDebt;
@@ -306,30 +302,25 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const handleConfirm = () => {
     setValidationError('');
 
-    if ((paymentMethod === 'credit' || paymentMethod === 'split') && !hasCustomer) {
-      setValidationError('البيع الآجل أو المجزأ يتطلب اختيار العميل أو إدخال اسم المحل لتسجيل المديونية على حسابه.');
+    const finalMethod: VanPaymentMethod = isActuallySplit ? 'split' : paymentMethod;
+
+    if (finalMethod === 'credit' && !hasCustomer) {
+      setValidationError('البيع الآجل يتطلب تحديد العميل لتسجيل المديونية على حسابه.');
       return;
     }
 
-    if (paymentMethod === 'split') {
-      if (cashPaid <= 0) {
-        setValidationError('في الدفع المجزأ يرجى إدخال المبلغ المدفوع نقداً، أو اختيار "آجل بالكامل" إن لم يسدد أي مبالغ.');
-        return;
-      }
-      if (cashPaid >= cartTotal) {
-        setValidationError('المبلغ المدفوع يغطي الفاتورة بالكامل، يرجى اختيار السداد "نقدي (كاش)".');
-        return;
-      }
+    if (finalMethod === 'split' && !hasCustomer) {
+      setValidationError('المبلغ المدفوع أقل من إجمالي الفاتورة، ويتطلب ترحيل المتبقي آجل تحديد العميل.');
+      return;
     }
 
-    const netCashTotal = Math.max(0, Number((cartTotal - cashDiscountAmount).toFixed(2)));
-    if (paymentMethod === 'cash' && cashPaid < netCashTotal) {
-      setValidationError(`المبلغ المدفوع أقل من صافي الفاتورة المطلوبة (${netCashTotal.toFixed(2)} ج.م). إذا كان العميل سيدفع الباقي لاحقاً، يرجى اختيار "دفع مركب (جزء كاش وجزء آجل)".`);
+    if (paymentMethod === 'cash' && cashPaid <= 0) {
+      setValidationError('المبلغ المدفوع 0.00 ج.م. يرجى إدخال المبلغ المستلم، أو اختيار "آجل بالكامل" إن لم يسدد العميل.');
       return;
     }
 
     if (isGeofenceBlocked && !supervisorPin.trim()) {
-      setValidationError(`أنت خارج النطاق الجغرافي لدكان العميل (المسافة: ${geofenceDistance} متر، المسموح 200م). البيع الآجل خارج الموقع يتطلب إدخال الرمز السري للمشرف (PIN) لتجاوز القفل الجغرافي.`);
+      setValidationError(`أنت خارج النطاق الجغرافي لدكان العميل (المسافة: ${geofenceDistance} متر، المسموح 200م). البيع الآجل خارج الموقع يتطلب إدخال الرمز السري للمشرف (PIN).`);
       return;
     }
 
@@ -339,7 +330,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     }
 
     if (isCashOnlyCustomerCredit && !supervisorPin.trim()) {
-      setValidationError('هذا العميل مصنف كعميل نقدي (سقف الائتمان = 0.00). البيع الآجل له يتطلب إدخال الرمز السري للمشرف (PIN) أو تخصيص سقف ائتمان من الإدارة.');
+      setValidationError('هذا العميل مصنف كعميل نقدي (سقف الائتمان = 0.00). البيع الآجل له يتطلب إدخال الرمز السري للمشرف (PIN).');
       return;
     }
 
@@ -350,7 +341,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
 
     if (isCardPayment) {
       if (!supervisorPin.trim()) {
-        setValidationError('الدفع بالشبكة أو التحويل البنكي في الميدان يتطلب إدخال الرمز السري للمشرف (PIN) لتأكيد وصول الإشعار البنكي.');
+        setValidationError('الدفع بالشبكة أو التحويل البنكي في الميدان يتطلب إدخال الرمز السري للمشرف (PIN) لتأكيد وصول الإشعار.');
         return;
       }
       if (supervisorReason.trim().length < 3) {
@@ -365,8 +356,10 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     }
 
     onConfirmCheckout({
-      paymentMethod,
-      paidAmount: paymentMethod === 'cash' ? netCashTotal : (paymentMethod === 'split' ? cashPaid : (paymentMethod === 'card' ? cartTotal : 0)),
+      paymentMethod: finalMethod,
+      paidAmount: finalMethod === 'cash'
+        ? netCashDue
+        : (finalMethod === 'split' ? cashPaid : (finalMethod === 'card' ? cartTotal : 0)),
       cashDiscountAmount: paymentMethod === 'cash' && cashDiscountAmount > 0 ? cashDiscountAmount : undefined,
       notes: localNotes,
       cartonsCount: Number(cartonsCount) || undefined,
@@ -387,10 +380,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       open={open}
       onClose={onClose}
       title="إتمام الفاتورة والسداد الميداني"
-      subtitle="اختر طريقة الدفع وتفاصيل الاستلام لإصدار الفاتورة فورياً"
+      subtitle="تأكيد طريقة الدفع وإصدار الفاتورة فورياً"
       badge="نقطة توزيع الفان"
-      width="min(560px, 96vw)"
-      minHeight="480px"
+      compact={true}
+      width="min(500px, 95vw)"
+      bodyStyle={{ padding: '10px 14px' }}
       footer={
         <div
           dir="rtl"
@@ -400,7 +394,6 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             justifyContent: 'space-between',
             width: '100%',
             gap: '10px',
-            flexWrap: 'wrap',
           }}
         >
           <Button
@@ -409,8 +402,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             onClick={onClose}
             disabled={isSubmitting}
             style={{
-              minHeight: '40px',
-              fontSize: '13px',
+              height: '40px',
+              fontSize: '12.5px',
               fontWeight: 700,
               padding: '0 16px',
               display: 'inline-flex',
@@ -418,11 +411,13 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               gap: '6px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
-              color: '#334155',
+              color: '#475569',
+              whiteSpace: 'nowrap',
+              borderRadius: '8px',
             }}
           >
             <SlidersIcon size={15} color="#475569" />
-            <span>تعديل الأصناف / الفاتورة</span>
+            <span>تعديل السلة</span>
           </Button>
 
           <Button
@@ -431,55 +426,58 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             onClick={handleConfirm}
             disabled={isSubmitting}
             style={{
-              minHeight: '40px',
+              flex: 1,
+              height: '42px',
               backgroundColor: '#170e5e',
               color: '#ffffff',
               fontSize: '13.5px',
               fontWeight: 800,
-              padding: '0 24px',
+              padding: '0 18px',
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
               boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
+              borderRadius: '8px',
+              whiteSpace: 'nowrap',
             }}
           >
             <CheckCircleIcon size={16} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الإصدار والخصم...' : 'تأكيد نهائي للفاتورة'}</span>
+            <span>{isSubmitting ? 'جاري الإصدار...' : 'تأكيد وإصدار الفاتورة'}</span>
           </Button>
         </div>
       }
     >
-      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Customer Header Info Strip */}
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+        {/* Customer Header Info Strip - Breathable & Balanced */}
         <div
           style={{
             backgroundColor: '#f8fafc',
             border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 14px',
+            borderRadius: '9px',
+            padding: '9px 12px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '8px',
+            gap: '10px',
           }}
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>العميل / المحل:</span>
-              <strong style={{ fontSize: '13.5px', color: '#0f172a', fontWeight: 800 }}>
+              <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>العميل:</span>
+              <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>
                 {customerDisplayName}
               </strong>
               {customer?.customerCode && (
-                <span style={{ fontSize: '10.5px', backgroundColor: '#e2e8f0', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                <span style={{ fontSize: '10px', backgroundColor: '#e2e8f0', color: '#334155', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                   [{customer.customerCode.replace(/^#/, '')}]
                 </span>
               )}
             </div>
             {customer && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '3px', fontSize: '11.5px', color: '#475569' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', fontSize: '11px', color: '#475569' }}>
                 <span>
-                  المديونية الحالية: <strong style={{ color: customer.balance > 0 ? '#b91c1c' : '#15803d' }}>{customer.balance.toFixed(2)} ج.م</strong>
+                  المديونية: <strong style={{ color: customer.balance > 0 ? '#b91c1c' : '#15803d' }}>{customer.balance.toFixed(2)} ج.م</strong>
                 </span>
                 {customer.creditLimit ? (
                   <span>سقف الائتمان: <strong>{customer.creditLimit.toFixed(2)} ج.م</strong></span>
@@ -489,61 +487,64 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           </div>
 
           <div style={{ textAlign: 'left' }}>
-            {cartDiscount != null && cartDiscount > 0 && (
-              <span style={{ fontSize: '10.5px', color: '#b91c1c', display: 'block', fontWeight: 700 }}>
-                (خصومات وعروض: {cartDiscount.toFixed(2)} ج.م)
-              </span>
-            )}
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المطلوب سداده</span>
-            <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>
+            <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>المطلوب سداده</span>
+            <span style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
               {cartTotal.toFixed(2)} <CurrencySymbol />
             </span>
           </div>
         </div>
 
-        {/* Itemized Invoice Preview Section */}
+        {/* Compact Collapsible Items Preview */}
         {cart && cart.length > 0 && (
           <div
             style={{
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0',
-              borderRadius: '10px',
+              borderRadius: '8px',
               overflow: 'hidden',
             }}
           >
-            <div
+            <button
+              type="button"
+              onClick={() => setShowItemsPreview((prev) => !prev)}
               style={{
-                backgroundColor: '#f8fafc',
+                width: '100%',
                 padding: '6px 10px',
-                borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#f8fafc',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#334155',
               }}
             >
-              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <PackageIcon size={13} color="#170e5e" />
-                <span>معاينة الأصناف والأسعار بالفاتورة:</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <PackageIcon size={14} color="#170e5e" />
+                <span>
+                  معاينة الفاتورة: <strong>{cartItemsCount} أصناف</strong> ({cartTotalPieces} قطعة)
+                </span>
               </span>
-              <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b' }}>
-                {cartItemsCount} أصناف • {cartTotalPieces} قطعة
+              <span style={{ color: '#170e5e', fontSize: '11px', fontWeight: 800 }}>
+                {showItemsPreview ? 'إخفاء ▲' : 'عرض الأصناف ▼'}
               </span>
-            </div>
+            </button>
 
-            <div style={{ maxHeight: '135px', overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '5px 8px', fontWeight: 700 }}>الصنف</th>
-                    <th style={{ padding: '5px 6px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
-                    <th style={{ padding: '5px 6px', fontWeight: 700, textAlign: 'center' }}>السعر</th>
-                    <th style={{ padding: '5px 8px', fontWeight: 700, textAlign: 'left' }}>الإجمالي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cart.map((item, idx) => {
-                    const lineTotal = item.qty * item.unitPrice;
-                    return (
+            {showItemsPreview && (
+              <div style={{ maxHeight: '110px', overflowY: 'auto', borderTop: '1px solid #e2e8f0' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '4px 8px', fontWeight: 700 }}>الصنف</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>السعر</th>
+                      <th style={{ padding: '4px 8px', fontWeight: 700, textAlign: 'left' }}>الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cart.map((item, idx) => (
                       <tr
                         key={`${item.productId}-${idx}`}
                         style={{
@@ -551,7 +552,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                           backgroundColor: idx % 2 === 1 ? '#fafafa' : '#ffffff',
                         }}
                       >
-                        <td style={{ padding: '5px 8px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '4px 8px' }}>
                           <span style={{ fontWeight: 800, color: '#0f172a' }}>{item.name}</span>
                           {item.isBonus && (
                             <span
@@ -565,25 +566,25 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                                 fontWeight: 800,
                               }}
                             >
-                              هدية مجانية
+                              هدية
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: '5px 6px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, color: '#170e5e' }}>
+                        <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
                           {item.qty} {item.unitName || 'قطعة'}
                         </td>
-                        <td style={{ padding: '5px 6px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap', color: '#334155' }}>
+                        <td style={{ padding: '4px 6px', textAlign: 'center', color: '#334155' }}>
                           {item.unitPrice.toFixed(2)}
                         </td>
-                        <td style={{ padding: '5px 8px', textAlign: 'left', verticalAlign: 'middle', whiteSpace: 'nowrap', fontWeight: 900, color: '#0f172a' }}>
-                          {lineTotal.toFixed(2)}
+                        <td style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 900, color: '#0f172a' }}>
+                          {(item.qty * item.unitPrice).toFixed(2)}
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -594,26 +595,23 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               backgroundColor: '#fef2f2',
               border: '1px solid #fecaca',
               color: '#991b1b',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              fontSize: '12px',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              fontSize: '11.5px',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
             }}
           >
-            <AlertTriangleIcon size={16} color="#dc2626" />
+            <AlertTriangleIcon size={14} color="#dc2626" />
             <span>{validationError}</span>
           </div>
         )}
 
-        {/* Payment Method Selector Grid - 4 Balanced Methods */}
+        {/* Payment Method Selector: STRICTLY 1 ROW (flex-row) */}
         <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-            طريقة السداد:
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%' }}>
             <button
               type="button"
               onClick={() => {
@@ -622,18 +620,23 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 setValidationError('');
               }}
               style={{
-                minHeight: '40px',
+                flex: '1 1 0%',
+                minWidth: 0,
+                height: '42px',
                 borderRadius: '8px',
                 border: paymentMethod === 'cash' ? '2px solid #059669' : '1px solid #cbd5e1',
                 backgroundColor: paymentMethod === 'cash' ? '#ecfdf5' : '#ffffff',
                 color: paymentMethod === 'cash' ? '#065f46' : '#334155',
                 fontWeight: 800,
-                fontSize: '12.5px',
+                fontSize: '13px',
                 cursor: 'pointer',
-                transition: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: paymentMethod === 'cash' ? '0 1px 3px rgba(5, 150, 105, 0.15)' : 'none',
               }}
             >
-              نقدي (كاش)
+              <span>نقدي (كاش)</span>
             </button>
 
             <button
@@ -643,62 +646,65 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 setValidationError('');
               }}
               style={{
-                minHeight: '40px',
+                flex: '1 1 0%',
+                minWidth: 0,
+                height: '42px',
                 borderRadius: '8px',
                 border: paymentMethod === 'credit' ? '2px solid #d97706' : '1px solid #cbd5e1',
                 backgroundColor: paymentMethod === 'credit' ? '#fffbeb' : '#ffffff',
                 color: paymentMethod === 'credit' ? '#92400e' : '#334155',
                 fontWeight: 800,
-                fontSize: '12.5px',
+                fontSize: '13px',
                 cursor: 'pointer',
-                transition: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: paymentMethod === 'credit' ? '0 1px 3px rgba(217, 119, 6, 0.15)' : 'none',
               }}
             >
-              آجل (بالكامل)
+              <span>آجل (بالكامل)</span>
             </button>
+          </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPaymentMethod('split');
-                setCashInput((cartTotal / 2).toFixed(2));
-                setValidationError('');
-              }}
-              style={{
-                minHeight: '40px',
-                borderRadius: '8px',
-                border: paymentMethod === 'split' ? '2px solid #7c3aed' : '1px solid #cbd5e1',
-                backgroundColor: paymentMethod === 'split' ? '#f5f3ff' : '#ffffff',
-                color: paymentMethod === 'split' ? '#5b21b6' : '#334155',
-                fontWeight: 800,
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'none',
-              }}
-            >
-              دفع مركب (جزء كاش)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPaymentMethod('card');
-                setValidationError('');
-              }}
-              style={{
-                minHeight: '40px',
-                borderRadius: '8px',
-                border: paymentMethod === 'card' ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                backgroundColor: paymentMethod === 'card' ? '#f0f9ff' : '#ffffff',
-                color: paymentMethod === 'card' ? '#0369a1' : '#334155',
-                fontWeight: 800,
-                fontSize: '12.5px',
-                cursor: 'pointer',
-                transition: 'none',
-              }}
-            >
-              شبكة / فيزا
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3px' }}>
+            {paymentMethod === 'card' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('cash');
+                  setCashInput(cartTotal.toFixed(2));
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#dc2626',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                إلغاء الشبكة والعودة للنقدي
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('card');
+                  setValidationError('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '10.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                سداد عبر بطاقة بنكية / شبكة POS
+              </button>
+            )}
           </div>
         </div>
 
@@ -707,38 +713,20 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           style={{
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px',
+            borderRadius: '8px',
+            padding: '10px 12px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '8px',
           }}
         >
-          {/* 1. CASH PAYMENT MODE */}
+          {/* 1. CASH / SMART SPLIT PAYMENT MODE */}
           {paymentMethod === 'cash' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                  المبلغ المستلم نقداً من العميل:
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setCashInput(cartTotal.toFixed(2))}
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: '#059669',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  المبلغ بالضبط ({cartTotal.toFixed(2)} ج.م)
-                </button>
-              </div>
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', whiteSpace: 'nowrap' }}>
+                  المستلم كاش:
+                </span>
                 <input
                   type="number"
                   step="0.5"
@@ -747,8 +735,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   placeholder="0.00"
                   style={{
                     flex: 1,
-                    height: '42px',
-                    borderRadius: '8px',
+                    minWidth: 0,
+                    height: '38px',
+                    borderRadius: '7px',
                     border: '1px solid #cbd5e1',
                     fontSize: '16px',
                     fontWeight: 800,
@@ -757,224 +746,243 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     boxSizing: 'border-box',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setCashInput(netCashDue.toFixed(2))}
+                  style={{
+                    height: '38px',
+                    padding: '0 12px',
+                    borderRadius: '7px',
+                    border: '1px solid #a7f3d0',
+                    backgroundColor: '#ecfdf5',
+                    color: '#065f46',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  المبلغ بالضبط
+                </button>
               </div>
 
-              {/* Quick Cash Presets */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {quickCashOptions.map((opt) => (
+              {/* Automatic Split Badge if partial cash paid */}
+              {isActuallySplit && (
+                <div
+                  style={{
+                    backgroundColor: '#f5f3ff',
+                    border: '1px solid #ddd6fe',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '11.5px',
+                    color: '#5b21b6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>سداد جزئي (المتبقي آجل على الحساب):</span>
+                  <strong style={{ color: '#b91c1c', fontSize: '12.5px' }}>
+                    {splitCreditDebt.toFixed(2)} ج.م
+                  </strong>
+                </div>
+              )}
+
+              {/* Automatic Change Badge if cash paid is greater than total */}
+              {changeDue > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '11.5px',
+                    color: '#1d4ed8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>الباقي للعميل:</span>
+                  <strong style={{ color: '#1d4ed8', fontSize: '12.5px' }}>
+                    {changeDue.toFixed(2)} ج.م
+                  </strong>
+                </div>
+              )}
+
+              {/* Optional Cash Discount Toggle */}
+              <div>
+                {!showCashDiscount && cashDiscountAmount === 0 ? (
                   <button
-                    key={opt}
                     type="button"
-                    onClick={() => setCashInput(opt.toFixed(2))}
+                    onClick={() => setShowCashDiscount(true)}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: Math.abs(cashPaid - opt) < 0.01 ? '#059669' : '#f1f5f9',
-                      color: Math.abs(cashPaid - opt) < 0.01 ? '#ffffff' : '#334155',
-                      fontSize: '11.5px',
-                      fontWeight: 700,
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '10.5px',
+                      fontWeight: 600,
                       cursor: 'pointer',
+                      textDecoration: 'underline',
                     }}
                   >
-                    {opt.toFixed(0)} ج.م
+                    + إضافة خصم تسوية نقدي (اختياري)
                   </button>
-                ))}
-              </div>
-
-              {/* Cash Settlement Discount Section */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#334155' }}>
-                    خصم تعجيل دفع نقدي (كاش ديسكاونت اختياري):
-                  </span>
-                  {cashDiscountAmount > 0 && (
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>
-                      الصافي المطلوب: {(Math.max(0, cartTotal - cashDiscountAmount)).toFixed(2)} ج.م
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max={cartTotal}
-                    value={cashDiscountAmount || ''}
-                    onChange={(e) => {
-                      const val = Math.max(0, Math.min(cartTotal, Number(e.target.value) || 0));
-                      setCashDiscountAmount(val);
-                      setCashInput((Math.max(0, cartTotal - val)).toFixed(2));
-                    }}
-                    placeholder="قيمة الخصم النقدي (0.00)"
+                ) : (
+                  <div
                     style={{
-                      width: '130px',
-                      height: '32px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      textAlign: 'center',
-                      backgroundColor: '#ffffff',
+                      padding: '5px 8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      flexWrap: 'wrap',
                     }}
-                  />
-                  {[0, 0.01, 0.02, 0.03, 0.05].map((pct) => {
-                    const discountVal = Number((cartTotal * pct).toFixed(2));
-                    const label = pct === 0 ? 'إلغاء الخصم' : `${pct * 100}% (${discountVal} ج.م)`;
-                    const isSelected = Math.abs(cashDiscountAmount - discountVal) < 0.01;
-                    return (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => {
-                          setCashDiscountAmount(discountVal);
-                          setCashInput((Math.max(0, cartTotal - discountVal)).toFixed(2));
-                        }}
-                        style={{
-                          padding: '3px 7px',
-                          borderRadius: '5px',
-                          border: isSelected ? '1px solid #059669' : '1px solid #cbd5e1',
-                          backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
-                          color: isSelected ? '#065f46' : '#475569',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
+                  >
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>خصم نقدي:</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max={cartTotal}
+                      value={cashDiscountAmount || ''}
+                      onChange={(e) => {
+                        const val = Math.max(0, Math.min(cartTotal, Number(e.target.value) || 0));
+                        setCashDiscountAmount(val);
+                        setCashInput((Math.max(0, cartTotal - val)).toFixed(2));
+                      }}
+                      placeholder="0.00"
+                      style={{
+                        width: '70px',
+                        height: '26px',
+                        borderRadius: '4px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        backgroundColor: '#ffffff',
+                      }}
+                    />
+                    {[0.02, 0.05].map((pct) => {
+                      const discountVal = Number((cartTotal * pct).toFixed(2));
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setCashDiscountAmount(discountVal);
+                            setCashInput((Math.max(0, cartTotal - discountVal)).toFixed(2));
+                          }}
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            backgroundColor: Math.abs(cashDiscountAmount - discountVal) < 0.01 ? '#ecfdf5' : '#ffffff',
+                            color: Math.abs(cashDiscountAmount - discountVal) < 0.01 ? '#065f46' : '#475569',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {pct * 100}% ({discountVal} ج)
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCashDiscountAmount(0);
+                        setShowCashDiscount(false);
+                        setCashInput(cartTotal.toFixed(2));
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#dc2626',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        marginRight: 'auto',
+                      }}
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* 2. FULL CREDIT PAYMENT MODE */}
           {paymentMethod === 'credit' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {!hasCustomer ? (
-                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
-                  <strong>تنبيه:</strong> لم يتم تحديد عميل أو كتابة اسم المحل. البيع الآجل يتطلب تحديد العميل لتسجيل المديونية.
+                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '8px 10px', fontSize: '11.5px', color: '#92400e' }}>
+                  <strong>تنبيه:</strong> لم يتم تحديد عميل. البيع الآجل يتطلب تحديد العميل لتسجيل المديونية.
                 </div>
               ) : (
-                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px' }}>
+                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#166534' }}>المديونية السابقة:</span>
                     <strong>{(customer?.balance || 0).toFixed(2)} ج.م</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #86efac', paddingTop: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #86efac', paddingTop: '3px' }}>
                     <span style={{ color: '#166534', fontWeight: 800 }}>الرصيد بعد إضافة الفاتورة:</span>
-                    <strong style={{ color: '#b91c1c', fontSize: '13px' }}>{customerBalanceAfter.toFixed(2)} ج.م</strong>
+                    <strong style={{ color: '#b91c1c', fontSize: '12.5px' }}>{customerBalanceAfter.toFixed(2)} ج.م</strong>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* 3. SPLIT PAYMENT MODE (CASH + CREDIT) */}
-          {paymentMethod === 'split' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {!hasCustomer ? (
-                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
-                  <strong>تنبيه:</strong> لم يتم تحديد عميل. المتبقي الآجل يتطلب تحديد العميل لتسجيل المديونية.
-                </div>
-              ) : (
-                <>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                    المبلغ المسدد نقداً للمندوب حالياً:
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    value={cashInput}
-                    onChange={(e) => setCashInput(e.target.value)}
-                    placeholder="0.00"
-                    style={{
-                      height: '40px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      fontWeight: 800,
-                      textAlign: 'center',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '8px 12px', fontSize: '11.5px', color: '#5b21b6', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>المتبقي على الحساب (آجل):</span>
-                      <strong style={{ color: '#b91c1c' }}>{splitCreditDebt.toFixed(2)} ج.م</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>رصيد العميل بعد السداد:</span>
-                      <strong>{customerBalanceAfter.toFixed(2)} ج.م</strong>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* 4. CARD PAYMENT MODE */}
+          {/* 3. CARD PAYMENT MODE */}
           {paymentMethod === 'card' && (
-            <div style={{ padding: '8px 12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px dashed #bae6fd', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CreditCardIcon size={24} color="#0284c7" />
+            <div style={{ padding: '8px 10px', backgroundColor: '#f0f9ff', borderRadius: '6px', border: '1px dashed #bae6fd', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCardIcon size={20} color="#0284c7" />
               <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0369a1' }}>
-                  الدفع عبر البطاقة البنكية / ماكينة الدفع المحمولة
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#0369a1' }}>
+                  الدفع عبر البطاقة البنكية / ماكينة الدفع
                 </div>
-                <div style={{ fontSize: '11px', color: '#0284c7' }}>
-                  سيتم تسجيل الفاتورة كدفع إلكتروني بقيمة {cartTotal.toFixed(2)} ج.م
+                <div style={{ fontSize: '10.5px', color: '#0284c7' }}>
+                  تسجيل الفاتورة كدفع إلكتروني بقيمة {cartTotal.toFixed(2)} ج.م
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Supervisor Credit Limit, Geofence Bypass, Cash-Only Customer, New Customer Credit, Card Payment, or Bonus Authorization Block */}
+        {/* Supervisor PIN Alert Box if Authorization Needed */}
         {(isCreditExceeded || isCashOnlyCustomerCredit || isNewCustomerCredit || isCardPayment || hasBonusItems || isGeofenceBlocked) && (
           <div
             style={{
               backgroundColor: '#fff7ed',
               border: '1px solid #fdba74',
-              borderRadius: '8px',
-              padding: '10px 12px',
+              borderRadius: '7px',
+              padding: '8px 10px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
+              gap: '6px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c2410c', fontWeight: 800, fontSize: '12px' }}>
-              <AlertTriangleIcon size={16} color="#ea580c" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#c2410c', fontWeight: 800, fontSize: '11.5px' }}>
+              <AlertTriangleIcon size={14} color="#ea580c" />
               <span>
                 {isGeofenceBlocked
-                  ? `قفل جغرافي رقابي: موقعك الحالي يبعد (${geofenceDistance} متر) عن دكان العميل (المسموح 200م)`
+                  ? `قفل جغرافي: موقعك يبعد (${geofenceDistance}م) عن دكان العميل`
                   : isCreditExceeded
-                  ? `تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة (${customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح (${customer?.creditLimit?.toFixed(2)} ج.م)`
+                  ? `تنبيه: رصيد العميل بعد الفاتورة سيتجاوز الحد المسموح`
                   : isCashOnlyCustomerCredit
-                  ? `اعتماد المشرف مطلوب: العميل "${customerDisplayName}" مصنف نقدي (سقف الائتمان = 0.00 ج.م)`
+                  ? `اعتماد المشرف مطلوب: العميل مصنف نقدي فقط`
                   : isNewCustomerCredit
-                  ? `اعتماد المشرف مطلوب: بيع آجل لعميل جديد ("${newCustomerName}") غير مسجل مسبقاً`
+                  ? `اعتماد المشرف مطلوب: بيع آجل لعميل جديد ("${newCustomerName}")`
                   : isCardPayment
-                  ? 'اعتماد المشرف ورقم إيصال الشبكة مطلوبان للدفع بالبطاقة / التحويل البنكي'
-                  : 'اعتماد المشرف مطلوب: تحتوي الفاتورة على أصناف بونص عيني مجاني'}
+                  ? 'اعتماد المشرف ورقم إيصال الشبكة مطلوبان'
+                  : 'اعتماد المشرف مطلوب لصرف البونص العيني'}
               </span>
             </div>
-            <div style={{ fontSize: '11px', color: '#9a3412', lineHeight: 1.4 }}>
-              {isGeofenceBlocked
-                ? 'يتطلب البيع الآجل خارج النطاق الجغرافي لدكان العميل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الاستثناء لحماية الحسابات من الفواتير الوهمية وفواتير الرصيف.'
-                : isCreditExceeded
-                ? 'يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.'
-                : isCashOnlyCustomerCredit
-                ? 'العملاء المضافون ميدانياً أو المصنفون نقداً لا يُسمح بالبيع الآجل لهم إلا برمز المشرف (PIN) أو بعد تخصيص سقف ائتمان من الإدارة.'
-                : isNewCustomerCredit
-                ? 'يتطلب فتح حساب آجل جديد في الميدان إدخال الرمز السري للمشرف (Supervisor PIN) لحماية الحسابات من المديونيات الوهمية.'
-                : isCardPayment
-                ? 'لتسجيل الفاتورة على حساب البنك مباشرة ومنع التلاعب بالنقدية، يرجى إدخال رمز المشرف (PIN) ورقم مرجع إيصال الشبكة أو الحوالة.'
-                : 'يتطلب صرف البونص العيني إدخال الرمز السري للمشرف (Supervisor PIN) لتوثيق المصادقة الرقابية.'}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '6px' }}>
               <input
                 type="password"
                 maxLength={6}
@@ -982,10 +990,10 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 onChange={(e) => setSupervisorPin(e.target.value)}
                 placeholder="PIN المشرف"
                 style={{
-                  height: '36px',
-                  borderRadius: '6px',
+                  height: '32px',
+                  borderRadius: '5px',
                   border: '1px solid #f97316',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: 800,
                   textAlign: 'center',
                   backgroundColor: '#ffffff',
@@ -996,24 +1004,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 type="text"
                 value={supervisorReason}
                 onChange={(e) => setSupervisorReason(e.target.value)}
-                placeholder={
-                  isGeofenceBlocked
-                    ? 'سبب الاستثناء الجغرافي (مثال: العميل متواجد في فرع آخر / عطل مؤقت بالـ GPS)'
-                    : isCreditExceeded
-                    ? 'سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)'
-                    : isCashOnlyCustomerCredit
-                    ? 'سبب الاعتماد (مثال: موافقة المشرف على فاتورة آجلة)'
-                    : isNewCustomerCredit
-                    ? 'سبب فتح الآجل (مثال: موافقة المشرف على عميل جديد)'
-                    : isCardPayment
-                    ? 'رقم إيصال ماكينة الشبكة أو مرجع التحويل البنكي (إلزامي)'
-                    : 'سبب صرف البونص (مثال: حملة ترويجية معتمدة)'
-                }
+                placeholder={isCardPayment ? 'رقم إيصال الشبكة' : 'سبب الاعتماد'}
                 style={{
-                  height: '36px',
-                  borderRadius: '6px',
+                  height: '32px',
+                  borderRadius: '5px',
                   border: '1px solid #fed7aa',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   padding: '0 8px',
                   backgroundColor: '#ffffff',
                   boxSizing: 'border-box',
@@ -1023,58 +1019,23 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           </div>
         )}
 
-        {/* 3-Chips Financial Summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-          <div style={{ backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المطلوب</span>
-            <strong style={{ fontSize: '14px', color: '#0f172a' }}>{cartTotal.toFixed(2)}</strong>
-          </div>
-
-          <div style={{ backgroundColor: '#ecfdf5', borderRadius: '8px', padding: '6px 8px', textAlign: 'center', border: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: '11px', color: '#166534', display: 'block' }}>
-              {paymentMethod === 'card' ? 'المدفوع إلكترونياً' : 'المدفوع كاش'}
-            </span>
-            <strong style={{ fontSize: '14px', color: '#15803d' }}>
-              {paymentMethod === 'card' ? cartTotal.toFixed(2) : (paymentMethod === 'credit' ? '0.00' : cashPaid.toFixed(2))}
-            </strong>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: paymentMethod === 'cash' && changeDue > 0 ? '#eff6ff' : (paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0) ? '#fef2f2' : '#f8fafc'),
-              borderRadius: '8px',
-              padding: '6px 8px',
-              textAlign: 'center',
-              border: `1px solid ${paymentMethod === 'cash' && changeDue > 0 ? '#bfdbfe' : (paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0) ? '#fecaca' : '#e2e8f0')}`,
-            }}
-          >
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-              {paymentMethod === 'cash' ? (changeDue > 0 ? 'الباقي للعميل' : (remainingCashShortage > 0 ? 'عجز مدفوع' : 'الباقي')) : 'المتبقي (آجل)'}
-            </span>
-            <strong style={{ fontSize: '14px', color: paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0) ? '#b91c1c' : (changeDue > 0 ? '#1d4ed8' : '#0f172a') }}>
-              {paymentMethod === 'cash' ? (changeDue > 0 ? changeDue.toFixed(2) : remainingCashShortage.toFixed(2)) : (paymentMethod === 'credit' ? cartTotal.toFixed(2) : (paymentMethod === 'split' ? splitCreditDebt.toFixed(2) : '0.00'))}
-            </strong>
-          </div>
-        </div>
-
-        {/* Operational Distribution Details: Cartons, Proof Photo, Notes */}
+        {/* Operational Card: Cartons, Proof Photo, Signature, Notes */}
         <div
           style={{
             backgroundColor: '#f8fafc',
             border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 12px',
+            borderRadius: '8px',
+            padding: '8px 10px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          {/* Row 1: Cartons on Right, Photo & Signature on Left */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <PackageIcon size={16} color="#170e5e" />
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                عدد الكراتين / الطرود:
-              </label>
+              <PackageIcon size={14} color="#170e5e" />
+              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>عدد الطرود:</span>
               <input
                 type="number"
                 min="0"
@@ -1082,151 +1043,95 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 onChange={(e) => onCartonsCountChange(e.target.value)}
                 placeholder="0"
                 style={{
-                  width: '56px',
-                  height: '32px',
-                  borderRadius: '6px',
+                  width: '46px',
+                  height: '30px',
+                  borderRadius: '5px',
                   border: '1px solid #cbd5e1',
                   textAlign: 'center',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
+                  fontSize: '12px',
+                  fontWeight: 800,
                   backgroundColor: '#ffffff',
                 }}
               />
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                ({cartItemsCount} أصناف • {cartTotalPieces} قطعة)
-              </span>
             </div>
 
             {/* Proof Photo & Touch Signature Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {deliveryProofPhoto ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <img
                     src={deliveryProofPhoto}
                     alt="Proof"
-                    style={{ width: '40px', height: '28px', borderRadius: '4px', objectFit: 'contain', border: '1px solid #cbd5e1', backgroundColor: '#ffffff' }}
+                    style={{ width: '28px', height: '22px', borderRadius: '4px', objectFit: 'contain', border: '1px solid #cbd5e1', backgroundColor: '#ffffff' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800 }}>تم توثيق الاستلام</span>
+                  <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 700 }}>تم التوثيق</span>
                   <button
                     type="button"
                     onClick={() => {
                       onDeliveryProofPhotoChange('');
                       clearCanvasSignature();
                     }}
-                    style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+                    style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
                   >
                     حذف
                   </button>
                 </div>
               ) : (
-                <>
-                  <label
-                    style={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#170e5e',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <CameraIcon size={13} color="#170e5e" />
-                    <span>+ صورة التسليم</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handlePhotoUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowSignaturePad((prev) => !prev)}
-                    style={{
-                      backgroundColor: showSignaturePad ? '#eef2ff' : '#ffffff',
-                      border: showSignaturePad ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#170e5e',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <EditIcon size={13} color="#170e5e" />
-                    <span>{showSignaturePad ? 'إلغاء التوقيع' : '+ توقيع العميل (لمس)'}</span>
-                  </button>
-                </>
+                <label
+                  style={{
+                    height: '30px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '5px',
+                    padding: '0 9px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#170e5e',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <CameraIcon size={12} color="#170e5e" />
+                  <span>+ صورة</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
               )}
+
+              <button
+                type="button"
+                onClick={() => setShowSignaturePad((prev) => !prev)}
+                style={{
+                  height: '30px',
+                  backgroundColor: showSignaturePad ? '#eef2ff' : (isCreditOrSplitDebt ? '#fffbeb' : '#ffffff'),
+                  border: showSignaturePad ? '1.5px solid #170e5e' : (isCreditOrSplitDebt ? '1px solid #d97706' : '1px solid #cbd5e1'),
+                  borderRadius: '5px',
+                  padding: '0 9px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: isCreditOrSplitDebt ? '#92400e' : '#170e5e',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <EditIcon size={12} color={isCreditOrSplitDebt ? '#92400e' : '#170e5e'} />
+                <span>{showSignaturePad ? 'إلغاء' : '+ توقيع'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Interactive Touch Signature Pad */}
-          {showSignaturePad && !deliveryProofPhoto && (
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>
-                  توقيع المستلم / صاحب المحل بيده على الشاشة:
-                </span>
-                <button
-                  type="button"
-                  onClick={clearCanvasSignature}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#dc2626',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  مسح
-                </button>
-              </div>
-              <canvas
-                ref={canvasRef}
-                width={400}
-                height={85}
-                onPointerDown={handleStartDraw}
-                onPointerMove={handleDraw}
-                onPointerUp={handleEndDraw}
-                style={{
-                  width: '100%',
-                  height: '85px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px dashed #94a3b8',
-                  borderRadius: '6px',
-                  touchAction: 'none',
-                  cursor: 'crosshair',
-                }}
-              />
-              <span style={{ fontSize: '10px', color: '#64748b' }}>
-                وقع بإصبعك أو القلم في المربع لتوثيق استلام البضاعة الآجلة قانونياً.
-              </span>
-            </div>
-          )}
-
-          {/* Notes Input */}
+          {/* Row 2: Full Width Notes Input */}
           <input
             type="text"
             value={localNotes}
@@ -1237,15 +1142,67 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             placeholder="ملاحظات على الفاتورة أو التسليم (اختياري)..."
             style={{
               width: '100%',
-              height: '34px',
-              padding: '0 10px',
-              borderRadius: '6px',
+              height: '30px',
+              padding: '0 9px',
+              borderRadius: '5px',
               border: '1px solid #cbd5e1',
-              fontSize: '12px',
+              fontSize: '11.5px',
               backgroundColor: '#ffffff',
               boxSizing: 'border-box',
             }}
           />
+
+          {/* Interactive Signature Pad if opened */}
+          {showSignaturePad && !deliveryProofPhoto && (
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '6px 8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#0f172a' }}>
+                  توقيع العميل / المستلم على الشاشة:
+                </span>
+                <button
+                  type="button"
+                  onClick={clearCanvasSignature}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  مسح
+                </button>
+              </div>
+              <canvas
+                ref={canvasRef}
+                width={400}
+                height={70}
+                onPointerDown={handleStartDraw}
+                onPointerMove={handleDraw}
+                onPointerUp={handleEndDraw}
+                style={{
+                  width: '100%',
+                  height: '70px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '4px',
+                  touchAction: 'none',
+                  cursor: 'crosshair',
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </StandardDialog>

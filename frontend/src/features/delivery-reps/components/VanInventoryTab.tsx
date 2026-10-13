@@ -226,7 +226,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                 backgroundColor: '#ffffff',
                 borderRadius: '12px',
                 padding: '12px 14px',
-                border: inCartQty > 0 ? '1.5px solid #6366f1' : '1px solid #e2e8f0',
+                border: inCartQty > 0 ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -241,7 +241,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                     <span
                       style={{
                         backgroundColor: '#eef2ff',
-                        color: '#4338ca',
+                        color: '#170e5e',
                         fontSize: '10.5px',
                         fontWeight: 800,
                         padding: '1px 6px',
@@ -257,7 +257,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                   {item.barcode}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
                     {item.retailPrice.toFixed(2)} <CurrencySymbol />
                   </span>
                   <span
@@ -369,46 +369,46 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
       </div>
     )}
 
-      {/* Floating Bottom Cart Bar */}
+      {/* Floating Bottom Cart Bar - Premium Calm Enterprise Design */}
       {cart.length > 0 && onGoToSale && (
         <div
           style={{
             position: 'sticky',
-            bottom: '10px',
+            bottom: '12px',
             zIndex: 30,
             marginTop: '12px',
-            backgroundColor: '#170e5e',
-            color: '#ffffff',
-            borderRadius: '12px',
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
             padding: '10px 14px',
-            boxShadow: '0 8px 24px rgba(23, 14, 94, 0.35)',
+            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.05)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '10px',
-            border: '1px solid #312e81',
+            gap: '12px',
+            border: '1.5px solid #170e5e',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: '#eef2ff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                border: '1px solid #c7d2fe',
               }}
             >
-              <ShoppingCartIcon size={18} color="#ffffff" />
+              <ShoppingCartIcon size={18} color="#170e5e" />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 الفاتورة: {cart.length} {cart.length === 1 ? 'صنف' : cart.length === 2 ? 'صنفان' : cart.length <= 10 ? 'أصناف' : 'صنف'} ({totalPiecesInCart} {totalPiecesInCart === 1 ? 'قطعة' : totalPiecesInCart === 2 ? 'قطعتان' : totalPiecesInCart <= 10 ? 'قطع' : 'قطعة'})
               </div>
-              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#34d399', whiteSpace: 'nowrap', marginTop: '1px' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 900, color: '#170e5e', whiteSpace: 'nowrap', marginTop: '1px' }}>
                 الإجمالي: {cartTotal.toFixed(2)} <CurrencySymbol />
               </div>
             </div>
@@ -418,19 +418,21 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
             type="button"
             onClick={onGoToSale}
             style={{
-              backgroundColor: '#059669',
+              backgroundColor: '#170e5e',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '8px',
-              padding: '7px 12px',
-              fontSize: '11.5px',
+              borderRadius: '9px',
+              padding: '8px 14px',
+              fontSize: '12px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '6px',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(23, 14, 94, 0.22)',
+              transition: 'transform 0.15s ease',
             }}
           >
             <span>متابعة الفاتورة</span>

@@ -12,10 +12,11 @@ import {
   CreditCardIcon,
   FileTextIcon,
   RefreshCwIcon,
+  MapPinIcon,
+  PhoneIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { VanCustomerStatementModal } from './VanCustomerStatementModal';
-import { VanFloatingActionBar } from './VanFloatingActionBar';
 
 export interface CartItem {
   productId: number;
@@ -178,13 +179,13 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
 
   const inventorySelectOptions = useMemo(() => {
     return [
-      { value: '', label: '-- إضافة سريعة لصنف من بضاعة السيارة مباشرة --' },
+      { value: '', label: '-- ابحث أو اختر صنفاً من السيارة --' },
       ...availableInventory.map((item) => {
         const inCart = cart.find((c) => c.productId === item.productId);
         const remaining = item.qty - (inCart ? inCart.qty : 0);
         return {
           value: String(item.productId),
-          label: `${item.productName} (المتبقي بالسيارة: ${remaining}) - ${item.retailPrice.toFixed(2)} ج.م`,
+          label: `${item.productName} (متاح: ${remaining}) - ${item.retailPrice.toFixed(2)} ج.م`,
           hint: item.barcode ? `باركود: ${item.barcode}` : undefined,
         };
       }),
@@ -216,15 +217,25 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '6px',
-          borderBottom: '1px solid #f1f5f9',
-          paddingBottom: '6px',
+          gap: '8px',
+          backgroundColor: '#f8fafc',
+          margin: '-12px -14px 4px -14px',
+          padding: '10px 14px',
+          borderRadius: '12px 12px 0 0',
+          borderBottom: '1px solid #e2e8f0',
         }}
       >
-        <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-          إصدار فاتورة بيع ميداني للعميل
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+          <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+            فاتورة بيع ميداني
+          </h3>
+          {cart.length > 0 && (
+            <span style={{ fontSize: '10.5px', backgroundColor: '#eef2ff', color: '#170e5e', border: '1px solid #c7d2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+              {cart.length} {cart.length === 1 ? 'صنف' : cart.length === 2 ? 'صنفان' : cart.length <= 10 ? 'أصناف' : 'صنف'}
+            </span>
+          )}
+        </div>
         {onGoToSalesHistory && (
           <button
             type="button"
@@ -232,19 +243,20 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
+              gap: '4px',
+              padding: '3px 8px',
               borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
               color: '#170e5e',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
             }}
             title="الانتقال لسجل الفواتير السابقة وإعادة الطباعة"
           >
-            <ReceiptIcon size={13} color="#170e5e" />
+            <ReceiptIcon size={12} color="#170e5e" />
             <span>سجل الفواتير</span>
           </button>
         )}
@@ -254,33 +266,37 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
       {selectedCustomer ? (
         <div
           style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: '8px',
-            padding: '7px 10px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '3px',
+            gap: '8px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
           }}
         >
+          {/* Row 1: Customer Name & Code + Quick Actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-              <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+              <span
+                style={{
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  lineHeight: 1.25,
+                }}
+              >
                 {selectedCustomer.name}
               </span>
               {selectedCustomer.customerCode && (
-                <span style={{ fontSize: '10.5px', color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
                   [{selectedCustomer.customerCode.replace(/^#/, '')}]
-                </span>
-              )}
-              {selectedCustomer.route && (
-                <span style={{ fontSize: '10.5px', color: '#475569', backgroundColor: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
-                  {selectedCustomer.route}
                 </span>
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
               {selectedCustomer.locationUrl && (
                 <a
                   href={selectedCustomer.locationUrl}
@@ -288,30 +304,37 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                   rel="noreferrer"
                   style={{
                     fontSize: '10.5px',
-                    color: '#0284c7',
-                    fontWeight: 700,
+                    color: '#475569',
+                    fontWeight: 600,
                     textDecoration: 'none',
-                    backgroundColor: '#e0f2fe',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     padding: '2px 6px',
-                    borderRadius: '4px',
+                    borderRadius: '5px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
                   }}
                   title="فتح الموقع على خرائط جوجل"
                 >
-                  خريطة ↗
+                  <MapPinIcon size={11} color="#64748b" />
+                  <span>خريطة</span>
+                  <span>↗</span>
                 </a>
               )}
               <button
                 type="button"
                 onClick={() => onSelectCustomer('')}
                 style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '5px',
                   padding: '2px 7px',
                   fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: '#dc2626',
+                  fontWeight: 600,
+                  color: '#475569',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 تغيير العميل
@@ -319,41 +342,107 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: '#374151', flexWrap: 'wrap' }}>
-            <span>
-              المديونية:{' '}
-              <strong style={{ color: selectedCustomer.balance > 0 ? '#b91c1c' : '#059669' }}>
-                {selectedCustomer.balance.toFixed(2)} <CurrencySymbol />
-              </strong>
+          {/* Row 2: Metadata Chips (Debt, Phone, Route, Credit Limit) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#334155', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                backgroundColor: selectedCustomer.balance > 0 ? '#fef2f2' : '#f8fafc',
+                color: selectedCustomer.balance > 0 ? '#991b1b' : '#475569',
+                border: `1px solid ${selectedCustomer.balance > 0 ? '#fecaca' : '#e2e8f0'}`,
+                padding: '2px 7px',
+                borderRadius: '5px',
+                fontWeight: 700,
+                fontSize: '11px',
+              }}
+            >
+              {selectedCustomer.balance > 0 ? 'المديونية: ' : 'الحساب: '}
+              <strong>
+                {selectedCustomer.balance === 0 ? 'خالص (0.00)' : selectedCustomer.balance.toFixed(2)}
+              </strong> <CurrencySymbol />
             </span>
+            {selectedCustomer.phone && (
+              <a
+                href={`tel:${selectedCustomer.phone}`}
+                style={{
+                  textDecoration: 'none',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                  fontSize: '11px',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <PhoneIcon size={11} color="#64748b" />
+                <span dir="ltr">{selectedCustomer.phone}</span>
+              </a>
+            )}
+            {selectedCustomer.route && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  color: '#475569',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <MapPinIcon size={10} color="#64748b" />
+                <span>{selectedCustomer.route}</span>
+              </span>
+            )}
             {selectedCustomer.creditLimit ? (
-              <span>سقف الائتمان: <strong>{selectedCustomer.creditLimit.toFixed(2)} <CurrencySymbol /></strong></span>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  color: '#475569',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                }}
+              >
+                سقف الائتمان: <strong>{selectedCustomer.creditLimit.toFixed(2)}</strong> <CurrencySymbol />
+              </span>
             ) : null}
-            {selectedCustomer.phone && <span>الهاتف: <strong style={{ color: '#0f172a' }}>{selectedCustomer.phone}</strong></span>}
           </div>
 
-          {/* Quick Action Buttons for Suggested Order & Field Statement */}
-          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', borderTop: '1px dashed #bbf7d0', paddingTop: '5px', flexWrap: 'wrap' }}>
+          {/* Row 3: Action Buttons */}
+          <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid #e2e8f0', paddingTop: '7px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={handleLoadSuggestedOrder}
               disabled={isLoadingSuggested}
               style={{
+                flex: 1,
+                minWidth: '130px',
+                height: '32px',
                 backgroundColor: '#ffffff',
-                border: '1px solid #16a34a',
-                color: '#15803d',
-                borderRadius: '5px',
-                padding: '3px 8px',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                borderRadius: '6px',
+                padding: '0 8px',
                 fontSize: '11px',
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
+                justifyContent: 'center',
+                gap: '5px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
               title="استدعاء تشكيلة الأصناف والكميات التي يشتريها العميل عادة وتنزيلها بالسلة فوراً"
             >
-              <RefreshCwIcon size={12} color="#15803d" className={isLoadingSuggested ? 'animate-spin' : undefined} />
+              <RefreshCwIcon size={12} color="#170e5e" className={isLoadingSuggested ? 'animate-spin' : undefined} />
               <span>{isLoadingSuggested ? 'جاري التحميل...' : 'تكرار الطلب المعتاد'}</span>
             </button>
 
@@ -361,21 +450,26 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               type="button"
               onClick={() => setStatementModalOpen(true)}
               style={{
+                flex: 1,
+                minWidth: '130px',
+                height: '32px',
                 backgroundColor: '#ffffff',
-                border: '1px solid #0284c7',
-                color: '#0369a1',
-                borderRadius: '5px',
-                padding: '3px 8px',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                borderRadius: '6px',
+                padding: '0 8px',
                 fontSize: '11px',
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
+                justifyContent: 'center',
+                gap: '5px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
               title="معاينة كشف حساب العميل وطباعته حرارياً أو إرساله بواتساب"
             >
-              <FileTextIcon size={12} color="#0369a1" />
+              <FileTextIcon size={12} color="#170e5e" />
               <span>كشف حساب ميداني</span>
             </button>
           </div>
@@ -428,7 +522,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
             <ShoppingCartIcon size={14} color="#170e5e" />
             <span>أصناف الفاتورة:</span>
             {cart.length > 0 && (
-              <span style={{ fontSize: '10.5px', backgroundColor: '#eef2ff', color: '#170e5e', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+              <span style={{ fontSize: '10.5px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                 {cart.length} أصناف ({totalPieces} قطعة)
               </span>
             )}
@@ -450,7 +544,7 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               value=""
               onChange={handleQuickSelectProduct}
               options={inventorySelectOptions}
-              placeholder="ابحث وأضف صنفاً من السيارة سريعاً..."
+              placeholder="ابحث أو اختر صنفاً..."
             />
           </div>
           <Button
@@ -461,9 +555,9 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               height: '34px',
               fontSize: '11.5px',
               color: '#170e5e',
-              fontWeight: 800,
-              backgroundColor: '#eef2ff',
-              border: '1px solid #c7d2fe',
+              fontWeight: 700,
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
               padding: '0 10px',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -494,207 +588,245 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           </div>
         ) : (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-            {cart.map((c) => (
-              <div
-                key={c.productId}
-                style={{
-                  padding: '7px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  backgroundColor: '#ffffff',
-                  borderBottom: '1px solid #f1f5f9',
-                  gap: '8px',
-                }}
-              >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h5 style={{ margin: 0, fontWeight: 800, fontSize: '12px', color: '#0f172a', lineHeight: 1.35, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {c.name}
-                  </h5>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    {c.isBonus ? (
-                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 800, backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '4px' }}>
-                        بونص ترويجي مجاناً (0.00 <CurrencySymbol />) × {c.qty} {c.unitName || ''}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                        {c.unitPrice.toFixed(2)} × {c.qty} {c.unitName || ''} = {(c.qty * c.unitPrice).toFixed(2)} <CurrencySymbol />
-                      </span>
-                    )}
-                    {c.originalPrice && c.originalPrice > c.unitPrice && !c.isBonus && (
-                      <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
-                        {(c.originalPrice * c.qty).toFixed(2)} <CurrencySymbol />
-                      </span>
-                    )}
-                    {c.offerBadge && (
-                      <span style={{ fontSize: '9px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
-                        {c.offerBadge}
-                      </span>
-                    )}
-                    {c.availableUnits && c.availableUnits.length > 1 && onChangeUnit && (
-                      <select
-                        value={c.unitName || c.availableUnits[0].name}
-                        onChange={(e) => {
-                          const selected = c.availableUnits?.find((u) => u.name === e.target.value);
-                          if (selected) {
-                            onChangeUnit(c.productId, selected.name, selected.multiplier);
-                          }
-                        }}
+            {cart.map((c) => {
+              const itemDiscount =
+                !c.isBonus && c.originalPrice && c.originalPrice > c.unitPrice
+                  ? (c.originalPrice - c.unitPrice) * c.qty
+                  : 0;
+              const lineTotal = c.isBonus ? 0 : c.qty * c.unitPrice;
+
+              return (
+                <div
+                  key={c.productId}
+                  style={{
+                    padding: '9px 11px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    backgroundColor: c.isBonus ? '#f0fdf4' : '#ffffff',
+                    borderBottom: '1px solid #f1f5f9',
+                  }}
+                >
+                  {/* Top Row: Item Details (Right) & Line Total (Left) */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h4
                         style={{
-                          fontSize: '10px',
-                          padding: '1px 4px',
-                          borderRadius: '4px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: '#f8fafc',
-                          color: '#1e293b',
-                          fontWeight: 700,
-                          cursor: 'pointer',
+                          margin: 0,
+                          fontWeight: 800,
+                          fontSize: '12.5px',
+                          color: '#0f172a',
+                          lineHeight: 1.3,
                         }}
-                        title="اختيار وحدة البيع (كرتونة / قطعة)"
                       >
-                        {c.availableUnits.map((u) => (
-                          <option key={u.id} value={u.name}>
-                            {u.name} {u.multiplier > 1 ? `(${u.multiplier})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {onToggleBonus && (
+                        {c.name}
+                      </h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                          {c.unitPrice.toFixed(2)} <CurrencySymbol /> / {c.unitName || 'قطعة'}
+                        </span>
+                        {c.originalPrice && c.originalPrice > c.unitPrice && !c.isBonus && (
+                          <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            {c.originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                        {itemDiscount > 0 && (
+                          <span style={{ fontSize: '9.5px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                            خصم {itemDiscount.toFixed(2)} <CurrencySymbol />
+                          </span>
+                        )}
+                        {c.offerBadge && (
+                          <span style={{ fontSize: '9px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                            {c.offerBadge}
+                          </span>
+                        )}
+                        {c.isBonus && (
+                          <span style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px' }}>
+                            بونص عيني مجاني
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Total Price on Left */}
+                    <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 800, color: c.isBonus ? '#166534' : '#0f172a', display: 'block' }}>
+                        {lineTotal.toFixed(2)} <CurrencySymbol />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Controls Toolbar - Unit & Bonus on Right, RTL Stepper on Left */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px', borderTop: '1px dashed #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {c.availableUnits && c.availableUnits.length > 1 && onChangeUnit && (
+                        <select
+                          value={c.unitName || c.availableUnits[0].name}
+                          onChange={(e) => {
+                            const selected = c.availableUnits?.find((u) => u.name === e.target.value);
+                            if (selected) {
+                              onChangeUnit(c.productId, selected.name, selected.multiplier);
+                            }
+                          }}
+                          style={{
+                            height: '28px',
+                            fontSize: '11px',
+                            padding: '0 6px',
+                            borderRadius: '5px',
+                            border: '1px solid #cbd5e1',
+                            backgroundColor: '#f8fafc',
+                            color: '#1e293b',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                          title="اختيار وحدة البيع (كرتونة / قطعة)"
+                        >
+                          {c.availableUnits.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name} {u.multiplier > 1 ? `(${u.multiplier})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      {onToggleBonus && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleBonus(c.productId)}
+                          style={{
+                            height: '28px',
+                            fontSize: '10.5px',
+                            padding: '0 8px',
+                            borderRadius: '5px',
+                            border: c.isBonus ? '1px solid #059669' : '1px solid #cbd5e1',
+                            backgroundColor: c.isBonus ? '#ecfdf5' : '#ffffff',
+                            color: c.isBonus ? '#065f46' : '#64748b',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                          title="تحديد الصنف كبونص عيني ترويجي مجاني"
+                        >
+                          {c.isBonus ? '✓ بونص' : '+ بونص'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Strict RTL Stepper: [+] (qty) [-] */}
+                    <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                       <button
                         type="button"
-                        onClick={() => onToggleBonus(c.productId)}
+                        onClick={() => onUpdateCartQty(c.productId, 1)}
                         style={{
-                          fontSize: '9.5px',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          border: c.isBonus ? '1px solid #059669' : '1px solid #cbd5e1',
-                          backgroundColor: c.isBonus ? '#ecfdf5' : '#ffffff',
-                          color: c.isBonus ? '#065f46' : '#64748b',
-                          fontWeight: 700,
+                          width: '28px',
+                          height: '28px',
+                          backgroundColor: '#170e5e',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '5px',
+                          fontWeight: 800,
+                          fontSize: '15px',
                           cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
-                        title="تحديد الصنف كبونص عيني ترويجي مجاني"
+                        title="زيادة الكمية"
                       >
-                        {c.isBonus ? 'بونص' : '+ بونص'}
+                        +
                       </button>
-                    )}
+                      <span style={{ fontWeight: 800, fontSize: '12.5px', width: '24px', textAlign: 'center', color: '#170e5e' }}>
+                        {c.qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCartQty(c.productId, -1)}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '5px',
+                          fontWeight: 800,
+                          fontSize: '15px',
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title="إنقاص الكمية"
+                      >
+                        -
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateCartQty(c.productId, 1)}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: '#170e5e',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '5px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    title="زيادة الكمية"
-                  >
-                    +
-                  </button>
-                  <span style={{ fontWeight: 800, fontSize: '12px', width: '22px', textAlign: 'center', color: '#170e5e' }}>
-                    {c.qty}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateCartQty(c.productId, -1)}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '5px',
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    title="إنقاص الكمية"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {cart.length > 0 && (
-        <div id="van-sale-checkout-card" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Cart Quick Summary Strip */}
+        <div
+          id="van-sale-checkout-card"
+          style={{
+            borderTop: '1px solid #f1f5f9',
+            paddingTop: '8px',
+            paddingBottom: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          {/* Unified Compact Summary Strip */}
           <div
             style={{
               backgroundColor: '#f8fafc',
               border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '7px 12px',
+              borderRadius: '9px',
+              padding: '9px 12px',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '11.5px',
-              color: '#334155',
+              flexDirection: 'column',
+              gap: '6px',
             }}
           >
-            <span>عدد البنود: <strong style={{ color: '#170e5e' }}>{cart.length} أصناف</strong></span>
-            <span>إجمالي الكمية: <strong style={{ color: '#170e5e' }}>{totalPieces} قطعة</strong></span>
-          </div>
+            {/* Row 1: Item counts & Discount badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#475569' }}>
+              <span>
+                عدد البنود: <strong style={{ color: '#0f172a' }}>{cart.length} أصناف</strong> ({totalPieces} قطعة)
+              </span>
+              {cartDiscount > 0 && (
+                <span style={{ fontSize: '10.5px', color: '#475569', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  وفرت {cartDiscount.toFixed(2)} <CurrencySymbol />
+                </span>
+              )}
+            </div>
 
-          {/* Promotional Discounts and Subtotal */}
-          {cartDiscount > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                fontSize: '11.5px',
-                color: '#64748b',
-                padding: '0 4px',
-              }}
-            >
-              <span>المجموع الفرعي (قبل الخصم):</span>
-              <span style={{ fontWeight: 700 }}>
-                {cartSubtotal.toFixed(2)} <CurrencySymbol />
+            {/* Row 2: Subtotal if discount exists */}
+            {cartDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b' }}>
+                <span>المجموع الفرعي (قبل الخصم):</span>
+                <span style={{ textDecoration: 'line-through' }}>
+                  {cartSubtotal.toFixed(2)} <CurrencySymbol />
+                </span>
+              </div>
+            )}
+
+            {/* Row 3: Final Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '5px', borderTop: '1px dashed #cbd5e1' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                إجمالي الفاتورة المطلوب:
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
+                {cartTotal.toFixed(2)} <CurrencySymbol />
               </span>
             </div>
-          )}
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '12px',
-              color: cartDiscount > 0 ? '#b91c1c' : '#475569',
-              fontWeight: 700,
-              backgroundColor: cartDiscount > 0 ? '#fef2f2' : '#f8fafc',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: `1px solid ${cartDiscount > 0 ? '#fecaca' : '#e2e8f0'}`,
-            }}
-          >
-            <span>إجمالي الخصومات والعروض الممنوحة:</span>
-            <span style={{ fontWeight: 800 }}>
-              {cartDiscount.toFixed(2)} <CurrencySymbol />
-            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 900, fontSize: '14px', backgroundColor: '#f1f5f9', padding: '9px 12px', borderRadius: '8px' }}>
-            <span>إجمالي الفاتورة المطلوب:</span>
-            <span style={{ color: '#059669' }}>{cartTotal.toFixed(2)} <CurrencySymbol /></span>
-          </div>
-
+          {/* Primary Action Button */}
           <Button
             variant="primary"
             onClick={onSubmitSale}
@@ -703,17 +835,18 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               backgroundColor: '#170e5e',
               color: '#ffffff',
               height: '42px',
-              fontSize: '13px',
+              fontSize: '13.5px',
               fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '8px',
               borderRadius: '8px',
+              boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
             }}
           >
             <CreditCardIcon size={16} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الحفظ والخصم...' : 'إتمام البيع والسداد'}</span>
+            <span>{isSubmitting ? 'جاري الحفظ والخصم...' : `إتمام البيع والسداد (${cartTotal.toFixed(2)} ج.م)`}</span>
           </Button>
         </div>
       )}
@@ -925,14 +1058,6 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
           </div>
         </div>
       </StandardDialog>
-
-      {/* Floating Action Button (FAB) on the left for direct van sale */}
-      <VanFloatingActionBar
-        visible={cart.length > 0}
-        itemCount={cart.length}
-        actionText="إتمام البيع"
-        onAction={onSubmitSale}
-      />
 
       {/* Field Customer Statement Modal */}
       {selectedCustomerId && (

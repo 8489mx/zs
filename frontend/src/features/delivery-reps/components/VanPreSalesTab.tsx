@@ -782,19 +782,21 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>العميل وطريقة الدفع:</span>
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
                 <button
                   type="button"
                   onClick={() => handlePaymentTermsChange('cash')}
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '7px',
                     fontSize: '11.5px',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     cursor: 'pointer',
-                    border: paymentTerms === 'cash' ? '1px solid #15803d' : '1px solid #cbd5e1',
-                    backgroundColor: paymentTerms === 'cash' ? '#dcfce7' : '#ffffff',
-                    color: paymentTerms === 'cash' ? '#15803d' : '#475569',
+                    border: paymentTerms === 'cash' ? '1.5px solid #059669' : '1px solid #cbd5e1',
+                    backgroundColor: paymentTerms === 'cash' ? '#ecfdf5' : '#ffffff',
+                    color: paymentTerms === 'cash' ? '#065f46' : '#64748b',
+                    boxShadow: paymentTerms === 'cash' ? '0 1px 3px rgba(5,150,105,0.12)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   كاش نقدي
@@ -803,14 +805,16 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                   type="button"
                   onClick={() => handlePaymentTermsChange('credit')}
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '7px',
                     fontSize: '11.5px',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     cursor: 'pointer',
-                    border: paymentTerms === 'credit' ? '1px solid #b45309' : '1px solid #cbd5e1',
-                    backgroundColor: paymentTerms === 'credit' ? '#fef3c7' : '#ffffff',
-                    color: paymentTerms === 'credit' ? '#b45309' : '#475569',
+                    border: paymentTerms === 'credit' ? '1.5px solid #d97706' : '1px solid #cbd5e1',
+                    backgroundColor: paymentTerms === 'credit' ? '#fffbeb' : '#ffffff',
+                    color: paymentTerms === 'credit' ? '#92400e' : '#64748b',
+                    boxShadow: paymentTerms === 'credit' ? '0 1px 3px rgba(217,119,6,0.12)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   آجل على الحساب
@@ -853,7 +857,7 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                 }}
               >
                 <span>
-                  الرصيد الحالي: <strong style={{ color: Number(selectedCustomer.balance) > 0 ? '#b91c1c' : '#15803d' }}>{Number(selectedCustomer.balance || 0).toFixed(2)} <CurrencySymbol /></strong>
+                  الرصيد الحالي: <strong style={{ color: Number(selectedCustomer.balance) > 0 ? '#b91c1c' : Number(selectedCustomer.balance) < 0 ? '#0369a1' : '#475569' }}>{Number(selectedCustomer.balance || 0) === 0 ? 'خالص (0.00)' : Number(selectedCustomer.balance).toFixed(2)} <CurrencySymbol /></strong>
                 </span>
                 <span>
                   سقف الائتمان: <strong style={{ color: '#170e5e' }}>{selectedCustomer.creditLimit ? `${Number(selectedCustomer.creditLimit).toFixed(2)}` : 'غير محدد'}</strong>
@@ -1055,10 +1059,10 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                         style={{
                           fontSize: '10px',
                           fontWeight: 700,
-                          color: availableItemsCount > 0 ? '#15803d' : '#94a3b8',
+                          color: availableItemsCount > 0 ? '#047857' : '#94a3b8',
                           backgroundColor: availableItemsCount > 0 ? '#ecfdf5' : '#f1f5f9',
-                          border: `1px solid ${availableItemsCount > 0 ? '#bbf7d0' : '#e2e8f0'}`,
-                          padding: '1px 6px',
+                          border: `1px solid ${availableItemsCount > 0 ? '#a7f3d0' : '#e2e8f0'}`,
+                          padding: '1px 7px',
                           borderRadius: '10px',
                         }}
                       >
@@ -1142,9 +1146,9 @@ export const VanPreSalesTab: React.FC<VanPreSalesTabProps> = ({
                               fontSize: '10px',
                               fontWeight: 700,
                               color: comp.availableProducts > 0 ? '#047857' : '#94a3b8',
-                              backgroundColor: comp.availableProducts > 0 ? '#f0fdf4' : '#f1f5f9',
-                              border: `1px solid ${comp.availableProducts > 0 ? '#bbf7d0' : '#e2e8f0'}`,
-                              padding: '1px 6px',
+                              backgroundColor: comp.availableProducts > 0 ? '#ecfdf5' : '#f1f5f9',
+                              border: `1px solid ${comp.availableProducts > 0 ? '#a7f3d0' : '#e2e8f0'}`,
+                              padding: '1px 7px',
                               borderRadius: '10px',
                             }}
                           >

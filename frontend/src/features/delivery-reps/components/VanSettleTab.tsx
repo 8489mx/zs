@@ -10,6 +10,7 @@ import {
   PackageIcon,
   DollarSignIcon,
   ClockIcon,
+  ShieldCheckIcon,
 } from '@/shared/components/icons/AppIcons';
 import { VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
 
@@ -338,119 +339,153 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             </div>
           )}
 
-        {/* Detailed Financial Ledger */}
+        {/* Detailed Financial Ledger - Compact 2-Column Statement */}
         <div
           style={{
-            backgroundColor: '#f8fafc',
-            borderRadius: '10px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
             padding: '10px 12px',
             border: '1px solid #e2e8f0',
             fontSize: '11.5px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
+            gap: '8px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          {/* Gross Sales */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontWeight: 600 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }} />
-              إجمالي مبيعات اليوم المحققة:
-            </span>
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>
-              {salesAmount.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
-
-          {/* Cash Sales */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', fontWeight: 600, paddingRight: '12px' }}>
-            <span>• مبيعات نقدية (كاش مباشر بالسيارة):</span>
-            <span style={{ fontWeight: 800 }}>
-              +{cashSales.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
-
-          {/* Credit Sales */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', fontWeight: 600, paddingRight: '12px' }}>
-            <span>• مبيعات آجلة (ذمم مدينة على المحلات):</span>
-            <span style={{ fontWeight: 800 }}>
-              {creditSales.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
-
-          {/* Collections */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284c7' }} />
-              تحصيلات نقدية (سندات قبض مديونيات):
-            </span>
-            <span style={{ fontWeight: 800, color: '#0284c7' }}>
-              +{collectionsTotal.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
-
-          {/* Field Returns */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
-              إجمالي المرتجعات الميدانية ({returns.length} إذن):
-            </span>
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>
-              {returnsAmount.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
-
-          {/* Cash Refunds vs Credit Returns */}
-          {cashRefunds > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontWeight: 700, paddingRight: '12px' }}>
-              <span>• مرتجعات نقدية سُددت كاش للعميل من السيارة:</span>
-              <span style={{ fontWeight: 800 }}>
-                -{cashRefunds.toFixed(2)} <CurrencySymbol />
-              </span>
-            </div>
-          )}
-
-          {creditReturns > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontWeight: 600, paddingRight: '12px', fontSize: '10.5px' }}>
-              <span>• مرتجعات آجلة (خُصمت من حساب العميل + البضاعة بالسيارة):</span>
-              <span style={{ fontWeight: 700 }}>
-                {creditReturns.toFixed(2)} <CurrencySymbol />
-              </span>
-            </div>
-          )}
-
-          {/* Promotional Discounts Granted Strip */}
+          {/* Header Row: Total Gross Sales */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: totalDiscounts > 0 ? '#fef2f2' : '#f8fafc',
-              border: `1px solid ${totalDiscounts > 0 ? '#fecaca' : '#e2e8f0'}`,
-              borderRadius: '8px',
-              padding: '6px 10px',
-              fontSize: '11px',
-              color: totalDiscounts > 0 ? '#b91c1c' : '#475569',
-              fontWeight: 700,
-              marginTop: '2px',
+              paddingBottom: '6px',
+              borderBottom: '1px solid #f1f5f9',
             }}
           >
-            <span>إجمالي الخصومات والعروض الترويجية الممنوحة:</span>
-            <span style={{ fontWeight: 800 }}>
-              {totalDiscounts.toFixed(2)} <CurrencySymbol />
+            <span style={{ color: '#475569', fontWeight: 700, fontSize: '12px' }}>
+              إجمالي مبيعات اليوم المحققة:
+            </span>
+            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
+              {salesAmount.toFixed(2)} <CurrencySymbol />
             </span>
           </div>
 
-          {/* Approved Trip Expenses */}
-          {totalTripExpenses > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c', fontWeight: 700, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626' }} />
-                مصروفات الرحلة المعتمدة (وقود / بوابات / صيانة):
+          {/* 2-Column Statement Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {/* Right: Cash Sales */}
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                padding: '6px 8px',
+                border: '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: '#15803d', fontWeight: 700, fontSize: '11px' }}>
+                • مبيعات كاش:
               </span>
-              <span style={{ fontWeight: 800, color: '#b91c1c' }}>
-                -{totalTripExpenses.toFixed(2)} <CurrencySymbol />
+              <span style={{ fontWeight: 800, color: '#15803d' }}>
+                +{cashSales.toFixed(2)} <CurrencySymbol />
               </span>
+            </div>
+
+            {/* Left: Credit Sales */}
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                padding: '6px 8px',
+                border: '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: '#b45309', fontWeight: 700, fontSize: '11px' }}>
+                • مبيعات آجل:
+              </span>
+              <span style={{ fontWeight: 800, color: '#b45309' }}>
+                {creditSales.toFixed(2)} <CurrencySymbol />
+              </span>
+            </div>
+
+            {/* Right: Collections */}
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                padding: '6px 8px',
+                border: '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: '#0284c7', fontWeight: 700, fontSize: '11px' }}>
+                • تحصيلات نقدية:
+              </span>
+              <span style={{ fontWeight: 800, color: '#0284c7' }}>
+                +{collectionsTotal.toFixed(2)} <CurrencySymbol />
+              </span>
+            </div>
+
+            {/* Left: Field Returns */}
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                padding: '6px 8px',
+                border: '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: '#64748b', fontWeight: 700, fontSize: '11px' }}>
+                • مرتجعات ({returns.length}):
+              </span>
+              <span style={{ fontWeight: 800, color: returnsAmount > 0 ? '#dc2626' : '#64748b' }}>
+                {returnsAmount > 0 ? `-${returnsAmount.toFixed(2)}` : '0.00'} <CurrencySymbol />
+              </span>
+            </div>
+          </div>
+
+          {/* Conditional Sub-lines: Cash Refunds & Trip Expenses & Discounts */}
+          {(cashRefunds > 0 || totalTripExpenses > 0 || totalDiscounts > 0 || creditReturns > 0) && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px 14px',
+                paddingTop: '4px',
+                borderTop: '1px dashed #e2e8f0',
+                fontSize: '10.5px',
+              }}
+            >
+              {cashRefunds > 0 && (
+                <div style={{ color: '#dc2626', fontWeight: 600 }}>
+                  مرتجع كاش سُدد: <strong>-{cashRefunds.toFixed(2)}</strong> <CurrencySymbol />
+                </div>
+              )}
+              {creditReturns > 0 && (
+                <div style={{ color: '#64748b', fontWeight: 600 }}>
+                  مرتجع آجل: <strong>{creditReturns.toFixed(2)}</strong> <CurrencySymbol />
+                </div>
+              )}
+              {totalTripExpenses > 0 && (
+                <div style={{ color: '#b91c1c', fontWeight: 600 }}>
+                  مصروفات رحلة: <strong>-{totalTripExpenses.toFixed(2)}</strong> <CurrencySymbol />
+                </div>
+              )}
+              {totalDiscounts > 0 && (
+                <div style={{ color: '#64748b', fontWeight: 600 }}>
+                  خصومات ممنوحة: <strong>{totalDiscounts.toFixed(2)}</strong> <CurrencySymbol />
+                </div>
+              )}
             </div>
           )}
 
@@ -460,22 +495,21 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: '#ecfdf5',
-              padding: '8px 10px',
+              backgroundColor: '#f0fdf4',
+              padding: '8px 12px',
               borderRadius: '8px',
-              border: '1px solid #a7f3d0',
-              marginTop: '2px',
+              border: '1px solid #bbf7d0',
             }}
           >
             <div>
-              <span style={{ fontSize: '12px', fontWeight: 900, color: '#065f46', display: 'block' }}>
-                صافي النقدية المتوقع تسليمها (كاش الدرج الإلزامي):
+              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', display: 'block' }}>
+                صافي النقدية المتوقع تسليمها (كاش الدرج):
               </span>
-              <span style={{ fontSize: '10px', color: '#047857' }}>
-                = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - مرتجعات الكاش ({cashRefunds.toFixed(0)}) - المصروفات ({totalTripExpenses.toFixed(0)})
+              <span style={{ fontSize: '10px', color: '#15803d' }}>
+                = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - المنصرف ({(cashRefunds + totalTripExpenses).toFixed(0)})
               </span>
             </div>
-            <span style={{ fontSize: '16px', fontWeight: 900, color: '#065f46' }}>
+            <span style={{ fontSize: '15px', fontWeight: 900, color: '#166534' }}>
               {cashCollected.toFixed(2)} <CurrencySymbol />
             </span>
           </div>
@@ -488,22 +522,23 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               type="button"
               onClick={onOpenExpenseModal}
               style={{
-                height: '36px',
+                height: '34px',
                 borderRadius: '8px',
-                border: '1px dashed #cbd5e1',
+                border: '1px solid #e2e8f0',
                 backgroundColor: '#ffffff',
                 color: '#170e5e',
-                fontSize: '11.5px',
-                fontWeight: 800,
+                fontSize: '11px',
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
               }}
             >
               <ReceiptIcon size={14} color="#170e5e" />
-              <span>+ تسجيل مصروف رحلة</span>
+              <span>تسجيل مصروف رحلة</span>
             </button>
           )}
           {onOpenPackagingModal && (
@@ -511,22 +546,23 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               type="button"
               onClick={onOpenPackagingModal}
               style={{
-                height: '36px',
+                height: '34px',
                 borderRadius: '8px',
-                border: '1px dashed #cbd5e1',
+                border: '1px solid #e2e8f0',
                 backgroundColor: '#ffffff',
-                color: '#059669',
-                fontSize: '11.5px',
-                fontWeight: 800,
+                color: '#047857',
+                fontSize: '11px',
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
               }}
             >
-              <PackageIcon size={14} color="#059669" />
-              <span>+ حركة فوارغ وصناديق</span>
+              <PackageIcon size={14} color="#047857" />
+              <span>حركة فوارغ وصناديق</span>
             </button>
           )}
         </div>
@@ -534,7 +570,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
         {/* Cash Counting Input */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+            <label htmlFor="counted_physical_cash_input" style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
               الكاش الفعلي الموجود معك للتوريد ({getGlobalCurrencySymbol()}):
             </label>
             <button
@@ -555,8 +591,14 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             </button>
           </div>
           <input
+            id="counted_physical_cash_input"
+            name="counted_physical_cash_amount"
             type="number"
             step="0.01"
+            inputMode="decimal"
+            autoComplete="off"
+            data-lpignore="true"
+            data-form-type="other"
             value={countedCash}
             onChange={(e) => onCountedCashChange(e.target.value)}
             placeholder="أدخل المبلغ بعد العد الفعلي للأوراق النقدية..."
@@ -887,9 +929,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             alignItems: 'center',
             gap: '8px',
             padding: '8px 10px',
-            backgroundColor: '#eff6ff',
+            backgroundColor: '#f8fafc',
             borderRadius: '8px',
-            border: '1px solid #bfdbfe',
+            border: '1px solid #e2e8f0',
           }}
         >
           <input
@@ -899,7 +941,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             onChange={(e) => onUnloadRemainingChange(e.target.checked)}
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
-          <label htmlFor="unloadCheck" style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e3a8a', cursor: 'pointer' }}>
+          <label htmlFor="unloadCheck" style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
             تفريغ البضاعة المتبقية في السيارة ({inventory.length} صنف) وإعادتها للمستودع تلقائياً
           </label>
         </div>
@@ -907,26 +949,48 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
         {/* Maker-Checker Supervisor PIN Authorization for Final Settlement */}
         <div
           style={{
-            backgroundColor: '#fff7ed',
-            border: '1px solid #fdba74',
-            borderRadius: '8px',
-            padding: '8px 10px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '10px',
+            gap: '12px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#c2410c' }}>
-              رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: '#eef2ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheckIcon size={16} color="#170e5e" strokeWidth={2} />
             </div>
-            <div style={{ fontSize: '10.5px', color: '#9a3412' }}>
-              إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام (Maker-Checker)
+            <div>
+              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e' }}>
+                رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
+              </div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>
+                إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)
+              </div>
             </div>
           </div>
           <input
+            id="supervisor_pin_input"
+            name="supervisor_authorization_pin"
             type="password"
+            autoComplete="new-password"
+            data-lpignore="true"
+            data-form-type="other"
             maxLength={6}
             value={supervisorPin}
             onChange={(e) => {
@@ -935,15 +999,18 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             }}
             placeholder="PIN المشرف"
             style={{
-              width: '115px',
+              width: '120px',
               height: '36px',
-              borderRadius: '6px',
-              border: '1px solid #f97316',
-              fontSize: '13px',
+              borderRadius: '8px',
+              border: '1.5px solid #cbd5e1',
+              fontSize: '14px',
               fontWeight: 800,
               textAlign: 'center',
+              letterSpacing: '2px',
               backgroundColor: '#ffffff',
+              color: '#0f172a',
               boxSizing: 'border-box',
+              outline: 'none',
             }}
           />
         </div>
