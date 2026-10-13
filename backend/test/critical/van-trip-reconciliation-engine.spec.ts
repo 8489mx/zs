@@ -228,6 +228,44 @@ const zeroCreditCheck = evaluateCreditLimitCheck({
 assert.equal(zeroCreditCheck.allowed, false);
 assert.equal(zeroCreditCheck.reasonCode, 'ZERO_OR_NEGATIVE_REQUEST');
 
+// Overdue invoice rejected
+const overdueInvoiceCheck = evaluateCreditLimitCheck({
+  customerId: 10,
+  customerName: 'Overdue Mart',
+  currentBalance: 3000,
+  creditLimit: 10000,
+  isCreditBlocked: false,
+  requestedCreditAmount: 2000,
+  hasOverdueInvoices: true,
+  oldestOverdueDays: 45,
+  overdueAmount: 3000,
+});
+assert.equal(overdueInvoiceCheck.allowed, false);
+assert.equal(overdueInvoiceCheck.reasonCode, 'CUSTOMER_HAS_OVERDUE_INVOICES');
+assert.equal(overdueInvoiceCheck.errorMessageAr?.includes('فواتير متأخرة مستحقة السداد منذ (45) يوماً'), true);
+
+// Overdue invoice allowed with supervisor override PIN
+const overdueWithOverrideCheck = evaluateCreditLimitCheck({
+  customerId: 10,
+  customerName: 'Overdue Mart',
+  currentBalance: 3000,
+  creditLimit: 10000,
+  isCreditBlocked: false,
+  requestedCreditAmount: 2000,
+  hasOverdueInvoices: true,
+  oldestOverdueDays: 45,
+  overdueAmount: 3000,
+  supervisorOverride: {
+    approved: true,
+    supervisorId: 1,
+    supervisorName: 'Area Supervisor',
+    reason: 'Approved overdue exception for trusted client',
+  },
+});
+assert.equal(overdueWithOverrideCheck.allowed, true);
+assert.equal(overdueWithOverrideCheck.isOverridden, true);
+assert.equal(overdueWithOverrideCheck.reasonCode, 'SUPERVISOR_OVERRIDE');
+
 // =========================================================================
 // 4. evaluateOdometerReadings - Distance & Meter Validation
 // =========================================================================

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi, type VanFraudRadarEvent, type VanRepRiskProfile } from '../api/van-sales.api';
-import { CustomSelect } from '@/shared/components/CustomSelect';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Button } from '@/shared/ui/button';
 import {
   CheckShieldIcon,
@@ -316,7 +316,7 @@ export function VanFraudRadarAdminTab() {
           </label>
           <CustomSelect
             value={periodDays}
-            onChange={(val) => setPeriodDays(val)}
+            onChange={(val: any) => setPeriodDays(val)}
             options={PERIOD_OPTIONS}
           />
         </div>
@@ -327,7 +327,7 @@ export function VanFraudRadarAdminTab() {
           </label>
           <CustomSelect
             value={selectedRepId}
-            onChange={(val) => setSelectedRepId(val)}
+            onChange={(val: any) => setSelectedRepId(val)}
             options={repOptions}
           />
         </div>
@@ -338,7 +338,7 @@ export function VanFraudRadarAdminTab() {
           </label>
           <CustomSelect
             value={selectedEventCode}
-            onChange={(val) => setSelectedEventCode(val)}
+            onChange={(val: any) => setSelectedEventCode(val)}
             options={EVENT_CODE_OPTIONS}
           />
         </div>

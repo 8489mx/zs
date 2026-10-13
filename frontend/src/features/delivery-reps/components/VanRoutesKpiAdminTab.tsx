@@ -267,14 +267,6 @@ export function VanRoutesKpiAdminTab() {
     })),
   ], [availableRoutes]);
 
-  const singleRepOptions = useMemo(() => [
-    { value: '', label: '— بدون مندوب (غير مخصص) —' },
-    ...vanReps.map((r) => ({
-      value: String(r.id),
-      label: `${r.name}${r.phone ? ` (${r.phone})` : ''}`,
-    })),
-  ], [vanReps]);
-
   const bulkRepOptions = useMemo(() => [
     { value: 'no_change', label: '— الإبقاء على المندوب الحالي لكل متجر (بدون تغيير) —' },
     { value: 'unassigned', label: 'إلغاء التخصيص (تفريغ المندوب من المحلات المختارة)' },

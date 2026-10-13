@@ -82,6 +82,9 @@ export interface CreditLimitEvaluationParams {
   customerType?: string | null;
   isFieldCreatedCustomer?: boolean;
   requestedCreditAmount: number;
+  hasOverdueInvoices?: boolean;
+  oldestOverdueDays?: number;
+  overdueAmount?: number;
   supervisorOverride?: {
     approved: boolean;
     supervisorId?: number;
@@ -94,7 +97,7 @@ export interface CreditLimitEvaluationResult {
   allowed: boolean;
   isOverridden?: boolean;
   overrideReason?: string;
-  reasonCode?: 'CUSTOMER_BLOCKED' | 'CASH_ONLY_CUSTOMER' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST' | 'SUPERVISOR_OVERRIDE';
+  reasonCode?: 'CUSTOMER_BLOCKED' | 'CASH_ONLY_CUSTOMER' | 'LIMIT_EXCEEDED' | 'ZERO_OR_NEGATIVE_REQUEST' | 'SUPERVISOR_OVERRIDE' | 'CUSTOMER_HAS_OVERDUE_INVOICES';
   errorMessageAr?: string;
   currentBalance: number;
   creditLimit: number;
@@ -347,6 +350,34 @@ export function evaluateCreditLimitCheck(params: CreditLimitEvaluationParams): C
       allowed: false,
       reasonCode: 'CUSTOMER_BLOCKED',
       errorMessageAr: `تم حظر البيع الآجل للعميل "${params.customerName}" بناءً على سياسة التحصيل والرقابة الائتمانية${reasonDetail}`,
+      currentBalance,
+      creditLimit,
+      requestedCreditAmount,
+      projectedBalance,
+      exceededAmount: 0,
+    };
+  }
+
+  if (params.hasOverdueInvoices && (Number(params.overdueAmount || 0) > 0 || Number(params.oldestOverdueDays || 0) > 0)) {
+    if (params.supervisorOverride?.approved) {
+      return {
+        allowed: true,
+        isOverridden: true,
+        overrideReason: params.supervisorOverride.reason || 'اعتماد استثنائي من المشرف لتجاوز حظر الفواتير المتأخرة',
+        reasonCode: 'SUPERVISOR_OVERRIDE',
+        currentBalance,
+        creditLimit,
+        requestedCreditAmount,
+        projectedBalance,
+        exceededAmount: 0,
+      };
+    }
+    const overdueDays = params.oldestOverdueDays || 0;
+    const overdueAmt = Number(params.overdueAmount || 0).toFixed(2);
+    return {
+      allowed: false,
+      reasonCode: 'CUSTOMER_HAS_OVERDUE_INVOICES',
+      errorMessageAr: `يوجد على العميل "${params.customerName}" فواتير متأخرة مستحقة السداد منذ (${overdueDays}) يوماً بإجمالي (${overdueAmt} ج.م). يجب سداد الفواتير المتأخرة أو إدخال رمز اعتماد المشرف (Supervisor PIN)`,
       currentBalance,
       creditLimit,
       requestedCreditAmount,
