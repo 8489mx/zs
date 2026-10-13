@@ -61,6 +61,45 @@ export interface VanSaleCheckoutModalProps {
   }) => void;
 }
 
+function calculateHaversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function parseCustomerCoords(c: any): { lat: number; lng: number } | null {
+  if (!c) return null;
+  if (c.lat && c.lng && Number.isFinite(Number(c.lat))) {
+    return { lat: Number(c.lat), lng: Number(c.lng) };
+  }
+  let meta: any = c.metadata;
+  if (typeof meta === 'string') {
+    try { meta = JSON.parse(meta); } catch {}
+  }
+  if (meta) {
+    const lat = Number(meta.gps_lat ?? meta.lat ?? meta.latitude);
+    const lng = Number(meta.gps_lng ?? meta.lng ?? meta.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001)) {
+      return { lat, lng };
+    }
+  }
+  const url = String(c.locationUrl || meta?.location_url || meta?.locationUrl || meta?.google_maps_url || '').trim();
+  if (url) {
+    const atMatch = url.match(/@(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    if (atMatch) return { lat: Number(atMatch[1]), lng: Number(atMatch[2]) };
+    const qMatch = url.match(/(?:[?&](?:q|query|ll|center|daddr)=)(-?\d+(?:\.\d+)?)\s*(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i);
+    if (qMatch) return { lat: Number(qMatch[1]), lng: Number(qMatch[2]) };
+    const bangMatch = url.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (bangMatch) return { lat: Number(bangMatch[1]), lng: Number(bangMatch[2]) };
+  }
+  return null;
+}
+
 export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   open,
   onClose,
@@ -91,6 +130,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const [showSignaturePad, setShowSignaturePad] = useState<boolean>(false);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [isGeofenceViolation, setIsGeofenceViolation] = useState<boolean>(false);
+  const [geofenceDistance, setGeofenceDistance] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -103,8 +144,27 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       setSupervisorReason('');
       setShowSignaturePad(false);
       setIsDrawing(false);
+      setIsGeofenceViolation(false);
+      setGeofenceDistance(null);
+
+      const custCoords = parseCustomerCoords(customer);
+      if (custCoords && typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const dLat = pos.coords.latitude;
+            const dLng = pos.coords.longitude;
+            const dist = calculateHaversineDistanceMeters(dLat, dLng, custCoords.lat, custCoords.lng);
+            setGeofenceDistance(Math.round(dist));
+            if (dist > 200) {
+              setIsGeofenceViolation(true);
+            }
+          },
+          () => {},
+          { timeout: 3500, enableHighAccuracy: true },
+        );
+      }
     }
-  }, [open, cartTotal, propNotes]);
+  }, [open, cartTotal, propNotes, customer]);
 
   const handleStartDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -219,6 +279,14 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
 
   const isCardPayment = paymentMethod === 'card';
 
+  const isCreditOrSplitDebt = useMemo(() => {
+    return paymentMethod === 'credit' || (paymentMethod === 'split' && splitCreditDebt > 0);
+  }, [paymentMethod, splitCreditDebt]);
+
+  const isGeofenceBlocked = useMemo(() => {
+    return isGeofenceViolation && isCreditOrSplitDebt;
+  }, [isGeofenceViolation, isCreditOrSplitDebt]);
+
   const hasBonusItems = useMemo(() => {
     return Boolean(cart && cart.some((c) => c.isBonus));
   }, [cart]);
@@ -257,6 +325,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     const netCashTotal = Math.max(0, Number((cartTotal - cashDiscountAmount).toFixed(2)));
     if (paymentMethod === 'cash' && cashPaid < netCashTotal) {
       setValidationError(`المبلغ المدفوع أقل من صافي الفاتورة المطلوبة (${netCashTotal.toFixed(2)} ج.م). إذا كان العميل سيدفع الباقي لاحقاً، يرجى اختيار "دفع مركب (جزء كاش وجزء آجل)".`);
+      return;
+    }
+
+    if (isGeofenceBlocked && !supervisorPin.trim()) {
+      setValidationError(`أنت خارج النطاق الجغرافي لدكان العميل (المسافة: ${geofenceDistance} متر، المسموح 200م). البيع الآجل خارج الموقع يتطلب إدخال الرمز السري للمشرف (PIN) لتجاوز القفل الجغرافي.`);
       return;
     }
 
@@ -859,8 +932,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           )}
         </div>
 
-        {/* Supervisor Credit Limit, Cash-Only Customer, New Customer Credit, Card Payment, or Bonus Authorization Block */}
-        {(isCreditExceeded || isCashOnlyCustomerCredit || isNewCustomerCredit || isCardPayment || hasBonusItems) && (
+        {/* Supervisor Credit Limit, Geofence Bypass, Cash-Only Customer, New Customer Credit, Card Payment, or Bonus Authorization Block */}
+        {(isCreditExceeded || isCashOnlyCustomerCredit || isNewCustomerCredit || isCardPayment || hasBonusItems || isGeofenceBlocked) && (
           <div
             style={{
               backgroundColor: '#fff7ed',
@@ -875,7 +948,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c2410c', fontWeight: 800, fontSize: '12px' }}>
               <AlertTriangleIcon size={16} color="#ea580c" />
               <span>
-                {isCreditExceeded
+                {isGeofenceBlocked
+                  ? `قفل جغرافي رقابي: موقعك الحالي يبعد (${geofenceDistance} متر) عن دكان العميل (المسموح 200م)`
+                  : isCreditExceeded
                   ? `تنبيه سقف الائتمان: رصيد العميل بعد الفاتورة (${customerBalanceAfter.toFixed(2)} ج.م) سيتجاوز الحد المسموح (${customer?.creditLimit?.toFixed(2)} ج.م)`
                   : isCashOnlyCustomerCredit
                   ? `اعتماد المشرف مطلوب: العميل "${customerDisplayName}" مصنف نقدي (سقف الائتمان = 0.00 ج.م)`
@@ -887,7 +962,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               </span>
             </div>
             <div style={{ fontSize: '11px', color: '#9a3412', lineHeight: 1.4 }}>
-              {isCreditExceeded
+              {isGeofenceBlocked
+                ? 'يتطلب البيع الآجل خارج النطاق الجغرافي لدكان العميل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الاستثناء لحماية الحسابات من الفواتير الوهمية وفواتير الرصيف.'
+                : isCreditExceeded
                 ? 'يتطلب إتمام البيع الآجل إدخال الرمز السري للمشرف (Supervisor PIN) وتدوين سبب الموافقة الاستثنائية.'
                 : isCashOnlyCustomerCredit
                 ? 'العملاء المضافون ميدانياً أو المصنفون نقداً لا يُسمح بالبيع الآجل لهم إلا برمز المشرف (PIN) أو بعد تخصيص سقف ائتمان من الإدارة.'
@@ -920,7 +997,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 value={supervisorReason}
                 onChange={(e) => setSupervisorReason(e.target.value)}
                 placeholder={
-                  isCreditExceeded
+                  isGeofenceBlocked
+                    ? 'سبب الاستثناء الجغرافي (مثال: العميل متواجد في فرع آخر / عطل مؤقت بالـ GPS)'
+                    : isCreditExceeded
                     ? 'سبب الاعتماد الاستثنائي (مثال: موافقة هاتفية / عميل ذهبي)'
                     : isCashOnlyCustomerCredit
                     ? 'سبب الاعتماد (مثال: موافقة المشرف على فاتورة آجلة)'

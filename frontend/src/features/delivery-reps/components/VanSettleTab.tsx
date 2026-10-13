@@ -74,7 +74,11 @@ interface VanSettleTabProps {
   onCountedCashChange: (val: string) => void;
   unloadRemaining: boolean;
   onUnloadRemainingChange: (val: boolean) => void;
-  onSubmitSettle: (supervisorPin?: string) => void;
+  onSubmitSettle: (
+    supervisorPin?: string,
+    countedStock?: { productId: number; countedQty: number }[],
+    chargeStockVarianceToRep?: boolean,
+  ) => void;
   isSubmitting: boolean;
 }
 
@@ -100,6 +104,54 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'expenses' | 'packaging' | 'inventory'>('sales');
   const [supervisorPin, setSupervisorPin] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
+  const [showStockAudit, setShowStockAudit] = useState<boolean>(false);
+  const [countedStockMap, setCountedStockMap] = useState<Record<number, string>>({});
+  const [stockAuditSearch, setStockAuditSearch] = useState<string>('');
+  const [chargeStockVarianceToRep, setChargeStockVarianceToRep] = useState<boolean>(true);
+
+  const handleMatchAllStock = () => {
+    const nextMap: Record<number, string> = {};
+    for (const item of inventory) {
+      nextMap[item.productId] = String(item.qty);
+    }
+    setCountedStockMap(nextMap);
+  };
+
+  const handleSetItemCount = (productId: number, val: string) => {
+    setCountedStockMap((prev) => ({ ...prev, [productId]: val }));
+  };
+
+  const filteredAuditInventory = useMemo(() => {
+    if (!stockAuditSearch.trim()) return inventory;
+    const q = stockAuditSearch.trim().toLowerCase();
+    return inventory.filter(
+      (it) => it.productName.toLowerCase().includes(q) || (it.barcode && it.barcode.toLowerCase().includes(q)),
+    );
+  }, [inventory, stockAuditSearch]);
+
+  const stockAuditSummary = useMemo(() => {
+    let totalShortageQty = 0;
+    let totalShortageCost = 0;
+    let shortageCount = 0;
+    let countedCount = 0;
+
+    for (const it of inventory) {
+      const inputVal = countedStockMap[it.productId];
+      if (inputVal !== undefined && inputVal !== '') {
+        countedCount++;
+        const counted = Number(inputVal);
+        const sys = Number(it.qty);
+        if (counted < sys) {
+          const diff = sys - counted;
+          totalShortageQty += diff;
+          totalShortageCost += diff * Number(it.costPrice || 0);
+          shortageCount++;
+        }
+      }
+    }
+
+    return { totalShortageQty, totalShortageCost, shortageCount, countedCount };
+  }, [inventory, countedStockMap]);
 
   const safeExpenses = useMemo(() => {
     if (!expenses) return [];
@@ -580,6 +632,254 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           )}
         </div>
 
+        {/* Interactive Physical Stock Audit Section */}
+        {inventory && inventory.length > 0 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <PackageIcon size={16} color="#170e5e" />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                  جرد وتدقيق بضاعة السيارة المتبقية ({inventory.length} صنف)
+                </span>
+                {stockAuditSummary.shortageCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#fee2e2',
+                      color: '#b91c1c',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid #fca5a5',
+                    }}
+                  >
+                    عجز {stockAuditSummary.shortageCount} صنف (-{stockAuditSummary.totalShortageCost.toFixed(2)} ج.م)
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStockAudit(!showStockAudit)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#170e5e',
+                  cursor: 'pointer',
+                }}
+              >
+                {showStockAudit ? 'إخفاء الجرد' : 'بدء الجرد الفعلي'}
+              </button>
+            </div>
+
+            {showStockAudit && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={stockAuditSearch}
+                    onChange={(e) => setStockAuditSearch(e.target.value)}
+                    placeholder="بحث باسم الصنف أو الباركود..."
+                    style={{
+                      flex: 1,
+                      height: '32px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 8px',
+                      fontSize: '11.5px',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleMatchAllStock}
+                    style={{
+                      height: '32px',
+                      padding: '0 8px',
+                      backgroundColor: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      color: '#170e5e',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    مطابقة الكل دفترياً
+                  </button>
+                </div>
+
+                {/* Items Grid */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }} className="thin-scrollbar">
+                  {filteredAuditInventory.map((item) => {
+                    const enteredStr = countedStockMap[item.productId];
+                    const hasEntered = enteredStr !== undefined && enteredStr !== '';
+                    const countedNum = hasEntered ? Number(enteredStr) : Number(item.qty);
+                    const sysQty = Number(item.qty);
+                    const isShort = hasEntered && countedNum < sysQty;
+                    const isOver = hasEntered && countedNum > sysQty;
+                    const isExact = hasEntered && countedNum === sysQty;
+
+                    return (
+                      <div
+                        key={item.productId}
+                        style={{
+                          backgroundColor: isShort ? '#fff5f5' : isOver ? '#f0f9ff' : '#f8fafc',
+                          border: `1px solid ${isShort ? '#fecaca' : isOver ? '#bae6fd' : '#e2e8f0'}`,
+                          borderRadius: '8px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.productName}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <span>دفتري بالسيارة: <b>{sysQty}</b></span>
+                            {item.barcode && <span>• {item.barcode}</span>}
+                          </div>
+                        </div>
+
+                        {/* Stepper with strict RTL Standard: [+] on right, [-] on left */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = hasEntered ? Number(enteredStr) : sysQty;
+                              handleSetItemCount(item.productId, String(cur + 1));
+                            }}
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              fontWeight: 900,
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            +
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={enteredStr !== undefined ? enteredStr : ''}
+                            placeholder={String(sysQty)}
+                            onChange={(e) => handleSetItemCount(item.productId, e.target.value)}
+                            style={{
+                              width: '46px',
+                              height: '26px',
+                              borderRadius: '4px',
+                              border: `1px solid ${isShort ? '#ef4444' : '#cbd5e1'}`,
+                              textAlign: 'center',
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = hasEntered ? Number(enteredStr) : sysQty;
+                              handleSetItemCount(item.productId, String(Math.max(0, cur - 1)));
+                            }}
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              fontWeight: 900,
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            -
+                          </button>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div style={{ width: '60px', textAlign: 'center', flexShrink: 0 }}>
+                          {isShort ? (
+                            <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#b91c1c', backgroundColor: '#fee2e2', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
+                              عجز {sysQty - countedNum}
+                            </span>
+                          ) : isOver ? (
+                            <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#0369a1', backgroundColor: '#e0f2fe', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
+                              +{countedNum - sysQty}
+                            </span>
+                          ) : isExact ? (
+                            <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
+                              مطابق
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>دفتري</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Charge stock variance checkbox */}
+                {stockAuditSummary.shortageCount > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 8px',
+                      backgroundColor: '#fff1f2',
+                      borderRadius: '6px',
+                      border: '1px solid #fecdd3',
+                      fontSize: '11px',
+                      color: '#9f1239',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="chargeStockVariance"
+                      checked={chargeStockVarianceToRep}
+                      onChange={(e) => setChargeStockVarianceToRep(e.target.checked)}
+                      style={{ accentColor: '#170e5e', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="chargeStockVariance" style={{ cursor: 'pointer' }}>
+                      تحميل تكلفة عجز المخزون ({stockAuditSummary.totalShortageCost.toFixed(2)} ج.م) على عهدة المندوب المالية
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Unload Remaining Inventory Checkbox */}
         <div
           style={{
@@ -673,7 +973,17 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               return;
             }
             setPinError('');
-            onSubmitSettle(supervisorPin.trim());
+
+            const countedStockArray = Object.keys(countedStockMap).length > 0
+              ? inventory.map((inv) => ({
+                  productId: inv.productId,
+                  countedQty: countedStockMap[inv.productId] !== undefined && countedStockMap[inv.productId] !== ''
+                    ? Number(countedStockMap[inv.productId])
+                    : Number(inv.qty),
+                }))
+              : undefined;
+
+            onSubmitSettle(supervisorPin.trim(), countedStockArray, chargeStockVarianceToRep);
           }}
           disabled={isSubmitting}
           style={{

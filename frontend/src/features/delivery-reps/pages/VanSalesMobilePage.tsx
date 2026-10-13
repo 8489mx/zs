@@ -25,6 +25,8 @@ import { VanSalesLogin } from '../components/VanSalesLogin';
 import { VanSalesReceiptModal } from '../components/VanSalesReceiptModal';
 import { VanCollectionReceiptModal } from '../components/VanCollectionReceiptModal';
 import { VanCollectionReceiptData } from '../utils/van-collection-receipt.utils';
+import { VanSettlementReceiptModal } from '../components/VanSettlementReceiptModal';
+import { VanSettlementReceiptData } from '../utils/van-settlement-receipt.utils';
 import { VanInventoryTab } from '../components/VanInventoryTab';
 import { VanSaleTab, CartItem } from '../components/VanSaleTab';
 import { VanSaleCheckoutModal } from '../components/VanSaleCheckoutModal';
@@ -422,6 +424,7 @@ export default function VanSalesMobilePage() {
   const [alert, setAlert] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
   const [lastSaleReceipt, setLastSaleReceipt] = useState<any | null>(null);
   const [lastCollectionReceipt, setLastCollectionReceipt] = useState<VanCollectionReceiptData | null>(null);
+  const [lastSettlementReceipt, setLastSettlementReceipt] = useState<VanSettlementReceiptData | null>(null);
   const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
   const [inventorySubMode, setInventorySubMode] = useState<'stock' | 'requisitions'>('stock');
   const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
@@ -804,6 +807,34 @@ export default function VanSalesMobilePage() {
       queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
       queryClient.invalidateQueries({ queryKey: ['driver-itinerary'] });
       queryClient.invalidateQueries({ queryKey: ['driver-fuel-logs'] });
+
+      // Automatically launch Cash Handover Clearance Certificate Modal
+      const receiptData: VanSettlementReceiptData = {
+        tripId: res.tripId,
+        receiptNo: `SETTLE-TRIP-${res.tripId}`,
+        repName: res.repName || session?.rep?.name || 'مندوب التوزيع',
+        repPhone: session?.rep?.phone || undefined,
+        cashierName: res.cashierName || 'أمين الخزينة',
+        vehiclePlate: data?.trip?.vehiclePlate || undefined,
+        warehouseName: data?.trip?.sourceWarehouseName || undefined,
+        settledAt: res.settledAt || new Date().toISOString(),
+        salesAmount: res.salesAmount ?? Number(data?.trip?.salesAmount || 0),
+        cashSales: res.cashSales ?? Math.max(0, Number(data?.trip?.salesAmount || 0) - Number(data?.trip?.creditSales || 0)),
+        creditSales: res.creditSales ?? Number(data?.trip?.creditSales || 0),
+        collectionsTotal: res.collectionsTotal ?? Number(data?.trip?.cashCollected || 0),
+        returnsAmount: res.returnsAmount ?? Number(data?.trip?.returnsAmount || 0),
+        cashRefunds: res.cashRefunds ?? Number(data?.trip?.cashRefunds || 0),
+        creditReturns: res.creditReturns ?? 0,
+        tripExpenses: res.tripExpenses ?? 0,
+        expectedCash: res.expectedCash,
+        countedCash: res.countedCash,
+        variance: res.variance,
+        stockVarianceAmount: res.stockVarianceAmount ?? 0,
+        unloadedItemsCount: res.unloadedItemsCount ?? 0,
+        distanceKm: res.distanceKm,
+        stockVariances: res.stockVariances as any,
+      };
+      setLastSettlementReceipt(receiptData);
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل تصفية الرحلة'),
   });
@@ -3014,7 +3045,11 @@ export default function VanSalesMobilePage() {
                   onCountedCashChange={setCountedCash}
                   unloadRemaining={unloadRemaining}
                   onUnloadRemainingChange={setUnloadRemaining}
-                  onSubmitSettle={async (supervisorPin?: string) => {
+                  onSubmitSettle={async (
+                    supervisorPin?: string,
+                    countedStock?: { productId: number; countedQty: number }[],
+                    chargeStockVarianceToRep?: boolean,
+                  ) => {
                     const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
                     const finalCountedCash = countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash;
                     if (finalCountedCash === '') {
@@ -3045,6 +3080,8 @@ export default function VanSalesMobilePage() {
                       tripId: data.trip!.id,
                       countedCash: Number(finalCountedCash),
                       unloadRemainingToWarehouse: unloadRemaining,
+                      countedStock,
+                      chargeStockVarianceToRep,
                       activeVisitCustomerId: activeCustId,
                       supervisorPin,
                     });
@@ -3165,6 +3202,15 @@ export default function VanSalesMobilePage() {
           receipt={lastCollectionReceipt}
           onClose={() => setLastCollectionReceipt(null)}
           storeName={data?.trip?.sourceWarehouseName || 'إدارة التوزيع والتحصيل الميداني'}
+        />
+      )}
+
+      {/* Cashier Handover Clearance Receipt Modal */}
+      {lastSettlementReceipt && (
+        <VanSettlementReceiptModal
+          receipt={lastSettlementReceipt}
+          onClose={() => setLastSettlementReceipt(null)}
+          storeName={data?.trip?.sourceWarehouseName || 'إدارة مبيعات وتوزيع الفان'}
         />
       )}
 

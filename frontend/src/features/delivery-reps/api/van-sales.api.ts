@@ -877,6 +877,8 @@ export const vanSalesApi = {
     tripId: number;
     countedCash: number;
     unloadRemainingToWarehouse: boolean;
+    countedStock?: { productId: number; countedQty: number }[];
+    chargeStockVarianceToRep?: boolean;
     endOdometer?: number;
     activeVisitCustomerId?: number;
     notes?: string;
@@ -886,9 +888,33 @@ export const vanSalesApi = {
     tripId: number;
     expectedCash: number;
     countedCash: number;
+    tripExpenses?: number;
     variance: number;
+    stockVarianceAmount?: number;
     unloadedItemsCount: number;
+    distanceKm?: number;
     status: 'settled';
+    cashierName?: string;
+    cashierId?: number | null;
+    repName?: string;
+    settledAt?: string;
+    salesAmount?: number;
+    cashSales?: number;
+    creditSales?: number;
+    collectionsTotal?: number;
+    returnsAmount?: number;
+    cashRefunds?: number;
+    creditReturns?: number;
+    stockVariances?: Array<{
+      productId: number;
+      productName: string;
+      systemQty: number;
+      countedQty?: number;
+      varianceQty: number;
+      costPrice: number;
+      varianceCost: number;
+      status: string;
+    }>;
   }> => {
     return http('/api/driver-portal/van-sales/trips/settle', {
       method: 'POST',
