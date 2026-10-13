@@ -178,6 +178,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
     : Number((tripData as any)?.tripExpenses || 0);
   const netExpectedCash = Math.max(0, (cashSales + collectionsTotal - cashRefunds) - totalTripExpenses);
   const cashCollected = Number((tripData as any)?.expectedCashToRemit ?? tripData?.cashCollected ?? netExpectedCash);
+  const instapaySales = Number((tripData as any)?.totalInstapaySales ?? 0);
+  const instapayCollections = Number((tripData as any)?.totalInstapayCollections ?? 0);
+  const totalInstapay = instapaySales + instapayCollections;
   const countedNum = Number(countedCash);
   const totalActivities = sales.length + collections.length + returns.length + safeExpenses.length + safePackaging.length;
   const totalDiscounts = sales.reduce((sum, s) => sum + Number(s.discount || 0), 0);
@@ -201,6 +204,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
         return { label: 'مجزأ (كاش + آجل)', bg: '#e0e7ff', color: '#3730a3' };
       case 'card':
         return { label: 'بطاقة / بنكي', bg: '#f1f5f9', color: '#334155' };
+      case 'instapay':
+        return { label: 'إنستاباي (بنكي فوري)', bg: '#f5f3ff', color: '#7c3aed' };
+      case 'vodafone_cash':
+        return { label: 'محفظة إلكترونية (فودافون كاش)', bg: '#fff1f2', color: '#e11d48' };
       default:
         return { label: method, bg: '#f1f5f9', color: '#475569' };
     }
@@ -452,6 +459,31 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 {returnsAmount > 0 ? `-${returnsAmount.toFixed(2)}` : '0.00'} <CurrencySymbol />
               </span>
             </div>
+
+            {/* Full Width: InstaPay & Mobile Wallets Segregated Ledger */}
+            {totalInstapay > 0 && (
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  backgroundColor: '#f5f3ff',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
+                  border: '1px solid #ddd6fe',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#6d28d9', fontWeight: 700, fontSize: '11px' }}>
+                    • تحويلات إنستاباي ومحافظ (معزولة عن كاش المندوب للبنك):
+                  </span>
+                </div>
+                <span style={{ fontWeight: 800, color: '#7c3aed', fontSize: '11.5px' }}>
+                  {totalInstapay.toFixed(2)} <CurrencySymbol />
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Conditional Sub-lines: Cash Refunds & Trip Expenses & Discounts */}

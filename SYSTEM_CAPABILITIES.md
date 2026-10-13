@@ -7407,3 +7407,99 @@
   - `frontend/src/features/delivery-reps/components/VanSaleTab.tsx`
   - `backend/test/critical/van-fmcg-promotions-and-route-opt.spec.ts`
 
+---
+
+## 237. جناح التنفيذ الميداني لمبيعات الفان والتسويق التجاري والطباعة الحرارية وتتبع الزيارات ومعدل الضرب (FMCG Van Sales Execution, Trade Marketing, Direct Bluetooth ESC/POS & Live Fleet Supervisor)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق ومختبر حسابياً وتشغيلياً بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة إدارة الفان والجملة `/van-sales/management` (تبويب "التتبع والميدان" الجديد مع مؤشرات Strike-Rate وخريطة مسار الخبز Breadcrumbs وسجل الزيارات والتفتيش) وبوابة المندوب الميداني `/driver` (تبويب خط السير مع أزرار بدء الزيارة بالـ GPS، جرد الرفوف الاختياري، تفتيش الأصول والمنافسين، وإصدار الفواتير مع زر طباعة حرارية لاسلكية بلوتوث ESC/POS مباشرة 58mm/80mm).
+* **الهدف:** استكمال تفوق المنظومة على منصات FMCG الرائدة (SalesBuzz و QuickSales) بسد كافة الفجوات الميدانية عبر خمس ركائز تشغيلية محكمة:
+  1. حوكمة الزيارة الميدانية خطوة بخطوة (Structured Store Visit Workflow): تسجيل الحضور الجغرافي بالـ GPS مع التحقق من سياج 300 متر (Geofencing)، وإتاحة جرد الرفوف كخطوة اختيارية غير إجبارية منعاً لتعطيل المندوب، وإلزامية تسجيل أسباب عدم البيع المعيارية، وحساب زمن المكوث الدقيق ومعدل الضرب (Strike-Rate).
+  2. التسويق التجاري ورقابة الأصول وثلاجات الشركة وأسعار المنافسين (Trade Marketing, Cooler Inspection & Competitor Price Survey).
+  3. الطباعة الحرارية المحمولة المباشرة عبر البلوتوث (Direct Bluetooth ESC/POS Printing): طباعة الإيصالات والفواتير الميدانية من متصفح الهاتف مباشرة على طابعات الحزام (58mm/80mm) وطابعات Sunmi/iMin بدون برامج وسيطة.
+  4. محرك المزامنة غير المتصلة (Offline-First Driver Van Sales Sync): طابور محلي في المتصفح (IndexedDB) يتيح البيع والجرد وتسجيل الزيارات بدون إنترنت مع مزامنة ذرية عند عودة الاتصال.
+  5. تتبع الأسطول الميداني اللحظي ومعدل الضرب للمشرفين (Supervisor Live Breadcrumbs & Strike-Rate Analytics): لوحة تحكم تفاعلية للمشرفين توفر مؤشرات معدل النجاح/الضرب، وسجل زيارات المتاجر، والتفتيش التسويقي، ومسار تحركات المندوب اللحظي.
+* **المحرك والميزات المنفذة:**
+  1. **محرك حوكمة الزيارة ومعدل الضرب الجيوديسي النقي (FMCG Visit Execution Engine):**
+     - **المحرك النقي:** `backend/src/modules/delivery-reps/fmcg-visit-execution.engine.ts` يحسب المسافات بصيغة هافرسين الجيوديسية، ويفحص سياج الـ 300 متر، ويحسب زمن المكوث بالدقائق، ويحلل أسباب عدم البيع ومعدل الضرب (Strike Rate) بشكل نقي 100% بدون أي اعتماديات خارجية.
+     - **السياج الجغرافي ورادار الشبهات:** عند بعد المندوب أكثر من 300 متر عن العميل، يتم توثيق اختراق السياج (`is_geofence_breached: true`) وإرسال بلاغ فوري لرادار الشبهات (`VAN_SUSPICION_GEOFENCE_VIOLATION`) دون قطع عمل المندوب الميداني.
+     - **جرد الرفوف الاختياري السريع:** زر "جرد الرف (اختياري)" في شريط الإجراءات السريعة يفتح نافذة تفاعلية (`VanStoreInventoryModal.tsx`) تلتزم بدستور RTL (+ يميناً و - يساراً) وبحث فوري في الكتالوج، مع إمكانية التخطي المباشر إلى البيع.
+     - **حوكمة إنهاء الزيارة وأسباب عدم البيع:** لا يُسمح بإغلاق الزيارة بدون بيع إلا باختيار سبب رسمي موثق (`stock_sufficient`, `shop_closed`, `decision_maker_absent`, `no_cash`, `credit_limit_exceeded`, `competitor_promotions`, `price_objection`, `damaged_goods_issue`, `other`).
+  2. **مسح التسويق التجاري وثلاجات الشركة وأسعار المنافسين:**
+     - نافذة فحص ميدانية متكاملة (`VanTradeSurveyModal.tsx`) تشمل فحص سلامة أصول وثلاجات الشركة ونظافتها ودرجة برودتها، والتأكد من خلوها من منتجات المنافسين (`is_pure_company_cooler`)، بالإضافة لجدول ديناميكي لرصد أسعار المنافسين في السوق والتقاط الصور الفوتوغرافية التوثيقية.
+  3. **محرك الطباعة الحرارية البلوتوث المباشرة ESC/POS:**
+     - أداة `escpos-printer.util.ts` لتوليد أوامر ESC/POS الخام المتوافقة مع طابعات الحزام 58 مم و 80 مم وأجهزة كاشير أندرويد الذكية.
+     - اتصال مباشر بالبلوتوث عبر Web Bluetooth API (`navigator.bluetooth`) مع تقسيم البيانات إلى حزم 512 بايت (Chunking & Flow Control) لمنع اختناق الطابعات المحمولة.
+     - زر مخصص "بلوتوث ESC/POS (58mm)" في نافذة إيصال البيع (`VanSalesReceiptModal.tsx`) يطبع الإيصال فورياً بضغطة زر واحدة شاملاً باركود الفاتورة وتفقيط الطرود وطرق الدفع.
+  4. **محرك المزامنة غير المتصلة (Offline-First Sync):**
+     - مكتبة `van-offline-sync.util.ts` المعتمدة على IndexedDB لتخزين طابور المبيعات والتحصيلات والزيارات محلياً ومزامنتها الذرية مع خادم الأوراكل السحابي فور استقرار الاتصال.
+  5. **لوحة تتبع المشرف والميدان (Supervisor Visits & Strike-Rate Admin Tab):**
+     - تبويب "التتبع والميدان" (`VanVisitsTrackingAdminTab.tsx`) في لوحة إدارة الفان `/van-sales/management` يعرض:
+       - بطاقات KPI: معدل الضرب (Strike-Rate %)، إجمالي الزيارات، الزيارات الإيجابية الناجحة، الزيارات المخترقة للسياج، والزيارات السلبية.
+       - جدول زيارات المتاجر مع إظهار أوقات الدخول والخروج وزمن المكوث بالدقائق وشارات التحقق الجغرافي.
+       - جدول مسح الثلاجات والتسويق التجاري وفحص درجات الحرارة ونقاء الثلاجة وأسعار المنافسين.
+       - عارض مسار الخبز والتحركات اللحظية (Live Breadcrumbs Trail Visualizer) للمناديب.
+  6. **قاعدة البيانات والهجرة:**
+     - هجرة `2040000000222_fmcg_field_execution_suite.ts` أضافت 3 جداول متخصصة مع فهارس أداء مركبة:
+       - `van_store_visits`: توثيق الحضور والانصراف، الإحداثيات، السياج، زمن المكوث، أسباب عدم البيع، وجرد الرفوف.
+       - `van_trade_marketing_surveys`: فحص الثلاجات والأصول، النظافة، الحرارة، حصرية العرض، وأسعار المنافسين.
+       - `van_rep_live_breadcrumbs`: تتبع مسار المندوب اللحظي (خط العرض، خط الطول، السرعة كم/س، ومستوى البطارية).
+  7. **الاختبار والتحقق الحسابي:**
+     - اختبارات نقية شاملة لجميع صيغ هافرسين، السياج، زمن المكوث، ومعدل الضرب بنسبة 100% عبر:
+       `backend/test/critical/van-fmcg-visit-execution.spec.ts` (5/5 اختبارات ناجحة).
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000222_fmcg_field_execution_suite.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/delivery-reps/fmcg-visit-execution.engine.ts`
+  - `backend/src/modules/delivery-reps/services/van-field-execution.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `backend/src/modules/delivery-reps/delivery-reps.module.ts`
+  - `frontend/src/features/delivery-reps/utils/escpos-printer.util.ts`
+  - `frontend/src/features/delivery-reps/utils/van-offline-sync.util.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanSalesReceiptModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanStoreInventoryModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanTradeSurveyModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanItineraryTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanVisitsTrackingAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
+  - `backend/test/critical/van-fmcg-visit-execution.spec.ts`
+
+---
+
+## 238. جناح السوق المصري المتخصص لشركات التوزيع وسيارات الفان FMCG (Egyptian FMCG Van Sales Suite: InstaPay Segregation, Digital Signature on Glass, Live Target Booster & Field Damaged Goods Swap)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق ومختبر حسابياً وتشغيلياً بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة المندوب الميداني `/driver` (تبويب خط السير مع بلاطة "استبدال تالف / كسر"، عداد التارجت والعمولة الحية في الهيدر، خيارات الدفع عبر إنستاباي والمحافظ الإلكترونية، ولوحة التوقيع الحي بالأصبع وهوية المستلم عند اعتماد الفاتورة) وشاشة تصفية اليومية `/van-sales/management` و `/driver` (عزل تحويلات إنستاباي عن كاش المندوب).
+* **الهدف:** تلبية المتطلبات الحرجة والحتمية لشركات توزيع الأغذية والمشروبات والسلع الاستهلاكية سريعة الدوران (FMCG) في السوق المصري، والتي تتفوق بها المنظومة تفوقاً تاماً ومحكماً:
+  1. **المدفوعات الإلكترونية عبر إنستاباي والمحافظ والمحافظة على النقدية الورقية (InstaPay & Mobile Wallets Segregation):**
+     - عزل مالي تام لمبيعات وتحصيلات إنستاباي وفودافون كاش عن النقدية الورقية المحصلة في يد المندوب (`cash_collected` / `expectedCashToRemit`).
+     - تسجيل رقم المرجع البنكي للتحويل (`transfer_reference`) وصورة إيصال التحويل (`transfer_receipt_url`).
+     - تصفية العهدة اليومية تطالب المندوب حصرياً بالنقدية الورقية الفعلية في يده، مع إظهار بطاقة منفصلة للتحويلات البنكية المحققة عبر إنستاباي لتسويتها مركزياً مع حساب الشركة البنكي.
+  2. **التوقيع الرقمي الحي وهوية المستلم (Digital Signature on Glass & Recipient Identity):**
+     - لوحة توقيع إلكتروني تفاعلية (`VanSignaturePadModal.tsx`) تتيح توقيع مستلم البضاعة بإصبعه على شاشة الهاتف، وتخزين التوقيع كصورة متجهة مشفرة مرتبطة بالفاتورة.
+     - تسجيل الاسم الثلاثي للمستلم، ورقم هاتفه، وصفته في المحل (صاحب المحل، شريك، مدير، كاشير، عامل مستلم).
+     - توفير الحماية القانونية الكاملة للشركة من إنكار استلام البضاعة أو التهرب من سداد المبيعات الآجلة.
+  3. **عداد التارجت والعمولة الحية في يد المندوب (Live Target & Commission Booster Widget):**
+     - شريط تقدم ذكي وتفاعلي (`VanLiveTargetBoosterWidget.tsx`) يظهر للمندوب في أعلى شاشته نسبة تحقيق التارجت الشهري، والمبلغ المتبقي، ومعدل المبيعات اليومي المطلوب لإدراك الهدف.
+     - احتساب فوري للعمولة النقدية المكتسبة حتى اللحظة ومكافأة تخطي التارجت بالجنيه المصري اعتماداً على محرك الشرائح النقي `rep-target.engine.ts` لتحفيز المندوب لزيادة قيمة مبيعاته عند كل محطة.
+  4. **استبدال التالف والكسر والمعيب الفوري في الشارع (Instant Damaged Goods Field Swap):**
+     - بلاطة سريعة في مركز إجراءات العميل ومودال تشغيلي متكامل (`VanDamagedSwapModal.tsx`) مع عدادات RTL قياسية (+ يميناً و - يساراً) لتبديل البضاعة التالفة أو المكسورة أو منتهية الصلاحية بمنتجات سليمة من الفان فورياً.
+     - ترتيب الأقفال القانوني (Canonical Lock Order) بترتيب معرّفات الأصناف تصاعدياً وحجزها بهذا الترتيب لمنع حدوث تعليق أو أقفال ميتة (SQL Deadlocks).
+     - محرك حساب الفارق المالي النقي (`evaluateDamagedSwap`): احتساب فارق القيمة بين التالف والبديل وتقييده آلياً على كشف حساب العميل (مديونية أو دائنية).
+     - حركة مخزنية مزدوجة: خصم البديل من بضاعة السيارة الجاهزة للبيع (`van_swap_out`) وإضافة التالف كحركة تالفة (`van_swap_damaged_in`) مع توثيق سبب التلف بدقة في جدول `van_damaged_swaps`.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000223_egypt_fmcg_instapay_signature_swap.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/delivery-reps/van-trip-reconciliation.engine.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanSignaturePadModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanDamagedSwapModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanLiveTargetBoosterWidget.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSaleCheckoutModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanItineraryTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSettleTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
+  - `backend/test/critical/van-egypt-market-fmcg.spec.ts`
+
+

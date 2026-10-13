@@ -26,10 +26,11 @@ import { VanRoutesKpiAdminTab } from '../components/VanRoutesKpiAdminTab';
 import { VanPreSalesAdminTab } from '../components/VanPreSalesAdminTab';
 import { VanFraudRadarAdminTab } from '../components/VanFraudRadarAdminTab';
 import { VanPromotionsAdminTab } from '../components/VanPromotionsAdminTab';
+import { VanVisitsTrackingAdminTab } from '../components/VanVisitsTrackingAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
-type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'fleet' | 'drivers';
+type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'visits_tracking' | 'fleet' | 'drivers';
 
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -248,6 +249,11 @@ export default function VanSalesAdminManagementPage() {
             icon: <SlidersIcon size={15} />,
           },
           {
+            key: 'visits_tracking' as const,
+            label: 'التتبع والميدان',
+            icon: <MapPinIcon size={15} />,
+          },
+          {
             key: 'fleet' as const,
             label: 'أسطول السيارات',
             icon: <TruckIcon size={15} />,
@@ -343,6 +349,9 @@ export default function VanSalesAdminManagementPage() {
 
       {/* Tab: FMCG Mix & Match Promotions */}
       {activeTab === 'promotions' && <VanPromotionsAdminTab />}
+
+      {/* Tab: FMCG Visits, Strike Rate & Breadcrumbs Live Tracking */}
+      {activeTab === 'visits_tracking' && <VanVisitsTrackingAdminTab />}
 
       {/* Tab 5: Fleet */}
       {activeTab === 'fleet' && <FleetVehiclesTab />}

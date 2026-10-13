@@ -10,9 +10,11 @@ import {
   AlertTriangleIcon,
   SlidersIcon,
   EditIcon,
+  SmartphoneIcon,
 } from '@/shared/components/icons/AppIcons';
+import { VanSignaturePadModal, RecipientSignatureData } from './VanSignaturePadModal';
 
-export type VanPaymentMethod = 'cash' | 'credit' | 'card' | 'split';
+export type VanPaymentMethod = 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash';
 
 export interface VanSaleCheckoutModalProps {
   open: boolean;
@@ -58,6 +60,12 @@ export interface VanSaleCheckoutModalProps {
     deliveryProofPhoto?: string;
     supervisorOverridePin?: string;
     supervisorOverrideReason?: string;
+    transferReference?: string;
+    transferReceiptUrl?: string;
+    recipientName?: string;
+    recipientPhone?: string;
+    recipientRole?: string;
+    recipientSignature?: string;
   }) => void;
 }
 
@@ -120,7 +128,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   isSubmitting,
   onConfirmCheckout,
 }) => {
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'instapay' | 'vodafone_cash'>('cash');
   const [cashInput, setCashInput] = useState<string>(cartTotal.toFixed(2));
   const [cashDiscountAmount, setCashDiscountAmount] = useState<number>(0);
   const [showCashDiscount, setShowCashDiscount] = useState<boolean>(false);
@@ -134,6 +142,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isGeofenceViolation, setIsGeofenceViolation] = useState<boolean>(false);
   const [geofenceDistance, setGeofenceDistance] = useState<number | null>(null);
+  const [transferReference, setTransferReference] = useState<string>('');
+  const [transferReceiptUrl, setTransferReceiptUrl] = useState<string>('');
+  const [walletType, setWalletType] = useState<'instapay' | 'vodafone_cash'>('instapay');
+  const [recipientSignatureData, setRecipientSignatureData] = useState<RecipientSignatureData | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (open) {
@@ -150,6 +163,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       setIsDrawing(false);
       setIsGeofenceViolation(false);
       setGeofenceDistance(null);
+      setTransferReference('');
+      setTransferReceiptUrl('');
+      setWalletType('instapay');
+      setRecipientSignatureData(null);
+      setShowSignatureModal(false);
 
       const custCoords = parseCustomerCoords(customer);
       if (custCoords && typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -350,16 +368,27 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       }
     }
 
+    if ((paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') && !transferReference.trim()) {
+      setValidationError('يرجى إدخال رقم العملية أو المرجع البنكي للتحقق من وصول التحويل الإلكتروني.');
+      return;
+    }
+
     if (hasBonusItems && !supervisorPin.trim()) {
       setValidationError('الفاتورة تحتوي على أصناف بونص عيني مجاني. يتطلب إدخال الرمز السري للمشرف (PIN) لتوثيق المصادقة الرقابية.');
       return;
     }
 
+    const resolvedMethod = (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash')
+      ? paymentMethod
+      : finalMethod;
+
     onConfirmCheckout({
-      paymentMethod: finalMethod,
-      paidAmount: finalMethod === 'cash'
-        ? netCashDue
-        : (finalMethod === 'split' ? cashPaid : (finalMethod === 'card' ? cartTotal : 0)),
+      paymentMethod: resolvedMethod,
+      paidAmount: (resolvedMethod === 'instapay' || resolvedMethod === 'vodafone_cash')
+        ? cartTotal
+        : (finalMethod === 'cash'
+          ? netCashDue
+          : (finalMethod === 'split' ? cashPaid : (finalMethod === 'card' ? cartTotal : 0))),
       cashDiscountAmount: paymentMethod === 'cash' && cashDiscountAmount > 0 ? cashDiscountAmount : undefined,
       notes: localNotes,
       cartonsCount: Number(cartonsCount) || undefined,
@@ -372,6 +401,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
         : isCashOnlyCustomerCredit
         ? 'اعتماد بيع آجل لعميل نقدي'
         : (hasBonusItems ? 'اعتماد صرف بونص عيني مجاني' : undefined),
+      transferReference: (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? transferReference.trim() : undefined,
+      transferReceiptUrl: transferReceiptUrl.trim() || undefined,
+      recipientName: recipientSignatureData?.recipientName || undefined,
+      recipientPhone: recipientSignatureData?.recipientPhone || undefined,
+      recipientRole: recipientSignatureData?.recipientRole || undefined,
+      recipientSignature: recipientSignatureData?.recipientSignature || undefined,
     });
   };
 
@@ -609,9 +644,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           </div>
         )}
 
-        {/* Payment Method Selector: STRICTLY 1 ROW (flex-row) */}
+        {/* Payment Method Selector: 3 Main Tabs (نقدي - إنستاباي - آجل) */}
         <div>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', width: '100%' }}>
             <button
               type="button"
               onClick={() => {
@@ -622,13 +657,13 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               style={{
                 flex: '1 1 0%',
                 minWidth: 0,
-                height: '42px',
+                height: '40px',
                 borderRadius: '8px',
                 border: paymentMethod === 'cash' ? '2px solid #059669' : '1px solid #cbd5e1',
                 backgroundColor: paymentMethod === 'cash' ? '#ecfdf5' : '#ffffff',
                 color: paymentMethod === 'cash' ? '#065f46' : '#334155',
                 fontWeight: 800,
-                fontSize: '13px',
+                fontSize: '12px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -642,19 +677,47 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <button
               type="button"
               onClick={() => {
+                setPaymentMethod(walletType);
+                setValidationError('');
+              }}
+              style={{
+                flex: '1 1 0%',
+                minWidth: 0,
+                height: '40px',
+                borderRadius: '8px',
+                border: (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '2px solid #7c3aed' : '1px solid #cbd5e1',
+                backgroundColor: (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '#f5f3ff' : '#ffffff',
+                color: (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '#6d28d9' : '#334155',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                boxShadow: (paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none',
+              }}
+            >
+              <SmartphoneIcon size={13} color={(paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '#6d28d9' : '#64748b'} />
+              <span>إنستاباي / محفظة</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setPaymentMethod('credit');
                 setValidationError('');
               }}
               style={{
                 flex: '1 1 0%',
                 minWidth: 0,
-                height: '42px',
+                height: '40px',
                 borderRadius: '8px',
                 border: paymentMethod === 'credit' ? '2px solid #d97706' : '1px solid #cbd5e1',
                 backgroundColor: paymentMethod === 'credit' ? '#fffbeb' : '#ffffff',
                 color: paymentMethod === 'credit' ? '#92400e' : '#334155',
                 fontWeight: 800,
-                fontSize: '13px',
+                fontSize: '12px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -707,6 +770,113 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* InstaPay / Mobile Wallet Details Card */}
+        {(paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') && (
+          <div
+            style={{
+              backgroundColor: '#f5f3ff',
+              border: '1px solid #ddd6fe',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <SmartphoneIcon size={14} color="#7c3aed" />
+                <span>تحويل إلكتروني مباشر لحساب الشركة:</span>
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: 900, color: '#5b21b6' }}>
+                {cartTotal.toFixed(2)} ج.م
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('instapay');
+                  setWalletType('instapay');
+                }}
+                style={{
+                  height: '32px',
+                  borderRadius: '6px',
+                  border: paymentMethod === 'instapay' ? '2px solid #7c3aed' : '1px solid #c4b5fd',
+                  backgroundColor: paymentMethod === 'instapay' ? '#ffffff' : '#f5f3ff',
+                  color: paymentMethod === 'instapay' ? '#6d28d9' : '#6b21a8',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                إنستاباي (InstaPay)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('vodafone_cash');
+                  setWalletType('vodafone_cash');
+                }}
+                style={{
+                  height: '32px',
+                  borderRadius: '6px',
+                  border: paymentMethod === 'vodafone_cash' ? '2px solid #e11d48' : '1px solid #c4b5fd',
+                  backgroundColor: paymentMethod === 'vodafone_cash' ? '#ffffff' : '#f5f3ff',
+                  color: paymentMethod === 'vodafone_cash' ? '#be123c' : '#6b21a8',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                فودافون كاش / محفظة
+              </button>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4c1d95', display: 'block', marginBottom: '2px' }}>
+                رقم العملية / المرجع البنكي (Reference No) *
+              </label>
+              <input
+                type="text"
+                value={transferReference}
+                onChange={(e) => {
+                  setTransferReference(e.target.value);
+                  setValidationError('');
+                }}
+                placeholder="رقم مرجع التحويل أو آخر 6 أرقام من الإشعار"
+                style={{
+                  width: '100%',
+                  height: '32px',
+                  padding: '0 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #c4b5fd',
+                  fontSize: '12px',
+                  backgroundColor: '#ffffff',
+                  boxSizing: 'border-box',
+                  direction: 'ltr',
+                  textAlign: 'right',
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                fontSize: '10.5px',
+                color: '#5b21b6',
+                backgroundColor: '#ede9fe',
+                padding: '4px 8px',
+                borderRadius: '5px',
+                fontWeight: 600,
+              }}
+            >
+              فصل مالي تلقائي: المبلغ محول مباشرة لحساب الشركة/المحفظة، ولا يُطالب به المندوب ككاش في تصفية اليوم.
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Payment Body Section */}
         <div
@@ -1106,28 +1276,54 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 </label>
               )}
 
-              <button
-                type="button"
-                onClick={() => setShowSignaturePad((prev) => !prev)}
-                style={{
-                  height: '30px',
-                  backgroundColor: showSignaturePad ? '#eef2ff' : (isCreditOrSplitDebt ? '#fffbeb' : '#ffffff'),
-                  border: showSignaturePad ? '1.5px solid #170e5e' : (isCreditOrSplitDebt ? '1px solid #d97706' : '1px solid #cbd5e1'),
-                  borderRadius: '5px',
-                  padding: '0 9px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: isCreditOrSplitDebt ? '#92400e' : '#170e5e',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <EditIcon size={12} color={isCreditOrSplitDebt ? '#92400e' : '#170e5e'} />
-                <span>{showSignaturePad ? 'إلغاء' : '+ توقيع'}</span>
-              </button>
+              {recipientSignatureData ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '5px',
+                    padding: '2px 6px',
+                  }}
+                >
+                  <CheckCircleIcon size={12} color="#15803d" />
+                  <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#15803d' }}>
+                    مستلم: {recipientSignatureData.recipientName} ({recipientSignatureData.recipientRole})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSignatureModal(true)}
+                    style={{ color: '#15803d', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
+                  >
+                    تعديل
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowSignatureModal(true)}
+                  style={{
+                    height: '30px',
+                    backgroundColor: isCreditOrSplitDebt ? '#fffbeb' : '#ffffff',
+                    border: isCreditOrSplitDebt ? '1.5px solid #d97706' : '1px solid #cbd5e1',
+                    borderRadius: '5px',
+                    padding: '0 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: isCreditOrSplitDebt ? '#92400e' : '#170e5e',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <EditIcon size={12} color={isCreditOrSplitDebt ? '#92400e' : '#170e5e'} />
+                  <span>+ هوية وتوقيع المستلم</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1205,6 +1401,21 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           )}
         </div>
       </div>
+
+      {showSignatureModal && (
+        <VanSignaturePadModal
+          open={showSignatureModal}
+          onClose={() => setShowSignatureModal(false)}
+          customerName={customerDisplayName}
+          totalAmount={cartTotal}
+          initialData={recipientSignatureData || undefined}
+          onConfirm={(sigData) => {
+            setRecipientSignatureData(sigData);
+            onDeliveryProofPhotoChange(sigData.recipientSignature);
+            setShowSignatureModal(false);
+          }}
+        />
+      )}
     </StandardDialog>
   );
 };

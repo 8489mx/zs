@@ -21,6 +21,8 @@ export interface TripFinancialSummaryInput {
   tripExpenses?: number;
   countedCash: number;
   remainingVanStockValue: number;
+  instapaySales?: number;
+  instapayCollections?: number;
 }
 
 export interface TripFinancialReconciliationResult {
@@ -37,6 +39,9 @@ export interface TripFinancialReconciliationResult {
   cashVarianceStatus: 'balanced' | 'shortage' | 'overage';
   cashShortageAmount: number;
   cashOverageAmount: number;
+  totalInstapaySales?: number;
+  totalInstapayCollections?: number;
+  expectedBankTransfers?: number;
 }
 
 export interface VanStockAuditItem {
@@ -229,6 +234,10 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
     cashOverageAmount = toMoney(cashVariance);
   }
 
+  const instapaySales = toMoney(input.instapaySales || 0);
+  const instapayCollections = toMoney(input.instapayCollections || 0);
+  const expectedBankTransfers = toMoney(instapaySales + instapayCollections);
+
   return {
     totalLoaded,
     totalSales,
@@ -243,6 +252,9 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
     cashVarianceStatus,
     cashShortageAmount,
     cashOverageAmount,
+    totalInstapaySales: instapaySales,
+    totalInstapayCollections: instapayCollections,
+    expectedBankTransfers,
   };
 }
 
@@ -1093,6 +1105,7 @@ export function formatVanSettlementSummaryText(params: {
   countedCash: number;
   variance: number;
   stockVarianceCost?: number;
+  instapayTotal?: number;
   currency?: string;
 }): string {
   const currency = params.currency || 'ج.م';
@@ -1115,10 +1128,13 @@ export function formatVanSettlementSummaryText(params: {
     '-------------------------',
     `مبيعات اليوم: ${Number(params.salesAmount).toFixed(2)} ${currency}`,
     `(كاش: ${Number(params.cashSales).toFixed(2)} | آجل: ${Number(params.creditSales).toFixed(2)})`,
+    params.instapayTotal && params.instapayTotal > 0
+      ? `تحويلات إنستاباي / المحافظ: ${Number(params.instapayTotal).toFixed(2)} ${currency} (تتطلب مطابقة بنكية)`
+      : '',
     `التحصيلات: ${Number(params.collectionsTotal).toFixed(2)} ${currency}`,
     `مصروفات الرحلة: ${Number(params.tripExpenses).toFixed(2)} ${currency}`,
     '-------------------------',
-    `صافي المطلوب توريده: ${Number(params.expectedCash).toFixed(2)} ${currency}`,
+    `صافي المطلوب توريده نقداً: ${Number(params.expectedCash).toFixed(2)} ${currency}`,
     `المبلغ المورَّد فعلياً: ${Number(params.countedCash).toFixed(2)} ${currency}`,
     `حالة المطابقة: ${statusText}`,
     params.stockVarianceCost && params.stockVarianceCost > 0
@@ -1129,6 +1145,88 @@ export function formatVanSettlementSummaryText(params: {
     .filter(Boolean)
     .join('\n');
 }
+
+export interface DamagedSwapParams {
+  damagedProductId: number;
+  damagedQty: number;
+  damagedUnitPrice: number;
+  damageReason: string;
+  replacementProductId: number;
+  replacementQty: number;
+  replacementUnitPrice: number;
+  availableVanStockQty: number;
+}
+
+export interface DamagedSwapResult {
+  allowed: boolean;
+  reasonCode?: 'STOCK_UNAVAILABLE' | 'INVALID_QUANTITY' | 'REASON_REQUIRED';
+  errorMessageAr?: string;
+  damagedValue: number;
+  replacementValue: number;
+  priceDifference: number;
+  isEvenSwap: boolean;
+}
+
+/**
+ * Pure calculation engine for Instant Field Damaged / Broken Goods Swaps.
+ * Ensures stock availability, validates non-zero quantities and damage reasons,
+ * and calculates any price variance between damaged return and fresh replacement.
+ */
+export function evaluateDamagedSwap(params: DamagedSwapParams): DamagedSwapResult {
+  const dQty = Number((Number(params.damagedQty) || 0).toFixed(4));
+  const rQty = Number((Number(params.replacementQty) || 0).toFixed(4));
+  const availableStock = Number((Number(params.availableVanStockQty) || 0).toFixed(4));
+  const reason = String(params.damageReason || '').trim();
+
+  if (dQty <= 0 || rQty <= 0) {
+    return {
+      allowed: false,
+      reasonCode: 'INVALID_QUANTITY',
+      errorMessageAr: 'كمية التالف وكمية البديل يجب أن تكون أكبر من الصفر',
+      damagedValue: 0,
+      replacementValue: 0,
+      priceDifference: 0,
+      isEvenSwap: false,
+    };
+  }
+
+  if (!reason) {
+    return {
+      allowed: false,
+      reasonCode: 'REASON_REQUIRED',
+      errorMessageAr: 'يرجى تحديد سبب تلف أو كسر البضاعة (مثل: تسريب، كسر، انتهاء صلاحية)',
+      damagedValue: 0,
+      replacementValue: 0,
+      priceDifference: 0,
+      isEvenSwap: false,
+    };
+  }
+
+  if (rQty > availableStock) {
+    return {
+      allowed: false,
+      reasonCode: 'STOCK_UNAVAILABLE',
+      errorMessageAr: `رصيد السيارة الحالي (${availableStock}) غير كافٍ لصرف كمية الاستبدال المطلوبة (${rQty})`,
+      damagedValue: 0,
+      replacementValue: 0,
+      priceDifference: 0,
+      isEvenSwap: false,
+    };
+  }
+
+  const dVal = Number((dQty * Number(params.damagedUnitPrice || 0)).toFixed(2));
+  const rVal = Number((rQty * Number(params.replacementUnitPrice || 0)).toFixed(2));
+  const diff = Number((rVal - dVal).toFixed(2));
+
+  return {
+    allowed: true,
+    damagedValue: dVal,
+    replacementValue: rVal,
+    priceDifference: diff,
+    isEvenSwap: Math.abs(diff) < 0.01,
+  };
+}
+
 
 
 

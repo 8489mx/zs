@@ -795,7 +795,8 @@ export interface VanSalesTripTable {
   night_stock_approved_by?: number | null;
   night_stock_notes?: string | null;
   distance_km?: number | null;
-  notes?: string | null;
+  total_instapay_sales?: number;
+  total_instapay_collections?: number;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -958,6 +959,12 @@ export interface SalesTable {
   driver_cash_settled?: boolean;
   sale_origin?: string | null;
   van_trip_id?: number | null;
+  transfer_reference?: string | null;
+  transfer_receipt_url?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_role?: string | null;
+  recipient_signature?: string | null;
 }
 
 export interface SaleItemTable {
@@ -1204,6 +1211,8 @@ export interface CustomerPaymentTable {
   location_id: number | null;
   job_id?: number | null;
   created_by: number | null;
+  transfer_reference?: string | null;
+  transfer_receipt_url?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -5319,6 +5328,89 @@ export interface FmcgPromotionTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface VanStoreVisitTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: number;
+  trip_id: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  rep_id: number;
+  customer_id: number;
+  customer_name: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  check_in_at: ColumnType<Date, string | undefined, never>;
+  check_out_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  dwell_time_seconds: ColumnType<number, number | undefined, number>;
+  check_in_lat: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  check_in_lng: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  is_geofence_valid: ColumnType<boolean, boolean | undefined, boolean>;
+  geofence_distance_meters: ColumnType<number, number | undefined, number>;
+  has_sale: ColumnType<boolean, boolean | undefined, boolean>;
+  sale_id: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  sale_amount: ColumnType<number, number | string | undefined, number | string>;
+  has_collection: ColumnType<boolean, boolean | undefined, boolean>;
+  collection_amount: ColumnType<number, number | string | undefined, number | string>;
+  no_sale_reason: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  no_sale_notes: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  store_inventory: ColumnType<any, any, any>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanTradeMarketingSurveyTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: number;
+  visit_id: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  trip_id: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  rep_id: number;
+  customer_id: number;
+  survey_type: 'cooler_inspection' | 'asset_tracking' | 'competitor_survey' | string;
+  asset_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  asset_name: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  asset_condition: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  is_pure_company_products: ColumnType<boolean, boolean | undefined, boolean>;
+  temperature_celsius: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  cleanliness_rating: ColumnType<number, number | undefined, number>;
+  photo_url: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  competitor_name: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  competitor_product: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  competitor_price: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  competitor_offer_details: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  notes: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  metadata: ColumnType<any, any, any>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface VanRepLiveBreadcrumbTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: number;
+  trip_id: number;
+  rep_id: number;
+  latitude: number;
+  longitude: number;
+  speed_kmh: ColumnType<number, number | undefined, number>;
+  battery_level: ColumnType<number, number | undefined, number>;
+  recorded_at: ColumnType<Date, string | undefined, never>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface VanDamagedSwapTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  trip_id: number;
+  customer_id: number;
+  damaged_product_id: number;
+  damaged_qty: number;
+  damage_reason: string;
+  replacement_product_id: number;
+  replacement_qty: number;
+  price_difference: ColumnType<number, number | undefined, number>;
+  notes?: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
   pos_kitchen_printers: PosKitchenPrinterTable;
@@ -5336,6 +5428,11 @@ export interface Database {
   restaurant_upsell_rules: RestaurantUpsellRuleTable;
   restaurant_table_layouts: RestaurantTableLayoutTable;
   fmcg_promotions: FmcgPromotionTable;
+  van_store_visits: VanStoreVisitTable;
+  van_trade_marketing_surveys: VanTradeMarketingSurveyTable;
+  van_rep_live_breadcrumbs: VanRepLiveBreadcrumbTable;
+  van_damaged_swaps: VanDamagedSwapTable;
 }
+
 
 

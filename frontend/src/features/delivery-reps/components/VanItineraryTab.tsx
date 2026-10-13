@@ -4,7 +4,13 @@ import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
-import { vanSalesApi, VanCustomerItineraryItem, RouteOptimizationResult } from '../api/van-sales.api';
+import {
+  vanSalesApi,
+  VanCustomerItineraryItem,
+  RouteOptimizationResult,
+  RepTargetMetrics,
+  VanStockItem,
+} from '../api/van-sales.api';
 import {
   MapPinIcon,
   CheckCircleIcon,
@@ -24,9 +30,15 @@ import {
   ReceiptIcon,
   RotateCcwIcon,
   FileTextIcon,
+  PackageIcon,
+  RefreshCwIcon,
 } from '@/shared/components/icons/AppIcons';
 import { catalogApi } from '@/lib/api/catalog';
 import { VanCustomerStatementModal } from './VanCustomerStatementModal';
+import { VanStoreInventoryModal } from './VanStoreInventoryModal';
+import { VanTradeSurveyModal } from './VanTradeSurveyModal';
+import { VanDamagedSwapModal } from './VanDamagedSwapModal';
+import { VanLiveTargetBoosterWidget } from './VanLiveTargetBoosterWidget';
 
 interface VanItineraryTabProps {
   itinerary: VanCustomerItineraryItem[];
@@ -44,6 +56,9 @@ interface VanItineraryTabProps {
   } | null;
   onStartVisit?: (customerId: number, customerName: string) => void;
   onEndVisit?: () => void;
+  targetMetrics?: RepTargetMetrics;
+  inventory?: VanStockItem[];
+  allAvailableCustomers?: Array<{ id: number; name: string; phone?: string }>;
 }
 
 const DAY_ALIASES: Record<string, string[]> = {
@@ -259,6 +274,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   activeVisit,
   onStartVisit,
   onEndVisit,
+  targetMetrics,
+  inventory,
+  allAvailableCustomers,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [routeFilter, setRouteFilter] = useState('all');
@@ -286,6 +304,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
   // Selected customer for the unified hub modal
   const [selectedCustomerForHub, setSelectedCustomerForHub] = useState<VanCustomerItineraryItem | null>(null);
+  const [inventoryCustomer, setInventoryCustomer] = useState<VanCustomerItineraryItem | null>(null);
+  const [surveyCustomer, setSurveyCustomer] = useState<VanCustomerItineraryItem | null>(null);
+  const [swapCustomer, setSwapCustomer] = useState<VanCustomerItineraryItem | null>(null);
 
   // Route Reordering Mode
   const [isReorderingMode, setIsReorderingMode] = useState(false);
@@ -618,7 +639,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
       const newCustOrderMap: Record<string, number[]> = {};
       for (const stop of routeOptimizationResult.orderedStops) {
-        const dName = (stop.district || stop.route || 'المنطقة العامة').trim();
+        const dName = (stop.district || (stop as any).route || 'المنطقة العامة').trim();
         if (!newCustOrderMap[dName]) newCustOrderMap[dName] = [];
         newCustOrderMap[dName].push(stop.id);
       }
@@ -1379,7 +1400,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               </div>
             </div>
 
-            {/* ROW 2: Debt Collection & Negative Visit */}
+            {/* ROW 2: Debt Collection & Field Statement */}
             <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               {/* Tile 3: Debt Collection */}
               <div
@@ -1432,53 +1453,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 </p>
               </div>
 
-              {/* Tile 4: Negative Visit */}
-              <div
-                onClick={() => {
-                  const cust = selectedCustomerForHub;
-                  openNegativeVisitModal(cust);
-                }}
-                style={{
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '14px',
-                  padding: '10px 6px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  boxSizing: 'border-box',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f8fafc',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 6px',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <XCircleIcon size={18} color="#64748b" strokeWidth={2} />
-                </div>
-                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  تسجيل زيارة سلبية
-                </h4>
-                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  محل مغلق / لم يشترِ
-                </p>
-              </div>
-
-              {/* Tile 5: Field Statement */}
+              {/* Tile 4: Field Statement */}
               <div
                 onClick={() => {
                   setStatementModalCust(selectedCustomerForHub);
@@ -1523,6 +1498,196 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* ROW 3: Damaged Goods Instant Swap & Shelf Inventory (Optional) */}
+            <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+              {/* Tile 5: Instant Damaged Goods Swap (Egyptian FMCG Standard) */}
+              <div
+                onClick={() => {
+                  const cust = selectedCustomerForHub;
+                  setSelectedCustomerForHub(null);
+                  setSwapCustomer(cust);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#fee2e2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <RefreshCwIcon size={18} color="#dc2626" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  استبدال تالف / كسر
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  تبديل فوري وحساب الفارق
+                </p>
+              </div>
+
+              {/* Tile 6: Store Shelf Inventory */}
+              <div
+                onClick={() => {
+                  const cust = selectedCustomerForHub;
+                  setSelectedCustomerForHub(null);
+                  setInventoryCustomer(cust);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#f3e8ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <PackageIcon size={18} color="#7e22ce" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  جرد الرف (اختياري)
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  عد المخزون المتبقي
+                </p>
+              </div>
+            </div>
+
+            {/* ROW 4: Trade Marketing Survey & Negative Visit */}
+            <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+              {/* Tile 7: Trade Marketing & Cooler Inspection */}
+              <div
+                onClick={() => {
+                  const cust = selectedCustomerForHub;
+                  setSelectedCustomerForHub(null);
+                  setSurveyCustomer(cust);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#fef3c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                  }}
+                >
+                  <SearchIcon size={18} color="#b45309" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  تفتيش ومنافسين
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  ثلاجة الشركة وأسعار السوق
+                </p>
+              </div>
+
+              {/* Tile 8: Negative Visit */}
+              <div
+                onClick={() => {
+                  const cust = selectedCustomerForHub;
+                  openNegativeVisitModal(cust);
+                }}
+                style={{
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 6px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 6px',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <XCircleIcon size={18} color="#64748b" strokeWidth={2} />
+                </div>
+                <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                  تسجيل زيارة سلبية
+                </h4>
+                <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
+                  محل مغلق / لم يشترِ
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* 5. Today's Visit Summary if already visited today (Z-Systems Crisp White Card) */}
@@ -1560,6 +1725,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         </div>
       ) : (
         <>
+          {/* Live Commission & Target Booster Widget */}
+          {targetMetrics && <VanLiveTargetBoosterWidget metrics={targetMetrics} compact={false} />}
+
           {/* Unified High-Density Itinerary Toolbar */}
       <div
         style={{
@@ -3199,6 +3367,47 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </div>
         </StandardDialog>
       )}
+
+      {/* Store Shelf Inventory Modal (Optional) */}
+      {inventoryCustomer && (
+        <VanStoreInventoryModal
+          customer={inventoryCustomer}
+          tripId={tripId}
+          onClose={() => setInventoryCustomer(null)}
+          onSuccess={onRefreshItinerary}
+        />
+      )}
+
+      {/* Trade Merchandising & Competitor Survey Modal */}
+      {surveyCustomer && (
+        <VanTradeSurveyModal
+          customer={surveyCustomer}
+          tripId={tripId}
+          onClose={() => setSurveyCustomer(null)}
+          onSuccess={onRefreshItinerary}
+        />
+      )}
+
+      {/* Field Damaged / Broken Goods Instant Swap Modal */}
+      {swapCustomer && (
+        <VanDamagedSwapModal
+          open={Boolean(swapCustomer)}
+          onClose={() => setSwapCustomer(null)}
+          tripId={tripId || 0}
+          inventory={inventory || []}
+          customers={
+            allAvailableCustomers && allAvailableCustomers.length > 0
+              ? allAvailableCustomers
+              : itinerary.map((it) => ({ id: it.customerId, name: it.customerName, phone: it.customerPhone }))
+          }
+          defaultCustomerId={swapCustomer.customerId}
+          onSwapSuccess={() => {
+            setSwapCustomer(null);
+            onRefreshItinerary();
+          }}
+        />
+      )}
     </div>
   );
 };
+

@@ -156,6 +156,8 @@ export interface VanTripSummary {
   cashRefunds?: number;
   tripExpenses?: number;
   expectedCashToRemit?: number;
+  totalInstapaySales?: number;
+  totalInstapayCollections?: number;
   variance: number;
   notes?: string;
 }
@@ -284,6 +286,20 @@ export interface VanActiveTripResponse {
     returnReason: string;
     refundMethod?: 'credit' | 'cash';
     status: string;
+    createdAt: string;
+    customerName?: string;
+  }[];
+  swaps?: {
+    id: number;
+    damagedProductId: number;
+    damagedProductName: string;
+    damagedQty: number;
+    damageReason: string;
+    replacementProductId: number;
+    replacementProductName: string;
+    replacementQty: number;
+    priceDifference: number;
+    notes?: string | null;
     createdAt: string;
     customerName?: string;
   }[];
@@ -728,7 +744,7 @@ export const vanSalesApi = {
     customerId?: number;
     customerName?: string;
     customerPhone?: string;
-    paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+    paymentMethod: 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash';
     paidAmount?: number;
     items: {
       productId: number;
@@ -749,6 +765,12 @@ export const vanSalesApi = {
     cashDiscountAmount?: number;
     supervisorOverridePin?: string;
     supervisorOverrideReason?: string;
+    transferReference?: string;
+    transferReceiptUrl?: string;
+    recipientName?: string;
+    recipientPhone?: string;
+    recipientRole?: string;
+    recipientSignature?: string;
   }): Promise<{
     ok: boolean;
     saleId: number;
@@ -791,6 +813,9 @@ export const vanSalesApi = {
     tripId: number;
     customerId: number;
     amount: number;
+    paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer';
+    transferReference?: string;
+    transferReceiptUrl?: string;
     notes?: string;
     gpsLat?: number;
     gpsLng?: number;
@@ -805,6 +830,61 @@ export const vanSalesApi = {
       method: 'POST',
       headers: getDriverAuthHeaders(),
       body: JSON.stringify(payload),
+    });
+  },
+
+  executeDamagedSwap: async (
+    tripId: number,
+    payload: {
+      customerId?: number;
+      damagedProductId: number;
+      damagedQty: number;
+      damageReason?: string;
+      replacementProductId: number;
+      replacementQty: number;
+      notes?: string;
+    },
+  ): Promise<{
+    ok: boolean;
+    swapId: number;
+    damagedProductName: string;
+    replacementProductName: string;
+    damagedQty: number;
+    replacementQty: number;
+    priceDifference: number;
+    messageAr: string;
+  }> => {
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/damaged-swap`, {
+      method: 'POST',
+      headers: getDriverAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  listTripDamagedSwaps: async (
+    tripId: number,
+  ): Promise<{
+    ok: boolean;
+    swaps: Array<{
+      id: number;
+      tripId: number;
+      repId: number;
+      customerId?: number | null;
+      customerName?: string;
+      damagedProductId: number;
+      damagedProductName: string;
+      damagedQty: number;
+      damageReason: string;
+      replacementProductId: number;
+      replacementProductName: string;
+      replacementQty: number;
+      priceDifference: number;
+      notes?: string | null;
+      createdAt: string;
+    }>;
+  }> => {
+    return http(`/api/driver-portal/van-sales/trips/${tripId}/damaged-swaps`, {
+      headers: getDriverAuthHeaders(),
     });
   },
 
@@ -1844,7 +1924,7 @@ export const vanSalesApi = {
   }> => {
     return http('/api/driver-portal/van-sales/promotions/evaluate-cart', {
       method: 'POST',
-      body: payload,
+      body: JSON.stringify(payload),
       headers: getDriverAuthHeaders(),
     });
   },
@@ -1858,7 +1938,7 @@ export const vanSalesApi = {
   }): Promise<{ ok: boolean } & RouteOptimizationResult> => {
     return http('/api/driver-portal/van-sales/routes/optimize', {
       method: 'POST',
-      body: payload,
+      body: JSON.stringify(payload),
       headers: getDriverAuthHeaders(),
     });
   },
@@ -1874,14 +1954,14 @@ export const vanSalesApi = {
   createAdminPromotion: async (dto: Partial<FmcgPromotion>): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
     return http('/api/van-sales/admin/promotions', {
       method: 'POST',
-      body: dto,
+      body: JSON.stringify(dto),
     });
   },
 
   updateAdminPromotion: async (id: number, dto: Partial<FmcgPromotion>): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
     return http(`/api/van-sales/admin/promotions/${id}`, {
       method: 'PUT',
-      body: dto,
+      body: JSON.stringify(dto),
     });
   },
 
@@ -1894,7 +1974,7 @@ export const vanSalesApi = {
   toggleAdminPromotionActive: async (id: number, isActive: boolean): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
     return http(`/api/van-sales/admin/promotions/${id}/toggle-active`, {
       method: 'PATCH',
-      body: { isActive },
+      body: JSON.stringify({ isActive }),
     });
   },
 
@@ -1908,8 +1988,100 @@ export const vanSalesApi = {
   }): Promise<{ ok: boolean } & RouteOptimizationResult> => {
     return http('/api/van-sales/admin/routes/optimize', {
       method: 'POST',
-      body: payload,
+      body: JSON.stringify(payload),
     });
+  },
+
+  // =========================================================================
+  // FMCG FIELD EXECUTION, VISITS, TRADE MARKETING & BREADCRUMBS
+  // =========================================================================
+
+  checkInVisit: async (payload: {
+    tripId?: number;
+    customerId: number;
+    customerName?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  }): Promise<{ ok: boolean; visitId: number; customerName: string; geofence: any; checkInAt: string }> => {
+    return http('/api/van-sales/visits/check-in', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  recordVisitInventory: async (visitId: number, payload: { items: any[] }): Promise<{ ok: boolean; visitId: number }> => {
+    return http(`/api/van-sales/visits/${visitId}/inventory`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  recordVisitNoSale: async (visitId: number, payload: { noSaleReason: string; noSaleNotes?: string }): Promise<{ ok: boolean; visitId: number; reason: string }> => {
+    return http(`/api/van-sales/visits/${visitId}/no-sale`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  checkOutVisit: async (visitId: number, payload?: {
+    hasSale?: boolean;
+    saleId?: number;
+    saleAmount?: number;
+    hasCollection?: boolean;
+    collectionAmount?: number;
+  }): Promise<{ ok: boolean; visitId: number; dwellTimeSeconds: number; dwellTimeMinutes: number }> => {
+    return http(`/api/van-sales/visits/${visitId}/check-out`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    });
+  },
+
+  recordTradeSurvey: async (payload: any): Promise<{ ok: boolean; surveyId: number }> => {
+    return http('/api/van-sales/trade-surveys', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  recordBreadcrumb: async (payload: { tripId: number; latitude: number; longitude: number; speedKmh?: number; batteryLevel?: number }): Promise<{ ok: boolean }> => {
+    return http('/api/van-sales/breadcrumbs', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getVisitsHistory: async (params?: {
+    tripId?: number;
+    repId?: number;
+    customerId?: number;
+    date?: string;
+    noSaleOnly?: boolean;
+  }): Promise<{ ok: boolean; metrics: any; visits: any[] }> => {
+    const q = new URLSearchParams();
+    if (params?.tripId) q.set('tripId', String(params.tripId));
+    if (params?.repId) q.set('repId', String(params.repId));
+    if (params?.customerId) q.set('customerId', String(params.customerId));
+    if (params?.date) q.set('date', params.date);
+    if (params?.noSaleOnly) q.set('noSaleOnly', 'true');
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return http(`/api/van-sales/admin/visits${qs}`);
+  },
+
+  getTradeSurveys: async (params?: {
+    tripId?: number;
+    customerId?: number;
+    surveyType?: string;
+  }): Promise<{ ok: boolean; surveys: any[] }> => {
+    const q = new URLSearchParams();
+    if (params?.tripId) q.set('tripId', String(params.tripId));
+    if (params?.customerId) q.set('customerId', String(params.customerId));
+    if (params?.surveyType) q.set('surveyType', params.surveyType);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return http(`/api/van-sales/admin/trade-surveys${qs}`);
+  },
+
+  getLiveTripBreadcrumbs: async (tripId: number): Promise<{ ok: boolean; tripId: number; pointsCount: number; breadcrumbs: any[] }> => {
+    return http(`/api/van-sales/admin/trips/${tripId}/breadcrumbs`);
   },
 };
 

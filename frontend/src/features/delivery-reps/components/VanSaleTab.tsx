@@ -14,6 +14,8 @@ import {
   RefreshCwIcon,
   MapPinIcon,
   PhoneIcon,
+  CheckCircleIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { VanCustomerStatementModal } from './VanCustomerStatementModal';
@@ -142,11 +144,11 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
         .evaluateCartPromotions({
           cartItems: cart.map((c) => ({
             productId: c.productId,
-            productName: c.productName,
+            productName: c.name,
             qty: c.qty,
             unitPrice: c.unitPrice,
-            uom: c.selectedUnitName,
-            multiplier: c.selectedUnitMultiplier,
+            uom: c.unitName,
+            multiplier: c.unitMultiplier,
             isBonus: c.isBonus,
           })),
           invoiceSubtotal: cartSubtotal,
@@ -901,8 +903,9 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
       {cart.length > 0 && (
         <div

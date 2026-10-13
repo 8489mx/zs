@@ -9,6 +9,7 @@ import {
   printVanSaleThermalReceipt,
   formatVanSaleShareMessage,
 } from '../utils/van-sales-receipt.utils';
+import { EscPosPrinterUtil } from '../utils/escpos-printer.util';
 
 interface VanSalesReceiptModalProps {
   receipt: VanSaleReceiptData | null;
@@ -24,6 +25,45 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
   if (!receipt) return null;
 
   const [targetPhone, setTargetPhone] = React.useState(receipt.customerPhone || '');
+  const [isBluetoothPrinting, setIsBluetoothPrinting] = React.useState(false);
+
+  const handleBluetoothEscPosPrint = async () => {
+    setIsBluetoothPrinting(true);
+    try {
+      const receiptData = {
+        companyName: storeName || 'مبيعات التوزيع',
+        invoiceNo: receipt.docNo || '—',
+        repName: receipt.repName || 'مندوب التوزيع',
+        customerName: receipt.customerName || 'عميل نقدي',
+        customerPhone: receipt.customerPhone,
+        dateStr: receipt.date ? new Date(receipt.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG'),
+        items: (receipt.items || []).map((it: any) => ({
+          name: it.name || it.productName || 'صنف',
+          qty: Number(it.qty || 1),
+          unitPrice: Number(it.unitPrice || 0),
+          lineTotal: Number(it.lineTotal || (it.qty * it.unitPrice) || 0),
+          unitName: it.unitName,
+          isBonus: Boolean(it.isBonus),
+        })),
+        subtotal: Number(receipt.subtotal || receipt.total || 0),
+        discount: Number(receipt.discount || 0),
+        total: Number(receipt.total || 0),
+        paymentMethod: receipt.paymentMethod || 'cash',
+        paidAmount: receipt.paidAmount,
+        remainingBalance: receipt.remainingCredit,
+      };
+
+      const bytes = EscPosPrinterUtil.generateReceiptBytes(receiptData, '58mm');
+      const res = await EscPosPrinterUtil.printViaBluetooth(bytes);
+      if (res.ok) {
+        toast.success(res.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر الاتصال بطابعة البلوتوث المحمولة. يمكنك استخدام زر الطباعة العادي.');
+    } finally {
+      setIsBluetoothPrinting(false);
+    }
+  };
 
   const handlePrint = () => {
     try {
@@ -78,6 +118,26 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 <span>مشاركة واتساب</span>
               </Button>
               <Button
+                variant="secondary"
+                onClick={handleBluetoothEscPosPrint}
+                disabled={isBluetoothPrinting}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#0284c7',
+                  color: '#0369a1',
+                  backgroundColor: '#f0f9ff',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  height: '38px',
+                }}
+                title="طباعة مباشرة لطابعة البلوتوث المحمولة على الحزام (ESC/POS)"
+              >
+                <PrinterIcon size={14} color="#0369a1" />
+                <span>{isBluetoothPrinting ? 'جاري الإرسال...' : 'بلوتوث ESC/POS (58mm)'}</span>
+              </Button>
+              <Button
                 variant="primary"
                 onClick={handlePrint}
                 style={{
@@ -92,7 +152,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 }}
               >
                 <PrinterIcon size={15} />
-                <span>طباعة الإيصال (80mm)</span>
+                <span>طباعة حرارية (80mm)</span>
               </Button>
             </div>
           }

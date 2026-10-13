@@ -40,6 +40,7 @@ import { VanSalesHistoryTab } from '../components/VanSalesHistoryTab';
 import { VanPreSalesTab } from '../components/VanPreSalesTab';
 import { VanTripExpenseModal } from '../components/VanTripExpenseModal';
 import { VanTripPackagingModal } from '../components/VanTripPackagingModal';
+import { VanDamagedSwapModal } from '../components/VanDamagedSwapModal';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -332,6 +333,7 @@ export default function VanSalesMobilePage() {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [packagingModalOpen, setPackagingModalOpen] = useState(false);
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [saleNotes, setSaleNotes] = useState('');
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState('');
   const [cartonsCount, setCartonsCount] = useState('');
@@ -2437,6 +2439,9 @@ export default function VanSalesMobilePage() {
                 activeVisit={activeVisit}
                 onStartVisit={handleStartVisit}
                 onEndVisit={handleEndVisit}
+                targetMetrics={data?.targetMetrics}
+                inventory={data?.inventory || []}
+                allAvailableCustomers={allAvailableCustomers}
                 onSelectCustomerForSale={(customerId) => {
                   const cust = allAvailableCustomers.find((c) => c.id === customerId);
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
@@ -3165,6 +3170,12 @@ export default function VanSalesMobilePage() {
               deliveryProofPhoto: checkoutData.deliveryProofPhoto || deliveryProofPhoto || undefined,
               supervisorOverridePin: checkoutData.supervisorOverridePin,
               supervisorOverrideReason: checkoutData.supervisorOverrideReason,
+              transferReference: checkoutData.transferReference,
+              transferReceiptUrl: checkoutData.transferReceiptUrl,
+              recipientName: checkoutData.recipientName,
+              recipientPhone: checkoutData.recipientPhone,
+              recipientRole: checkoutData.recipientRole,
+              recipientSignature: checkoutData.recipientSignature,
               packagingBreakdown: checkoutData.cartonsCount
                 ? {
                     cartonsCount: Number(checkoutData.cartonsCount) || 0,
@@ -3238,6 +3249,21 @@ export default function VanSalesMobilePage() {
           onSuccess={() => {
             refetch();
             refetchTripPackaging();
+          }}
+        />
+      )}
+
+      {/* Field Damaged / Broken Goods Instant Swap Modal */}
+      {data?.trip && swapModalOpen && (
+        <VanDamagedSwapModal
+          open={swapModalOpen}
+          onClose={() => setSwapModalOpen(false)}
+          tripId={data.trip.id}
+          inventory={data.inventory || []}
+          customers={allAvailableCustomers}
+          defaultCustomerId={selectedCustomerId ? Number(selectedCustomerId) : (activeVisit?.customerId || null)}
+          onSwapSuccess={() => {
+            refetch();
           }}
         />
       )}

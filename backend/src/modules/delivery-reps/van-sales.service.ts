@@ -17,6 +17,7 @@ import {
   evaluateNightStockRetention,
   evaluateFieldCardPayment,
   evaluateTripExpenseGovernance,
+  evaluateDamagedSwap,
 } from './van-trip-reconciliation.engine';
 import {
   sortItemsByProductId,
@@ -98,6 +99,8 @@ export interface VanTripSummary {
   distanceKm?: number;
   stockVarianceAmount?: number;
   nightStockApproved?: boolean;
+  totalInstapaySales?: number;
+  totalInstapayCollections?: number;
   notes?: string;
 }
 
@@ -384,6 +387,7 @@ export class VanSalesService {
     sales?: any[];
     collections?: any[];
     returns?: any[];
+    swaps?: any[];
     targetMetrics?: RepTargetCalculationResult;
   }> {
     const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
@@ -456,6 +460,8 @@ export class VanSalesService {
         sql<number>`cast(coalesce(vt.variance, 0) as numeric)`.as('variance'),
         sql<number>`cast(coalesce(vt.distance_km, 0) as numeric)`.as('distanceKm'),
         sql<number>`cast(coalesce(vt.stock_variance_amount, 0) as numeric)`.as('stockVarianceAmount'),
+        sql<number>`cast(coalesce(vt.total_instapay_sales, 0) as numeric)`.as('totalInstapaySales'),
+        sql<number>`cast(coalesce(vt.total_instapay_collections, 0) as numeric)`.as('totalInstapayCollections'),
         'vt.night_stock_approved as nightStockApproved',
         'vt.notes',
       ])
@@ -731,6 +737,7 @@ export class VanSalesService {
     let recentSales: any[] = [];
     let tripCollections: any[] = [];
     let tripReturns: any[] = [];
+    let tripSwaps: any[] = [];
     if (tripRow?.id) {
       const rawSales = await this.anyDb
         .selectFrom('sales as s')
@@ -793,6 +800,30 @@ export class VanSalesService {
         .where('vfr.tenant_id', '=', tenantId)
         .where(sql<boolean>`vfr.trip_id = ${Number(tripRow.id)}`)
         .orderBy('vfr.id', 'desc')
+        .execute();
+
+      tripSwaps = await this.anyDb
+        .selectFrom('van_damaged_swaps as vds')
+        .leftJoin('products as dp', 'dp.id', 'vds.damaged_product_id')
+        .leftJoin('products as rp', 'rp.id', 'vds.replacement_product_id')
+        .leftJoin('customers as c', 'c.id', 'vds.customer_id')
+        .select([
+          'vds.id',
+          'vds.damaged_product_id as damagedProductId',
+          sql<string>`coalesce(dp.name, 'صنف تالف')`.as('damagedProductName'),
+          sql<number>`cast(vds.damaged_qty as numeric)`.as('damagedQty'),
+          'vds.damage_reason as damageReason',
+          'vds.replacement_product_id as replacementProductId',
+          sql<string>`coalesce(rp.name, 'صنف بديل')`.as('replacementProductName'),
+          sql<number>`cast(vds.replacement_qty as numeric)`.as('replacementQty'),
+          sql<number>`cast(vds.price_difference as numeric)`.as('priceDifference'),
+          'vds.notes',
+          'vds.created_at as createdAt',
+          sql<string>`coalesce(c.name, '')`.as('customerName'),
+        ])
+        .where('vds.tenant_id', '=', tenantId)
+        .where(sql<boolean>`vds.trip_id = ${Number(tripRow.id)}`)
+        .orderBy('vds.id', 'desc')
         .execute();
     }
 
@@ -919,6 +950,8 @@ export class VanSalesService {
       creditSales: Number(tripRow.creditSales || 0),
       returnsAmount: Number(tripRow.returnsAmount || 0),
       cashRefunds: Number((tripRow as any).cashRefunds || 0),
+      totalInstapaySales: Number((tripRow as any).totalInstapaySales || 0),
+      totalInstapayCollections: Number((tripRow as any).totalInstapayCollections || 0),
       variance: Number(tripRow.variance || 0),
       notes: tripRow.notes || '',
     };
@@ -934,6 +967,7 @@ export class VanSalesService {
       sales: recentSales,
       collections: tripCollections,
       returns: tripReturns,
+      swaps: tripSwaps,
       targetMetrics,
     };
   }
@@ -1174,8 +1208,14 @@ export class VanSalesService {
       customerId?: number;
       customerName?: string;
       customerPhone?: string;
-      paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+      paymentMethod: 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash';
       paidAmount?: number;
+      transferReference?: string;
+      transferReceiptUrl?: string;
+      recipientName?: string;
+      recipientPhone?: string;
+      recipientRole?: string;
+      recipientSignature?: string;
       items: {
         productId: number;
         qty: number;
@@ -1627,6 +1667,7 @@ export class VanSalesService {
       const isCard = payload.paymentMethod === 'card';
       const isCredit = payload.paymentMethod === 'credit';
       const isSplit = payload.paymentMethod === 'split';
+      const isInstapay = payload.paymentMethod === 'instapay' || payload.paymentMethod === 'vodafone_cash';
 
       cashPaid = 0;
       creditOwed = 0;
@@ -1642,7 +1683,7 @@ export class VanSalesService {
       } else if (isCredit) {
         cashPaid = 0;
         creditOwed = totalSale;
-      } else if (isCard) {
+      } else if (isCard || isInstapay) {
         cashPaid = 0;
         creditOwed = 0;
       } else if (isSplit) {
@@ -1879,14 +1920,14 @@ export class VanSalesService {
           subtotal: subtotalSale,
           discount: discountSale,
           // Cash/Credit collected in the field sits with the rep (or customer receivable) until settleTrip,
-          // whereas verified Card/Bank payments settle directly to the Bank (1120) via sale_payments.
-          paid_amount: isCard ? totalSale : 0,
+          // whereas verified Card/Bank/InstaPay payments settle directly to Bank via sale_payments.
+          paid_amount: (isCard || isInstapay) ? totalSale : 0,
           store_credit_used: 0,
           prices_include_tax: false,
           status: 'posted',
           payment_type: payload.paymentMethod,
-          payment_channel: isCash ? 'cash' : (isCard ? 'card' : (isCredit ? 'credit' : 'mixed')),
-          collection_status: isCash ? 'prepaid_by_rep' : (isCard ? 'settled_to_bank' : (isSplit && cashPaid > 0 ? 'prepaid_by_rep' : null)),
+          payment_channel: isCash ? 'cash' : (isCard ? 'card' : (isInstapay ? (payload.paymentMethod === 'vodafone_cash' ? 'vodafone_cash' : 'bank_transfer') : (isCredit ? 'credit' : 'mixed'))),
+          collection_status: isCash ? 'prepaid_by_rep' : ((isCard || isInstapay) ? 'settled_to_bank' : (isSplit && cashPaid > 0 ? 'prepaid_by_rep' : null)),
           customer_id: resolvedCustomerId,
           branch_id: branchId,
           location_id: vanLocId,
@@ -1897,6 +1938,12 @@ export class VanSalesService {
           is_credit_overridden: isCreditOverridden,
           credit_override_by_user_id: creditOverrideUserId,
           credit_override_reason: creditOverrideReason,
+          transfer_reference: payload.transferReference || null,
+          transfer_receipt_url: payload.transferReceiptUrl || null,
+          recipient_name: payload.recipientName || null,
+          recipient_phone: payload.recipientPhone || null,
+          recipient_role: payload.recipientRole || null,
+          recipient_signature: payload.recipientSignature || null,
           note: payload.clientTxId
             ? `${payload.notes || 'فاتورة بيع ميداني من سيارة المندوب'} [tx:${payload.clientTxId}]`
             : payload.notes || `فاتورة بيع ميداني من سيارة المندوب`,
@@ -1964,17 +2011,17 @@ export class VanSalesService {
           .execute();
       }
 
-      if (isCard && totalSale > 0) {
+      if ((isCard || isInstapay) && totalSale > 0) {
         await trxAny
           .insertInto('sale_payments')
           .values({
             sale_id: createdSaleId,
-            payment_channel: 'card',
+            payment_channel: isCard ? 'card' : (payload.paymentMethod === 'vodafone_cash' ? 'vodafone_cash' : 'bank_transfer'),
             amount: totalSale,
             applied_amount: totalSale,
             tendered_amount: totalSale,
             change_amount: 0,
-            card_rrn: payload.supervisorOverrideReason ? String(payload.supervisorOverrideReason).trim().slice(0, 64) : null,
+            card_rrn: (payload.transferReference || payload.supervisorOverrideReason) ? String(payload.transferReference || payload.supervisorOverrideReason).trim().slice(0, 64) : null,
             tenant_id: tenantId,
             account_id: accountId,
           })
@@ -1987,6 +2034,17 @@ export class VanSalesService {
           .set({
             sales_amount: sql`sales_amount + ${totalSale}`,
             cash_collected: sql`cash_collected + ${totalSale}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      } else if (isInstapay) {
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            sales_amount: sql`sales_amount + ${totalSale}`,
+            total_instapay_sales: sql`total_instapay_sales + ${totalSale}`,
             updated_at: sql`NOW()`,
           })
           .where('id', '=', payload.tripId)
@@ -2117,6 +2175,9 @@ export class VanSalesService {
       tripId: number;
       customerId: number;
       amount: number;
+      paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer';
+      transferReference?: string;
+      transferReceiptUrl?: string;
       notes?: string;
       gpsLat?: number;
       gpsLng?: number;
@@ -2296,12 +2357,19 @@ export class VanSalesService {
         .executeTakeFirst();
       finalBalance = Number(updatedCust?.balance || 0);
 
+      const isInstapayCollection = payload.paymentMethod === 'instapay' || payload.paymentMethod === 'vodafone_cash' || payload.paymentMethod === 'bank_transfer';
+      const defaultColNote = isInstapayCollection
+        ? `سند تحصيل إلكتروني (${payload.paymentMethod === 'vodafone_cash' ? 'فودافون كاش' : 'إنستاباي/تحويل'}) بواسطة المندوب`
+        : `سند تحصيل نقدي ميداني بواسطة المندوب`;
+
       const insertedPayment = await trxAny
         .insertInto('customer_payments')
         .values({
           customer_id: payload.customerId,
           amount: amount,
-          note: payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب`,
+          note: payload.notes || defaultColNote,
+          transfer_reference: payload.transferReference || null,
+          transfer_receipt_url: payload.transferReceiptUrl || null,
           tenant_id: tenantId,
           account_id: accountId,
         })
@@ -2310,8 +2378,8 @@ export class VanSalesService {
 
       receiptNo = await this.generateDailySequenceNumber(trxAny, 'customer_payments', 'note', 'COL', tenantId);
       const finalNote = payload.clientTxId
-        ? `${payload.notes || 'سند تحصيل نقدي ميداني بواسطة المندوب'} (#${receiptNo}) [tx:${payload.clientTxId}]`
-        : payload.notes || `سند تحصيل نقدي ميداني بواسطة المندوب (#${receiptNo})`;
+        ? `${payload.notes || defaultColNote} (#${receiptNo}) [tx:${payload.clientTxId}]`
+        : payload.notes || `${defaultColNote} (#${receiptNo})`;
 
       await trxAny
         .updateTable('customer_payments')
@@ -2338,15 +2406,27 @@ export class VanSalesService {
         })
         .execute();
 
-      await trxAny
-        .updateTable('van_sales_trips')
-        .set({
-          cash_collected: sql`cash_collected + ${amount}`,
-          updated_at: sql`NOW()`,
-        })
-        .where('id', '=', payload.tripId)
-        .where('tenant_id', '=', tenantId)
-        .execute();
+      if (isInstapayCollection) {
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            total_instapay_collections: sql`total_instapay_collections + ${amount}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      } else {
+        await trxAny
+          .updateTable('van_sales_trips')
+          .set({
+            cash_collected: sql`cash_collected + ${amount}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', payload.tripId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
 
       // The cash just collected is with the rep, not the till, until settleTrip — this only moves
       // the debt off the customer's receivable and into the same pooled bucket postVanTripSettlement
@@ -2368,6 +2448,266 @@ export class VanSalesService {
       previousBalance: repPreviousBalance,
       newBalance: repNewBalance,
     };
+  }
+
+  /**
+   * Instant Field Damaged / Broken Goods Swap (استبدال التالف والمعيب الفوري في الميدان).
+   * Swaps damaged/crushed/expired goods on the spot from the vehicle.
+   * Decrements replacement product stock from van, increments damaged stock in van,
+   * calculates any price variance, and updates customer balance if customer has an account.
+   */
+  async executeDamagedSwap(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      customerId?: number;
+      damagedProductId: number;
+      damagedQty: number;
+      damageReason?: string;
+      replacementProductId: number;
+      replacementQty: number;
+      notes?: string;
+      clientTxId?: string;
+    },
+  ): Promise<{
+    ok: boolean;
+    swapId: number;
+    damagedProductName: string;
+    replacementProductName: string;
+    damagedQty: number;
+    replacementQty: number;
+    priceDifference: number;
+    messageAr: string;
+  }> {
+    const trip = await this.anyDb
+      .selectFrom('van_sales_trips as vt')
+      .select(['vt.id', 'vt.status', 'vt.van_location_id', 'vt.source_warehouse_id'])
+      .where('vt.id', '=', payload.tripId)
+      .where('vt.tenant_id', '=', tenantId)
+      .where('vt.rep_id', '=', repId)
+      .executeTakeFirst();
+
+    if (!trip || trip.status !== 'open') {
+      throw new AppError('رحلة التوزيع المحددة مغلقة أو تمت تصفيتها، ولا يمكن تسجيل استبدال عليها', 'INVALID_TRIP', 400);
+    }
+
+    const vanLocationId = Number(trip.van_location_id);
+    const damagedPid = Number(payload.damagedProductId);
+    const replacementPid = Number(payload.replacementProductId);
+    const damagedQty = Number(payload.damagedQty || 0);
+    const replacementQty = Number(payload.replacementQty || 0);
+
+    if (damagedQty <= 0 || replacementQty <= 0) {
+      throw new AppError('كمية التالف وكمية البديل يجب أن تكون أكبر من الصفر', 'INVALID_QUANTITY', 400);
+    }
+
+    let createdSwapId = 0;
+    let damagedProdName = '';
+    let replacementProdName = '';
+    let priceDiff = 0;
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+
+      // Canonical Lock Order: sort product IDs ascending to prevent deadlock
+      const sortedProductIds = [damagedPid, replacementPid].sort((a, b) => a - b);
+      const lockedProds = await trxAny
+        .selectFrom('products')
+        .select(['id', 'name', 'retail_price', 'wholesale_price', 'cost_price'])
+        .where('id', 'in', sortedProductIds)
+        .where('tenant_id', '=', tenantId)
+        .orderBy('id', 'asc')
+        .forUpdate()
+        .execute();
+
+      const damagedProd = lockedProds.find((p: any) => Number(p.id) === damagedPid);
+      const replacementProd = lockedProds.find((p: any) => Number(p.id) === replacementPid);
+
+      if (!damagedProd) throw new AppError(`الصنف التالف #${damagedPid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+      if (!replacementProd) throw new AppError(`الصنف البديل #${replacementPid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+
+      damagedProdName = damagedProd.name || `صنف #${damagedPid}`;
+      replacementProdName = replacementProd.name || `صنف #${replacementPid}`;
+
+      // Check current van stock for replacement product
+      const vanStockRow = await trxAny
+        .selectFrom('product_location_stock')
+        .select([sql<number>`cast(coalesce(qty, 0) as numeric)`.as('qty')])
+        .where('location_id', '=', vanLocationId)
+        .where('product_id', '=', replacementPid)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      const availableVanStock = Number(vanStockRow?.qty || 0);
+
+      const damagedPrice = Number(damagedProd.retail_price || damagedProd.wholesale_price || 0);
+      const replacementPrice = Number(replacementProd.retail_price || replacementProd.wholesale_price || 0);
+
+      const evalResult = evaluateDamagedSwap({
+        damagedProductId: damagedPid,
+        damagedQty,
+        damagedUnitPrice: damagedPrice,
+        damageReason: payload.damageReason || 'تالف / كسر أثناء التوزيع',
+        replacementProductId: replacementPid,
+        replacementQty,
+        replacementUnitPrice: replacementPrice,
+        availableVanStockQty: availableVanStock,
+      });
+
+      if (!evalResult.allowed) {
+        throw new AppError(evalResult.errorMessageAr || 'تعذر إتمام عملية الاستبدال', evalResult.reasonCode || 'SWAP_REJECTED', 400);
+      }
+
+      priceDiff = evalResult.priceDifference;
+
+      // Deduct replacement stock from van
+      await this.moveVanStock(trx, {
+        productId: replacementPid,
+        delta: -replacementQty,
+        locationId: vanLocationId,
+        tenantId,
+        accountId,
+        userId: null,
+        movementType: 'van_swap_out',
+        note: `استبدال تالف فوري - صرف البديل (${replacementProdName})`,
+        referenceType: 'van_sales_trip',
+        referenceId: Number(trip.id),
+        skipGlobalUpdate: false,
+        unitCost: Number(replacementProd.cost_price || 0),
+      });
+
+      // Receive damaged stock into van
+      await this.moveVanStock(trx, {
+        productId: damagedPid,
+        delta: damagedQty,
+        locationId: vanLocationId,
+        tenantId,
+        accountId,
+        userId: null,
+        movementType: 'van_swap_damaged_in',
+        note: `استبدال تالف فوري - استلام التالف (${damagedProdName}) [${payload.damageReason || 'كسر/تالف'}]`,
+        referenceType: 'van_sales_trip',
+        referenceId: Number(trip.id),
+        skipGlobalUpdate: false,
+        unitCost: Number(damagedProd.cost_price || 0),
+      });
+
+      // If price difference exists and customer is specified, record difference in customer ledger
+      if (priceDiff !== 0 && payload.customerId) {
+        const custRecord = await trxAny
+          .selectFrom('customers')
+          .select(['id', 'balance'])
+          .where('id', '=', payload.customerId)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (custRecord) {
+          const updatedCust = await trxAny
+            .updateTable('customers')
+            .set({
+              balance: sql`coalesce(balance, 0) + ${priceDiff}`,
+              updated_at: sql`NOW()`,
+            })
+            .where('id', '=', payload.customerId)
+            .where('tenant_id', '=', tenantId)
+            .returning(['balance'])
+            .executeTakeFirst();
+
+          await trxAny
+            .insertInto('customer_ledger')
+            .values({
+              customer_id: payload.customerId,
+              entry_type: 'sale_credit',
+              amount: priceDiff,
+              balance_after: Number(updatedCust?.balance || 0),
+              note: `فارق سعر استبدال تالف: ${replacementProdName} بدلاً من ${damagedProdName}`,
+              reference_type: 'van_swap',
+              reference_id: payload.tripId,
+              van_trip_id: payload.tripId,
+              tenant_id: tenantId,
+              account_id: accountId,
+            })
+            .execute();
+        }
+      }
+
+      // Record swap row in van_damaged_swaps
+      const inserted = await trxAny
+        .insertInto('van_damaged_swaps')
+        .values({
+          trip_id: payload.tripId,
+          rep_id: repId,
+          customer_id: payload.customerId || null,
+          damaged_product_id: damagedPid,
+          damaged_qty: damagedQty,
+          damage_reason: payload.damageReason || 'تالف / كسر أثناء التوزيع',
+          replacement_product_id: replacementPid,
+          replacement_qty: replacementQty,
+          price_difference: priceDiff,
+          notes: payload.clientTxId
+            ? `${payload.notes || ''} [tx:${payload.clientTxId}]`.trim()
+            : payload.notes || null,
+          tenant_id: tenantId,
+          account_id: accountId,
+        })
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      createdSwapId = Number(inserted.id);
+    });
+
+    const diffNote = priceDiff > 0
+      ? ` وفارق سعر مستحق على العميل قدره ${priceDiff.toFixed(2)} ج.م`
+      : priceDiff < 0
+      ? ` وفارق سعر مستحق لصالح العميل قدره ${Math.abs(priceDiff).toFixed(2)} ج.م`
+      : ' (استبدال متكافئ 1 لـ 1 بدون فارق سعري)';
+
+    return {
+      ok: true,
+      swapId: createdSwapId,
+      damagedProductName: damagedProdName,
+      replacementProductName: replacementProdName,
+      damagedQty,
+      replacementQty,
+      priceDifference: priceDiff,
+      messageAr: `تم استبدال ${damagedQty} من (${damagedProdName}) بـ ${replacementQty} من (${replacementProdName}) بنجاح${diffNote}`,
+    };
+  }
+
+  /**
+   * Lists all damaged goods swaps performed on a trip.
+   */
+  async listTripDamagedSwaps(tenantId: string, tripId: number) {
+    return this.anyDb
+      .selectFrom('van_damaged_swaps as vds')
+      .leftJoin('products as dp', 'dp.id', 'vds.damaged_product_id')
+      .leftJoin('products as rp', 'rp.id', 'vds.replacement_product_id')
+      .leftJoin('customers as c', 'c.id', 'vds.customer_id')
+      .select([
+        'vds.id',
+        'vds.trip_id as tripId',
+        'vds.rep_id as repId',
+        'vds.customer_id as customerId',
+        sql<string>`coalesce(c.name, 'عميل ميداني')`.as('customerName'),
+        'vds.damaged_product_id as damagedProductId',
+        sql<string>`coalesce(dp.name, 'صنف تالف')`.as('damagedProductName'),
+        sql<number>`cast(vds.damaged_qty as numeric)`.as('damagedQty'),
+        'vds.damage_reason as damageReason',
+        'vds.replacement_product_id as replacementProductId',
+        sql<string>`coalesce(rp.name, 'صنف بديل')`.as('replacementProductName'),
+        sql<number>`cast(vds.replacement_qty as numeric)`.as('replacementQty'),
+        sql<number>`cast(vds.price_difference as numeric)`.as('priceDifference'),
+        'vds.notes',
+        'vds.created_at as createdAt',
+      ])
+      .where('vds.trip_id', '=', tripId)
+      .where('vds.tenant_id', '=', tenantId)
+      .orderBy('vds.id', 'desc')
+      .execute();
   }
 
   // recordFieldReturn (the original immediate, unapproved return path) was removed: it wrote stock
@@ -2556,6 +2896,9 @@ export class VanSalesService {
     returnsAmount?: number;
     cashRefunds?: number;
     creditReturns?: number;
+    totalInstapaySales?: number;
+    totalInstapayCollections?: number;
+    expectedBankTransfers?: number;
     stockVariances?: any[];
   }> {
     const trip = await this.anyDb
@@ -2984,6 +3327,9 @@ export class VanSalesService {
       returnsAmount,
       cashRefunds,
       creditReturns,
+      totalInstapaySales: Number(trip.total_instapay_sales || 0),
+      totalInstapayCollections: Number(trip.total_instapay_collections || 0),
+      expectedBankTransfers: Number((Number(trip.total_instapay_sales || 0) + Number(trip.total_instapay_collections || 0)).toFixed(2)),
       stockVariances: (stockAuditResult as any)?.itemVariances || [],
     };
   }

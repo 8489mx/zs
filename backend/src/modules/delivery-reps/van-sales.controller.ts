@@ -4,6 +4,7 @@ import { DeliveryRepsService } from './delivery-reps.service';
 import { VanPreSalesService } from './services/van-pre-sales.service';
 import { VanPromotionsService } from './services/van-promotions.service';
 import { VanRoutesService } from './services/van-routes.service';
+import { VanFieldExecutionService } from './services/van-field-execution.service';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -20,6 +21,7 @@ export class VanSalesController {
     private readonly vanPreSalesService: VanPreSalesService,
     private readonly vanPromotionsService: VanPromotionsService,
     private readonly vanRoutesService: VanRoutesService,
+    private readonly vanFieldExecutionService: VanFieldExecutionService,
   ) {}
 
   @Get('pre-sales/catalog')
@@ -212,9 +214,18 @@ export class VanSalesController {
       customerId?: number;
       customerName?: string;
       customerPhone?: string;
-      paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+      paymentMethod: 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash';
       paidAmount?: number;
-      items: { productId: number; qty: number; unitPrice?: number }[];
+      items: {
+        productId: number;
+        qty: number;
+        unitPrice?: number;
+        unitName?: string;
+        unitMultiplier?: number;
+        isBonus?: boolean;
+        bonusReason?: string;
+        originalPrice?: number;
+      }[];
       notes?: string;
       deliveryGpsLat?: number;
       deliveryGpsLng?: number;
@@ -224,6 +235,12 @@ export class VanSalesController {
       cashDiscountAmount?: number;
       supervisorOverridePin?: string;
       supervisorOverrideReason?: string;
+      transferReference?: string;
+      transferReceiptUrl?: string;
+      recipientName?: string;
+      recipientPhone?: string;
+      recipientRole?: string;
+      recipientSignature?: string;
     },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
@@ -253,10 +270,55 @@ export class VanSalesController {
   @Post('collections')
   async recordCollection(
     @Headers('authorization') authHeader: string,
-    @Body() body: { tripId: number; customerId: number; amount: number; notes?: string; gpsLat?: number; gpsLng?: number; clientTxId?: string },
+    @Body()
+    body: {
+      tripId: number;
+      customerId: number;
+      amount: number;
+      paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer';
+      transferReference?: string;
+      transferReceiptUrl?: string;
+      notes?: string;
+      gpsLat?: number;
+      gpsLng?: number;
+      clientTxId?: string;
+    },
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.recordFieldCollection(driver.repId, driver.tenantId, driver.accountId, body);
+  }
+
+  @Post('trips/:tripId/damaged-swap')
+  async executeDamagedSwap(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+    @Body()
+    body: {
+      customerId?: number;
+      damagedProductId: number;
+      damagedQty: number;
+      damageReason?: string;
+      replacementProductId: number;
+      replacementQty: number;
+      notes?: string;
+      clientTxId?: string;
+    },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.executeDamagedSwap(driver.repId, driver.tenantId, driver.accountId, {
+      tripId,
+      ...body,
+    });
+  }
+
+  @Get('trips/:tripId/damaged-swaps')
+  async listTripDamagedSwaps(
+    @Headers('authorization') authHeader: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const swaps = await this.vanSalesService.listTripDamagedSwaps(driver.tenantId, tripId);
+    return { ok: true, swaps };
   }
 
   @Get('customers/:customerId/eligible-sales')
@@ -587,6 +649,67 @@ export class VanSalesController {
     });
     return { ok: true, ...result };
   }
+
+  // =========================================================================
+  // FMCG STRUCTURED STORE VISITS & MERCHANDISING (DRIVER)
+  // =========================================================================
+
+  @Post('visits/check-in')
+  async checkInStoreVisit(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { tripId?: number; customerId: number; customerName?: string; latitude?: number; longitude?: number },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.checkInVisit(driver.tenantId, Number(driver.accountId || 0), driver.repId, body);
+  }
+
+  @Post('visits/:id/inventory')
+  async recordVisitInventory(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { items: any[] },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.recordVisitInventory(driver.tenantId, id, body);
+  }
+
+  @Post('visits/:id/no-sale')
+  async recordVisitNoSale(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { noSaleReason: string; noSaleNotes?: string },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.recordVisitNoSale(driver.tenantId, id, body);
+  }
+
+  @Post('visits/:id/check-out')
+  async checkOutStoreVisit(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { hasSale?: boolean; saleId?: number; saleAmount?: number; hasCollection?: boolean; collectionAmount?: number },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.checkOutVisit(driver.tenantId, id, body);
+  }
+
+  @Post('trade-surveys')
+  async recordTradeSurvey(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.recordTradeSurvey(driver.tenantId, Number(driver.accountId || 0), driver.repId, body);
+  }
+
+  @Post('breadcrumbs')
+  async recordBreadcrumb(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { tripId: number; latitude: number; longitude: number; speedKmh?: number; batteryLevel?: number },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanFieldExecutionService.recordLiveBreadcrumb(driver.tenantId, Number(driver.accountId || 0), driver.repId, body);
+  }
 }
 
 @Controller('api/van-sales/admin')
@@ -597,6 +720,7 @@ export class VanSalesAdminController {
     private readonly vanPreSalesService: VanPreSalesService,
     private readonly vanPromotionsService: VanPromotionsService,
     private readonly vanRoutesService: VanRoutesService,
+    private readonly vanFieldExecutionService: VanFieldExecutionService,
   ) {}
 
   @Get('pre-sales-orders')
@@ -1455,4 +1579,55 @@ export class VanSalesAdminController {
     const result = await this.vanRoutesService.optimizeCustomerRoute(tenantId, body);
     return { ok: true, ...result };
   }
+
+  // =========================================================================
+  // FMCG VISITS, STRIKE RATE, TRADE SURVEYS & LIVE GPS BREADCRUMBS (SUPERVISOR)
+  // =========================================================================
+
+  @Get('visits')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async listVisitsHistory(
+    @Req() req: RequestWithAuth,
+    @Query('tripId') tripId?: string,
+    @Query('repId') repId?: string,
+    @Query('customerId') customerId?: string,
+    @Query('date') date?: string,
+    @Query('noSaleOnly') noSaleOnly?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanFieldExecutionService.getVisitsHistory(tenantId, {
+      tripId: tripId ? Number(tripId) : undefined,
+      repId: repId ? Number(repId) : undefined,
+      customerId: customerId ? Number(customerId) : undefined,
+      date,
+      noSaleOnly: noSaleOnly === 'true',
+    });
+  }
+
+  @Get('trade-surveys')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async listTradeSurveys(
+    @Req() req: RequestWithAuth,
+    @Query('tripId') tripId?: string,
+    @Query('customerId') customerId?: string,
+    @Query('surveyType') surveyType?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanFieldExecutionService.getTradeSurveys(tenantId, {
+      tripId: tripId ? Number(tripId) : undefined,
+      customerId: customerId ? Number(customerId) : undefined,
+      surveyType,
+    });
+  }
+
+  @Get('trips/:tripId/breadcrumbs')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async getLiveTripBreadcrumbs(
+    @Req() req: RequestWithAuth,
+    @Param('tripId', ParseIntPipe) tripId: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanFieldExecutionService.getLiveTripBreadcrumbs(tenantId, tripId);
+  }
 }
+

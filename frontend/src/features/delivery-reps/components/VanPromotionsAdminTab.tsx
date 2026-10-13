@@ -5,29 +5,20 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
-  SlidersIcon,
   PlusIcon,
   RefreshCwIcon,
   EditIcon,
   TrashIcon,
   SearchIcon,
-  CheckCircleIcon,
   LayersIcon,
   XIcon,
 } from '@/shared/components/icons/AppIcons';
 import { vanSalesApi, FmcgPromotion } from '../api/van-sales.api';
-import { catalogApi } from '@/lib/api/catalog';
 
 const PROMO_TYPE_LABELS: Record<string, string> = {
   mix_and_match: 'خلطات وباقات (Mix & Match)',
   tiered_qty: 'شرائح كميات وبونص',
   invoice_threshold: 'سقف قيمة الفاتورة',
-};
-
-const APPLY_TYPE_LABELS: Record<string, string> = {
-  free_bonus: 'بونص عيني مجاني (0.00 ج.م)',
-  discount_percent: 'خصم نسبة مئوية (%)',
-  discount_amount: 'خصم نقدي مقطوع (ج.م)',
 };
 
 export function VanPromotionsAdminTab() {
@@ -63,8 +54,7 @@ export function VanPromotionsAdminTab() {
   const [rewardDiscountPercent, setRewardDiscountPercent] = useState('5');
   const [rewardDiscountAmount, setRewardDiscountAmount] = useState('100');
 
-  // Product Search for Picker
-  const [prodSearchTerm, setProdSearchTerm] = useState('');
+  // Product Picker State
   const [selectedProdForCondition, setSelectedProdForCondition] = useState<number | null>(null);
   const [selectedProdQty, setSelectedProdQty] = useState('1');
 
@@ -78,17 +68,17 @@ export function VanPromotionsAdminTab() {
 
   // Fetch Products for search
   const { data: productsData } = useQuery({
-    queryKey: ['catalog-products-for-promos', prodSearchTerm],
-    queryFn: () => catalogApi.list({ search: prodSearchTerm || undefined, limit: 30 }),
+    queryKey: ['catalog-products-for-promos'],
+    queryFn: () => vanSalesApi.getAvailableProducts(),
     enabled: isDialogOpen,
   });
 
-  const availableProducts = useMemo(() => {
-    return (productsData?.items || []).map((p: any) => ({
-      id: Number(p.id),
-      name: p.name,
-      barcode: p.barcode || '',
-      price: Number(p.retail_price || p.price || 0),
+  const availableProducts = useMemo<Array<{ id: number; name: string; barcode: string; price: number }>>(() => {
+    return (productsData || []).map((p: any) => ({
+      id: Number(p.id || p.productId),
+      name: String(p.name || p.productName || ''),
+      barcode: String(p.barcode || ''),
+      price: Number(p.retailPrice || p.retail_price || p.price || 0),
     }));
   }, [productsData]);
 
@@ -340,7 +330,7 @@ export function VanPromotionsAdminTab() {
       message: `هل أنت متأكد من حذف العرض الترويجي «${promo.name}» نهائياً؟`,
       confirmText: 'نعم، حذف',
       cancelText: 'تراجع',
-      type: 'danger',
+      variant: 'danger',
     });
     if (ok) {
       deleteMutation.mutate(promo.id);
@@ -492,7 +482,7 @@ export function VanPromotionsAdminTab() {
               { value: 'tiered_qty', label: 'شرائح كميات وبونص' },
               { value: 'invoice_threshold', label: 'سقف قيمة الفاتورة' },
             ]}
-            buttonStyle={{ minWidth: '170px', height: '38px' }}
+            style={{ minWidth: '170px' }}
           />
 
           <CustomSelect
@@ -503,7 +493,7 @@ export function VanPromotionsAdminTab() {
               { value: 'active', label: 'المفعلة فقط' },
               { value: 'inactive', label: 'المعطلة' },
             ]}
-            buttonStyle={{ minWidth: '130px', height: '38px' }}
+            style={{ minWidth: '130px' }}
           />
 
           <Button
@@ -815,7 +805,7 @@ export function VanPromotionsAdminTab() {
                     { value: 'tiered_qty', label: 'شرائح كميات الصنف' },
                     { value: 'invoice_threshold', label: 'سقف قيمة الفاتورة' },
                   ]}
-                  buttonStyle={{ width: '100%', height: '36px' }}
+                  style={{ width: '100%' }}
                 />
               </div>
 
@@ -831,7 +821,7 @@ export function VanPromotionsAdminTab() {
                     { value: 'discount_percent', label: 'خصم نسبة مئوية (%)' },
                     { value: 'discount_amount', label: 'خصم نقدي مقطوع (ج.م)' },
                   ]}
-                  buttonStyle={{ width: '100%', height: '36px' }}
+                  style={{ width: '100%' }}
                 />
               </div>
             </div>
@@ -920,7 +910,7 @@ export function VanPromotionsAdminTab() {
                             label: `${p.name} (${p.price} ج.م)`,
                           })),
                         ]}
-                        buttonStyle={{ width: '100%', height: '36px' }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                     <input
@@ -986,7 +976,7 @@ export function VanPromotionsAdminTab() {
                           label: p.name,
                         })),
                       ]}
-                      buttonStyle={{ width: '100%', height: '36px' }}
+                      style={{ width: '100%' }}
                     />
                   </div>
                   <div>
