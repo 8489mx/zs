@@ -31,6 +31,10 @@ export const deliveryRepsRoutes: FeatureRouteModule = {
       element: <VanSalesAdminManagementPage />,
     },
     {
+      path: 'van-sales/management',
+      element: <VanSalesAdminManagementPage />,
+    },
+    {
       path: 'inventory/van-sales',
       element: <VanSalesAdminManagementPage />,
     },

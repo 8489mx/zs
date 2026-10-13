@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { VanSalesService } from './van-sales.service';
 import { DeliveryRepsService } from './delivery-reps.service';
 import { VanPreSalesService } from './services/van-pre-sales.service';
+import { VanPromotionsService } from './services/van-promotions.service';
+import { VanRoutesService } from './services/van-routes.service';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -16,6 +18,8 @@ export class VanSalesController {
     private readonly vanSalesService: VanSalesService,
     private readonly deliveryRepsService: DeliveryRepsService,
     private readonly vanPreSalesService: VanPreSalesService,
+    private readonly vanPromotionsService: VanPromotionsService,
+    private readonly vanRoutesService: VanRoutesService,
   ) {}
 
   @Get('pre-sales/catalog')
@@ -553,6 +557,36 @@ export class VanSalesController {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     return this.vanSalesService.getCustomerFieldStatement(driver.tenantId, customerId);
   }
+
+  @Get('promotions')
+  async listActivePromotions(@Headers('authorization') authHeader: string) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const promotions = await this.vanPromotionsService.listPromotions(driver.tenantId, { isActive: true });
+    return { ok: true, promotions };
+  }
+
+  @Post('promotions/evaluate-cart')
+  async evaluateCartPromotions(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { cartItems: any[]; invoiceSubtotal?: number; customerType?: string },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const result = await this.vanPromotionsService.evaluateCart(driver.tenantId, body);
+    return { ok: true, ...result };
+  }
+
+  @Post('routes/optimize')
+  async optimizeDriverRoute(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { customerIds?: number[]; startLat?: number; startLng?: number; persistSequence?: boolean; route?: string },
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    const result = await this.vanRoutesService.optimizeCustomerRoute(driver.tenantId, {
+      ...body,
+      repId: driver.repId,
+    });
+    return { ok: true, ...result };
+  }
 }
 
 @Controller('api/van-sales/admin')
@@ -561,6 +595,8 @@ export class VanSalesAdminController {
   constructor(
     private readonly vanSalesService: VanSalesService,
     private readonly vanPreSalesService: VanPreSalesService,
+    private readonly vanPromotionsService: VanPromotionsService,
+    private readonly vanRoutesService: VanRoutesService,
   ) {}
 
   @Get('pre-sales-orders')
@@ -1331,5 +1367,92 @@ export class VanSalesAdminController {
       limit: limit ? Number(limit) : undefined,
     });
     return { ok: true, events };
+  }
+
+  // =========================================================================
+  // FMCG MIX & MATCH PROMOTIONS ADMIN
+  // =========================================================================
+
+  @Get('promotions')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async listAdminPromotions(
+    @Req() req: RequestWithAuth,
+    @Query('isActive') isActive?: string,
+    @Query('promoType') promoType?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const promotions = await this.vanPromotionsService.listPromotions(tenantId, {
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      promoType,
+    });
+    return { ok: true, promotions };
+  }
+
+  @Post('promotions')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async createPromotion(
+    @Req() req: RequestWithAuth,
+    @Body() body: any,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const promo = await this.vanPromotionsService.createPromotion(tenantId, body);
+    return { ok: true, promotion: promo };
+  }
+
+  @Put('promotions/:id')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async updatePromotion(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const promo = await this.vanPromotionsService.updatePromotion(tenantId, id, body);
+    return { ok: true, promotion: promo };
+  }
+
+  @Delete('promotions/:id')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async deletePromotion(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const res = await this.vanPromotionsService.deletePromotion(tenantId, id);
+    return res;
+  }
+
+  @Patch('promotions/:id/toggle-active')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async togglePromotionActive(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { isActive: boolean },
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const promo = await this.vanPromotionsService.toggleActive(tenantId, id, Boolean(body.isActive));
+    return { ok: true, promotion: promo };
+  }
+
+  // =========================================================================
+  // DYNAMIC ROUTE OPTIMIZATION (TSP)
+  // =========================================================================
+
+  @Post('routes/optimize')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory')
+  async optimizeSupervisorRoute(
+    @Req() req: RequestWithAuth,
+    @Body() body: {
+      customerIds?: number[];
+      route?: string;
+      repId?: number;
+      startLat?: number;
+      startLng?: number;
+      persistSequence?: boolean;
+    },
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const result = await this.vanRoutesService.optimizeCustomerRoute(tenantId, body);
+    return { ok: true, ...result };
   }
 }

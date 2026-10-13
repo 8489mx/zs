@@ -569,6 +569,8 @@ export interface VanCustomerItineraryItem {
   assignedRepId?: number | null;
   assignedRepName?: string;
   locationUrl: string;
+  gpsLat?: number | null;
+  gpsLng?: number | null;
   balance: number;
   creditLimit: number;
   visitStatus: 'pending' | 'positive' | 'negative';
@@ -1821,7 +1823,150 @@ export const vanSalesApi = {
       headers: getDriverAuthHeaders(),
     });
   },
+
+  // FMCG Mix & Match Promotions Endpoints
+  fetchDriverPromotions: async (): Promise<{ ok: boolean; promotions: FmcgPromotion[] }> => {
+    return http('/api/driver-portal/van-sales/promotions', {
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  evaluateCartPromotions: async (payload: {
+    cartItems: any[];
+    invoiceSubtotal?: number;
+    customerType?: string;
+  }): Promise<{
+    ok: boolean;
+    appliedPromotions: any[];
+    bonusItemsToAdd: any[];
+    totalPromotionalDiscount: number;
+    upsellNudges: any[];
+  }> => {
+    return http('/api/driver-portal/van-sales/promotions/evaluate-cart', {
+      method: 'POST',
+      body: payload,
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  optimizeDriverRoute: async (payload: {
+    customerIds?: number[];
+    startLat?: number;
+    startLng?: number;
+    persistSequence?: boolean;
+    route?: string;
+  }): Promise<{ ok: boolean } & RouteOptimizationResult> => {
+    return http('/api/driver-portal/van-sales/routes/optimize', {
+      method: 'POST',
+      body: payload,
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
+  fetchAdminPromotions: async (filters?: { isActive?: boolean; promoType?: string }): Promise<{ ok: boolean; promotions: FmcgPromotion[] }> => {
+    const params = new URLSearchParams();
+    if (filters?.isActive !== undefined) params.set('isActive', String(filters.isActive));
+    if (filters?.promoType) params.set('promoType', filters.promoType);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return http(`/api/van-sales/admin/promotions${qs}`);
+  },
+
+  createAdminPromotion: async (dto: Partial<FmcgPromotion>): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
+    return http('/api/van-sales/admin/promotions', {
+      method: 'POST',
+      body: dto,
+    });
+  },
+
+  updateAdminPromotion: async (id: number, dto: Partial<FmcgPromotion>): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
+    return http(`/api/van-sales/admin/promotions/${id}`, {
+      method: 'PUT',
+      body: dto,
+    });
+  },
+
+  deleteAdminPromotion: async (id: number): Promise<{ ok: boolean }> => {
+    return http(`/api/van-sales/admin/promotions/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  toggleAdminPromotionActive: async (id: number, isActive: boolean): Promise<{ ok: boolean; promotion: FmcgPromotion }> => {
+    return http(`/api/van-sales/admin/promotions/${id}/toggle-active`, {
+      method: 'PATCH',
+      body: { isActive },
+    });
+  },
+
+  optimizeSupervisorRoute: async (payload: {
+    customerIds?: number[];
+    route?: string;
+    repId?: number;
+    startLat?: number;
+    startLng?: number;
+    persistSequence?: boolean;
+  }): Promise<{ ok: boolean } & RouteOptimizationResult> => {
+    return http('/api/van-sales/admin/routes/optimize', {
+      method: 'POST',
+      body: payload,
+    });
+  },
 };
+
+export interface FmcgPromotion {
+  id: number;
+  name: string;
+  code: string;
+  promoType: 'mix_and_match' | 'tiered_qty' | 'invoice_threshold' | string;
+  applyType: 'free_bonus' | 'discount_percent' | 'discount_amount' | string;
+  buyConditions: any;
+  reward: {
+    bonusProductId?: number;
+    bonusProductName?: string;
+    bonusQty?: number;
+    bonusUom?: string;
+    bonusReason?: string;
+    discountPercent?: number;
+    discountAmount?: number;
+    targetProductId?: number;
+  };
+  customerTypes?: string[];
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive: boolean;
+  maxApplicationsPerOrder: number;
+  priority: number;
+  notes?: string | null;
+}
+
+export interface RouteOptimizationResult {
+  stats: {
+    totalStops: number;
+    mappedStopsCount: number;
+    unmappedStopsCount: number;
+    originalDistanceMeters: number;
+    optimizedDistanceMeters: number;
+    savedDistanceMeters: number;
+    originalDistanceKm: number;
+    optimizedDistanceKm: number;
+    savedDistanceKm: number;
+    savingsPercent: number;
+  };
+  orderedStops: Array<{
+    id: number;
+    name: string;
+    lat?: number | null;
+    lng?: number | null;
+    address?: string;
+    district?: string;
+    customerCode?: string;
+    sequenceIndex: number;
+    legDistanceMeters: number;
+    cumulativeDistanceMeters: number;
+    isUnmappedGps?: boolean;
+  }>;
+  persistedCount?: number;
+}
 
 export interface VanFraudRadarEvent {
   id: number;

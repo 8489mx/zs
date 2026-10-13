@@ -25,10 +25,11 @@ import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
 import { VanRoutesKpiAdminTab } from '../components/VanRoutesKpiAdminTab';
 import { VanPreSalesAdminTab } from '../components/VanPreSalesAdminTab';
 import { VanFraudRadarAdminTab } from '../components/VanFraudRadarAdminTab';
+import { VanPromotionsAdminTab } from '../components/VanPromotionsAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
-type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'fleet' | 'drivers';
+type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'fleet' | 'drivers';
 
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -242,6 +243,11 @@ export default function VanSalesAdminManagementPage() {
             icon: <CheckCircleIcon size={15} />,
           },
           {
+            key: 'promotions' as const,
+            label: 'العروض والخلطات',
+            icon: <SlidersIcon size={15} />,
+          },
+          {
             key: 'fleet' as const,
             label: 'أسطول السيارات',
             icon: <TruckIcon size={15} />,
@@ -334,6 +340,9 @@ export default function VanSalesAdminManagementPage() {
 
       {/* Tab 4: Targets */}
       {activeTab === 'targets' && <VanRepTargetsAdminTab />}
+
+      {/* Tab: FMCG Mix & Match Promotions */}
+      {activeTab === 'promotions' && <VanPromotionsAdminTab />}
 
       {/* Tab 5: Fleet */}
       {activeTab === 'fleet' && <FleetVehiclesTab />}

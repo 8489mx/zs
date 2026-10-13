@@ -88,6 +88,29 @@ export function VanRoutesKpiAdminTab() {
   const [routeFilter, setRouteFilter] = useState<'all' | string>('all');
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+  const [isOptimizingRoute, setIsOptimizingRoute] = useState(false);
+
+  const handleOptimizeSupervisorRoute = async () => {
+    if (routeFilter === 'all') return;
+    try {
+      setIsOptimizingRoute(true);
+      const res = await vanSalesApi.optimizeSupervisorRoute({
+        route: routeFilter,
+        persistSequence: true,
+      });
+
+      if (res && res.stats) {
+        toast.success(
+          `تم ترتيب خط «${routeFilter}» جغرافياً بنجاح! توفير ${res.stats.savedDistanceKm} كم (${res.stats.savingsPercent}%) وتحديث تسلسل ${res.persistedCount || res.orderedStops.length} عميل.`,
+        );
+        refetchCustomerRoutes();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'حدث خطأ أثناء تحسين مسار خط السير');
+    } finally {
+      setIsOptimizingRoute(false);
+    }
+  };
 
   // 5. Supervisor Customer Routes Query (Full Customer Base from Dedicated API)
   const {
@@ -930,6 +953,27 @@ export function VanRoutesKpiAdminTab() {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {routeFilter !== 'all' && (
+                <Button
+                  variant="primary"
+                  onClick={handleOptimizeSupervisorRoute}
+                  disabled={isOptimizingRoute}
+                  style={{
+                    backgroundColor: '#170e5e',
+                    color: '#ffffff',
+                    height: '32px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title="إعادة الترتيب التلقائي بأقصر مسار جغرافي لتوفير الوقود وحفظ التسلسل الدائم"
+                >
+                  <MapPinIcon size={14} />
+                  {isOptimizingRoute ? 'جاري التحسين...' : `الترتيب الجغرافي الأمثل لخط «${routeFilter}» (TSP)`}
+                </Button>
+              )}
               <span
                 style={{
                   background: '#f1f5f9',

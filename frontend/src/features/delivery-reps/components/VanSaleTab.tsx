@@ -125,6 +125,75 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
     }
   }, [selectedCustomerId]);
 
+  const [promoEvaluation, setPromoEvaluation] = useState<{
+    appliedPromotions: any[];
+    bonusItemsToAdd: any[];
+    totalPromotionalDiscount: number;
+    upsellNudges: any[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (cart.length === 0) {
+      setPromoEvaluation(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      vanSalesApi
+        .evaluateCartPromotions({
+          cartItems: cart.map((c) => ({
+            productId: c.productId,
+            productName: c.productName,
+            qty: c.qty,
+            unitPrice: c.unitPrice,
+            uom: c.selectedUnitName,
+            multiplier: c.selectedUnitMultiplier,
+            isBonus: c.isBonus,
+          })),
+          invoiceSubtotal: cartSubtotal,
+          customerType: (selectedCustomer as any)?.customer_type,
+        })
+        .then((res) => {
+          if (res && res.ok) {
+            setPromoEvaluation(res);
+          }
+        })
+        .catch(() => {});
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [cart, cartSubtotal, selectedCustomer]);
+
+  const handleAutoInsertBonuses = () => {
+    if (!promoEvaluation?.bonusItemsToAdd || !onAddToCart) return;
+    let inserted = 0;
+    for (const b of promoEvaluation.bonusItemsToAdd) {
+      const alreadyBonusInCart = cart.find((c) => c.productId === b.productId && c.isBonus);
+      if (!alreadyBonusInCart) {
+        const invItem = inventory.find((i) => i.productId === b.productId);
+        onAddToCart({
+          productId: b.productId,
+          productName: b.productName || invItem?.productName || `بونص صنف #${b.productId}`,
+          barcode: invItem?.barcode || '',
+          qty: invItem?.qty || 999,
+          costPrice: invItem?.costPrice || 0,
+          retailPrice: 0,
+        });
+        if (onToggleBonus) {
+          setTimeout(() => onToggleBonus(b.productId), 60);
+        }
+        if (b.qty > 1) {
+          setTimeout(() => onUpdateCartQty(b.productId, b.qty - 1), 80);
+        }
+        inserted++;
+      }
+    }
+    if (inserted > 0) {
+      toast.success(`تم إدراج ${inserted} أصناف بونص ترويجي مجاني بالسلة`);
+    } else {
+      toast.info('تم إدراج البونص الترويجي بالفعل');
+    }
+  };
+
   const handleLoadSuggestedOrder = async () => {
     if (!selectedCustomerId) return;
     setIsLoadingSuggested(true);
@@ -587,7 +656,73 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
             </Button>
           </div>
         ) : (
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Promotions Applied Banner */}
+            {promoEvaluation?.appliedPromotions && promoEvaluation.appliedPromotions.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+                  <CheckCircleIcon size={14} color="#16a34a" />
+                  <span>عروض ترويجية نشطة مطبقة على السلة:</span>
+                </div>
+                {promoEvaluation.appliedPromotions.map((p: any, idx: number) => (
+                  <div key={idx} style={{ fontSize: '11.5px', color: '#14532d', paddingInlineStart: '18px' }}>
+                    • {p.description} {p.discountAmount > 0 ? `(وفر ${p.discountAmount} ج.م)` : ''}
+                  </div>
+                ))}
+                {promoEvaluation.bonusItemsToAdd?.length > 0 && onAddToCart && (
+                  <button
+                    type="button"
+                    onClick={handleAutoInsertBonuses}
+                    style={{
+                      alignSelf: 'flex-start',
+                      marginTop: '4px',
+                      backgroundColor: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + إدراج البونص الترويجي المجاني بالسلة الآن
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Upsell Nudge Banner */}
+            {promoEvaluation?.upsellNudges && promoEvaluation.upsellNudges.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <SlidersIcon size={14} color="#b45309" />
+                <div style={{ fontSize: '11.5px', color: '#92400e', fontWeight: 600 }}>
+                  {promoEvaluation.upsellNudges[0].hintText}
+                </div>
+              </div>
+            )}
+
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
             {cart.map((c) => {
               const itemDiscount =
                 !c.isBonus && c.originalPrice && c.originalPrice > c.unitPrice

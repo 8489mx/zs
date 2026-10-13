@@ -12,6 +12,11 @@ import {
   resolveIsolatedRepCustomerBalance,
 } from '../rep-target.engine';
 import { VanFraudRadarService } from './van-fraud-radar.service';
+import {
+  optimizeRouteTsp,
+  RouteStopInput,
+  RouteOptimizationResult,
+} from '../route-optimization.engine';
 
 @Injectable()
 export class VanRoutesService {
@@ -165,6 +170,11 @@ export class VanRoutesService {
         ? numRepId
         : (meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null);
 
+      const coords = extractCoordinatesFromCustomerLocation({
+        locationUrl: meta.location_url,
+        metadata: meta,
+      });
+
       return {
         customerId: cId,
         customerName: c.name,
@@ -181,7 +191,9 @@ export class VanRoutesService {
         assignedRepId,
         assignedRepIds,
         assignedRepName: meta.assigned_rep_name || '',
-        locationUrl: meta.location_url || '',
+        locationUrl: meta.location_url || (coords ? `https://maps.google.com/?q=${coords.lat},${coords.lng}` : ''),
+        gpsLat: coords?.lat ?? null,
+        gpsLng: coords?.lng ?? null,
         balance: isolated.repBalance,
         totalCompanyBalance: isolated.totalCustomerBalance,
         creditLimit: Number(c.creditLimit || 0),
@@ -190,6 +202,10 @@ export class VanRoutesService {
         repeatedNegativesCount: totalNegatives,
         hasRepeatedNegativeAlert: totalNegatives >= 3,
       };
+    }).sort((a: any, b: any) => {
+      const seqA = a.routeSequence > 0 ? a.routeSequence : 999999;
+      const seqB = b.routeSequence > 0 ? b.routeSequence : 999999;
+      return seqA - seqB;
     });
   }
 
@@ -807,5 +823,119 @@ export class VanRoutesService {
     }
 
     return results;
+  }
+
+  async optimizeCustomerRoute(
+    tenantId: string,
+    payload: {
+      customerIds?: number[];
+      route?: string;
+      repId?: number;
+      startLat?: number | null;
+      startLng?: number | null;
+      persistSequence?: boolean;
+    },
+  ): Promise<RouteOptimizationResult & { persistedCount?: number }> {
+    let customerRows: any[] = [];
+
+    if (Array.isArray(payload.customerIds) && payload.customerIds.length > 0) {
+      customerRows = await this.anyDb
+        .selectFrom('customers')
+        .select(['id', 'name', 'phone', 'address', 'metadata'])
+        .where('id', 'in', payload.customerIds)
+        .where('tenant_id', '=', tenantId)
+        .where('is_active', '=', true)
+        .execute();
+    } else if (payload.route && payload.route.trim()) {
+      const allActive = await this.anyDb
+        .selectFrom('customers')
+        .select(['id', 'name', 'phone', 'address', 'metadata'])
+        .where('tenant_id', '=', tenantId)
+        .where('is_active', '=', true)
+        .execute();
+
+      const rName = payload.route.trim();
+      customerRows = allActive.filter((c: any) => {
+        let meta: any = {};
+        if (typeof c.metadata === 'string') {
+          try { meta = JSON.parse(c.metadata); } catch { meta = {}; }
+        } else if (c.metadata && typeof c.metadata === 'object') {
+          meta = c.metadata;
+        }
+        return meta.route === rName;
+      });
+    } else {
+      throw new AppError('يرجى تحديد العملاء أو اسم خط السير للتحسين', 'INVALID_OPTIMIZE_PAYLOAD', 400);
+    }
+
+    if (customerRows.length === 0) {
+      throw new AppError('لم يتم العثور على أي عملاء نشطين للتحسين', 'NO_CUSTOMERS_FOUND', 404);
+    }
+
+    const stops: RouteStopInput[] = customerRows.map((c) => {
+      const cId = Number(c.id);
+      let meta: any = {};
+      if (typeof c.metadata === 'string') {
+        try { meta = JSON.parse(c.metadata); } catch { meta = {}; }
+      } else if (c.metadata && typeof c.metadata === 'object') {
+        meta = c.metadata;
+      }
+
+      const coords = extractCoordinatesFromCustomerLocation({
+        locationUrl: meta.location_url,
+        metadata: meta,
+      });
+
+      return {
+        id: cId,
+        name: c.name,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+        address: c.address || '',
+        district: meta.district || meta.area || '',
+        customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cId),
+        originalSequence: Number(meta.route_sequence || 0),
+        route: meta.route || 'الخط العام',
+      };
+    });
+
+    const result = optimizeRouteTsp(stops, {
+      startLat: payload.startLat,
+      startLng: payload.startLng,
+    });
+
+    let persistedCount = 0;
+    if (payload.persistSequence) {
+      for (const stop of result.orderedStops) {
+        const cRow = customerRows.find((c) => Number(c.id) === stop.id);
+        if (!cRow) continue;
+
+        let meta: any = {};
+        if (typeof cRow.metadata === 'string') {
+          try { meta = JSON.parse(cRow.metadata); } catch { meta = {}; }
+        } else if (cRow.metadata && typeof cRow.metadata === 'object') {
+          meta = { ...cRow.metadata };
+        }
+
+        meta.route_sequence = stop.sequenceIndex;
+
+        await this.anyDb
+          .updateTable('customers')
+          .set({
+            metadata: JSON.stringify(meta),
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', stop.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        persistedCount++;
+      }
+    }
+
+    return {
+      ...result,
+      persistedCount,
+    };
   }
 }

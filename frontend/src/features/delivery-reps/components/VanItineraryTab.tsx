@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
-import { vanSalesApi, VanCustomerItineraryItem } from '../api/van-sales.api';
+import { vanSalesApi, VanCustomerItineraryItem, RouteOptimizationResult } from '../api/van-sales.api';
 import {
   MapPinIcon,
   CheckCircleIcon,
@@ -552,6 +552,93 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
     return matched;
   }, [itinerary, dayFilter, todayArabicName, statusFilter, routeFilter, searchTerm]);
+
+  // Dynamic Route Optimization (TSP)
+  const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
+  const [isOptimizingRoute, setIsOptimizingRoute] = useState(false);
+  const [routeOptimizationResult, setRouteOptimizationResult] = useState<RouteOptimizationResult | null>(null);
+
+  const handleRunRouteOptimization = async () => {
+    const targetCustomers = filtered.filter((c) => c.visitStatus === 'pending');
+    const custsToOptimize = targetCustomers.length > 0 ? targetCustomers : filtered;
+
+    if (custsToOptimize.length <= 1) {
+      toast.info('يجب وجود عميلين على الأقل لتحسين خط السير');
+      return;
+    }
+
+    setIsOptimizingRoute(true);
+
+    const executeOpt = async (startCoords?: { lat: number; lng: number }) => {
+      try {
+        const res = await vanSalesApi.optimizeDriverRoute({
+          customerIds: custsToOptimize.map((c) => c.customerId),
+          startLat: startCoords?.lat,
+          startLng: startCoords?.lng,
+          persistSequence: false,
+        });
+
+        if (res && res.stats) {
+          setRouteOptimizationResult(res);
+          setIsOptimizeModalOpen(true);
+        } else {
+          toast.error('لم يتمكن محرك المسارات من احتساب الترتيب الأمثل');
+        }
+      } catch (err: any) {
+        toast.error(err?.message || 'حدث خطأ أثناء تحسين المسار');
+      } finally {
+        setIsOptimizingRoute(false);
+      }
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          executeOpt({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          executeOpt();
+        },
+        { timeout: 3500 },
+      );
+    } else {
+      executeOpt();
+    }
+  };
+
+  const handleApplyOptimalRoute = async () => {
+    if (!routeOptimizationResult) return;
+    try {
+      setIsOptimizingRoute(true);
+      const custIds = routeOptimizationResult.orderedStops.map((s) => s.id);
+      await vanSalesApi.optimizeDriverRoute({
+        customerIds: custIds,
+        persistSequence: true,
+      });
+
+      const newCustOrderMap: Record<string, number[]> = {};
+      for (const stop of routeOptimizationResult.orderedStops) {
+        const dName = (stop.district || stop.route || 'المنطقة العامة').trim();
+        if (!newCustOrderMap[dName]) newCustOrderMap[dName] = [];
+        newCustOrderMap[dName].push(stop.id);
+      }
+
+      setCustomCustomerOrder(newCustOrderMap);
+      try {
+        localStorage.setItem('zs_van_customer_order', JSON.stringify(newCustOrderMap));
+      } catch {}
+
+      toast.success(
+        `تم اعتماد المسار الأمثل! توفير ${routeOptimizationResult.stats.savedDistanceKm} كم (${routeOptimizationResult.stats.savingsPercent}%)`,
+      );
+      setIsOptimizeModalOpen(false);
+      onRefreshItinerary();
+    } catch (err: any) {
+      toast.error(err?.message || 'فشل حفظ الترتيب الأمثل');
+    } finally {
+      setIsOptimizingRoute(false);
+    }
+  };
 
   // 1. Group ALL filtered items by District to establish canonical itinerary ordering
   const allDistrictGroups = useMemo(() => {
@@ -1864,6 +1951,32 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <SlidersIcon size={13} color={isReorderingMode ? '#ffffff' : '#334155'} />
               <span>{isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}</span>
             </button>
+
+            {/* Dynamic Route Optimization Button */}
+            <button
+              type="button"
+              onClick={handleRunRouteOptimization}
+              disabled={isOptimizingRoute}
+              style={{
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '7px',
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap',
+              }}
+              title="تحسين مسار السير بأقصر مسار جغرافي لتوفير استهلاك الوقود وزمن الرحلة"
+            >
+              <MapPinIcon size={13} color="#ffffff" />
+              <span>{isOptimizingRoute ? 'جاري التحسين...' : 'أقصر مسار (TSP)'}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2972,6 +3085,119 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           customerId={statementModalCust.customerId}
           customerName={statementModalCust.customerName}
         />
+      )}
+
+      {/* Dynamic Route Optimization (TSP) Modal */}
+      {isOptimizeModalOpen && routeOptimizationResult && (
+        <StandardDialog
+          open={isOptimizeModalOpen}
+          onClose={() => setIsOptimizeModalOpen(false)}
+          title="تحسين المسار الجغرافي بأقصر طريق (TSP Route Optimization)"
+          subtitle="محرك الذكاء المكاني لحساب أقصر مسار بين المحلات وتوفير استهلاك الوقود وزمن الرحلة"
+          width="680px"
+          minHeight="480px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* KPI Stats Ribbon */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>المسافة قبل التحسين</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#64748b' }}>
+                  {routeOptimizationResult.stats.originalDistanceKm} كم
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>المسافة بعد التحسين</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a' }}>
+                  {routeOptimizationResult.stats.optimizedDistanceKm} كم
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>التوفير في استهلاك الوقود</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1d4ed8' }}>
+                  {routeOptimizationResult.stats.savedDistanceKm} كم ({routeOptimizationResult.stats.savingsPercent}%)
+                </div>
+              </div>
+            </div>
+
+            {/* Stops Preview List */}
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+              تسلسل المحطات المقترح ({routeOptimizationResult.orderedStops.length} محطة):
+            </div>
+
+            <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px' }}>
+              {routeOptimizationResult.orderedStops.map((stop, sIdx) => (
+                <div
+                  key={stop.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderBottom: sIdx < routeOptimizationResult.orderedStops.length - 1 ? '1px solid #f1f5f9' : 'none',
+                    backgroundColor: stop.isUnmappedGps ? '#fffbeb' : '#ffffff',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        backgroundColor: '#170e5e',
+                        color: '#ffffff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {stop.sequenceIndex}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{stop.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        {stop.district ? `${stop.district} - ` : ''}{stop.address || 'بدون عنوان تفصيلي'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'left', fontSize: '11.5px' }}>
+                    {stop.isUnmappedGps ? (
+                      <span style={{ color: '#d97706', fontWeight: 600 }}>بدون GPS (في النهاية)</span>
+                    ) : (
+                      <span style={{ color: '#475569', fontWeight: 600 }}>
+                        {sIdx === 0 ? 'نقطة الانطلاق' : `+${(stop.legDistanceMeters / 1000).toFixed(1)} كم`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <StandardDialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setIsOptimizeModalOpen(false)}>
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                onClick={handleApplyOptimalRoute}
+                disabled={isOptimizingRoute}
+                style={{
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                }}
+              >
+                {isOptimizingRoute ? 'جاري الاعتماد...' : 'اعتماد وحفظ المسار الأمثل'}
+              </Button>
+            </StandardDialogFooter>
+          </div>
+        </StandardDialog>
       )}
     </div>
   );

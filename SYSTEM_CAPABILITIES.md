@@ -7359,3 +7359,51 @@
   - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
   - `backend/test/e2e/van-sales-rogue-rep-and-multi-rep.e2e.ts`
 
+---
+
+## 236. محرك العروض الترويجية الشرائحية المركبة والتحسين الرياضي لمسارات السير (FMCG Tiered Promotions & TSP Route Optimization)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق ومختبر حسابياً وتشغيلياً بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة إدارة الفان والجملة `/van-sales/management` (تبويب "العروض والخلطات" + زر "أقصر مسار خط سير" في تبويب مسارات التوزيع) وبوابة المندوب الميداني `/driver` (سلة البيع مع تطبيق العروض الفوري وتنبيهات البيع الإضافي Upsell + تبويب خط سير اليوم مع تحسين الترتيب الرياضي بالـ GPS).
+* **الهدف:** تزويد منظومة الفان وتوزيع الجملة بأقوى أدوات الشركات العالمية للأغذية والاستهلاك السريع (FMCG):
+  1. محرك عروض شرائحية وترويجية مرنة (Mix & Match و Buy X Get Y وشرائح الكمية والحد الأدنى للفاتورة) لزيادة متوسط حجم الفاتورة وسرعة دوران المخزون، مع محفزات ذكية تنبه المندوب لحظياً لتحفيز العميل على الشراء الإضافي.
+  2. محرك رياضي لحل معضلة البائع المتجول (TSP) لخطوط سير المناديب لترتيب محطات الزيارات بأقصر مسافة وأقل زمن استهلاكاً للوقود.
+* **المحرك والميزات المنفذة:**
+  1. **محرك العروض والخصومات الشرائحية المركبة (FMCG Promotions Engine):**
+     - **المحرك النقي:** `backend/src/modules/delivery-reps/fmcg-promotions.engine.ts` يقيم سلة المبيعات بسرعة فائقة (0ms) وبدون DB I/O مباشر، مما يتيح استدعاءه الفوري عند كل تغيير كمية في سلة المندوب.
+     - **أنماط العروض المدعومة:**
+       - **شرائح الكمية المتصاعدة (`tiered_qty`):** تحديد شرائح متعددة للصنف الواحد (مثال: من 10 إلى 24 كرتونة بخصم 5%، من 25 إلى 49 كرتونة بخصم 10% وبونص 2 كرتونة، 50 كرتونة فما فوق بخصم 15% وبونص 5 كرتونة مجانية).
+       - **الخلطات المركبة (`mix_and_match`):** اشتراط شراء باقة أصناف محددة بكميات دنيا (مثال: 3 صنف A + 2 صنف B) للحصول على مكافأة (خصم مالي أو بونص عيني مجاني).
+       - **شريحة القيمة الإجمالية للفاتورة (`invoice_threshold`):** مكافأة المشتريات ذات القيمة المرتفعة بخصم فوري أو هدايا عينية فور تجاوز صافي الفاتورة حداً محدداً.
+     - **فصل أصناف البونص العيني:** تمييز بنود الهدايا بـ `isBonus: true` واستبعادها التلقائي من شروط التأهيل لتفادي الحلقات اللانهائية.
+     - **محفزات البيع الإضافي الذكية (Upsell Nudges):** عند وصول سلة العميل إلى ما بين 40% و 70% من شريحة العرض التالية، يولد المحرك نصيحة استباقية بالكمية الناقصة وقيمة الوفر أو الهدية المتوقعة، مع زر نقرة واحدة للمندوب لإضافة الصنف فورياً للسلة.
+     - **حوكمة العروض والميزانيات:** تقييد العروض بنوع العميل (`retail`, `wholesale`, `half_wholesale`, `key_account`) وقناة البيع وفترة السريان، وسقف مرات الاستخدام الأقصى (`max_usage_limit`).
+     - **لوحة إدارة العروض للمشرف:** تبويب متكامل `العروض والخلطات` في `/van-sales/management` (`VanPromotionsAdminTab.tsx`) يشمل بطاقات KPI، وجدول العروض، ونافذة بناء شروط العرض ومكافآته وشرائحه، والتعطيل والتفعيل الفوري.
+  2. **محرك التحسين الرياضي لمسارات السير (TSP Dynamic Route Optimization):**
+     - **المحرك الرياضي النقي:** `backend/src/modules/delivery-reps/route-optimization.engine.ts` يحل معضلة البائع المتجول (TSP) لخط سير المندوب.
+     - **خوارزمية الجار الأقرب + 2-Opt:** توليد مسار مبدئي باستخدام Greedy Nearest Neighbor بدءاً من موقع المندوب الحالي بالـ GPS أو المستودع، متبوعاً بخوارزمية التحسين المحلي للتقاطعات (2-Opt Local Search Heuristic) بحد أقصى 50 تكرار لفك تشابك الخطوط وتقليل المسافات البينية بالاعتماد على مسافة هافرسين الجيوديسية (Haversine Formula).
+     - **الحفاظ التام على العملاء غير المحددين جغرافياً:** العملاء الذين لا تتوفر لهم إحداثيات GPS يُحفظون في ذيل المسار بعلامة واضحة `isUnmappedGps: true` لمنع سقوطهم من الزيارة الميدانية.
+     - **حساب التوفير التشغيلي والزمن:** حساب مسافة المسار الحالي والمحسن بدقة، وإظهار وفر الكيلومترات ونسبة التوفير المئوية (`distanceSavedKm`, `savingsPercentage`) والزمن التقديري للتنقل.
+     - **التحسين الميداني بنقرة واحدة:** زر "أقصر مسار (TSP)" في تبويب خط سير المندوب (`VanItineraryTab.tsx`) يستدعي الموقع الجغرافي للمندوب عبر المتصفح/الهاتف، ويعرض نافذة مقارنة المسارين وخريطة المحطات، مع إمكانية اعتماد الترتيب الجديد وحفظه فورياً في قاعدة البيانات بجدول `van_customer_routes.stop_sequence`.
+     - **دعم المشرف:** إمكانية تحسين مسار أي خط سير في تبويب مسارات التوزيع من لوحة الإدارة (`VanRoutesKpiAdminTab.tsx`).
+  3. **قاعدة البيانات والهجرة:**
+     - جدول `fmcg_promotions` وهجرة `2040000000221_fmcg_promotions_and_route_optimization.ts` مع فهارس الأداء على `(tenant_id, is_active, start_date, end_date)`.
+  4. **الاختبار والتحقق الحسابي الشامل:**
+     - تغطية المحركين الرياضيين بنسبة 100% عبر:
+       `backend/test/critical/van-fmcg-promotions-and-route-opt.spec.ts`.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000221_fmcg_promotions_and_route_optimization.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/delivery-reps/fmcg-promotions.engine.ts`
+  - `backend/src/modules/delivery-reps/route-optimization.engine.ts`
+  - `backend/src/modules/delivery-reps/services/van-promotions.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-routes.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `backend/src/modules/delivery-reps/delivery-reps.module.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanPromotionsAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
+  - `frontend/src/features/delivery-reps/components/VanItineraryTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanRoutesKpiAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSaleTab.tsx`
+  - `backend/test/critical/van-fmcg-promotions-and-route-opt.spec.ts`
+

@@ -13,6 +13,7 @@ import { VanTransfersService } from './services/van-transfers.service';
 import { VanRoutesService } from './services/van-routes.service';
 import { VanPreSalesService } from './services/van-pre-sales.service';
 import { VanFraudRadarService } from './services/van-fraud-radar.service';
+import { VanPromotionsService } from './services/van-promotions.service';
 
 import { DatabaseModule } from '../../database/database.module';
 import { AccountingModule } from '../accounting/accounting.module';
@@ -33,6 +34,7 @@ import { SettingsModule } from '../settings/settings.module';
     VanRoutesService,
     VanPreSalesService,
     VanFraudRadarService,
+    VanPromotionsService,
   ],
   exports: [
     DeliveryRepsService,
@@ -45,6 +47,7 @@ import { SettingsModule } from '../settings/settings.module';
     VanRoutesService,
     VanPreSalesService,
     VanFraudRadarService,
+    VanPromotionsService,
   ],
 })
 export class DeliveryRepsModule {}

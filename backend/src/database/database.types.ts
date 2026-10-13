@@ -5299,6 +5299,26 @@ export interface RestaurantTableLayoutTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface FmcgPromotionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  name: string;
+  code: string;
+  promo_type: 'mix_and_match' | 'tiered_qty' | 'invoice_threshold' | string;
+  apply_type: 'free_bonus' | 'discount_percent' | 'discount_amount' | string;
+  buy_conditions: ColumnType<any, any, any>;
+  reward: ColumnType<any, any, any>;
+  customer_types: ColumnType<any, any, any>;
+  start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean>;
+  max_applications_per_order: ColumnType<number, number | undefined, number>;
+  priority: ColumnType<number, number | undefined, number>;
+  notes: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   restaurant_table_reservations: RestaurantTableReservationTable;
   pos_kitchen_printers: PosKitchenPrinterTable;
@@ -5315,6 +5335,7 @@ export interface Database {
   restaurant_drive_thru_orders: RestaurantDriveThruOrderTable;
   restaurant_upsell_rules: RestaurantUpsellRuleTable;
   restaurant_table_layouts: RestaurantTableLayoutTable;
+  fmcg_promotions: FmcgPromotionTable;
 }
 
 
