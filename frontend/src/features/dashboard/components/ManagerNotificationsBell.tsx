@@ -58,6 +58,7 @@ export function ManagerNotificationsBell() {
     previousCountRef.current = badgeCount;
   }, [badgeCount]);
 
+  const vanSuspicionCount = importantActions.filter((a) => a.domain === 'van_suspicion').length;
   const onlineOrdersCount = importantActions.filter((a) => a.domain === 'online_orders').length;
   const inventoryCount = importantActions.filter((a) => a.domain === 'inventory' || a.domain === 'products').length;
   const pharmacyCount = importantActions.filter((a) => a.domain === 'pharmacy_expiry').length;
@@ -69,6 +70,7 @@ export function ManagerNotificationsBell() {
   const filteredAlerts = selectedDomain === 'all'
     ? importantActions
     : importantActions.filter((a) => {
+        if (selectedDomain === 'van_suspicion') return a.domain === 'van_suspicion';
         if (selectedDomain === 'online_orders') return a.domain === 'online_orders';
         if (selectedDomain === 'inventory') return a.domain === 'inventory' || a.domain === 'products';
         if (selectedDomain === 'pharmacy_expiry') return a.domain === 'pharmacy_expiry';
@@ -272,11 +274,30 @@ export function ManagerNotificationsBell() {
               color: selectedDomain === 'all' ? '#ffffff' : '#475569',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
             }}
           >
             الكل ({badgeCount})
           </button>
+
+          {vanSuspicionCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomain('van_suspicion')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: selectedDomain === 'van_suspicion' ? '1px solid #991b1b' : '1px solid #fecaca',
+                background: selectedDomain === 'van_suspicion' ? '#991b1b' : '#fef2f2',
+                color: selectedDomain === 'van_suspicion' ? '#ffffff' : '#dc2626',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              رادار المناديب ({vanSuspicionCount})
+            </button>
+          )}
 
           {onlineOrdersCount > 0 && (
             <button

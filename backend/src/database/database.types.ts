@@ -956,6 +956,8 @@ export interface SalesTable {
   dispatched_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   delivered_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   driver_cash_settled?: boolean;
+  sale_origin?: string | null;
+  van_trip_id?: number | null;
 }
 
 export interface SaleItemTable {

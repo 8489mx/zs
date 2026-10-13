@@ -8,6 +8,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
+import { AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
 
 @Controller('api/driver-portal/van-sales')
 export class VanSalesController {
@@ -81,6 +82,19 @@ export class VanSalesController {
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     if (body?.items && Array.isArray(body.items) && body.items.length > 0) {
+      await this.vanSalesService.recordSuspicionEvent({
+        tenantId: driver.tenantId,
+        accountId: driver.accountId,
+        repId: driver.repId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
+        severity: 'critical',
+        titleAr: 'محاولة سحب بضاعة مباشرة من المستودع بدون إذن صرف معتمد',
+        detailsAr: `حاول المندوب فتح رحلة وتحميل (${body.items.length}) أصناف مباشرة من المستودع بدون اعتماد أمين المستودع أو المشرف.`,
+        metadata: {
+          itemsCount: body.items.length,
+          sourceWarehouseId: body.sourceWarehouseId,
+        },
+      });
       throw new AppError(
         'سحب البضاعة المباشر من المستودع غير مسموح للمندوب؛ يرجى رفع طلب تحميل (إذن صرف) لاعتماده من أمين المستودع أو المشرف',
         'DIRECT_WAREHOUSE_LOAD_FORBIDDEN',
@@ -111,6 +125,20 @@ export class VanSalesController {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     const pinToVerify = String(body?.supervisorPin || body?.supervisorOverridePin || '').trim();
     if (!pinToVerify) {
+      await this.vanSalesService.recordSuspicionEvent({
+        tenantId: driver.tenantId,
+        accountId: driver.accountId,
+        repId: driver.repId,
+        tripId: body?.tripId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
+        severity: 'critical',
+        titleAr: 'محاولة إغلاق وتصفية رحلة ذاتياً بدون رمز اعتماد المشرف (PIN)',
+        detailsAr: `حاول المندوب اعتماد وتصفية الرحلة #${body?.tripId} نهائياً من تطبيق المندوب دون إدخال رمز اعتماد المشرف.`,
+        metadata: {
+          tripId: body?.tripId,
+          countedCash: body?.countedCash,
+        },
+      });
       throw new AppError(
         'إغلاق وتصفية رحلة التوزيع نهائياً من تطبيق المندوب يتطلب رمز اعتماد المشرف (Supervisor PIN)؛ أو يمكنك الضغط على "تقديم طلب التصفية للمشرف" لمراجعتها واعتمادها من لوحة الإدارة',
         'SETTLEMENT_REQUIRES_SUPERVISOR_PIN',
@@ -1234,5 +1262,40 @@ export class VanSalesAdminController {
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
     return this.vanSalesService.getCustomerPackagingBalance(customerId, tenantId);
+  }
+
+  // Van Sales Anti-Theft & Suspicion Radar (رادار الشبهات ومكافحة التلاعب لمناديب التوزيع)
+  @Get('fraud-radar/summary')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory', 'accounting')
+  async getFraudRadarSummary(
+    @Req() req: RequestWithAuth,
+    @Query('days') days?: string,
+    @Query('repId') repId?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const summary = await this.vanSalesService.getFraudRadarSummary(tenantId, {
+      days: days ? Number(days) : undefined,
+      repId: repId ? Number(repId) : undefined,
+    });
+    return { ok: true, ...summary };
+  }
+
+  @Get('fraud-radar/events')
+  @RequireAnyPermission('deliveryReps', 'sales', 'inventory', 'accounting')
+  async getFraudRadarEvents(
+    @Req() req: RequestWithAuth,
+    @Query('days') days?: string,
+    @Query('repId') repId?: string,
+    @Query('eventCode') eventCode?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    const events = await this.vanSalesService.getFraudRadarEvents(tenantId, {
+      days: days ? Number(days) : undefined,
+      repId: repId ? Number(repId) : undefined,
+      eventCode: eventCode || undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+    return { ok: true, events };
   }
 }

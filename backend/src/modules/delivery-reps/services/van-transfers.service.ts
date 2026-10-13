@@ -137,23 +137,6 @@ export class VanTransfersService {
   }
 
   async acceptInterVanTransfer(tenantId: string, accountId: string, toRepId: number, transferId: number) {
-    const transfer = await this.anyDb
-      .selectFrom('van_stock_transfers')
-      .selectAll()
-      .where('id', '=', transferId)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-
-    if (!transfer) {
-      throw new AppError('طلب التحويل غير موجود', 'TRANSFER_NOT_FOUND', 404);
-    }
-    if (Number(transfer.to_rep_id) !== toRepId) {
-      throw new AppError('غير مصرح لك بقبول هذا التحويل', 'UNAUTHORIZED_TRANSFER', 403);
-    }
-    if (transfer.status !== 'pending') {
-      throw new AppError(`طلب التحويل تمت معالجته مسبقاً (${transfer.status})`, 'ALREADY_PROCESSED', 400);
-    }
-
     const items = await this.anyDb
       .selectFrom('van_stock_transfer_items')
       .selectAll()
@@ -164,13 +147,63 @@ export class VanTransfersService {
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
 
+      const transfer = await trxAny
+        .selectFrom('van_stock_transfers')
+        .selectAll()
+        .where('id', '=', transferId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!transfer) {
+        throw new AppError('طلب التحويل غير موجود', 'TRANSFER_NOT_FOUND', 404);
+      }
+      if (Number(transfer.to_rep_id) !== toRepId) {
+        throw new AppError('غير مصرح لك بقبول هذا التحويل', 'UNAUTHORIZED_TRANSFER', 403);
+      }
+      if (transfer.status !== 'pending') {
+        throw new AppError(`طلب التحويل تمت معالجته مسبقاً (${transfer.status})`, 'ALREADY_PROCESSED', 400);
+      }
+
       const sortedItems = sortItemsByProductId<{ productId: number; qty: number }>(
         items.map((it: any) => ({ productId: Number(it.product_id), qty: Number(it.qty) })),
       );
 
+      let totalTransferRetailValue = 0;
+
       for (const item of sortedItems) {
         const pid = Number(item.productId);
         const qty = Number(item.qty);
+        if (qty <= 0) continue;
+
+        // CANONICAL LOCK ORDER: Lock products first!
+        const prod = await trxAny
+          .selectFrom('products')
+          .select(['id', 'name', 'retail_price', 'cost_price'])
+          .where('id', '=', pid)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        const senderStock = await trxAny
+          .selectFrom('product_location_stock')
+          .select(['qty'])
+          .where('product_id', '=', pid)
+          .where('location_id', '=', Number(transfer.from_van_location_id))
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        const avail = Number(senderStock?.qty || 0);
+        if (avail < qty) {
+          throw new AppError(
+            `رصيد السيارة المحوِّلة غير كافٍ للصنف "${prod?.name || pid}". المتوفر حالياً: ${avail}، المطلوب تحويله: ${qty}`,
+            'INSUFFICIENT_STOCK_FOR_TRANSFER',
+            400,
+          );
+        }
+
+        totalTransferRetailValue += qty * Number(prod?.retail_price || 0);
 
         await moveVanStock(trx, {
           productId: pid,
@@ -184,6 +217,7 @@ export class VanTransfersService {
           referenceType: 'van_stock_transfers',
           referenceId: Number(transfer.id),
           skipGlobalUpdate: false,
+          unitCost: Number(prod?.cost_price || 0),
         });
 
         await moveVanStock(trx, {
@@ -198,7 +232,53 @@ export class VanTransfersService {
           referenceType: 'van_stock_transfers',
           referenceId: Number(transfer.id),
           skipGlobalUpdate: false,
+          unitCost: Number(prod?.cost_price || 0),
         });
+      }
+
+      if (totalTransferRetailValue > 0) {
+        const roundedRetail = Number(totalTransferRetailValue.toFixed(2));
+        // Adjust sender's open trip loaded_amount
+        const senderTrip = await trxAny
+          .selectFrom('van_sales_trips')
+          .select(['id'])
+          .where('tenant_id', '=', tenantId)
+          .where('rep_id', '=', Number(transfer.from_rep_id))
+          .where('status', '=', 'open')
+          .orderBy('id', 'desc')
+          .executeTakeFirst();
+        if (senderTrip?.id) {
+          await trxAny
+            .updateTable('van_sales_trips')
+            .set({
+              loaded_amount: sql`GREATEST(0, COALESCE(loaded_amount, 0) - ${roundedRetail})`,
+              updated_at: sql`NOW()`,
+            })
+            .where('id', '=', Number(senderTrip.id))
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
+
+        // Adjust receiver's open trip loaded_amount
+        const receiverTrip = await trxAny
+          .selectFrom('van_sales_trips')
+          .select(['id'])
+          .where('tenant_id', '=', tenantId)
+          .where('rep_id', '=', Number(transfer.to_rep_id))
+          .where('status', '=', 'open')
+          .orderBy('id', 'desc')
+          .executeTakeFirst();
+        if (receiverTrip?.id) {
+          await trxAny
+            .updateTable('van_sales_trips')
+            .set({
+              loaded_amount: sql`COALESCE(loaded_amount, 0) + ${roundedRetail}`,
+              updated_at: sql`NOW()`,
+            })
+            .where('id', '=', Number(receiverTrip.id))
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
       }
 
       await trxAny

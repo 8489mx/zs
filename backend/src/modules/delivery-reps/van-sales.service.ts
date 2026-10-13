@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
-import { AuditService } from '../../core/audit/audit.service';
+import { AuditService, AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
 import { boundedPage } from '../../common/utils/bounded-page';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -45,6 +45,7 @@ import { VanReturnsService } from './services/van-returns.service';
 import { VanTargetsService } from './services/van-targets.service';
 import { VanTransfersService } from './services/van-transfers.service';
 import { VanRoutesService } from './services/van-routes.service';
+import { VanFraudRadarService, RecordVanSuspicionParams } from './services/van-fraud-radar.service';
 
 export interface VanStockItem {
   productId: number;
@@ -109,6 +110,7 @@ export class VanSalesService {
   private readonly vanTargetsService: VanTargetsService;
   private readonly vanTransfersService: VanTransfersService;
   private readonly vanRoutesService: VanRoutesService;
+  private readonly vanFraudRadarService: VanFraudRadarService;
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
@@ -121,13 +123,35 @@ export class VanSalesService {
     vanTargetsService?: VanTargetsService,
     vanTransfersService?: VanTransfersService,
     vanRoutesService?: VanRoutesService,
+    vanFraudRadarService?: VanFraudRadarService,
   ) {
+    this.vanFraudRadarService = vanFraudRadarService ?? new VanFraudRadarService(db);
     this.vanFleetService = vanFleetService ?? new VanFleetService(db);
     this.vanRequisitionsService = vanRequisitionsService ?? new VanRequisitionsService(db);
-    this.vanReturnsService = vanReturnsService ?? new VanReturnsService(db, accountingPosting);
+    this.vanReturnsService = vanReturnsService ?? new VanReturnsService(db, accountingPosting, this.vanFraudRadarService);
     this.vanTargetsService = vanTargetsService ?? new VanTargetsService(db);
     this.vanTransfersService = vanTransfersService ?? new VanTransfersService(db);
-    this.vanRoutesService = vanRoutesService ?? new VanRoutesService(db, this.vanFleetService);
+    this.vanRoutesService = vanRoutesService ?? new VanRoutesService(db, this.vanFleetService, this.vanFraudRadarService);
+  }
+
+  async recordSuspicionEvent(params: RecordVanSuspicionParams) {
+    return this.vanFraudRadarService.recordSuspicionEvent(params);
+  }
+
+  async getFraudRadarSummary(tenantId: string, options?: { days?: number; repId?: number }) {
+    return this.vanFraudRadarService.getSummary(tenantId, options);
+  }
+
+  async getFraudRadarEvents(
+    tenantId: string,
+    options?: {
+      days?: number;
+      repId?: number;
+      eventCode?: string;
+      limit?: number;
+    },
+  ) {
+    return this.vanFraudRadarService.getEvents(tenantId, options);
   }
 
   private get anyDb(): any {
@@ -182,15 +206,33 @@ export class VanSalesService {
 
     const dbConn = queryable || this.anyDb;
     let repUserId: number | null = null;
+    let repPinMatch = false;
     if (repId && Number(repId) > 0) {
       const repRow = await dbConn
         .selectFrom('delivery_representatives')
-        .select(['user_id'])
+        .select(['user_id', 'pin_hash', 'name'])
         .where('id', '=', Number(repId))
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (repRow?.user_id) {
         repUserId = Number(repRow.user_id);
+      }
+      if (repRow?.pin_hash && String(repRow.pin_hash).trim() === cleanPin) {
+        repPinMatch = true;
+      }
+      if (repUserId) {
+        const repUser = await dbConn
+          .selectFrom('users')
+          .select(['id', 'pin', 'pin_hash'])
+          .where('id', '=', repUserId)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        if (
+          repUser &&
+          (String(repUser.pin || '').trim() === cleanPin || String(repUser.pin_hash || '').trim() === cleanPin)
+        ) {
+          repPinMatch = true;
+        }
       }
     }
 
@@ -204,6 +246,22 @@ export class VanSalesService {
       )
       .where(sql<boolean>`(pin = ${cleanPin} or pin_hash = ${cleanPin})`)
       .executeTakeFirst();
+
+    if (repPinMatch || (repUserId && supervisorUser && Number(supervisorUser.id) === repUserId)) {
+      await this.vanFraudRadarService.recordSuspicionEvent({
+        tenantId,
+        repId: repId ? Number(repId) : null,
+        eventCode: 'VAN_SUSPICION_SELF_APPROVAL',
+        severity: 'critical',
+        titleAr: 'محاولة اعتماد ذاتي من المندوب لنفسه (خرق فصل المهام Maker-Checker)',
+        detailsAr: 'حاول المندوب إدخال رمزه السري الشخصي لاعتماد عملية استثنائية لنفسه في الميدان بدلاً من المشرف.',
+      });
+      throw new AppError(
+        'لا يجوز لمندوب المبيعات استخدام رمزه الشخصي لاعتماد عملياته الميدانية طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)',
+        'MAKER_CHECKER_SELF_APPROVAL',
+        403,
+      );
+    }
 
     if (!supervisorUser) {
       const settingRow = await dbConn
@@ -227,17 +285,17 @@ export class VanSalesService {
     }
 
     if (!supervisorUser) {
+      await this.vanFraudRadarService.recordSuspicionEvent({
+        tenantId,
+        repId: repId ? Number(repId) : null,
+        eventCode: 'VAN_SUSPICION_INVALID_PIN',
+        severity: 'high',
+        titleAr: 'إدخال رمز اعتماد مشرف (PIN) خاطئ أو غير مصرح',
+        detailsAr: 'حاول المندوب إدخال رمز اعتماد مشرف غير صحيح لتمرير عملية استثنائية في الميدان.',
+      });
       throw new AppError(
         'رمز اعتماد المشرف (PIN) غير صحيح أو غير مصرح له بالاعتماد الاستثنائي',
         'INVALID_SUPERVISOR_PIN',
-        403,
-      );
-    }
-
-    if (repUserId && Number(supervisorUser.id) === repUserId) {
-      throw new AppError(
-        'لا يجوز لمندوب المبيعات استخدام رمزه الشخصي لاعتماد عملياته الميدانية طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)',
-        'MAKER_CHECKER_SELF_APPROVAL',
         403,
       );
     }
@@ -308,7 +366,20 @@ export class VanSalesService {
     } | null;
     vanLocation?: { id: number; name: string };
     inventory: VanStockItem[];
-    customers: { id: number; name: string; phone?: string; address?: string; balance: number }[];
+    customers: {
+      id: number;
+      name: string;
+      phone?: string;
+      address?: string;
+      balance: number;
+      otherRepsBalance?: number;
+      totalCompanyBalance?: number;
+      creditLimit?: number;
+      customerCode?: string;
+      route?: string;
+      assignedRepIds?: number[];
+      locationUrl?: string;
+    }[];
     recentSales: any[];
     sales?: any[];
     collections?: any[];
@@ -646,6 +717,7 @@ export class VanSalesService {
         phone: c.phone || '',
         address: c.address || '',
         balance: isolated.repBalance,
+        otherRepsBalance: isolated.otherRepsBalance,
         totalCompanyBalance: isolated.totalCustomerBalance,
         creditLimit: Number(c.creditLimit || 0),
         customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cid),
@@ -875,6 +947,7 @@ export class VanSalesService {
     accountId: string,
     payload: {
       sourceWarehouseId?: number;
+      startOdometer?: number;
       items?: { productId: number; qty: number }[];
       notes?: string;
     },
@@ -1037,7 +1110,7 @@ export class VanSalesService {
           account_id: accountId,
           rep_id: repId,
           vehicle_id: assignedVehicle?.id ? Number(assignedVehicle.id) : null,
-          start_odometer: assignedVehicle?.current_odometer ? Number(assignedVehicle.current_odometer) : null,
+          start_odometer: payload.startOdometer != null ? Number(payload.startOdometer) : (assignedVehicle?.current_odometer ? Number(assignedVehicle.current_odometer) : null),
           van_location_id: vanLoc.id,
           source_warehouse_id: sourceLocId || vanLoc.id,
           status: 'open',
@@ -1292,6 +1365,17 @@ export class VanSalesService {
       // Prevents a failed credit attempt from persisting an unapproved customer row that bypasses isNewCustomer on retry
       if (isNewCustomer && !resolvedCustomerId) {
         if (isCreditOrSplit && !supervisorOverrideApproved) {
+          await this.vanFraudRadarService.recordSuspicionEvent({
+            tenantId,
+            accountId,
+            repId,
+            tripId: payload.tripId,
+            customerName,
+            eventCode: 'VAN_SUSPICION_CREDIT_BYPASS',
+            severity: 'critical',
+            titleAr: 'محاولة بيع آجل لعميل جديد غير مسجل مسبقاً بدون اعتماد مشرف (مديونية وهمية)',
+            detailsAr: `حاول المندوب فتح حساب آجل لعميل ميداني جديد غير مسجل ("${customerName}") بدون رمز اعتماد المشرف.`,
+          });
           throw new AppError(
             `البيع الآجل لعميل جديد ("${customerName}") غير مسجل مسبقاً يتطلب اعتماد المشرف برمز PIN لمنع المديونيات الوهمية`,
             'NEW_CUSTOMER_CREDIT_REQUIRES_SUPERVISOR_PIN',
@@ -1328,7 +1412,7 @@ export class VanSalesService {
 
         const multiplier = Number((item as any).unitMultiplier || 1);
         const unitName = (item as any).unitName || null;
-        const isBonus = Boolean((item as any).isBonus);
+        const isBonus = Boolean((item as any).isBonus) || (item.unitPrice !== undefined && item.unitPrice !== null && Number(item.unitPrice) === 0);
         const bonusReason = (item as any).bonusReason || (isBonus ? 'بونص ترويجي / عينة مجانية' : null);
         const baseQty = Number((inputQty * multiplier).toFixed(4));
 
@@ -1347,11 +1431,30 @@ export class VanSalesService {
 
         const activeOffers = offersByProduct.get(pid) || [];
 
+        const isCreditSale = payload.paymentMethod === 'credit' || payload.paymentMethod === 'split';
+        const defaultBasePrice = isCreditSale && prod.credit_price != null && Number(prod.credit_price) > 0
+          ? Number(prod.credit_price)
+          : Number(prod.retail_price || 0);
+
         // Security Invariant: Gated Bonus Items
         // Free bonus items cannot be arbitrarily flipped by the driver unless an active promotion allows it or supervisor PIN is provided
         if (isBonus) {
           const hasActiveBogoOffer = activeOffers.some((o: any) => o.offer_type === 'bogo');
           if (!hasActiveBogoOffer && !supervisorOverrideApproved) {
+            const attemptedVal = Number((defaultBasePrice * multiplier * inputQty).toFixed(2));
+            await this.vanFraudRadarService.recordSuspicionEvent({
+              tenantId,
+              accountId,
+              repId,
+              tripId: payload.tripId,
+              customerId: resolvedCustomerId,
+              customerName,
+              eventCode: 'VAN_SUSPICION_UNAUTHORIZED_BONUS',
+              severity: 'high',
+              titleAr: 'محاولة صرف بونص عيني مجاني بدون عرض ترويجي أو اعتماد مشرف',
+              detailsAr: `حاول المندوب صرف ${inputQty} (${unitName || 'قطعة'}) من الصنف "${prod.name || pid}" كبونص مجاني بقيمة ${attemptedVal} ج.م دون وجود عرض BOGO نشط أو PIN مشرف.`,
+              attemptedAmount: attemptedVal,
+            });
             throw new AppError(
               `صرف الصنف "${prod.name || pid}" كبونص عيني مجاني يتطلب عرضاً ترويجياً نشطاً أو اعتماد المشرف برمز PIN`,
               'BONUS_REQUIRES_SUPERVISOR_PIN',
@@ -1394,11 +1497,6 @@ export class VanSalesService {
           skipGlobalUpdate: false,
           unitCost: Number(prod.cost_price || 0),
         });
-
-        const isCreditSale = payload.paymentMethod === 'credit' || payload.paymentMethod === 'split';
-        const defaultBasePrice = isCreditSale && prod.credit_price != null && Number(prod.credit_price) > 0
-          ? Number(prod.credit_price)
-          : Number(prod.retail_price || 0);
 
         let systemAuthorizedPrice = Number((defaultBasePrice * multiplier).toFixed(2));
         let pricingTierType: 'cash' | 'credit' | 'offer' | 'bonus' = isBonus ? 'bonus' : (isCreditSale ? 'credit' : 'cash');
@@ -1459,13 +1557,27 @@ export class VanSalesService {
         let unitPrice = systemAuthorizedPrice;
 
         // Security Invariant: Price Integrity Guard against Client Tampering
-        if (!isBonus && item.unitPrice != null && Number(item.unitPrice) > 0) {
+        if (!isBonus && item.unitPrice != null) {
           const clientPrice = Number(Number(item.unitPrice).toFixed(2));
           if (Math.abs(clientPrice - systemAuthorizedPrice) <= 0.05) {
             unitPrice = clientPrice;
           } else if (clientPrice < systemAuthorizedPrice - 0.05) {
             // Price is lower than authorized system price — requires supervisor PIN
             if (!supervisorOverrideApproved) {
+              const attemptedDiff = Number(((systemAuthorizedPrice - clientPrice) * inputQty).toFixed(2));
+              await this.vanFraudRadarService.recordSuspicionEvent({
+                tenantId,
+                accountId,
+                repId,
+                tripId: payload.tripId,
+                customerId: resolvedCustomerId,
+                customerName,
+                eventCode: 'VAN_SUSPICION_PRICE_MANIPULATION',
+                severity: 'critical',
+                titleAr: 'محاولة تلاعب وخفض سعر بيع صنف تحت السعر المعتمد بدون PIN مشرف',
+                detailsAr: `حاول المندوب بيع الصنف "${prod.name || pid}" بسعر (${clientPrice} ج.م) أقل من السعر المعتمد (${systemAuthorizedPrice} ج.م) بفارق إجمالي (${attemptedDiff} ج.م) بدون اعتماد المشرف.`,
+                attemptedAmount: attemptedDiff,
+              });
               throw new AppError(
                 `سعر البيع المحدد للصنف "${prod.name || pid}" (${clientPrice} ج.م) أقل من السعر المعتمد (${systemAuthorizedPrice} ج.م). تعديل أو خفض الأسعار يتطلب اعتماد المشرف برمز PIN`,
                 'PRICE_DISCOUNT_REQUIRES_SUPERVISOR_PIN',
@@ -1552,6 +1664,19 @@ export class VanSalesService {
             : undefined,
         });
         if (!cardCheck.allowed) {
+          await this.vanFraudRadarService.recordSuspicionEvent({
+            tenantId,
+            accountId,
+            repId,
+            tripId: payload.tripId,
+            customerId: resolvedCustomerId,
+            customerName,
+            eventCode: 'VAN_SUSPICION_FAKE_CARD_PAYMENT',
+            severity: 'critical',
+            titleAr: 'محاولة تسجيل دفع وهمي بالشبكة بدون اعتماد مشرف أو رقم إيصال',
+            detailsAr: `حاول المندوب تسجيل فاتورة بقيمة ${totalSale} ج.م كدفع بالشبكة/الفيزا لتجنب مطالبته بتوريد الكاش بالتصفية، دون اعتماد مشرف أو رقم إيصال.`,
+            attemptedAmount: totalSale,
+          });
           throw new AppError(
             cardCheck.errorMessageAr || 'الدفع بالشبكة في الميدان يتطلب اعتماد المشرف ورقم إيصال الشبكة',
             cardCheck.reasonCode || 'CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN',
@@ -1567,6 +1692,19 @@ export class VanSalesService {
         // Security Invariant: Phantom Credit Prevention
         // Rep cannot sell on credit to an ad-hoc unregistered customer without supervisor PIN
         if (isNewCustomer && !supervisorOverrideApproved) {
+          await this.vanFraudRadarService.recordSuspicionEvent({
+            tenantId,
+            accountId,
+            repId,
+            tripId: payload.tripId,
+            customerId: resolvedCustomerId,
+            customerName,
+            eventCode: 'VAN_SUSPICION_CREDIT_BYPASS',
+            severity: 'critical',
+            titleAr: 'محاولة بيع آجل لعميل جديد غير مسجل مسبقاً بدون اعتماد مشرف',
+            detailsAr: `حاول المندوب بيع آجل بقيمة ${creditOwed} ج.م لعميل جديد ("${customerName}") بدون رمز اعتماد المشرف.`,
+            attemptedAmount: creditOwed,
+          });
           throw new AppError(
             `البيع الآجل لعميل جديد ("${customerName}") غير مسجل مسبقاً يتطلب اعتماد المشرف برمز PIN لمنع المديونيات الوهمية`,
             'NEW_CUSTOMER_CREDIT_REQUIRES_SUPERVISOR_PIN',
@@ -1610,6 +1748,19 @@ export class VanSalesService {
           });
 
           if (!creditCheck.allowed) {
+            await this.vanFraudRadarService.recordSuspicionEvent({
+              tenantId,
+              accountId,
+              repId,
+              tripId: payload.tripId,
+              customerId: resolvedCustomerId,
+              customerName: custRecord.name || customerName,
+              eventCode: 'VAN_SUSPICION_CREDIT_BYPASS',
+              severity: 'high',
+              titleAr: 'محاولة كسر سقف الائتمان أو البيع الآجل لعميل نقدي/محظور بدون PIN مشرف',
+              detailsAr: creditCheck.errorMessageAr || `حاول المندوب بيع آجل بقيمة ${creditOwed} ج.م للعميل "${custRecord.name || customerName}" بالمخالفة لضوابط الائتمان.`,
+              attemptedAmount: creditOwed,
+            });
             throw new AppError(
               creditCheck.errorMessageAr || 'تم رفض العملية لتجاوز سقف الائتمان للعميل',
               creditCheck.reasonCode || 'CREDIT_LIMIT_REJECTED',
@@ -1736,17 +1887,6 @@ export class VanSalesService {
           .execute();
       }
 
-      // The journal entry doesn't stop the sale — the rep's stock and cash records must land
-      // regardless of the accounting module's state. A failure here is recorded and retried by
-      // AccountingRecoveryService, matching how SalesWriteService.createSale handles postSale.
-      try {
-        await this.accountingPosting.postSale(trx, createdSaleId, systemAuth);
-        await this.accountingPosting.clearPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        await this.accountingPosting.recordPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId, message);
-      }
-
       if (isCash) {
         await trxAny
           .updateTable('van_sales_trips')
@@ -1845,6 +1985,15 @@ export class VanSalesService {
             })
             .execute();
         }
+      }
+
+      // Post GL journal after customer_ledger so split sales can read their exact credit portion
+      try {
+        await this.accountingPosting.postSale(trx, createdSaleId, systemAuth);
+        await this.accountingPosting.clearPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await this.accountingPosting.recordPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId, message);
       }
     });
 
@@ -1967,6 +2116,27 @@ export class VanSalesService {
       });
 
       if (!validation.allowed) {
+        await this.recordSuspicionEvent({
+          tenantId,
+          accountId,
+          repId,
+          tripId: payload.tripId,
+          customerId: payload.customerId,
+          customerName: String(lockedCust.name || cust.name || ''),
+          eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_CROSS_REP_COLLECTION,
+          severity: 'high',
+          titleAr: 'محاولة تحصيل مديونية تخص مندوباً آخر على عميل مشترك',
+          detailsAr:
+            validation.errorMessage ||
+            `حاول المندوب تحصيل مبلغ (${amount}) من العميل "${lockedCust.name}" بينما رصيده المعزول لدى العميل (${isolated.repBalance}) ومديونية المناديب الآخرين (${isolated.otherRepsBalance}).`,
+          amountInvolved: amount,
+          metadata: {
+            repBalance: isolated.repBalance,
+            otherRepsBalance: isolated.otherRepsBalance,
+            totalCustomerBalance: isolated.totalCustomerBalance,
+            errorCode: validation.errorCode,
+          },
+        });
         throw new AppError(
           validation.errorMessage || 'لا يمكن تحصيل مديونية تخص مندوباً آخر',
           validation.errorCode || 'REP_ISOLATED_BALANCE_EXCEEDED',
@@ -2112,6 +2282,20 @@ export class VanSalesService {
     });
 
     if (!odometerResult.valid) {
+      await this.recordSuspicionEvent({
+        tenantId,
+        accountId,
+        repId,
+        tripId: payload.tripId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_ODOMETER_ROLLBACK,
+        severity: 'high',
+        titleAr: 'تلاعب في قراءة عداد الكيلومترات عند تقديم إقرار التصفية',
+        detailsAr: odometerResult.errorMessageAr || `قراءة العداد النهائية (${payload.endOdometer}) غير متسقة مع قراءة البداية (${trip.start_odometer}).`,
+        metadata: {
+          startOdometer: trip.start_odometer,
+          endOdometer: payload.endOdometer,
+        },
+      });
       throw new AppError(odometerResult.errorMessageAr!, 'INVALID_ODOMETER', 400);
     }
 
@@ -2238,7 +2422,7 @@ export class VanSalesService {
     // Lookup rep details to check Maker-Checker against linked user
     const rep = await this.anyDb
       .selectFrom('delivery_representatives')
-      .select(['id', 'name', 'phone'])
+      .select(['id', 'name', 'phone', 'user_id'])
       .where('id', '=', repId)
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
@@ -2262,6 +2446,22 @@ export class VanSalesService {
       });
 
       if (!makerChecker.allowed) {
+        await this.recordSuspicionEvent({
+          tenantId,
+          accountId,
+          repId,
+          repName: rep?.name ? String(rep.name) : undefined,
+          tripId: payload.tripId,
+          eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
+          severity: 'critical',
+          titleAr: 'محاولة تصفية رحلة ذاتياً بدون صلاحية مشرف (خرق Maker-Checker)',
+          detailsAr: makerChecker.errorMessageAr || 'حاول المندوب اعتماد وتصفية رحلته بنفسه دون مراجعة المشرف.',
+          metadata: {
+            reasonCode: makerChecker.reasonCode,
+            actorUserId,
+            repUserId,
+          },
+        });
         throw new AppError(makerChecker.errorMessageAr!, makerChecker.reasonCode!, 403);
       }
     }
@@ -2273,6 +2473,21 @@ export class VanSalesService {
       endOdometer: effectiveEndOdometer,
     });
     if (!odometerResult.valid) {
+      await this.recordSuspicionEvent({
+        tenantId,
+        accountId,
+        repId,
+        repName: rep?.name ? String(rep.name) : undefined,
+        tripId: payload.tripId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_ODOMETER_ROLLBACK,
+        severity: 'high',
+        titleAr: 'تلاعب في قراءة عداد الكيلومترات عند التصفية النهائية',
+        detailsAr: odometerResult.errorMessageAr || `قراءة العداد النهائية (${effectiveEndOdometer}) أقل من قراءة البداية (${trip.start_odometer}).`,
+        metadata: {
+          startOdometer: trip.start_odometer,
+          endOdometer: effectiveEndOdometer,
+        },
+      });
       throw new AppError(odometerResult.errorMessageAr!, 'INVALID_ODOMETER', 400);
     }
 
@@ -2552,6 +2767,30 @@ export class VanSalesService {
         );
       }
     });
+
+    if (cashVariance < -0.5 || totalStockVarianceCost > 0.5) {
+      const cashShortageAmount = cashVariance < 0 ? Math.abs(cashVariance) : 0;
+      const totalShortage = Number((cashShortageAmount + totalStockVarianceCost).toFixed(2));
+      await this.recordSuspicionEvent({
+        tenantId,
+        accountId,
+        repId,
+        repName: rep?.name ? String(rep.name) : undefined,
+        tripId: payload.tripId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_SETTLEMENT_SHORTAGE,
+        severity: totalShortage >= 500 ? 'critical' : 'high',
+        titleAr: 'رصد عجز نقدي أو مخزني عند تصفية رحلة التوزيع',
+        detailsAr: `تم تصفية الرحلة #${payload.tripId} بعجز نقدي قدره (${cashShortageAmount.toFixed(2)}) وعجز بضاعة مفقودة بتكلفة (${totalStockVarianceCost.toFixed(2)}). إجمالي العجز المسجل على المندوب: (${totalShortage.toFixed(2)}).`,
+        amountInvolved: totalShortage,
+        metadata: {
+          expectedCash,
+          countedCash,
+          cashVariance,
+          stockVarianceAmount: totalStockVarianceCost,
+          chargeStockVarianceToRep: Boolean(payload.chargeStockVarianceToRep),
+        },
+      });
+    }
 
     return {
       ok: true,
@@ -3423,9 +3662,9 @@ export class VanSalesService {
   }
 
   async recordFieldVisit(
-    tenantId: string,
-    accountId: string,
-    repId: number,
+    arg1: string | number,
+    arg2: string,
+    arg3: string | number,
     payload: {
       tripId: number;
       customerId: number;
@@ -3438,7 +3677,7 @@ export class VanSalesService {
       notes?: string;
     },
   ) {
-    return this.vanRoutesService.recordFieldVisit(tenantId, accountId, repId, payload);
+    return this.vanRoutesService.recordFieldVisit(arg1, arg2, arg3, payload);
   }
 
   async listFieldVisits(
@@ -3567,6 +3806,25 @@ export class VanSalesService {
     });
 
     if (!governance.allowed) {
+      await this.recordSuspicionEvent({
+        tenantId,
+        accountId,
+        repId,
+        tripId: payload.tripId,
+        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_EXPENSE_ABUSE,
+        severity: 'high',
+        titleAr: 'محاولة تسجيل مصروف طريق مخالف لسقف الحوكمة',
+        detailsAr:
+          governance.errorMessageAr ||
+          `حاول المندوب تسجيل مصروف (${payload.expenseType}) بمبلغ (${payload.amount}) يتجاوز السقف المعتمد بدون كود مشرف.`,
+        amountInvolved: Number(payload.amount),
+        metadata: {
+          expenseType: payload.expenseType,
+          amount: Number(payload.amount),
+          existingTripExpenses,
+          reasonCode: governance.reasonCode,
+        },
+      });
       throw new AppError(
         governance.errorMessageAr || 'تم رفض تسجيل المصروف الميداني',
         governance.reasonCode || 'EXPENSE_GOVERNANCE_REJECTED',

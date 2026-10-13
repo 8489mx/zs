@@ -4,6 +4,7 @@ import { Database } from '../../database/database.types';
 import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
 import {
   ManagerActionCustomerBalanceRow,
   ManagerActionCustomerRow,
@@ -15,8 +16,25 @@ import {
   ManagerActionProductRow,
   ManagerActionSaleMarginRow,
   ManagerActionSaleRow,
+  ManagerActionVanSuspicionRow,
   buildManagerActionInsights,
 } from './helpers/manager-actions.helper';
+
+const VAN_SUSPICION_EVENT_CODES: string[] = [
+  AUDIT_EVENT_CODES.VAN_SUSPICION_PRICE_MANIPULATION,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_BONUS,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_CREDIT_BYPASS,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_CROSS_REP_COLLECTION,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_FAKE_CARD_PAYMENT,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_FRAUDULENT_RETURN,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_EXPENSE_ABUSE,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_ODOMETER_ROLLBACK,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_GEOFENCE_VIOLATION,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_SELF_APPROVAL,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_INVALID_PIN,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
+  AUDIT_EVENT_CODES.VAN_SUSPICION_SETTLEMENT_SHORTAGE,
+];
 
 @Injectable()
 export class ManagerActionsService {
@@ -35,6 +53,7 @@ export class ManagerActionsService {
       pharmacyBatches,
       installments,
       onlineOrders,
+      vanSuspicionAlerts,
       settingsRows,
     ] = await Promise.all([
       this.safeQuery(() => this.loadProducts(scope.tenantId)),
@@ -46,6 +65,7 @@ export class ManagerActionsService {
       this.safeQuery(() => this.loadPharmacyBatches(scope.tenantId)),
       this.safeQuery(() => this.loadOverdueInstallments(scope.tenantId)),
       this.safeQuery(() => this.loadPendingOnlineOrders(scope.tenantId)),
+      this.safeQuery(() => this.loadVanSuspicionAlerts(scope.tenantId)),
       this.safeQuery(() => this.loadSettings(scope.tenantId)),
     ]);
 
@@ -65,6 +85,7 @@ export class ManagerActionsService {
         pharmacyBatches,
         installments,
         onlineOrders,
+        vanSuspicionAlerts,
         stagnantThresholdDays: Number(settingsMap.stagnantProductDays) > 0 ? Number(settingsMap.stagnantProductDays) : 60,
         expiryAlertDays: Number(settingsMap.expiryAlertDays) > 0 ? Number(settingsMap.expiryAlertDays) : 60,
         limit: safeLimit,
@@ -214,6 +235,19 @@ export class ManagerActionsService {
       .where('status', '=', 'pending')
       .orderBy('created_at', 'desc')
       .limit(20)
+      .execute();
+  }
+
+  private loadVanSuspicionAlerts(tenantId: string): Promise<ManagerActionVanSuspicionRow[]> {
+    const cutoff = new Date(Date.now() - 48 * 3600 * 1000);
+    return (this.db as any)
+      .selectFrom('audit_logs')
+      .select(['id', 'event_code', 'details', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('event_code', 'in', VAN_SUSPICION_EVENT_CODES)
+      .where('created_at', '>=', cutoff)
+      .orderBy('created_at', 'desc')
+      .limit(15)
       .execute();
   }
 }

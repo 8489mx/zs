@@ -7283,3 +7283,56 @@
   - `frontend/src/features/delivery-reps/components/VanSaleTab.tsx`
   - `frontend/src/features/delivery-reps/components/DriverNewLoadRequisitionView.tsx`
   - `frontend/src/shared/verticals/vertical-scope.ts`
+
+---
+
+## 235. رادار مكافحة الشبهات والتلاعب لمناديب التوزيع وعزل مديونيات العملاء المشتركين (Van Sales Fraud Radar & Multi-Rep Isolated Balances)
+* **الحالة / الإنجاز:** 🟢 مكتمل ومتحقق ومختبر E2E بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة إدارة الفان والجملة `/van-sales/management` (تبويب "رادار الشبهات") وجرس إشعارات المالك العلوي وتطبيق بوابة المندوب الميداني.
+* **الهدف:** توفير حصانة تامة ضد كافة أشكال السرقة والتلاعب وسد جميع الثغرات الميدانية التي قد يستغلها مندوب التوزيع، والتفوق التقني والرقابي الصارم على برامج التوزيع المتخصصة (مثل QuickSales و SalesNuzz)، مع تمكين خدمة العميل الواحد بواسطة أكثر من مندوب وعزل مديونية كل مندوب منعاً للخلط والسرقة.
+* **المحرك والميزات المنفذة:**
+  1. **رادار الشبهات وصمامات الأمان الـ 13 الحتمية لمنع السرقة والتلاعب:**
+     - **صمام 1 - كسر السعر المعتمد (Price Manipulation):** حظر تعديل أو بيع أي صنف بأقل من السعر المعتمد بالنظام إلا برمز PIN معتمد للمشرف (`PRICE_DISCOUNT_REQUIRES_SUPERVISOR_PIN`).
+     - **صمام 2 - البونص والعينات المجانية (Unauthorized Bonus):** حظر إعطاء أي صنف مجاني أو بسعر صفر إلا في وجود عرض ترويجي نشط أو اعتماد مشرف (`BONUS_REQUIRES_SUPERVISOR_PIN`).
+     - **صمام 3 - فصل المهام والاعتماد الذاتي (Maker-Checker Self-Approval):** منع المندوب من إدخال رمزه الشخصي لاعتماد تجاوزاته التشغيلية بنفسه (`MAKER_CHECKER_SELF_APPROVAL`).
+     - **صمام 4 - تخمين الرمز السري (Invalid PIN):** حظر أي محاولات إدخال رموز عشوائية أو غير صحيحة للمشرف وتوثيق محاولة التخمين فورياً (`INVALID_SUPERVISOR_PIN`).
+     - **صمام 5 - الدفع الإلكتروني الوهمي (Fake Card Payment):** إلزام تسجيل رقم الإيصال البنكي / التفويض لمدفوعات الشبكة والبطاقات لمنع تسجيل مبيعات نقدية كمدفوعات إلكترونية وهمية بدون إيصال (`CARD_PAYMENT_REQUIRES_SUPERVISOR_PIN`).
+     - **صمام 6 - البيع الآجل لعملاء الكاش (Cash-Only Credit):** حظر البيع الآجل لأي عميل مصنف نقدي (`credit_limit = 0`) بدون موافقة المشرف برمز PIN (`CASH_ONLY_CUSTOMER`).
+     - **صمام 7 - الديون الوهمية لعملاء جدد (New Customer Credit Bypass):** حظر فتح حساب آجل لعميل ميداني جديد غير مسجل مسبقاً لمنع المندوب من تسجيل مبيعات وهمية بأسماء محلات وهمية (`NEW_CUSTOMER_CREDIT_REQUIRES_SUPERVISOR_PIN`).
+     - **صمام 8 - المرتجع العيني لأصناف لم تُبَع (Unlinked Return Fraud):** فحص السجل البيعي التاريخي ورفض مرتجع أي صنف لم يشتره العميل من المندوب (`RETURN_QTY_EXCEEDS_SOLD`).
+     - **صمام 9 - تضخيم سعر المرتجع (Inflated Return Price):** إلزام المرتجع بسعر لا يتجاوز صافي سعر البيع التاريخي للعميل (`RETURN_PRICE_EXCEEDS_NET`).
+     - **صمام 10 - سقف رد النقدية الفوري (Cash Refund Cap):** حظر رد نقدية في المرتجع يتجاوز إجمالي النقدية المحصلة فعلياً في السيارة في تلك الرحلة (`INSUFFICIENT_REP_CASH_FOR_REFUND`).
+     - **صمام 11 - حوكمة مصاريف الطريق (Road Expenses Abuse):** حظر المصاريف الفردية أو التراكمية التي تتجاوز سقف الحوكمة (مثل 150 ج.م للبنزين) بدون اعتماد المشرف (`EXPENSE_REQUIRES_SUPERVISOR_PIN`).
+     - **صمام 12 - تدوير العداد للخلف (Odometer Rollback):** رفض أي قراءة لعداد الكيلومترات النهائي تقل عن قراءة بداية الرحلة (`INVALID_ODOMETER`).
+     - **صمام 13 - الزيارات الوهمية الجغرافية (Ghost Visits / Geofence Violation):** فحص إحداثيات GPS وحساب البعد عن العميل، ورصد أي زيارة تتجاوز الحد المسموح (300 متر) كشبهة تلاعب جغرافية.
+  2. **العزل التام لمديونيات المناديب على العميل المشترك (Multi-Rep Isolated Customer Debt Balances):**
+     - عند اشتراك أكثر من مندوب في خدمة نفس العميل، يحسب النظام تلقائياً رصيد مديونية مستقل لكل مندوب على حدة (`isolated.repBalance`)، مع عرض شفاف لمديونية زملائه وإجمالي رصيد الشركة.
+     - **حظر التحصيل المتقاطع:** يُمنع منعاً باتاً لأي مندوب تحصيل مليم واحد من مديونية تخص مندوباً آخر (`REP_ISOLATED_BALANCE_EXCEEDED`).
+     - **رؤية المشرف الموحدة:** يرى المشرف في الداشبورد تفصيلاً دقيقاً لكل مندوب ورصيده لدى العميل مع إجمالي الشركة.
+  3. **حظر إبراء الذمة الذاتي للرحلات (Maker-Checker Trip Settlement):**
+     - المندوب يسلم فقط إقرار رحلته (`submitTripSettlement`).
+     - التصفية النهائية والاعتماد المالي والمخزني وإبراء الذمة (`settleTrip`) محظورة على المندوب وتتم حصراً بواسطة المشرف أو الإدارة.
+  4. **لوحة متابعة رادار الشبهات وإشعارات المالك الفورية:**
+     - تبويب مخصص `رادار الشبهات` في شاشة إدارة الفان والجملة (`VanFraudRadarAdminTab.tsx`) يعرض مؤشرات الخطر وسجل العمليات وتصنيف المناديب عالي الخطورة.
+     - إرسال إشعار فوري لجرس المالك/المشرف في شريط النظام العلوي (`ManagerNotificationsBell`) يوجه بنقرة واحدة إلى `/van-sales/management?tab=radar`.
+     - إرسال تنبيه WhatsApp فوري للمالك عبر `WhatsAppGatewayService` في الشبهات الحرجة.
+  5. **الاختبار والتحقق الشامل المؤتمت E2E:**
+     - اختبار ومحاكاة كافة سيناريوهات المندوب الحرامي والتخريب والتحصيل المشترك بنسبة نجاح 100% عبر:
+       `backend/test/e2e/van-sales-rogue-rep-and-multi-rep.e2e.ts`.
+* **الملفات المنفذة:**
+  - `backend/src/core/audit/audit.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-fraud-radar.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-returns.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-transfers.service.ts`
+  - `backend/src/modules/delivery-reps/services/van-routes.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `backend/src/modules/accounting/accounting-posting.service.ts`
+  - `backend/src/modules/manager-actions/manager-actions.service.ts`
+  - `backend/src/modules/manager-actions/helpers/manager-actions.helper.ts`
+  - `frontend/src/features/dashboard/components/ManagerNotificationsBell.tsx`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanFraudRadarAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
+  - `backend/test/e2e/van-sales-rogue-rep-and-multi-rep.e2e.ts`
+

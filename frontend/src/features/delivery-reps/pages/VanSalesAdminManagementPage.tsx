@@ -15,6 +15,7 @@ import {
   CheckCircleIcon,
   MapPinIcon,
   RefreshCwIcon,
+  CheckShieldIcon,
 } from '@/shared/components/icons/AppIcons';
 import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
@@ -23,14 +24,17 @@ import { VanFieldReturnsAdminTab } from '../components/VanFieldReturnsAdminTab';
 import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
 import { VanRoutesKpiAdminTab } from '../components/VanRoutesKpiAdminTab';
 import { VanPreSalesAdminTab } from '../components/VanPreSalesAdminTab';
+import { VanFraudRadarAdminTab } from '../components/VanFraudRadarAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
 
+type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'fleet' | 'drivers';
+
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers' | null;
+  const tabParam = searchParams.get('tab') as VanAdminTabKey | null;
 
-  const [activeTab, setActiveTab] = useState<'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'targets' | 'fleet' | 'drivers'>(
+  const [activeTab, setActiveTab] = useState<VanAdminTabKey>(
     () => tabParam || 'trips',
   );
 
@@ -50,6 +54,7 @@ export default function VanSalesAdminManagementPage() {
     isRepsLoading,
     pendingReturns,
     pendingRequisitions,
+    suspicionEventsCount,
   } = useVanSalesAdmin();
 
   const vanDrivers = useMemo(() => {
@@ -224,6 +229,14 @@ export default function VanSalesAdminManagementPage() {
             icon: <FileTextIcon size={15} />,
           },
           {
+            key: 'radar' as const,
+            label: 'رادار الشبهات',
+            count: suspicionEventsCount > 0 ? suspicionEventsCount : undefined,
+            badgeBg: suspicionEventsCount > 0 ? '#fee2e2' : undefined,
+            badgeColor: suspicionEventsCount > 0 ? '#dc2626' : undefined,
+            icon: <CheckShieldIcon size={15} />,
+          },
+          {
             key: 'targets' as const,
             label: 'مستهدفات البيع',
             icon: <CheckCircleIcon size={15} />,
@@ -315,6 +328,9 @@ export default function VanSalesAdminManagementPage() {
 
       {/* Tab 3: Returns */}
       {activeTab === 'returns' && <VanFieldReturnsAdminTab />}
+
+      {/* Tab: Anti-Theft & Suspicion Radar */}
+      {activeTab === 'radar' && <VanFraudRadarAdminTab />}
 
       {/* Tab 4: Targets */}
       {activeTab === 'targets' && <VanRepTargetsAdminTab />}

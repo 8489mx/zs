@@ -11,12 +11,14 @@ import {
   extractAssignedRepIds,
   resolveIsolatedRepCustomerBalance,
 } from '../rep-target.engine';
+import { VanFraudRadarService } from './van-fraud-radar.service';
 
 @Injectable()
 export class VanRoutesService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly vanFleetService: VanFleetService,
+    private readonly fraudRadar?: VanFraudRadarService,
   ) {}
 
   private get anyDb(): any {
@@ -192,9 +194,9 @@ export class VanRoutesService {
   }
 
   async recordFieldVisit(
-    tenantId: string,
-    accountId: string,
-    repId: number,
+    arg1: string | number,
+    arg2: string,
+    arg3: string | number,
     payload: {
       tripId: number;
       customerId: number;
@@ -207,6 +209,19 @@ export class VanRoutesService {
       notes?: string;
     },
   ) {
+    let tenantId: string;
+    let accountId: string;
+    let repId: number;
+    if (typeof arg1 === 'number') {
+      repId = arg1;
+      tenantId = arg2;
+      accountId = String(arg3);
+    } else {
+      tenantId = arg1;
+      accountId = arg2;
+      repId = Number(arg3);
+    }
+
     if (!payload.customerId || !payload.tripId) {
       throw new AppError('يرجى تحديد الرحلة والعميل', 'INVALID_PARAMS', 400);
     }
@@ -235,6 +250,46 @@ export class VanRoutesService {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
+    // Check Geofence Compliance if GPS coordinates were supplied
+    const custRow = await this.anyDb
+      .selectFrom('customers')
+      .select(['id', 'name', 'metadata'])
+      .where('id', '=', payload.customerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    let isWithinGeofence = true;
+    let distanceMeters: number | null = null;
+    if (custRow && payload.gpsLat != null && payload.gpsLng != null) {
+      const custCoords = extractCoordinatesFromCustomerLocation({ metadata: custRow.metadata });
+      const geo = evaluateGeofenceCompliance({
+        repLat: Number(payload.gpsLat),
+        repLng: Number(payload.gpsLng),
+        customerLat: custCoords?.lat ?? null,
+        customerLng: custCoords?.lng ?? null,
+        maxAllowedMeters: 300,
+      });
+      isWithinGeofence = geo.isCompliant !== false;
+      distanceMeters = geo.distanceMeters;
+      if (geo.status === 'outside_geofence') {
+        await this.fraudRadar?.recordSuspicionEvent({
+          tenantId,
+          accountId,
+          repId,
+          tripId: payload.tripId,
+          customerId: payload.customerId,
+          customerName: custRow.name,
+          eventCode: 'VAN_SUSPICION_GEOFENCE_VIOLATION',
+          severity: 'medium',
+          titleAr: 'تسجيل زيارة ميدانية خارج النطاق الجغرافي للعميل (Ghost Visit)',
+          detailsAr: `سجل المندوب زيارة (${payload.visitType === 'negative' ? 'سلبية' : 'إيجابية'}) للعميل "${custRow.name}" من على بعد ${Math.round(geo.distanceMeters || 0)} متر (الحد المسموح 300 متر).`,
+          referenceType: 'van_field_visits',
+          referenceId: Number(inserted.id),
+          extraMetadata: { distanceMeters: geo.distanceMeters, visitType: payload.visitType, negativeReason: payload.negativeReason },
+        });
+      }
+    }
+
     const lastThreeVisits = await this.anyDb
       .selectFrom('van_field_visits')
       .select(['visit_type'])
@@ -251,6 +306,8 @@ export class VanRoutesService {
       ok: true,
       visitId: Number(inserted.id),
       consecutiveNegativeAlert: isConsecutiveThreeNegatives,
+      isWithinGeofence,
+      distanceMeters,
     };
   }
 

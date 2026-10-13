@@ -40,6 +40,7 @@ export type ManagerActionInsight = {
     | 'pharmacy_expiry'
     | 'installments'
     | 'online_orders'
+    | 'van_suspicion'
     | 'manager_actions';
   severity: 'info' | 'warning' | 'danger';
   title: string;

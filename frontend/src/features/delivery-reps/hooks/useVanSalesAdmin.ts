@@ -20,11 +20,18 @@ export function useVanSalesAdmin() {
     refetchInterval: 15000,
   });
 
+  const fraudRadarSummaryQuery = useQuery({
+    queryKey: ['van-fraud-radar-summary', '30', 'all'],
+    queryFn: () => vanSalesApi.getFraudRadarSummary({ days: 30 }),
+    refetchInterval: 15000,
+  });
+
   return {
     reps: repsQuery.data || [],
     isRepsLoading: repsQuery.isLoading,
     pendingReturns: pendingReturnsQuery.data || [],
     pendingRequisitions: pendingRequisitionsQuery.data || [],
+    suspicionEventsCount: fraudRadarSummaryQuery.data?.kpis?.totalSuspicionEvents || 0,
   };
 }
 

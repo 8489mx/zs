@@ -634,6 +634,7 @@ export class AccountingPostingService {
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'exchange_return_id', 'branch_id', 'location_id', 'created_by', 'created_at',
         'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
+        'sale_origin', 'payment_type', 'collection_status',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -705,16 +706,72 @@ export class AccountingPostingService {
     }
 
     if (receivableAmount > 0) {
-      this.addLine(lines, {
-        accountId: customerAccountId,
-        description: 'مديونية عميل من فاتورة بيع',
-        debit: receivableAmount,
-        credit: 0,
-        partnerType: customerPartnerId ? 'customer' : 'none',
-        partnerId: customerPartnerId,
-        branchId: sale.branch_id ? Number(sale.branch_id) : null,
-        locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      const isVanSale = String((sale as any).sale_origin || '') === 'van_sale';
+      const paymentType = String((sale as any).payment_type || '');
+      const branchIdVal = sale.branch_id ? Number(sale.branch_id) : null;
+      const locationIdVal = sale.location_id ? Number(sale.location_id) : null;
+
+      if (isVanSale && paymentType === 'cash') {
+        // Cash collected in the field sits in rep custody (partnerType: 'none') until settleTrip clears it.
+        // Even if customer_id is set on the invoice, the customer does not owe a receivable.
+        this.addLine(lines, {
+          accountId: customerAccountId,
+          description: 'عهدة نقدية لدى مندوب التوزيع من فاتورة بيع نقدي',
+          debit: receivableAmount,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: branchIdVal,
+          locationId: locationIdVal,
+        });
+      } else if (isVanSale && paymentType === 'split') {
+        const creditLedgerRow = await (queryable as any)
+          .selectFrom('customer_ledger')
+          .select(['amount'])
+          .where('reference_type', '=', 'sale')
+          .where('reference_id', '=', saleId)
+          .where('entry_type', '=', 'sale_credit')
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        const creditPortion = this.toMoney(Math.min(receivableAmount, Math.max(0, Number(creditLedgerRow?.amount || 0))));
+        const repCashPortion = this.toMoney(Math.max(0, receivableAmount - creditPortion));
+
+        if (repCashPortion > 0) {
+          this.addLine(lines, {
+            accountId: customerAccountId,
+            description: 'عهدة نقدية لدى مندوب التوزيع (الجزء النقدي من فاتورة مجزأة)',
+            debit: repCashPortion,
+            credit: 0,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: branchIdVal,
+            locationId: locationIdVal,
+          });
+        }
+        if (creditPortion > 0) {
+          this.addLine(lines, {
+            accountId: customerAccountId,
+            description: 'مديونية عميل من فاتورة بيع مجزأة',
+            debit: creditPortion,
+            credit: 0,
+            partnerType: customerPartnerId ? 'customer' : 'none',
+            partnerId: customerPartnerId,
+            branchId: branchIdVal,
+            locationId: locationIdVal,
+          });
+        }
+      } else {
+        this.addLine(lines, {
+          accountId: customerAccountId,
+          description: 'مديونية عميل من فاتورة بيع',
+          debit: receivableAmount,
+          credit: 0,
+          partnerType: customerPartnerId ? 'customer' : 'none',
+          partnerId: customerPartnerId,
+          branchId: branchIdVal,
+          locationId: locationIdVal,
+        });
+      }
     }
 
     if (storeCreditUsed > 0) {
@@ -3703,6 +3760,7 @@ export class AccountingPostingService {
     params: {
       customerId: number;
       totalAmount: number;
+      refundMethod?: 'credit' | 'cash';
       items: { productId: number; qty: number; costPrice: number }[];
       branchId: number | null;
       locationId: number | null;
@@ -3737,9 +3795,12 @@ export class AccountingPostingService {
 
     const branchId = params.branchId;
     const locationId = params.locationId;
+    const isCashRefund = params.refundMethod === 'cash';
     const lines: JournalLineDraft[] = [
       { accountId: revenueAccountId, description: `عكس إيراد مبيعات - مرتجع ميداني #${returnId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId },
-      { accountId: receivableAccountId, description: `تخفيض مديونية عميل - مرتجع ميداني #${returnId}`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
+      isCashRefund
+        ? { accountId: receivableAccountId, description: `تخفيض عهدة نقدية مندوب - مرتجع ميداني مسدد نقداً #${returnId}`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId }
+        : { accountId: receivableAccountId, description: `تخفيض مديونية عميل - مرتجع ميداني #${returnId}`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
     ];
 
     const cogsAmount = this.toMoney(params.items.reduce((sum, it) => sum + (Number(it.qty || 0) * Number(it.costPrice || 0)), 0));

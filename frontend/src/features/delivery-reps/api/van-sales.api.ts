@@ -1688,5 +1688,97 @@ export const vanSalesApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  // =========================================================================
+  // Van Sales Anti-Theft & Suspicion Radar (رادار الشبهات ومكافحة التلاعب)
+  // =========================================================================
+
+  getFraudRadarSummary: async (filters?: {
+    days?: number;
+    repId?: number;
+  }): Promise<VanFraudRadarSummaryResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.days) params.set('days', String(filters.days));
+    if (filters?.repId) params.set('repId', String(filters.repId));
+    const q = params.toString();
+    return http(`/api/van-sales/admin/fraud-radar/summary${q ? `?${q}` : ''}`);
+  },
+
+  getFraudRadarEvents: async (filters?: {
+    days?: number;
+    repId?: number;
+    eventCode?: string;
+    limit?: number;
+  }): Promise<{ ok: boolean; events: VanFraudRadarEvent[] }> => {
+    const params = new URLSearchParams();
+    if (filters?.days) params.set('days', String(filters.days));
+    if (filters?.repId) params.set('repId', String(filters.repId));
+    if (filters?.eventCode) params.set('eventCode', filters.eventCode);
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const q = params.toString();
+    return http(`/api/van-sales/admin/fraud-radar/events${q ? `?${q}` : ''}`);
+  },
 };
+
+export interface VanFraudRadarEvent {
+  id: number;
+  eventCode: string;
+  severity: 'medium' | 'high' | 'critical';
+  repId: number;
+  repName: string;
+  tripId: number | null;
+  customerId: number | null;
+  customerName: string | null;
+  titleAr: string;
+  detailsAr: string;
+  amountInvolved: number;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
+export interface VanRepRiskProfile {
+  repId: number;
+  repName: string;
+  phone: string;
+  totalSuspicionEvents: number;
+  criticalEventsCount: number;
+  highEventsCount: number;
+  mediumEventsCount: number;
+  priceManipulationCount: number;
+  unauthorizedBonusCount: number;
+  creditBypassCount: number;
+  crossRepCollectionCount: number;
+  fakeCardCount: number;
+  fraudulentReturnCount: number;
+  expenseAbuseCount: number;
+  odometerRollbackCount: number;
+  geofenceViolationCount: number;
+  selfApprovalCount: number;
+  invalidPinCount: number;
+  unauthorizedLoadOrSettleCount: number;
+  settlementShortageCount: number;
+  totalAmountAtRisk: number;
+  riskScore: number;
+  riskLevel: 'safe' | 'watch' | 'high_risk';
+  flags: string[];
+  lastEventAt: string | null;
+}
+
+export interface VanFraudRadarSummaryResponse {
+  ok?: boolean;
+  periodDays: number;
+  kpis: {
+    totalRepsMonitored: number;
+    highRiskRepsCount: number;
+    watchRepsCount: number;
+    totalSuspicionEvents: number;
+    criticalEventsCount: number;
+    totalAmountAtRisk: number;
+    blockedTamperAttemptsCount: number;
+    settlementShortageEventsCount: number;
+  };
+  repProfiles: VanRepRiskProfile[];
+  recentEvents: VanFraudRadarEvent[];
+}
+
 

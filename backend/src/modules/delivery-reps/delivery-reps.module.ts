@@ -12,13 +12,15 @@ import { VanTargetsService } from './services/van-targets.service';
 import { VanTransfersService } from './services/van-transfers.service';
 import { VanRoutesService } from './services/van-routes.service';
 import { VanPreSalesService } from './services/van-pre-sales.service';
+import { VanFraudRadarService } from './services/van-fraud-radar.service';
 
 import { DatabaseModule } from '../../database/database.module';
 import { AccountingModule } from '../accounting/accounting.module';
 import { SalesModule } from '../sales/sales.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [AuditModule, DatabaseModule, AccountingModule, SalesModule],
+  imports: [AuditModule, DatabaseModule, AccountingModule, SalesModule, SettingsModule],
   controllers: [DeliveryRepsController, DriverPortalController, VanSalesController, VanSalesAdminController],
   providers: [
     DeliveryRepsService,
@@ -30,6 +32,7 @@ import { SalesModule } from '../sales/sales.module';
     VanTransfersService,
     VanRoutesService,
     VanPreSalesService,
+    VanFraudRadarService,
   ],
   exports: [
     DeliveryRepsService,
@@ -41,6 +44,7 @@ import { SalesModule } from '../sales/sales.module';
     VanTransfersService,
     VanRoutesService,
     VanPreSalesService,
+    VanFraudRadarService,
   ],
 })
 export class DeliveryRepsModule {}

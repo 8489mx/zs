@@ -8,6 +8,7 @@ export type ManagerActionDomain =
   | 'pharmacy_expiry'
   | 'installments'
   | 'online_orders'
+  | 'van_suspicion'
   | 'manager_actions';
 
 export type ManagerActionSeverity = 'info' | 'warning' | 'danger';
@@ -93,6 +94,13 @@ export type ManagerActionOnlineOrderRow = {
   created_at?: Date | string | null;
 };
 
+export type ManagerActionVanSuspicionRow = {
+  id: number | string;
+  event_code?: string | null;
+  details?: string | null;
+  created_at?: Date | string | null;
+};
+
 export type BuildManagerActionInsightsInput = {
   products: ManagerActionProductRow[];
   productLastSales: ManagerActionLastSaleRow[];
@@ -103,6 +111,7 @@ export type BuildManagerActionInsightsInput = {
   pharmacyBatches?: ManagerActionPharmacyBatchRow[];
   installments?: ManagerActionInstallmentRow[];
   onlineOrders?: ManagerActionOnlineOrderRow[];
+  vanSuspicionAlerts?: ManagerActionVanSuspicionRow[];
   stagnantThresholdDays?: number;
   expiryAlertDays?: number;
   now?: Date;
@@ -163,6 +172,7 @@ export function buildManagerActionInsights({
   pharmacyBatches,
   installments,
   onlineOrders,
+  vanSuspicionAlerts,
   stagnantThresholdDays = 60,
   expiryAlertDays = 60,
   now = new Date(),
@@ -526,6 +536,46 @@ export function buildManagerActionInsights({
         actionHref: '/sales/online-orders',
         metrics: { orderId: id, total: round(total) },
         rank: 95,
+      }));
+    }
+  }
+
+  if (vanSuspicionAlerts && vanSuspicionAlerts.length > 0) {
+    for (const alert of vanSuspicionAlerts) {
+      const id = String(alert.id);
+      let parsed: Record<string, any> = {};
+      try {
+        parsed = typeof alert.details === 'string' ? JSON.parse(alert.details) : (alert.details || {});
+      } catch {
+        parsed = {};
+      }
+      const repName = String(parsed.repName || `مندوب #${parsed.repId || ''}`).trim();
+      const titleAr = String(parsed.titleAr || 'محاولة تلاعب ميداني مرصودة').trim();
+      const detailsAr = String(parsed.detailsAr || titleAr).trim();
+      const rawSeverity = String(parsed.severity || 'high');
+      const severity: ManagerActionSeverity = rawSeverity === 'medium' ? 'warning' : 'danger';
+      const createdAtDate = toDate(alert.created_at);
+      const timeStr = createdAtDate
+        ? createdAtDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+        : '';
+
+      insights.push(buildInsight({
+        id: `van-suspicion-${id}`,
+        domain: 'van_suspicion',
+        severity,
+        title: `شبهة تلاعب مندوب: ${repName}`,
+        message: `المندوب ${repName}${timeStr ? ` (${timeStr})` : ''}: ${titleAr}`,
+        actionLabel: 'فتح رادار الشبهات',
+        actionHref: '/van-sales/management?tab=radar',
+        metrics: {
+          auditLogId: id,
+          repId: parsed.repId,
+          repName,
+          eventCode: alert.event_code,
+          detailsAr,
+          amountInvolved: parsed.amountInvolved,
+        },
+        rank: 120,
       }));
     }
   }
