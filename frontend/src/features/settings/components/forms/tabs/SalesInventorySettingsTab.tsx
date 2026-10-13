@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, StarIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, StarIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
@@ -338,11 +338,11 @@ const PosTerminalCard = memo(function PosTerminalCard({
   testResult,
 }: PosTerminalCardProps) {
   const providerDisplayMap: Record<string, { label: string; badgeBg: string; badgeColor: string; borderColor: string }> = {
-    geidea: { label: 'Geidea POS (جيديا)', badgeBg: '#f3e8ff', badgeColor: '#6b21a8', borderColor: '#e9d5ff' },
-    paymob: { label: 'Paymob Smart POS (باي موب)', badgeBg: '#e0f2fe', badgeColor: '#0369a1', borderColor: '#bae6fd' },
-    fawry: { label: 'Fawry POS / PAX (فوري / باكس)', badgeBg: '#fef3c7', badgeColor: '#92400e', borderColor: '#fde68a' },
-    network_international: { label: 'Network International (NI)', badgeBg: '#dcfce7', badgeColor: '#166534', borderColor: '#bbf7d0' },
-    mock_sandbox: { label: 'محاكي تجريبي (Simulator)', badgeBg: '#f1f5f9', badgeColor: '#475569', borderColor: '#cbd5e1' },
+    geidea: { label: 'Geidea POS (جيديا)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
+    paymob: { label: 'Paymob Smart POS (باي موب)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
+    fawry: { label: 'Fawry POS / PAX (فوري / باكس)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
+    network_international: { label: 'Network International (NI)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
+    mock_sandbox: { label: 'محاكي تجريبي (Simulator)', badgeBg: '#f8fafc', badgeColor: '#475569', borderColor: '#e2e8f0' },
   };
 
   const providerInfo = providerDisplayMap[terminal.provider] || providerDisplayMap.fawry;
@@ -352,13 +352,13 @@ const PosTerminalCard = memo(function PosTerminalCard({
     <div
       style={{
         background: '#ffffff',
-        border: terminal.isDefault ? '2px solid #170e5e' : '1px solid #e2e8f0',
+        border: terminal.isDefault ? '1px solid #170e5e' : '1px solid #e2e8f0',
         borderRadius: '12px',
         padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
-        boxShadow: terminal.isDefault ? '0 2px 6px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+        boxShadow: terminal.isDefault ? '0 3px 10px -2px rgba(23, 14, 94, 0.08), 0 1px 3px rgba(0,0,0,0.02)' : '0 1px 3px rgba(0,0,0,0.02)',
         position: 'relative',
         transition: 'all 0.15s ease',
         opacity: (!isMasterEnabled || !terminal.enabled) ? 0.72 : 1,
@@ -372,7 +372,8 @@ const PosTerminalCard = memo(function PosTerminalCard({
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              background: terminal.isDefault ? '#ede9fe' : '#f1f5f9',
+              background: '#f8fafc',
+              border: `1px solid ${terminal.isDefault ? '#cbd5e1' : '#e2e8f0'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -393,16 +394,16 @@ const PosTerminalCard = memo(function PosTerminalCard({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    fontSize: '10.5px',
-                    fontWeight: 800,
-                    background: '#ede9fe',
-                    color: '#170e5e',
-                    border: '1px solid #ddd6fe',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: '#170e5e',
+                    color: '#ffffff',
                     padding: '2px 8px',
                     borderRadius: '6px',
+                    lineHeight: 1.4,
                   }}
                 >
-                  <StarIcon size={11} filled color="#170e5e" />
+                  <CheckCircleIcon size={11} color="#ffffff" />
                   <span>الافتراضية</span>
                 </span>
               )}
@@ -410,13 +411,13 @@ const PosTerminalCard = memo(function PosTerminalCard({
             <span
               style={{
                 display: 'inline-block',
-                marginTop: '2px',
-                fontSize: '10.5px',
-                fontWeight: 700,
+                marginTop: '3px',
+                fontSize: '11px',
+                fontWeight: 600,
                 background: providerInfo.badgeBg,
                 color: providerInfo.badgeColor,
                 border: `1px solid ${providerInfo.borderColor}`,
-                padding: '1px 6px',
+                padding: '1px 7px',
                 borderRadius: '4px',
               }}
             >
@@ -427,33 +428,57 @@ const PosTerminalCard = memo(function PosTerminalCard({
 
         {/* Header Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Active Toggle */}
-          <label
-            title={terminal.enabled ? 'الماكينة نشطة' : 'الماكينة معطلة'}
+          {/* Active Switch */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={terminal.enabled}
+            title={terminal.enabled ? 'الماكينة نشطة ومتاحة في الكاشير' : 'الماكينة معطلة'}
+            onClick={() => onUpdate({ ...terminal, enabled: !terminal.enabled })}
+            disabled={disabled || !isMasterEnabled}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.74rem',
-              fontWeight: 700,
-              color: terminal.enabled ? '#166534' : '#64748b',
-              cursor: disabled || !isMasterEnabled ? 'not-allowed' : 'pointer',
-              userSelect: 'none',
-              background: terminal.enabled ? '#f0fdf4' : '#f8fafc',
-              border: `1px solid ${terminal.enabled ? '#bbf7d0' : '#e2e8f0'}`,
+              gap: '7px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
               padding: '3px 8px',
               borderRadius: '6px',
+              cursor: (disabled || !isMasterEnabled) ? 'not-allowed' : 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            <input
-              type="checkbox"
-              checked={terminal.enabled}
-              disabled={disabled || !isMasterEnabled}
-              onChange={(e) => onUpdate({ ...terminal, enabled: e.target.checked })}
-              style={{ margin: 0, width: '14px', height: '14px', accentColor: '#170e5e', cursor: 'pointer' }}
-            />
-            <span>{terminal.enabled ? 'مفعلة' : 'معطلة'}</span>
-          </label>
+            <span
+              style={{
+                width: '28px',
+                height: '16px',
+                borderRadius: '999px',
+                background: terminal.enabled ? '#170e5e' : '#cbd5e1',
+                position: 'relative',
+                display: 'inline-block',
+                transition: 'background-color 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  position: 'absolute',
+                  top: '2px',
+                  right: terminal.enabled ? '2px' : '14px',
+                  transition: 'right 0.15s ease',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                }}
+              />
+            </span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 600, color: terminal.enabled ? '#0f172a' : '#64748b' }}>
+              {terminal.enabled ? 'مفعلة' : 'معطلة'}
+            </span>
+          </button>
 
           {/* Set Default Button */}
           {!terminal.isDefault && (
@@ -463,13 +488,28 @@ const PosTerminalCard = memo(function PosTerminalCard({
               onClick={() => onSetDefault(terminal.id)}
               style={{
                 fontSize: '0.72rem',
-                fontWeight: 700,
-                color: '#170e5e',
+                fontWeight: 600,
+                color: '#334155',
                 background: '#ffffff',
                 border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                padding: '3px 8px',
+                padding: '3px 9px',
                 cursor: (disabled || !isMasterEnabled) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!disabled && isMasterEnabled) {
+                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                  e.currentTarget.style.color = '#0f172a';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!disabled && isMasterEnabled) {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                  e.currentTarget.style.color = '#334155';
+                }
               }}
             >
               تعيين كافتراضية
@@ -487,16 +527,31 @@ const PosTerminalCard = memo(function PosTerminalCard({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
+                width: '26px',
+                height: '26px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                color: '#94a3b8',
                 borderRadius: '6px',
                 cursor: (disabled || !isMasterEnabled) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!disabled && isMasterEnabled) {
+                  e.currentTarget.style.background = '#fef2f2';
+                  e.currentTarget.style.borderColor = '#fecaca';
+                  e.currentTarget.style.color = '#dc2626';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!disabled && isMasterEnabled) {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.color = '#94a3b8';
+                }
               }}
             >
-              <Trash2Icon size={14} color="#dc2626" />
+              <Trash2Icon size={13} />
             </button>
           )}
         </div>
@@ -594,6 +649,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
             border: 'none',
             cursor: (isCardDisabled || isTesting) ? 'not-allowed' : 'pointer',
             opacity: (isCardDisabled || isTesting) ? 0.65 : 1,
+            boxShadow: '0 1px 2px rgba(23, 14, 94, 0.08)',
             transition: 'all 0.15s ease',
           }}
         >
@@ -616,14 +672,10 @@ const PosTerminalCard = memo(function PosTerminalCard({
               testResult.portOpen
                 ? '#bbf7d0'
                 : testResult.pingSucceeded
-                ? '#fde68a'
+                ? '#fed7aa'
                 : '#fecaca'
             }`,
-            background: testResult.portOpen
-              ? '#f0fdf4'
-              : testResult.pingSucceeded
-              ? '#fffbeb'
-              : '#fef2f2',
+            background: '#f8fafc',
             display: 'flex',
             flexDirection: 'column',
             gap: '6px',
@@ -641,11 +693,11 @@ const PosTerminalCard = memo(function PosTerminalCard({
               <span
                 style={{
                   fontSize: '0.78rem',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: testResult.portOpen
                     ? '#166534'
                     : testResult.pingSucceeded
-                    ? '#92400e'
+                    ? '#9a3412'
                     : '#991b1b',
                 }}
               >
@@ -658,10 +710,12 @@ const PosTerminalCard = memo(function PosTerminalCard({
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: testResult.portOpen ? '#dcfce7' : '#fef3c7',
-                  color: testResult.portOpen ? '#166534' : '#92400e',
+                  borderRadius: '6px',
+                  background: '#f1f5f9',
+                  color: testResult.portOpen ? '#166534' : '#475569',
+                  border: '1px solid #e2e8f0',
                   fontFamily: 'monospace',
+                  direction: 'ltr',
                 }}
               >
                 {testResult.latencyMs}ms
@@ -673,11 +727,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
               style={{
                 fontSize: '0.74rem',
                 lineHeight: 1.5,
-                color: testResult.portOpen
-                  ? '#15803d'
-                  : testResult.pingSucceeded
-                  ? '#78350f'
-                  : '#b91c1c',
+                color: '#475569',
               }}
             >
               {testResult.details}
@@ -687,38 +737,38 @@ const PosTerminalCard = memo(function PosTerminalCard({
       )}
 
       {/* Live Status Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
             style={{
-              width: '8px',
-              height: '8px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
               background: !terminal.enabled || !isMasterEnabled
                 ? '#94a3b8'
                 : testResult?.portOpen
-                ? '#10b981'
+                ? '#16a34a'
                 : testResult?.pingSucceeded
-                ? '#f59e0b'
+                ? '#d97706'
                 : testResult
-                ? '#ef4444'
-                : '#3b82f6',
+                ? '#dc2626'
+                : '#0284c7',
               display: 'inline-block',
             }}
           />
-          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
             {!isMasterEnabled || !terminal.enabled
               ? 'الماكينة معطلة'
               : testResult?.portOpen
-              ? 'متصلة وجاهزة للعمليات'
+              ? 'متصلة وجاهزة للعمليات (Ready)'
               : testResult?.pingSucceeded
               ? 'أونلاين (المنفذ مغلق أو يحتاج تفعيل ECR)'
               : testResult
-              ? 'غير متصلة (فشل الوصول للـ IP)'
+              ? 'غير متصلة (تعذر الوصول للـ IP)'
               : 'في انتظار الفحص الشبكي'}
           </span>
         </div>
-        <span style={{ fontSize: '0.71rem', color: '#64748b', fontFamily: 'monospace' }}>
+        <span style={{ fontSize: '0.71rem', color: '#64748b', fontFamily: 'monospace', direction: 'ltr' }}>
           {terminal.ip}:{terminal.port}
         </span>
       </div>
@@ -1943,9 +1993,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     style={{
                       fontSize: '0.76rem',
                       fontWeight: 700,
-                      color: isMasterPosTerminalEnabled ? '#170e5e' : '#64748b',
-                      background: isMasterPosTerminalEnabled ? '#f5f3ff' : '#f1f5f9',
-                      border: `1px solid ${isMasterPosTerminalEnabled ? '#ddd6fe' : '#e2e8f0'}`,
+                      color: '#334155',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                       padding: '4px 10px',
                       borderRadius: '8px',
                     }}
@@ -2013,7 +2063,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 gap: '8px',
               }}
             >
-              <InfoIcon size={16} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <InfoIcon size={16} color="#170e5e" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ color: '#1e293b' }}>إرشادات الربط مع الماكينات (ECR / LAN Direct):</strong>
                 <span style={{ display: 'block', marginTop: '2px' }}>
