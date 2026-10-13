@@ -33,6 +33,7 @@ import {
   calculateRepTargetMetrics,
   extractCoordinatesFromCustomerLocation,
   evaluateGeofenceCompliance,
+  isValidCoordinatePair,
   evaluateBatchExpiryStatus,
   extractAssignedRepIds,
   resolveIsolatedRepCustomerBalance,
@@ -1734,6 +1735,55 @@ export class VanSalesService {
           }
           const isFieldCreatedCustomer = Boolean(custMeta?.created_by_rep_id) || isNewCustomer;
 
+          // Security Invariant: Real-Time Geofence Enforcement Gate on Credit Sales (Anti-Phantom Sidewalk Sales)
+          // Strictly prevents rep from booking credit sales while physically outside customer location
+          const custCoords = extractCoordinatesFromCustomerLocation({
+            metadata: custMeta,
+            locationUrl: (custRecord as any).location_url || custMeta?.location_url || custMeta?.locationUrl,
+          });
+
+          if (custCoords && isValidCoordinatePair(custCoords.lat, custCoords.lng)) {
+            const repLat = payload.deliveryGpsLat != null ? Number(payload.deliveryGpsLat) : null;
+            const repLng = payload.deliveryGpsLng != null ? Number(payload.deliveryGpsLng) : null;
+
+            const geo = evaluateGeofenceCompliance({
+              repLat,
+              repLng,
+              customerLat: custCoords.lat,
+              customerLng: custCoords.lng,
+              maxAllowedMeters: 200,
+            });
+
+            if ((geo.status === 'outside_geofence' || geo.isCompliant === false) && !supervisorOverrideApproved) {
+              await this.vanFraudRadarService.recordSuspicionEvent({
+                tenantId,
+                accountId,
+                repId,
+                tripId: payload.tripId,
+                customerId: resolvedCustomerId,
+                customerName: custRecord.name || customerName,
+                eventCode: 'VAN_SUSPICION_GEOFENCE_VIOLATION',
+                severity: 'critical',
+                titleAr: 'محاولة بيع آجل خارج النطاق الجغرافي المعتمد لدكان العميل (فواتير رصيف)',
+                detailsAr: `حاول المندوب إصدار فاتورة بيع آجل بقيمة ${creditOwed} ج.م للعميل "${custRecord.name || customerName}" وهو يبعد مسافة (${geo.distanceMeters} متر) عن موقع المحل (المسموح ${geo.maxAllowedMeters}م) بدون اعتماد المشرف.`,
+                attemptedAmount: creditOwed,
+                metadata: {
+                  distanceMeters: geo.distanceMeters,
+                  maxAllowedMeters: geo.maxAllowedMeters,
+                  repLat,
+                  repLng,
+                  customerLat: custCoords.lat,
+                  customerLng: custCoords.lng,
+                },
+              });
+              throw new AppError(
+                `أنت خارج النطاق الجغرافي المعتمد لدكان العميل (المسافة: ${geo.distanceMeters} متر، المسموح: ${geo.maxAllowedMeters}م). البيع الآجل خارج الموقع يتطلب اعتماد المشرف برمز PIN لمنع المديونيات وفواتير الرصيف الوهمية.`,
+                'OUT_OF_GEOFENCE_REQUIRES_SUPERVISOR_PIN',
+                403,
+              );
+            }
+          }
+
           // Financial Governance: Check for overdue unpaid credit sales past allowed grace period
           const allowedCreditDays = Number(custMeta?.credit_days || custMeta?.credit_terms_days || 30);
           const overdueCutoffDate = new Date();
@@ -2135,6 +2185,52 @@ export class VanSalesService {
 
       if (!lockedCust) {
         throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
+      }
+
+      // Security Invariant: Geofence Audit on Collections
+      if (payload.gpsLat != null && payload.gpsLng != null) {
+        let custMeta: any = {};
+        if (typeof lockedCust.metadata === 'string') {
+          try { custMeta = JSON.parse(lockedCust.metadata); } catch { custMeta = {}; }
+        } else if (lockedCust.metadata && typeof lockedCust.metadata === 'object') {
+          custMeta = lockedCust.metadata;
+        }
+        const custCoords = extractCoordinatesFromCustomerLocation({
+          metadata: custMeta,
+          locationUrl: (lockedCust as any).location_url || custMeta?.location_url || custMeta?.locationUrl,
+        });
+        if (custCoords && isValidCoordinatePair(custCoords.lat, custCoords.lng)) {
+          const geo = evaluateGeofenceCompliance({
+            repLat: Number(payload.gpsLat),
+            repLng: Number(payload.gpsLng),
+            customerLat: custCoords.lat,
+            customerLng: custCoords.lng,
+            maxAllowedMeters: 200,
+          });
+          if (geo.status === 'outside_geofence' || geo.isCompliant === false) {
+            await this.vanFraudRadarService.recordSuspicionEvent({
+              tenantId,
+              accountId,
+              repId,
+              tripId: payload.tripId,
+              customerId: payload.customerId,
+              customerName: lockedCust.name,
+              eventCode: 'VAN_SUSPICION_GEOFENCE_VIOLATION',
+              severity: 'high',
+              titleAr: 'تحصيل نقدية خارج النطاق الجغرافي لدكان العميل',
+              detailsAr: `قام المندوب بتسجيل سند تحصيل بقيمة ${amount} ج.م للعميل "${lockedCust.name}" وهو يبعد مسافة (${geo.distanceMeters} متر) عن موقع المحل المسجل (المسموح ${geo.maxAllowedMeters}م).`,
+              amountInvolved: amount,
+              metadata: {
+                distanceMeters: geo.distanceMeters,
+                maxAllowedMeters: geo.maxAllowedMeters,
+                repLat: payload.gpsLat,
+                repLng: payload.gpsLng,
+                customerLat: custCoords.lat,
+                customerLng: custCoords.lng,
+              },
+            });
+          }
+        }
       }
 
       const currentCompanyBalance = Number(lockedCust.balance || 0);
@@ -2845,6 +2941,14 @@ export class VanSalesService {
       });
     }
 
+    const salesAmount = Number(trip.sales_amount || 0);
+    const creditSales = Number(trip.credit_sales || 0);
+    const cashSales = Math.max(0, salesAmount - creditSales);
+    const returnsAmount = Number(trip.returns_amount || 0);
+    const cashRefunds = Number(trip.cash_refunds || 0);
+    const creditReturns = Math.max(0, returnsAmount - cashRefunds);
+    const collectionsTotal = Math.max(0, Number((grossCashCollected - cashSales + cashRefunds).toFixed(2)));
+
     return {
       ok: true,
       tripId: payload.tripId,
@@ -2856,6 +2960,18 @@ export class VanSalesService {
       unloadedItemsCount,
       distanceKm: odometerResult.distanceKm,
       status: 'settled',
+      cashierName: authContext?.username || 'أمين الخزينة',
+      cashierId: actorUserId || null,
+      repName: rep?.name ? String(rep.name) : 'مندوب التوزيع',
+      settledAt: new Date().toISOString(),
+      salesAmount,
+      cashSales,
+      creditSales,
+      collectionsTotal,
+      returnsAmount,
+      cashRefunds,
+      creditReturns,
+      stockVariances: stockAuditResult.itemVariances || [],
     };
   }
 

@@ -255,7 +255,7 @@ export function calculateRepCommissionMetrics(input: RepCommissionInput): RepCom
   };
 }
 
-function isValidCoordinatePair(lat: number, lng: number): boolean {
+export function isValidCoordinatePair(lat: number, lng: number): boolean {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
   if (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001) return false;
   return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;

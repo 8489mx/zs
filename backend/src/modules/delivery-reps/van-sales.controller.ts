@@ -116,6 +116,8 @@ export class VanSalesController {
       countedCash: number;
       endOdometer?: number;
       unloadRemainingToWarehouse: boolean;
+      countedStock?: { productId: number; countedQty: number }[];
+      chargeStockVarianceToRep?: boolean;
       activeVisitCustomerId?: number;
       notes?: string;
       supervisorPin?: string;
@@ -167,6 +169,8 @@ export class VanSalesController {
         tripId: body.tripId,
         countedCash: body.countedCash,
         unloadRemainingToWarehouse: body.unloadRemainingToWarehouse,
+        countedStock: body.countedStock,
+        chargeStockVarianceToRep: body.chargeStockVarianceToRep,
         nightStockApproved: !body.unloadRemainingToWarehouse,
         nightStockNotes: !body.unloadRemainingToWarehouse
           ? `تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي باعتماد المشرف (${pinVerification.supervisorName})`
