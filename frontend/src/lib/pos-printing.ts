@@ -8,6 +8,12 @@ import {
   paymentLabel,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
+import {
+  tryPrintViaHardware,
+  printViaHardwarePrinter,
+  isHardwarePrinterAvailable,
+  formatSaleForHardwarePrinter,
+} from '@/lib/pos-printing/hardware';
 
 export interface PrintReceiptOptions {
   pageSize?: PosPrintPageSize;
@@ -174,8 +180,20 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
   });
 }
 
-export function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
+export async function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}): Promise<void> {
   const effectiveOptions: PrintReceiptOptions = { pageSize: 'receipt', ...options };
+
+  if (effectiveOptions.pageSize === 'receipt') {
+    try {
+      const printedViaHardware = await tryPrintViaHardware(sale, effectiveOptions);
+      if (printedViaHardware) {
+        return;
+      }
+    } catch {
+      // Fall through to browser print document
+    }
+  }
+
   const document = buildPostedSaleDocument(sale, effectiveOptions);
   openReceiptDocument(
     `${effectiveOptions.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة'} ${sale.docNo || sale.id}`,
@@ -250,3 +268,9 @@ export function printGuestCheck(options: {
 
 export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';
 export { printKitchenTicket } from '@/lib/pos-printing/kitchen';
+export {
+  tryPrintViaHardware,
+  printViaHardwarePrinter,
+  isHardwarePrinterAvailable,
+  formatSaleForHardwarePrinter,
+} from '@/lib/pos-printing/hardware';
