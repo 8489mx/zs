@@ -306,8 +306,8 @@ export function extractCoordinatesFromCustomerLocation(input: {
     if (isValidCoordinatePair(lat, lng)) return { lat, lng };
   }
 
-  // Pattern 2: ?q=lat,lng or &q=lat,lng or query=lat,lng or ll=lat,lng
-  const queryMatch = rawUrl.match(/(?:[?&](?:q|query|ll|center|daddr)=)(-?\d+(?:\.\d+)?)\s*(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i);
+  // Pattern 2: ?q=lat,lng or &q=lat,lng or query=lat,lng or ll=lat,lng or destination=lat,lng
+  const queryMatch = rawUrl.match(/(?:[?&](?:q|query|ll|center|daddr|saddr|destination)=)(-?\d+(?:\.\d+)?)\s*(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i);
   if (queryMatch) {
     const lat = Number(queryMatch[1]);
     const lng = Number(queryMatch[2]);
