@@ -215,7 +215,8 @@
   4. درع مكافحة الزيارات الوهمية الجغرافية (Ghost Visits) بربط الزيارة بنطاق 300 متر من إحداثيات الدكان المسجلة.
 - **فرز وتوزيع أذونات التحميل الصباحية آلياً عبر المستودعات (`splitRequisitionByWarehouse`):** تقسيم أصناف إذن التحميل آلياً حسب المستودع المصدري وإصدار أذونات منفصلة لكل مستودع مع المحافظة على الترقيم القياسي (`REQ-YYMMDD-XXXX`).
 - **شهادة إخلاء الطرف وإيصال التوريد الحراري 80mm (`buildVanSettlementThermalReceiptHtml` & `formatVanSettlementSummaryText`):** تدقيق فروق النقدية بالمليم (عجز/فائض/مطابق)، احتساب فروق الجرد الفعلي لبضاعة السيارة بالتكلفة، وإصدار إيصال حراري رسمي ورسائل واتساب موثقة.
-- **الحراسة الآلية المستمرة:** تغطية 100% بكلا الملفين `backend/test/critical/van-sales-adversarial-sabotage.spec.ts` و `backend/test/critical/van-sales-deep-adversarial-all-modes.spec.ts` ضمن حراس النظام (`test:critical`).
+- **إصلاح استخراج إحداثيات Google Maps من روابط الاتجاهات (`extractCoordinatesFromCustomerLocation`):** دعم كامل لمعاملات المسارات والاتجاهات (`destination` و `saddr`) لمنع تخطي فحص النطاق الجغرافي عند مشاركة العميل لموقعه عبر روابط الاتجاهات بواتساب.
+- **الحراسة الآلية المستمرة والتدقيق الجنائي (30 سيناريو اختراق):** تغطية 100% بكافة الملفات الثلاثة `van-sales-adversarial-sabotage.spec.ts` و `van-sales-deep-adversarial-all-modes.spec.ts` و `van-sales-claude-audit.spec.ts` ضمن حراس النظام (`test:critical`).
 
 
 ---
