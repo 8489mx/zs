@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { Button } from '@/shared/ui/button';
 import {
   PrinterIcon,
   AlertTriangleIcon,

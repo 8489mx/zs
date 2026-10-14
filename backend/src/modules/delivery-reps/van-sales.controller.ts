@@ -1683,7 +1683,7 @@ export class VanSalesAdminController {
   }
 
   @Post('financial-ledger/push-to-payroll')
-  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  @RequireAnyPermission('hrPayrollManage', 'accounting')
   async pushRepShortagesToPayroll(
     @Req() req: RequestWithAuth,
     @Body() body: { settlementIds: number[]; targetMonth?: string },

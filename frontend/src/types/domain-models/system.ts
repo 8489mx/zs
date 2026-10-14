@@ -171,6 +171,8 @@ export interface AppSettings {
   printShowAddress?: boolean;
   printShowTaxNumber?: boolean;
   printDeliveryRepOnReceipt?: boolean;
+  vanSettlementRequireSupervisorPin?: boolean;
+  vanSettlementBlindMode?: boolean;
   printShowCustomer?: boolean;
   printShowDocumentNumber?: boolean;
   printShowOrderType?: boolean;

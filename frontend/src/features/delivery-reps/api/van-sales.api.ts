@@ -401,6 +401,7 @@ export interface SupervisorCustomerRouteItem {
   route: string;
   routeSequence: number;
   visitDays: string[];
+  visitDay?: string;
   assignedRepId: number | null;
   assignedRepIds?: number[];
   assignedRepNames?: string[];

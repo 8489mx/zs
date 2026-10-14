@@ -160,7 +160,7 @@ export function CustomerEditorCard({
     );
   };
 
-  const onSubmit = (values: CustomerFormInput) => {
+  const onSubmit = (values: CustomerFormOutput) => {
     const existingMeta = values.metadata || {};
 
     let finalVisitDays: string[] = form.getValues('metadata.visit_days') || [];
@@ -232,14 +232,16 @@ export function CustomerEditorCard({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
-          <Field label={profile.nameLabel} error={form.formState.errors.name?.message} style={{ gridColumn: 'span 2' }}>
-            <input
-              {...form.register('name')}
-              disabled={mutation.isPending}
-              placeholder={profile.namePlaceholder}
-              style={{ height: '36px', fontSize: '13px', fontWeight: 700 }}
-            />
-          </Field>
+          <div style={{ gridColumn: 'span 2' }}>
+            <Field label={profile.nameLabel} error={form.formState.errors.name?.message}>
+              <input
+                {...form.register('name')}
+                disabled={mutation.isPending}
+                placeholder={profile.namePlaceholder}
+                style={{ height: '36px', fontSize: '13px', fontWeight: 700 }}
+              />
+            </Field>
+          </div>
 
           <Field label={profile.typeLabel}>
             <Controller
@@ -267,14 +269,16 @@ export function CustomerEditorCard({
             />
           </Field>
 
-          <Field label={profile.addressLabel} style={{ gridColumn: 'span 2' }}>
-            <input
-              {...form.register('address')}
-              disabled={mutation.isPending}
-              placeholder={profile.addressPlaceholder}
-              style={{ height: '36px', fontSize: '13px' }}
-            />
-          </Field>
+          <div style={{ gridColumn: 'span 2' }}>
+            <Field label={profile.addressLabel}>
+              <input
+                {...form.register('address')}
+                disabled={mutation.isPending}
+                placeholder={profile.addressPlaceholder}
+                style={{ height: '36px', fontSize: '13px' }}
+              />
+            </Field>
+          </div>
         </div>
       </div>
 

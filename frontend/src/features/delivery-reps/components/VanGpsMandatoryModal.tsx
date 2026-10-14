@@ -236,7 +236,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
         {/* Modal Actions */}
         <StandardDialogFooter style={{ marginTop: '4px', padding: 0 }}>
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={onClose}
             disabled={isChecking}
             style={{

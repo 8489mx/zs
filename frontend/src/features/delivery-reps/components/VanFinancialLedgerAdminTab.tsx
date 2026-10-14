@@ -22,7 +22,6 @@ import {
   SendIcon,
   CheckIcon,
   XIcon,
-  UsersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export function VanFinancialLedgerAdminTab() {
@@ -318,7 +317,7 @@ export function VanFinancialLedgerAdminTab() {
     }
   };
 
-  const getStatusBadge = (status: string, method?: string | null, voucher?: string | null) => {
+  const getStatusBadge = (status: string, _method?: string | null, voucher?: string | null) => {
     switch (status) {
       case 'pending':
         return { label: 'معلق وغير مسدد', bg: '#fef2f2', color: '#991b1b', border: '#fecaca' };
