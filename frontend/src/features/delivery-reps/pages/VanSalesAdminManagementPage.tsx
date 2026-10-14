@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { settingsApi } from '@/features/settings/api/settings.api';
+import { settingsApi } from '@/features/settings';
 import { systemAlert, systemConfirm, toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import {
