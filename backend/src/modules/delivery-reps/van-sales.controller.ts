@@ -132,33 +132,52 @@ export class VanSalesController {
   ) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
     const pinToVerify = String(body?.supervisorPin || body?.supervisorOverridePin || '').trim();
-    if (!pinToVerify) {
-      await this.vanSalesService.recordSuspicionEvent({
-        tenantId: driver.tenantId,
-        accountId: driver.accountId,
-        repId: driver.repId,
-        tripId: body?.tripId,
-        eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
-        severity: 'critical',
-        titleAr: 'محاولة إغلاق وتصفية رحلة ذاتياً بدون رمز اعتماد المشرف (PIN)',
-        detailsAr: `حاول المندوب اعتماد وتصفية الرحلة #${body?.tripId} نهائياً من تطبيق المندوب دون إدخال رمز اعتماد المشرف.`,
-        metadata: {
+    const isPinRequired = await this.vanSalesService.isSupervisorPinRequiredForSettlement(driver.tenantId);
+
+    let pinVerification: {
+      approved: boolean;
+      supervisorId?: number;
+      supervisorName?: string;
+      supervisorRole?: string;
+    } | null = null;
+
+    if (isPinRequired) {
+      if (!pinToVerify) {
+        await this.vanSalesService.recordSuspicionEvent({
+          tenantId: driver.tenantId,
+          accountId: driver.accountId,
+          repId: driver.repId,
           tripId: body?.tripId,
-          countedCash: body?.countedCash,
-        },
-      });
-      throw new AppError(
-        'إغلاق وتصفية رحلة التوزيع نهائياً من تطبيق المندوب يتطلب رمز اعتماد المشرف (Supervisor PIN)؛ أو يمكنك الضغط على "تقديم طلب التصفية للمشرف" لمراجعتها واعتمادها من لوحة الإدارة',
-        'SETTLEMENT_REQUIRES_SUPERVISOR_PIN',
-        403,
+          eventCode: AUDIT_EVENT_CODES.VAN_SUSPICION_UNAUTHORIZED_LOAD_OR_SETTLE,
+          severity: 'critical',
+          titleAr: 'محاولة إغلاق وتصفية رحلة ذاتياً بدون رمز اعتماد المشرف (PIN)',
+          detailsAr: `حاول المندوب اعتماد وتصفية الرحلة #${body?.tripId} نهائياً من تطبيق المندوب دون إدخال رمز اعتماد المشرف.`,
+          metadata: {
+            tripId: body?.tripId,
+            countedCash: body?.countedCash,
+          },
+        });
+        throw new AppError(
+          'إغلاق وتصفية رحلة التوزيع نهائياً من تطبيق المندوب يتطلب رمز اعتماد المشرف (Supervisor PIN)؛ أو يمكنك مراجعة المشرف لاعتمادها من لوحة الإدارة',
+          'SETTLEMENT_REQUIRES_SUPERVISOR_PIN',
+          403,
+        );
+      }
+      pinVerification = await this.vanSalesService.verifySupervisorPin(
+        driver.tenantId,
+        pinToVerify,
+        driver.repId,
+      );
+    } else if (pinToVerify) {
+      // Optional PIN verification if supplied
+      pinVerification = await this.vanSalesService.verifySupervisorPin(
+        driver.tenantId,
+        pinToVerify,
+        driver.repId,
       );
     }
-    const pinVerification = await this.vanSalesService.verifySupervisorPin(
-      driver.tenantId,
-      pinToVerify,
-      driver.repId,
-    );
-    const supervisorAuthContext = {
+
+    const supervisorAuthContext = pinVerification ? {
       userId: Number(pinVerification.supervisorId || 0),
       sessionId: 'supervisor-pin-settlement',
       username: String(pinVerification.supervisorName || 'supervisor'),
@@ -166,7 +185,8 @@ export class VanSalesController {
       permissions: ['deliveryReps', 'sales', 'inventory', 'accounting'] as any,
       tenantId: driver.tenantId,
       accountId: driver.accountId,
-    };
+    } : undefined;
+
     return this.vanSalesService.settleTrip(
       driver.repId,
       driver.tenantId,
@@ -179,7 +199,9 @@ export class VanSalesController {
         chargeStockVarianceToRep: body.chargeStockVarianceToRep,
         nightStockApproved: !body.unloadRemainingToWarehouse,
         nightStockNotes: !body.unloadRemainingToWarehouse
-          ? `تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي باعتماد المشرف (${pinVerification.supervisorName})`
+          ? (pinVerification?.supervisorName
+              ? `تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي باعتماد المشرف (${pinVerification.supervisorName})`
+              : 'تم الإبقاء على البضاعة في سيارة التوزيع لليوم التالي')
           : undefined,
         endOdometer: body.endOdometer,
         activeVisitCustomerId: body.activeVisitCustomerId,
@@ -1238,6 +1260,7 @@ export class VanSalesAdminController {
       assignedRepId?: number | null;
       assignedRepIds?: number[];
       assignedRepName?: string;
+      repSchedules?: Array<{ repId: number; repName?: string; days: string[] }>;
     },
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
@@ -1628,6 +1651,84 @@ export class VanSalesAdminController {
   ) {
     const { tenantId } = requireTenantScope(req.authContext!);
     return this.vanFieldExecutionService.getLiveTripBreadcrumbs(tenantId, tripId);
+  }
+
+  @Get('financial-ledger')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async getRepFinancialLedger(
+    @Req() req: RequestWithAuth,
+    @Query('repId') repId?: string,
+    @Query('status') status?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.getRepFinancialLedger(tenantId, {
+      repId: repId ? Number(repId) : undefined,
+      status,
+      dateFrom,
+      dateTo,
+    });
+  }
+
+  @Post('financial-ledger/:id/settle')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async settleRepFinancialItem(
+    @Req() req: RequestWithAuth,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { method: 'cash' | 'waiver'; notes?: string },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.settleRepFinancialItem(tenantId, accountId, id, body, req.authContext!);
+  }
+
+  @Post('financial-ledger/push-to-payroll')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async pushRepShortagesToPayroll(
+    @Req() req: RequestWithAuth,
+    @Body() body: { settlementIds: number[]; targetMonth?: string },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.pushRepShortagesToPayroll(tenantId, accountId, body, req.authContext!);
+  }
+
+  @Post('financial-ledger/bonus')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async addRepBonusOrCommission(
+    @Req() req: RequestWithAuth,
+    @Body() body: { repId: number; entryType: 'bonus' | 'commission'; amount: number; notes: string },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.addRepBonusOrCommission(tenantId, accountId, body, req.authContext!);
+  }
+
+  @Post('financial-ledger/link-employee')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async linkRepToEmployee(
+    @Req() req: RequestWithAuth,
+    @Body() body: { repId: number; employeeId: number | null },
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.linkRepToEmployee(tenantId, body.repId, body.employeeId);
+  }
+
+  @Get('financial-ledger/candidate-employees')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async listCandidateEmployees(
+    @Req() req: RequestWithAuth,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.listCandidateEmployees(tenantId);
+  }
+
+  @Post('financial-ledger/auto-create-employee')
+  @RequireAnyPermission('deliveryReps', 'sales', 'accounting')
+  async autoCreateEmployee(
+    @Req() req: RequestWithAuth,
+    @Body() body: { repId: number },
+  ) {
+    const { tenantId, accountId } = requireTenantScope(req.authContext!);
+    return this.vanSalesService.autoCreateEmployeeForRep(tenantId, accountId, body.repId, req.authContext!);
   }
 }
 

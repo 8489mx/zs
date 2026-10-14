@@ -219,6 +219,49 @@
 - **الحراسة الآلية المستمرة والتدقيق الجنائي (30 سيناريو اختراق):** تغطية 100% بكافة الملفات الثلاثة `van-sales-adversarial-sabotage.spec.ts` و `van-sales-deep-adversarial-all-modes.spec.ts` و `van-sales-claude-audit.spec.ts` ضمن حراس النظام (`test:critical`).
 
 
+### قدرة: بوابة الفحص الإلزامي للـ GPS ومنع بدء الزيارات أو البيع الميداني عند إغلاق الموقع (Mandatory GPS Visit Gate & Action Enforcement) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)
+- **بوابة فحص الـ GPS الصارمة (`VanGpsMandatoryModal`):** منع بدء أي زيارة ميدانية لعميل في خط السير، أو إصدار فاتورة بيع جديدة، أو تسجيل مرتجع، أو تحصيل نقدية، أو جرد رف، أو استبيان، أو استبدال توالف إلا بعد التحقق الفعلي من فتح وتشغيل خدمة الـ GPS والتقاط إحداثيات المتجر (`latitude`, `longitude`).
+- **نافذة التوجيه المؤسسية المانعة (`VanGpsMandatoryModal.tsx`):** في حال إغلاق الـ GPS في الهاتف أو رفض صلاحية المتصفح، تظهر نافذة قياسية تمنع إتمام الإجراء وتوضح للمندوب خطوات التفعيل السريعة مع زر «إعادة الفحص والتقاط الموقع الآن» لإعادة المحاولة فور تشغيله دون تعطيل أو قفل البرنامج ككل.
+- **التوثيق اللحظي للزيارة مع الإحداثيات (`checkInVisit` & `activeVisit`):** توثيق إحداثيات الوصول لحظياً وتخزينها في جلسة الزيارة النشطة وإرسالها لخادم المنظومة مع مطابقتها بالنطاق الجغرافي للعميل عبر `FmcgVisitExecutionEngine` وتسجيل أي شبهة تباعد عبر `VanFraudRadarService`.
+- **ملفات الكود المعتمدة:** `frontend/src/features/delivery-reps/components/VanGpsMandatoryModal.tsx`، `frontend/src/features/delivery-reps/components/VanItineraryTab.tsx`، `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`، `backend/src/modules/delivery-reps/fmcg-visit-execution.engine.ts`.
+
+### قدرة: جدولة زيارات العملاء وتخصيص المناديب المتعددين وجداول الأيام المستقلة (Multi-Rep Assignment & Rep-Specific Itinerary Schedules) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)
+- **محرك توحيد وقفل أيام الزيارات (`van-routes-schedule.util.ts`):** محرك موحد للتعامل مع أيام الأسبوع وتطبيع الاختلافات الإملائية بالهمزة (مثل `الإثنين` / `الاثنين` / `الاتنين`، `الأربعاء` / `الاربعاء`، `الجمعة` / `الجمعه`) وربطها بالمفتاح القانوني الموحد (`sunday` .. `saturday`) ومراعاة التوقيت المحلي المصري (`Africa/Cairo`) لمنع أي انزياح زمني مع توقيت UTC.
+- **تخصيص العميل لأكثر من مندوب وجدولة أيام مستقلة لكل مندوب (`metadata.rep_schedules`):** تمكين تعيين أكثر من مندوب لنفس المحل (مثل: مندوب الألبان يزوره الأحد ومندوب الجاف يزوره الخميس)، بحيث يظهر المحل في خط سير كل مندوب في الأيام المخصصة له حصراً، مع دعم التعيين الموحد لجميع المناديب في نفس الأيام عند الرغبة.
+- **إعادة هيكلة وتطوير بطاقة تعديل العميل المؤسسية (`CustomerEditorCard.tsx`):**
+  - توسيع النافذة إلى العرض القياسي (`900px`) وإلغاء الزر الأحمر الطافي العشوائي ونقله لفوتر الإجراءات السفلي المحمي بـ `ActionConfirmDialog`.
+  - تقسيم الشاشة إلى 3 أقسام رصينة: (1) بيانات المحل والاتصال، (2) السياسة المالية والائتمانية مع تفصيل مديونية المناديب المعزولة، (3) التوزيع الميداني وخط السير وتعيين المناديب مع مفتاح التبديل الذكي بين الجدول الموحد وجداول المناديب المستقلة.
+- **التزامن الكامل بين صيغة المفرد والجمع (`visit_day` و `visit_days` و `rep_schedules`):** مزامنة الحقول لحظياً في الباك إند (`partners.service.ts`، `van-sales.service.ts`، `van-routes.service.ts`، `rep-target.engine.ts`).
+- **فلترة خط السير الصارمة بحسب اليوم (`customerMatchesDay` في `VanItineraryTab.tsx`):** استبعاد أي عميل غير مجدول لليوم الحالي استبعاداً صارماً، واستيفاء اليوم الفعلي للمندوب بناءً على جدول المناديب المستقل أو الجدول العام.
+- **حارس الاختبارات الصارم (`van-customer-schedule-itinerary.spec.ts`):** اختبارات وحدة تنفيذية تثبت التطبيع الإملائي، ومطابقة الأيام، وتمايز جداول المناديب المتعددين لنفس المحل بدقة 100%.
+- **ملفات الكود المعتمدة:** `backend/src/modules/delivery-reps/van-routes-schedule.util.ts`، `backend/src/modules/delivery-reps/services/van-routes.service.ts`، `backend/src/modules/delivery-reps/rep-target.engine.ts`، `backend/src/modules/delivery-reps/van-sales.service.ts`، `backend/src/modules/partners/partners.service.ts`، `frontend/src/features/customers/components/CustomerVisitDaysPicker.tsx`، `frontend/src/features/customers/components/CustomerEditorCard.tsx`، `frontend/src/features/customers/pages/CustomersPage.tsx`، `backend/test/critical/van-customer-schedule-itinerary.spec.ts`.
+
+### قدرة: منظومة صلاحيات وضوابط المناديب في الميدان (Field Rep Permissions & Operational Governance) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)
+- **قاعدة بيانات مهيكلة لصلاحيات المناديب (`delivery_representatives.permissions`):** هجرة قاعدة البيانات رقم `2040000000224` لإضافة عمود `permissions JSONB` و `metadata JSONB` لجدول المناديب.
+- **لوحة تحكم الصلاحيات الميدانية في نافذة المندوب (`UpsertDeliveryRepModal.tsx`):** إضافة قسم رصين يتيح لصاحب العمل والمشرف ضبط صلاحيات المندوب:
+  1. `can_edit_routes`: تعديل خطوط السير وأيام الزيارات (افتراضياً: معطل - محجوز للإدارة والمشرفين لمنع التلاعب بالجغرافيا).
+  2. `can_add_customers`: تسجيل محلات جديدة في الميدان (افتراضياً: مفعل).
+  3. `require_gps_on_visit`: إلزامية فتح الـ GPS لبدء وتأكيد الزيارات (افتراضياً: مفعل).
+  4. `can_collect_cash`: تحصيل دفعات نقدية وإصدار سندات قبض (افتراضياً: مفعل).
+  5. `can_sell_over_credit_limit`: تجاوز سقف المديونية للمحل (افتراضياً: معطل).
+  6. `can_give_discount`: منح خصومات نقدية على الفاتورة مع تحديد الحد الأقصى للخصم (`max_discount_percent`).
+- **التكامل مع جلسة المندوب:** إرجاع الصلاحيات فور تسجيل دخول المندوب `driverLogin` لتطبيق القيود التشغيلية على تطبيق الهاتف لحظياً.
+- **معمارية النافذة ثنائية الأعمدة بدون سكرول (Zero-Scroll 2-Column Responsive Layout):** إعادة هندسة نافذة إضافة وتعديل المندوب (`UpsertDeliveryRepModal.tsx`) وفق دستور ملاءمة الشاشات من 14 إلى 32 بوصة (Zero-Scroll Standard):
+  - توسيع النافذة إلى `min(1060px, 96vw)` وتقسيم البيانات إلى عمودين متوازيين متزنين (الأيمن: طبيعة العمل، البيانات الأساسية، الهوية والضمان؛ الأيسر: المركبة والأسطول، شبكة الصلاحيات الست الميدانية).
+  - دمج شارة وزر حالة الحساب (نشط / موقوف) داخل شريط الترويسة الرئيسي بجوار العنوان، مما وفر ~65 بكسل رأسية وقضى تماماً على السكرول الخارجي على شاشات اللابتوب الصغيرة 14 بوصة فما فوق.
+  - إحكام ارتفاع الحقول (`32px`) والأزرار التشغيلية (`34px`) لضمان ظهور كافة الخيارات وأزرار الحفظ والإلغاء في شاشة واحدة متكاملة دون تحريك الفأرة.
+- **ملفات الكود المعتمدة:** `backend/src/database/migrations/2040000000224_delivery_rep_permissions_and_metadata.ts`، `backend/src/database/database.types.ts`، `backend/src/modules/delivery-reps/delivery-reps.service.ts`، `backend/src/modules/delivery-reps/dto/upsert-delivery-rep.dto.ts`، `frontend/src/shared/api/delivery-reps.api.ts`، `frontend/src/shared/components/delivery-reps/UpsertDeliveryRepModal.tsx`.
+
+### قدرة: المركز المالي الموحد لتسويات وعجوزات وبونص مناديب التوزيع والربط بمسير الرواتب (Van Rep Financial Ledger, Shortages Settlement Hub & HR Payroll Bridge) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)
+- **قاعدة بيانات مهيكلة لحركات وذمم مناديب التوزيع (`van_rep_financial_settlements`):** هجرة قاعدة البيانات رقم `2040000000225` لإنشاء جدول التسويات الموحد مع ربطه بالمنشأة (`tenant_id`), المندوب (`rep_id`), الرحلة (`trip_id`), ونوع الحركة (`cash_shortage`, `stock_shortage`, `cash_overage`, `commission`, `bonus`, `cash_reimbursement`), وحالة التسوية (`pending`, `settled`, `waived`, `pushed_to_payroll`).
+- **المزامنة والترحيل التلقائي من تصفية الرحلات (`settleTrip`):** عند إغلاق رحلة التوزيع وظهور عجز كاش أو عجز بضاعة محمل على المندوب، يتم تقييده آلياً كبند عجز مالي معلق في كشف حساب المندوب.
+- **إثبات السداد النقدي بالخزينة وسندات القبض الرسمية:** تسجيل السداد النقدي بنقرة واحدة وإصدار سند قبض موحد بالصيغة القياسية الدستورية (`REC-YYMMDD-XXXX`).
+- **الإعفاء والتسوية الإدارية المبررة:** تسجيل الإعفاء الإداري المعتمد من الإدارة مع تدوين المبررات دون خصمه أو مطالبة المندوب به.
+- **الربط المباشر مع مسير الرواتب والأجور (HR Payroll Bridge):** ترحيل العجوزات المعلقة دفعة واحدة كاستقطاعات رسمية في مسير الشهر المحدد (`targetMonth`), مع الربط الآلي أو اليدوي لملف الموظف المقابل في الموارد البشرية (`hr_employees`).
+- **نافذة الربط الذكي بموظف HR بنقرة واحدة (`linkingRep`):** إمكانية ربط أي مندوب توزيع بملف موظف HR أو فك الارتباط من خلال نافذة تفاعلية منبثقة وسريعة مع قراءة قائمة موظفي الموارد البشرية النشطين.
+- **تبويب لوحة القيادة في سطرين متوازيين (6x2 Balanced Grid):** تقسيم كافة تابات إدارة مبيعات الفان الـ 12 إلى سطرين متناسقين (6 تابات في كل سطر) لمنع انضغاط النصوص مع الالتزام الصارم بدستور ثبات الخط (`Zero Font-Shift Standard`).
+- **ملفات الكود المعتمدة:** `backend/src/database/migrations/2040000000225_van_rep_financial_ledger_and_settlements.ts`، `backend/src/database/database.types.ts`، `backend/src/modules/delivery-reps/van-sales.service.ts`، `backend/src/modules/delivery-reps/van-sales.controller.ts`، `frontend/src/features/delivery-reps/api/van-sales.api.ts`، `frontend/src/features/delivery-reps/components/VanFinancialLedgerAdminTab.tsx`، `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`.
+
 ---
 
 ## بيئة التشغيل والاستضافة السحابية المعتمدة (Cloud Hosting & Infrastructure)
@@ -7501,5 +7544,83 @@
   - `frontend/src/features/delivery-reps/components/VanSettleTab.tsx`
   - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
   - `backend/test/critical/van-egypt-market-fmcg.spec.ts`
+
+## 239. حوكمة خطوط السير متعددة المناديب، صلاحيات المناديب الميدانية، وتخصيص إلزامية رمز المشرف (PIN) لتصفية الورديات من الإعدادات
+* **الحالة / الجاهزية:** تم الإنجاز والتطبيق الشامل بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة تعديل العميل المحدثة (`CustomerEditorCard.tsx`)، ومودال إدارة المندوب وصلاحياته الميدانية (`UpsertDeliveryRepModal.tsx`)، وشاشة الإعدادات العامة للمبيعات والمخزون (`SalesInventorySettingsTab.tsx`)، ومركز إدارة الفان (`VanSalesAdminManagementPage.tsx`)، وتطبيق المندوب الميداني (`VanSalesMobilePage.tsx` / `VanSettleTab.tsx`).
+* **الوصف والمزايا المنجزة:**
+  1. **جدولة خطوط السير متعددة المناديب للعميل الواحد (Multi-Rep Route Scheduling Engine):**
+     - تمكين إسناد أكثر من مندوب لنفس العميل في أيام مختلفة (مثلاً: مندوب أ يزور المحل الأحد والخميس، ومندوب ب يزوره الإثنين) وتخزينها بهيكل معياري في `metadata.rep_schedules`.
+     - فلترة خط سير المندوب اليومي (`getDriverTodayItinerary`) بدقة طبقاً لليوم الفعلي وزيارة كل مندوب، ومنع ظهور عملاء الأيام الأخرى.
+  2. **حوكمة وصلاحيات المناديب الميدانية (Field Delivery Rep Governance & Permissions):**
+     - هجرة قاعدة البيانات `2040000000224_delivery_rep_permissions_and_metadata.ts` لإضافة حقلين معياريين `permissions JSONB` و `metadata JSONB` لجدول `delivery_representatives`.
+     - 6 صلاحيات ميدانية دقيقة في مودال إنشاء وتعديل المندوب: تعديل خط السير، إضافة عملاء جدد، إلزامية الحضور بموقع GPS، تحصيل النقدية، البيع فوق سقف الائتمان، ومنح خصومات مع تحديد الحد الأقصى لنسبة الخصم.
+  3. **التحكم المرن في إلزامية رمز المشرف (Supervisor PIN) للتصفية من الإعدادات:**
+     - إضافة مفتاح إعداد نظامي `vanSettlementRequireSupervisorPin`:
+       - عند التفعيل (`true`): يلزم إدخال الرمز السري للمشرف أو أمين الخزينة على هاتف المندوب لإبراء ذمته وتصفية الوردية واستلام الكاش طبقاً لقواعد فصل المهام (Maker-Checker).
+       - عند التعطيل (`false`): يختفي حقل الـ PIN من تطبيق المندوب ويقفل المندوب ورديته مباشرة، وتتم مراجعة واستلام النقدية واعتمادها من شاشة المشرف في لوحة الإدارة.
+     - تكامل الإعداد في مكانين رئيسيين: شاشة الإعدادات العامة (`SalesInventorySettingsTab.tsx`) ومودال سريع من هيدر مركز إدارة الفان (`VanSalesAdminManagementPage.tsx`).
+  4. **نظام التوريد والجرد العمياني لكاش المناديب (Blind Cash Settlement):**
+     - إضافة مفتاح إعداد نظامي `vanSettlementBlindMode` (معطل افتراضياً):
+       - **النمط الشفاف (Transparent - الافتراضي):** يرى المندوب أرقام مبيعاته وتحصيلاته وصافي النقدية المتوقع تسليمها وزر "مطابقة المتوقع" لتسريع وتسهيل إغلاق اليومية الميدانية.
+       - **النمط العمياني (Blind Cash Settlement):** يتم رقابياً حجب صافي النقدية المتوقعة، إخفاء زر "مطابقة المتوقع"، حجب مبالغ الكاش في كروت التصفية، وإلزام المندوب بعدّ وفرز النقدية الفعلية بيده وإدخالها، وتُحتسب فروقات العجز والزيادة آلياً في الخزينة دون كشفها للمندوب لمنع التستر على العجز أو الاستيلاء على الفائض النقدي (Anti-Skimming).
+     - تكامل التفعيل والتعطيل بسلاسة من شاشة الإعدادات ومودال حوكمة الفان الإداري.
+  5. **هندسة التصفية الميدانية فائقة التكيف (Ultra-Compact Mobile Layout & Adaptive Typography):**
+     - وضع أزرار الإجراءات السريعة (تسجيل مصروف رحلة / حركة فوارغ) جنباً إلى جنب (50% / 50%) على سطر واحد مستحيل الالتفاف الرأسي عبر Flexbox.
+     - ضبط سطر "الكاش الفعلي للتوريد" في سطر واحد ثابت مع زر المطابقة أو شارة الجرد العمياني الإلزامي، باستخدام دالة `clamp()` التكيفية لمنع تكسير رمز العملة `(ج.م)` على أي مقاس شاشة موبايل.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000224_delivery_rep_permissions_and_metadata.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/delivery-reps/services/van-routes.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `backend/src/modules/delivery-reps/dto/upsert-delivery-rep.dto.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanSettleTab.tsx`
+  - `frontend/src/features/delivery-reps/components/VanCustomerStatementModal.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
+  - `frontend/src/features/settings/schemas/settings.schema.ts`
+  - `frontend/src/features/settings/components/forms/tabs/SalesInventorySettingsTab.tsx`
+  - `frontend/src/types/domain-models/settings.ts`
+  - `frontend/src/features/customers/components/CustomerEditorCard.tsx`
+  - `frontend/src/shared/components/delivery-reps/UpsertDeliveryRepModal.tsx`
+
+## 240. المركز المالي وكشف حساب المناديب والربط الآلي مع مسير الرواتب (Rep Financial Ledger, Variance Settlement Hub & HR Payroll Bridge)
+* **الحالة / الجاهزية:** تم الإنجاز والاعتماد بنسبة 100% (أكتوبر 2026).
+* **المسار:** مركز إدارة سيارات التوزيع وأسطول الفان (`/inventory/van-sales`) ➔ تبويب "تسويات وحسابات المناديب" (`VanFinancialLedgerAdminTab.tsx`).
+* **الدافع والمشكلة المحلولة:**
+  - القضاء التام على البحث اليدوي والجمع بالآلات الحاسبة عن عجوزات أو مكافآت كل رحلة على حدة من جدول الرحلات العام.
+  - توفير كشف حساب مالي مركزي وموحد يجمع كل ما يتعلق بذمة المندوب المالية (عجز كاش، عجز جرد مخزني، مكافآت تارجت، عمولات مبيعات، وسدادات نقدية).
+  - الربط الآلي المحكم مع موديول الرواتب (HR Payroll) لترحيل العجوزات غير المسددة كاستقطاعات رسمية في مسير الشهر بضغطة زر واحدة.
+* **المزايا والوظائف المنجزة:**
+  1. **شريط مؤشرات الأداء المالي المركزي (Enterprise 5-KPI Strip):**
+     - بطاقة إجمالي العجوزات المعلقة (مطالب بها المناديب ولم تسدد).
+     - بطاقة المبالغ المسددة نقداً بالخزينة بموجب سندات قبض رسمية.
+     - بطاقة العجوزات المرحلة لمسير الرواتب ومثبتة كاستقطاعات معتمدة.
+     - بطاقة إجمالي العمولات ومكافآت التارجت المستحقة للمناديب.
+     - بطاقة صافي رصيد الذمة المعلقة (Net Rep Balance).
+  2. **فلترة وتحليل شامل لكل مندوب (Per-Rep Ledger & Summary Breakdown):**
+     - إمكانية استعراض الموقف المالي العام لكافة المناديب في بطاقات ملخصة، أو تصفية كشف حساب تفصيلي لمندوب محدد.
+     - فلترة بالحالة (المعلقة فقط / المسددة بالخزينة / المرحلة للرواتب / المعفاة إدارياً) وبالفترة الزمنية (من - إلى) وبحث نصي فوري.
+  3. **جدول الحركات المالي التفصيلي (Detailed Financial Ledger):**
+     - تاريخ ووقت الحركة، اسم المندوب وربطه بالموظف في HR، رقم الرحلة والمركبة، نوع الحركة بكبسولات ملونة، المبلغ، البيان والمبرر، حالة التسوية ورقم سند القبض أو شهر المسير.
+  4. **إجراءات التسوية الذكية المباشرة (Smart 1-Click Settlement Actions):**
+     - **سداد نقدي بالخزينة (Cash Handover):** نافذة منبثقة تثبت استلام المبلغ نقداً في الخزينة وتولد رقم سند قبض رسمي وفق دستور الترقيم الموحد (`REC-YYMMDD-XXXX`) وتصفر العجز فوراً.
+     - **إعفاء وتسوية إدارية (Waiver):** إعفاء المندوب بنسبة العجز المقبولة أو بمبرر تشغيلي معتمد وتسجيل الملاحظات وهوية المشرف المعتمد.
+     - **قيد مكافأة / بونص تارجت للمندوب:** إضافة مكافأة تميز أو عمولة بيع لحساب المندوب وتظهر في كشف حسابه.
+  5. **الكوبري الآلي مع الرواتب والأجور (Automated HR-Payroll Bridge):**
+     - تمكين التحديد الفردي أو الجماعي (Bulk Selection) للعجوزات المعلقة وترحيلها لمسير رواتب شهر محدد (مثال: `2026-10`).
+     - مطابقة المندوب مع جدول الموظفين `hr_employees` وتحديث حالة البنود إلى `pushed_to_payroll` وتثبيتها للاستقطاع الرسمي من الراتب.
+* **الملفات المنفذة:**
+  - `backend/src/database/migrations/2040000000225_van_rep_financial_ledger_and_settlements.ts`
+  - `backend/src/database/database.types.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/components/VanFinancialLedgerAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
+
+
 
 

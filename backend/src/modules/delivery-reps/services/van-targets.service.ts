@@ -548,11 +548,18 @@ export class VanTargetsService {
         collectionCommissionRatePercent: commission.collectionCommissionRatePercent,
         targetBonusRatePercent: commission.targetBonusRatePercent,
         salesCommissionAmount: commission.salesCommissionAmount,
+        salesCommissionEarned: commission.salesCommissionAmount,
         collectionCommissionAmount: commission.collectionCommissionAmount,
+        collectionCommissionEarned: commission.collectionCommissionAmount,
         targetBonusAmount: commission.targetBonusAmount,
+        targetBonusEarned: commission.targetBonusAmount,
         totalEarnedCommission: commission.totalEarnedCommission,
+        totalCommissionEarned: commission.totalEarnedCommission,
         alreadyPaidCommission: commission.alreadyPaidAmount,
+        paidCommissionAmount: commission.alreadyPaidAmount,
         remainingPayableCommission: commission.remainingPayableCommission,
+        remainingCommissionPayable: commission.remainingPayableCommission,
+        isCommissionSettled: commission.remainingPayableCommission <= 0 && commission.totalEarnedCommission > 0,
       };
     });
   }

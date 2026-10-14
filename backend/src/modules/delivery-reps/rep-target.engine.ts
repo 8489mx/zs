@@ -504,6 +504,12 @@ export function extractAssignedRepIds(
     const single = Number(metaObj.assigned_rep_id);
     if (Number.isInteger(single) && single > 0) ids.add(single);
   }
+  if (Array.isArray(metaObj.rep_schedules)) {
+    for (const item of metaObj.rep_schedules) {
+      const n = Number(item?.repId ?? item?.rep_id);
+      if (Number.isInteger(n) && n > 0) ids.add(n);
+    }
+  }
   return Array.from(ids);
 }
 

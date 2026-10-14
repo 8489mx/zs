@@ -234,94 +234,97 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="كشف حساب عميل ميداني ومطابقة رصيد"
+      title={
+        <span style={{ fontSize: 'clamp(13px, 3.8vw, 15px)', fontWeight: 800, color: '#0f172a' }}>
+          كشف حساب عميل
+        </span>
+      }
       subtitle={data?.customer ? `العميل: ${data.customer.name}` : customerName || 'جاري التحميل...'}
-      badge="تدقيق الذمم والحسابات"
-      width="min(580px, 96vw)"
-      minHeight="460px"
+      badge="تدقيق الذمم"
+      width="min(520px, 96vw)"
+      minHeight="auto"
+      compact
       footer={
         <div
           dir="rtl"
           style={{
             display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
             gap: '8px',
-            flexWrap: 'wrap',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            onClick={onClose}
+            onClick={handleWhatsAppShare}
+            disabled={loading || !data}
             style={{
-              minHeight: '38px',
-              fontSize: '12.5px',
+              flex: '1 1 0',
+              width: '50%',
+              minWidth: 0,
+              height: '35px',
+              fontSize: '12px',
               fontWeight: 700,
-              padding: '0 14px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              color: '#334155',
+              padding: '0 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: '#25D366',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxSizing: 'border-box',
             }}
           >
-            إغلاق
-          </Button>
+            <Share2Icon size={14} color="#ffffff" style={{ flexShrink: 0 }} />
+            <span>واتساب</span>
+          </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Button
-              type="button"
-              onClick={handleWhatsAppShare}
-              disabled={loading || !data}
-              style={{
-                minHeight: '38px',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                padding: '0 14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#25D366',
-                color: '#ffffff',
-                border: 'none',
-              }}
-            >
-              <Share2Icon size={14} color="#ffffff" />
-              <span>إرسال واتساب</span>
-            </Button>
-
-            <Button
-              type="button"
-              onClick={handlePrintThermal}
-              disabled={loading || !data}
-              style={{
-                minHeight: '38px',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                padding: '0 14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-              }}
-            >
-              <PrinterIcon size={14} color="#ffffff" />
-              <span>طباعة إيصال (80 مم)</span>
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={handlePrintThermal}
+            disabled={loading || !data}
+            style={{
+              flex: '1 1 0',
+              width: '50%',
+              minWidth: 0,
+              height: '35px',
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '0 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxSizing: 'border-box',
+            }}
+          >
+            <PrinterIcon size={14} color="#ffffff" style={{ flexShrink: 0 }} />
+            <span>طباعة (80 مم)</span>
+          </button>
         </div>
       }
     >
-      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '4px 0' }}>
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 10px', color: '#64748b', fontSize: '13px' }}>
-            <RefreshCwIcon size={24} color="#170e5e" className="animate-spin" />
-            <div style={{ marginTop: '8px', fontWeight: 700 }}>جاري استخراج كشف الحساب وتدقيق الذمم...</div>
+          <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748b', fontSize: '13px' }}>
+            <RefreshCwIcon size={22} color="#170e5e" className="animate-spin" />
+            <div style={{ marginTop: '6px', fontWeight: 700 }}>جاري استخراج كشف الحساب وتدقيق الذمم...</div>
           </div>
         ) : error || !data ? (
-          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px' }}>
+          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '12px' }}>
             {error || 'تعذر تحميل كشف الحساب'}
           </div>
         ) : (
@@ -330,93 +333,184 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             {data.overdueAnalysis?.hasOverdueInvoices && (
               <div
                 style={{
-                  padding: '9px 12px',
-                  borderRadius: '8px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
                   backgroundColor: '#fef2f2',
                   border: '1px solid #f87171',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   color: '#991b1b',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 700,
+                  lineHeight: '1.3',
                 }}
               >
-                <AlertTriangleIcon size={16} color="#dc2626" />
+                <AlertTriangleIcon size={14} color="#dc2626" style={{ flexShrink: 0 }} />
                 <span>
-                  تنبيه رقابي: يوجد على هذا العميل فواتير متأخرة مستحقة السداد منذ ({data.overdueAnalysis.oldestOverdueDays}) يوماً بإجمالي ({data.overdueAnalysis.totalOverdueAmount.toFixed(2)} <CurrencySymbol />). يتطلب السداد قبل البيع الآجل الجديد.
+                  تنبيه: فواتير متأخرة منذ ({data.overdueAnalysis.oldestOverdueDays}) يوماً بإجمالي ({Number(data.overdueAnalysis.totalOverdueAmount || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} <CurrencySymbol />).
                 </span>
               </div>
             )}
 
-            {/* Financial Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
-              <div style={{ padding: '9px 10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>الرصيد الحالي المستحق</div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: data.customer.balance > 0 ? '#b91c1c' : '#059669', marginTop: '2px' }}>
-                  {data.customer.balance.toFixed(2)} <CurrencySymbol />
+            {/* Ultra-Compact Financial KPI Cards (3 in 1 Row) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: '6px',
+                width: '100%',
+              }}
+            >
+              {/* Card 1: Balance */}
+              <div
+                style={{
+                  padding: '6px 4px',
+                  borderRadius: '8px',
+                  backgroundColor: data.customer.balance > 0 ? '#fef2f2' : '#f0fdf4',
+                  border: `1px solid ${data.customer.balance > 0 ? '#fecaca' : '#bbf7d0'}`,
+                  textAlign: 'center',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ fontSize: '10px', color: data.customer.balance > 0 ? '#991b1b' : '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  الرصيد المستحق
+                </div>
+                <div
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    color: data.customer.balance > 0 ? '#b91c1c' : '#059669',
+                    marginTop: '2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={`${Number(data.customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م`}
+                >
+                  {Number(data.customer.balance || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}{' '}
+                  <span style={{ fontSize: '9px' }}>ج.م</span>
                 </div>
               </div>
 
-              <div style={{ padding: '9px 10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>سقف الائتمان</div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  {data.customer.creditLimit > 0 ? `${data.customer.creditLimit.toFixed(2)}` : 'غير محدد'} <CurrencySymbol />
+              {/* Card 2: Credit Limit */}
+              <div
+                style={{
+                  padding: '6px 4px',
+                  borderRadius: '8px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  سقف الائتمان
+                </div>
+                <div
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    marginTop: '2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={data.customer.creditLimit > 0 ? `${Number(data.customer.creditLimit).toLocaleString('en-US')} ج.م` : 'غير محدد'}
+                >
+                  {data.customer.creditLimit > 0
+                    ? `${Number(data.customer.creditLimit).toLocaleString('en-US', { maximumFractionDigits: 0 })} `
+                    : '—'}
+                  {data.customer.creditLimit > 0 && <span style={{ fontSize: '9px', color: '#64748b' }}>ج.م</span>}
                 </div>
               </div>
 
-              <div style={{ padding: '9px 10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>فترة السماح المعتمدة</div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  {data.customer.allowedCreditDays} يوم
+              {/* Card 3: Allowed Days */}
+              <div
+                style={{
+                  padding: '6px 4px',
+                  borderRadius: '8px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  فترة السماح
+                </div>
+                <div
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    marginTop: '2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {data.customer.allowedCreditDays} <span style={{ fontSize: '9.5px', color: '#64748b' }}>يوم</span>
                 </div>
               </div>
             </div>
 
             {/* Returnable Packaging / Empties Ledger if exists */}
             {data.packagingBalance?.length > 0 && (
-              <div style={{ padding: '9px 11px', borderRadius: '8px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', marginBottom: '4px' }}>
-                  أمانات الفوارغ والحاويات المتبقية:
-                </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#15803d', fontWeight: 700 }}>
-                  {data.packagingBalance.map((p: any) => (
-                    <span key={p.packageType}>
-                      {p.packageType}: <strong>{p.netOwedToCompany} وحدة</strong>
-                    </span>
-                  ))}
-                </div>
+              <div style={{ padding: '5px 8px', borderRadius: '6px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '10.5px' }}>
+                <span style={{ fontWeight: 800, color: '#166534', marginLeft: '6px' }}>عهدة الفوارغ:</span>
+                <span style={{ color: '#15803d', fontWeight: 600 }}>
+                  {data.packagingBalance.map((p: any) => `${p.packageType}: ${p.netOwedToCompany}`).join(' • ')}
+                </span>
               </div>
             )}
 
             {/* Recent Sales Table */}
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '5px' }}>
-                آخر الفواتير المسجلة ({data.recentSales?.length || 0}):
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+                آخر الفواتير ({data.recentSales?.length || 0}):
               </div>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', maxHeight: '140px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px', textAlign: 'right', tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: '42%' }} />
+                    <col style={{ width: '30%' }} />
+                    <col style={{ width: '28%' }} />
+                  </colgroup>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '6px 8px' }}>رقم الفاتورة</th>
-                      <th style={{ padding: '6px 8px' }}>التاريخ</th>
-                      <th style={{ padding: '6px 8px' }}>الإجمالي</th>
-                      <th style={{ padding: '6px 8px' }}>المسدد</th>
-                      <th style={{ padding: '6px 8px' }}>المتبقي</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>الفاتورة / التاريخ</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>الإجمالي / المسدد</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>المتبقي</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!data.recentSales || data.recentSales.length === 0) ? (
-                      <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>لا توجد فواتير سابقة</td></tr>
+                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>لا توجد فواتير سابقة</td></tr>
                     ) : (
                       data.recentSales.map((s: any) => (
                         <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, color: '#0f172a' }}>{s.docNo}</td>
-                          <td style={{ padding: '6px 8px', color: '#64748b' }}>{s.saleDate ? s.saleDate.slice(0, 10) : '—'}</td>
-                          <td style={{ padding: '6px 8px' }}>{s.total.toFixed(2)}</td>
-                          <td style={{ padding: '6px 8px', color: '#059669' }}>{s.paidAmount.toFixed(2)}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 800, color: s.remaining > 0 ? '#b91c1c' : '#059669' }}>
-                            {s.remaining.toFixed(2)}
+                          <td style={{ padding: '4px 6px' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {s.docNo}
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#64748b' }}>
+                              {s.saleDate ? s.saleDate.slice(0, 10) : '—'} • {s.paymentType === 'credit' ? 'آجل' : 'نقدي'}
+                            </div>
+                          </td>
+                          <td style={{ padding: '4px 6px' }}>
+                            <div style={{ fontWeight: 600, color: '#334155' }}>
+                              {Number(s.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#059669' }}>
+                              مسدد: {Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </td>
+                          <td style={{ padding: '4px 6px', textAlign: 'left' }}>
+                            <div style={{ fontWeight: 800, color: s.remaining > 0 ? '#b91c1c' : '#059669', fontSize: '11px' }}>
+                              {Number(s.remaining || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -428,33 +522,69 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
 
             {/* Recent Collections Table */}
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '5px' }}>
-                آخر سندات التحصيل ({data.recentCollections?.length || 0}):
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+                آخر التحصيلات ({data.recentCollections?.length || 0}):
               </div>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', maxHeight: '140px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px', textAlign: 'right', tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: '42%' }} />
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '30%' }} />
+                  </colgroup>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '6px 8px' }}>رقم السند</th>
-                      <th style={{ padding: '6px 8px' }}>التاريخ</th>
-                      <th style={{ padding: '6px 8px' }}>المبلغ</th>
-                      <th style={{ padding: '6px 8px' }}>طريقة الدفع</th>
-                      <th style={{ padding: '6px 8px' }}>ملاحظات</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>السند / التاريخ</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>طريقة السداد</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>المبلغ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!data.recentCollections || data.recentCollections.length === 0) ? (
-                      <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>لا توجد تحصيلات سابقة</td></tr>
+                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>لا توجد تحصيلات سابقة</td></tr>
                     ) : (
-                      data.recentCollections.map((c: any) => (
-                        <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, color: '#0f172a' }}>{c.receiptNumber}</td>
-                          <td style={{ padding: '6px 8px', color: '#64748b' }}>{c.paymentDate ? c.paymentDate.slice(0, 10) : '—'}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 800, color: '#059669' }}>{c.amount.toFixed(2)} <CurrencySymbol /></td>
-                          <td style={{ padding: '6px 8px' }}>{c.paymentMethod === 'cash' ? 'نقدي' : c.paymentMethod}</td>
-                          <td style={{ padding: '6px 8px', color: '#64748b' }}>{c.notes || '—'}</td>
-                        </tr>
-                      ))
+                      data.recentCollections.map((c: any) => {
+                        const methodLabel =
+                          c.paymentMethod === 'cash' ? 'نقدي' :
+                          c.paymentMethod === 'instapay' ? 'إنستاباي' :
+                          c.paymentMethod === 'vodafone_cash' ? 'فودافون' :
+                          c.paymentMethod === 'bank_transfer' ? 'تحويل' :
+                          c.paymentMethod;
+
+                        return (
+                          <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '4px 6px' }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {c.receiptNumber}
+                              </div>
+                              <div style={{ fontSize: '9px', color: '#64748b' }}>
+                                {c.paymentDate ? c.paymentDate.slice(0, 10) : '—'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: c.paymentMethod === 'cash' ? '#f1f5f9' : '#eff6ff',
+                                  color: c.paymentMethod === 'cash' ? '#334155' : '#1d4ed8',
+                                  fontSize: '9.5px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {methodLabel}
+                              </span>
+                            </td>
+                            <td style={{ padding: '4px 6px', textAlign: 'left' }}>
+                              <span style={{ fontWeight: 800, color: '#059669', fontSize: '11px' }}>
+                                {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>{' '}
+                              <span style={{ fontSize: '9px', color: '#64748b' }}>ج.م</span>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

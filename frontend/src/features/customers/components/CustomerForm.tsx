@@ -15,6 +15,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { CustomerVisitDaysPicker } from './CustomerVisitDaysPicker';
 
 const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
 
@@ -186,25 +187,19 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               />
             </Field>
 
-            <Field label="يوم الزيارة الأسبوعي" hint="ميعاد زيارة المندوب الدورية">
+            <Field label="أيام الزيارة الأسبوعية المجدولة" hint="حدد الأيام التي يظهر فيها هذا المحل في خط سير المندوب" className="field-full-span">
               <Controller
-                name="metadata.visit_day"
+                name="metadata.visit_days"
                 control={form.control}
                 render={({ field }) => (
-                  <CustomSelect
-                    value={field.value || ''}
-                    onChange={field.onChange}
+                  <CustomerVisitDaysPicker
+                    value={field.value}
+                    singleValue={form.watch('metadata.visit_day')}
                     disabled={mutation.isPending}
-                    options={[
-                      { value: '', label: 'بدون تحديد' },
-                      { value: 'السبت', label: 'السبت' },
-                      { value: 'الأحد', label: 'الأحد' },
-                      { value: 'الإثنين', label: 'الإثنين' },
-                      { value: 'الثلاثاء', label: 'الثلاثاء' },
-                      { value: 'الأربعاء', label: 'الأربعاء' },
-                      { value: 'الخميس', label: 'الخميس' },
-                      { value: 'الجمعة', label: 'الجمعة' },
-                    ]}
+                    onChange={(days, primaryDay) => {
+                      field.onChange(days);
+                      form.setValue('metadata.visit_day', primaryDay, { shouldDirty: true });
+                    }}
                   />
                 )}
               />

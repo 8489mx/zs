@@ -72,29 +72,19 @@ export function CustomersPage() {
           onClose={() => controller.setSelectedCustomer(null)}
           title={controller.selectedCustomer ? `تعديل: ${controller.selectedCustomer.name}` : ''}
           subtitle={profile.modalEditSubtitle}
-          width="min(680px, 95vw)"
+          width="min(900px, 96vw)"
           minHeight="auto"
         >
           <div dir="rtl">
-            {controller.selectedCustomer && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-                <Button
-                  variant="danger"
-                  onClick={() => controller.setCustomerToDelete(controller.selectedCustomer)}
-                  disabled={!controller.canDelete}
-                  style={{
-                    fontSize: '0.8rem',
-                    padding: '4px 12px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف العميل'}
-                </Button>
-              </div>
-            )}
             <CustomerEditorCard
               customer={controller.selectedCustomer || undefined}
               onSaved={() => controller.setSelectedCustomer(null)}
+              onDeleteCustomer={
+                controller.canDelete && controller.selectedCustomer
+                  ? () => controller.setCustomerToDelete(controller.selectedCustomer)
+                  : undefined
+              }
+              deleteLabel={profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف هذا العميل'}
             />
           </div>
         </StandardDialog>

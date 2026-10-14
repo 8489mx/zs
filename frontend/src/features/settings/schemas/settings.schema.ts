@@ -66,6 +66,8 @@ export const settingsFormSchema = z.object({
   deliveryFeeMode: z.enum(['freelance_courier', 'store_fleet']).default('freelance_courier'),
   storeFleetCommissionRate: z.coerce.number().min(0).max(100).default(0),
   defaultDeliveryFee: z.coerce.number().min(0).default(0),
+  vanSettlementRequireSupervisorPin: z.boolean().default(false),
+  vanSettlementBlindMode: z.boolean().default(false),
   allowNegativeStockSales: z.boolean().default(false),
   allowZeroPurchaseCost: z.boolean().default(false),
   requireCashierShiftForSales: z.boolean().default(true),

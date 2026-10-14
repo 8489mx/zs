@@ -41,6 +41,7 @@ import { VanPreSalesTab } from '../components/VanPreSalesTab';
 import { VanTripExpenseModal } from '../components/VanTripExpenseModal';
 import { VanTripPackagingModal } from '../components/VanTripPackagingModal';
 import { VanDamagedSwapModal } from '../components/VanDamagedSwapModal';
+import { VanGpsMandatoryModal } from '../components/VanGpsMandatoryModal';
 
 export default function VanSalesMobilePage() {
   const queryClient = useQueryClient();
@@ -354,6 +355,8 @@ export default function VanSalesMobilePage() {
     customerName: string;
     startedAt: number;
     startedTimeStr?: string;
+    latitude?: number;
+    longitude?: number;
   } | null>(() => {
     try {
       const saved = localStorage.getItem('zs_van_active_visit');
@@ -373,6 +376,16 @@ export default function VanSalesMobilePage() {
     return 0;
   });
 
+  // GPS Mandatory Check State for Store Visits
+  const [isCheckingGps, setIsCheckingGps] = useState<boolean>(false);
+  const [gpsBlockedModalOpen, setGpsBlockedModalOpen] = useState<boolean>(false);
+  const [gpsBlockedInfo, setGpsBlockedInfo] = useState<{
+    customerId: number;
+    customerName: string;
+    errorMessage?: string;
+    onSuccess?: () => void;
+  } | null>(null);
+
   // Ticker for active visit
   useEffect(() => {
     if (!activeVisit) {
@@ -387,20 +400,99 @@ export default function VanSalesMobilePage() {
     return () => clearInterval(interval);
   }, [activeVisit]);
 
-  const handleStartVisit = (customerId: number, customerName: string) => {
-    const now = Date.now();
-    const nowStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-    const visitData = {
-      customerId,
-      customerName,
-      startedAt: now,
-      startedTimeStr: nowStr,
-    };
-    setActiveVisit(visitData);
+  const requestGpsPosition = (): Promise<{ latitude: number; longitude: number }> => {
+    return new Promise((resolve, reject) => {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        return reject(new Error('خدمة تحديد المواقع (GPS) غير مدعومة على هذا الجهاز أو المتصفح.'));
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolve({
+            latitude: Number(pos.coords.latitude.toFixed(6)),
+            longitude: Number(pos.coords.longitude.toFixed(6)),
+          });
+        },
+        (err) => {
+          let msg = 'خدمة تحديد المواقع (GPS) مقفولة أو يتعذر التقاط الإحداثيات.';
+          if (err.code === 1) {
+            msg = 'تم رفض إذن الوصول للموقع الجغرافي في المتصفح. يرجى تفعيل إذن الموقع.';
+          } else if (err.code === 2) {
+            msg = 'خدمة الـ GPS غير مفعّلة في الهاتف أو يتعذر استقبال إشارة الأقمار الصناعية.';
+          } else if (err.code === 3) {
+            msg = 'انتهت مهلة التقاط الموقع الجغرافي. تأكد من تفعيل الـ GPS بالهاتف ثم أعد المحاولة.';
+          }
+          reject(new Error(msg));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    });
+  };
+
+  const handleStartVisit = async (
+    customerId: number,
+    customerName: string,
+    onSuccess?: () => void,
+  ) => {
+    if (activeVisit && activeVisit.customerId === customerId) {
+      onSuccess?.();
+      return;
+    }
+
+    setIsCheckingGps(true);
     try {
-      localStorage.setItem('zs_van_active_visit', JSON.stringify(visitData));
-    } catch {}
-    toast.info(`بدأ احتساب وقت زيارة: "${customerName}" (${nowStr})`);
+      const coords = await requestGpsPosition();
+      const now = Date.now();
+      const nowStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const visitData = {
+        customerId,
+        customerName,
+        startedAt: now,
+        startedTimeStr: nowStr,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      };
+      setActiveVisit(visitData);
+      try {
+        localStorage.setItem('zs_van_active_visit', JSON.stringify(visitData));
+      } catch {}
+
+      vanSalesApi.checkInVisit({
+        tripId: data?.trip?.id,
+        customerId,
+        customerName,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      }).catch(() => {
+        // Silently handled in background
+      });
+
+      toast.success(`تم التقاط إحداثيات GPS وبدأت الزيارة: "${customerName}" (${nowStr})`);
+      setGpsBlockedModalOpen(false);
+      setGpsBlockedInfo(null);
+      onSuccess?.();
+    } catch (err: any) {
+      const errMsg = err?.message || 'خدمة الـ GPS غير مفعلة على الهاتف.';
+      setGpsBlockedInfo({
+        customerId,
+        customerName,
+        errorMessage: errMsg,
+        onSuccess,
+      });
+      setGpsBlockedModalOpen(true);
+      toast.warning('يلزم تفعيل الـ GPS لبدء الزيارة الميدانية وتوثيق التواجد');
+    } finally {
+      setIsCheckingGps(false);
+    }
+  };
+
+  const handleRetryGpsCheck = () => {
+    if (!gpsBlockedInfo) return;
+    void handleStartVisit(gpsBlockedInfo.customerId, gpsBlockedInfo.customerName, gpsBlockedInfo.onSuccess);
   };
 
   const handleEndVisit = () => {
@@ -802,7 +894,12 @@ export default function VanSalesMobilePage() {
   const settleTripMutation = useMutation({
     mutationFn: vanSalesApi.settleTrip,
     onSuccess: (res) => {
-      showAlert('success', `تم إغلاق وتصفية رحلة التوزيع بنجاح! عجز/زيادة الكاش: ${res.variance} ${getGlobalCurrencySymbol()}`);
+      const isBlind = Boolean(data?.isBlindSettlement);
+      if (isBlind) {
+        showAlert('success', 'تم إغلاق وتصفية رحلة التوزيع بنجاح وتسليم النقدية الفعلية للخزينة للمطابقة الرقابية!');
+      } else {
+        showAlert('success', `تم إغلاق وتصفية رحلة التوزيع بنجاح! عجز/زيادة الكاش: ${res.variance} ${getGlobalCurrencySymbol()}`);
+      }
       setCountedCash('');
       setActiveTab('cockpit');
       handleEndVisit();
@@ -1294,7 +1391,7 @@ export default function VanSalesMobilePage() {
       )}
 
       {/* Main Container */}
-      <main style={{ padding: '8px 10px 58px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
+      <main style={{ padding: '8px 10px 85px', maxWidth: '1280px', width: '100%', margin: '0 auto', boxSizing: 'border-box', minWidth: 0 }}>
         {/* Monthly Multi-Dimensional Target Progress Card */}
         {data?.targetMetrics && (
           (data.targetMetrics.targetAmount > 0) ||
@@ -1588,19 +1685,19 @@ export default function VanSalesMobilePage() {
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>مبيعات</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                    {(data.trip?.salesAmount ?? 0).toFixed(0)} <CurrencySymbol />
+                    {Number((data.trip?.salesAmount ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>كاش</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                    {(data.trip?.cashCollected ?? 0).toFixed(0)} <CurrencySymbol />
+                    {Number((data.trip?.cashCollected ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>آجل</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                    {(data.trip?.creditSales ?? 0).toFixed(0)} <CurrencySymbol />
+                    {Number((data.trip?.creditSales ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, padding: '2px 2px' }}>
@@ -2444,42 +2541,54 @@ export default function VanSalesMobilePage() {
                 allAvailableCustomers={allAvailableCustomers}
                 onSelectCustomerForSale={(customerId) => {
                   const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  const proceedToSale = () => {
+                    setSelectedCustomerId(customerId);
+                    setNewCustomerName('');
+                    if (data?.hasActiveTrip) {
+                      setActiveTab('sale');
+                    } else {
+                      toast.info('يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع');
+                    }
+                  };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
-                    handleStartVisit(customerId, cust.name);
-                  }
-                  setSelectedCustomerId(customerId);
-                  setNewCustomerName('');
-                  if (data?.hasActiveTrip) {
-                    setActiveTab('sale');
+                    handleStartVisit(customerId, cust.name, proceedToSale);
                   } else {
-                    toast.info('يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع');
+                    proceedToSale();
                   }
                 }}
                 onSelectCustomerForReturn={(customerId) => {
                   const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  const proceedToReturn = () => {
+                    setColSubMode('return');
+                    setColReturnCustomerId(customerId);
+                    setColCustomerId(customerId);
+                    if (data?.hasActiveTrip) {
+                      setActiveTab('collection');
+                    } else {
+                      toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل مرتجع بضاعة');
+                    }
+                  };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
-                    handleStartVisit(customerId, cust.name);
-                  }
-                  setColSubMode('return');
-                  setColReturnCustomerId(customerId);
-                  setColCustomerId(customerId);
-                  if (data?.hasActiveTrip) {
-                    setActiveTab('collection');
+                    handleStartVisit(customerId, cust.name, proceedToReturn);
                   } else {
-                    toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل مرتجع بضاعة');
+                    proceedToReturn();
                   }
                 }}
                 onSelectCustomerForCollection={(customerId) => {
                   const cust = allAvailableCustomers.find((c) => c.id === customerId);
+                  const proceedToCollection = () => {
+                    setColSubMode('collection');
+                    setColCustomerId(customerId);
+                    if (data?.hasActiveTrip) {
+                      setActiveTab('collection');
+                    } else {
+                      toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل سند تحصيل');
+                    }
+                  };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
-                    handleStartVisit(customerId, cust.name);
-                  }
-                  setColSubMode('collection');
-                  setColCustomerId(customerId);
-                  if (data?.hasActiveTrip) {
-                    setActiveTab('collection');
+                    handleStartVisit(customerId, cust.name, proceedToCollection);
                   } else {
-                    toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل سند تحصيل');
+                    proceedToCollection();
                   }
                 }}
                 onRefreshItinerary={() => {
@@ -2491,7 +2600,7 @@ export default function VanSalesMobilePage() {
 
             {/* TAB CONTENT: INVENTORY (بضاعة السيارة & طلبات شحن السيارة) */}
             {currentTab === 'inventory' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                 {/* Segmented Sub-Header for Stock vs Requisitions */}
                 <div
                   style={{
@@ -2500,6 +2609,9 @@ export default function VanSalesMobilePage() {
                     padding: '3px',
                     borderRadius: '10px',
                     gap: '4px',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
                   }}
                 >
                   <button
@@ -2579,7 +2691,7 @@ export default function VanSalesMobilePage() {
                     pendingTransfersCount={peerTransfers.filter((t) => t.status === 'pending').length}
                   />
                 ) : (
-                  <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px' }}>
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2883,13 +2995,19 @@ export default function VanSalesMobilePage() {
                   customers={allAvailableCustomers}
                   selectedCustomerId={selectedCustomerId}
                   onSelectCustomer={(val) => {
-                    setSelectedCustomerId(val);
                     if (val) {
-                      setNewCustomerName('');
                       const cust = allAvailableCustomers.find((c) => c.id === Number(val));
                       if (cust && (!activeVisit || activeVisit.customerId !== Number(val))) {
-                        handleStartVisit(Number(val), cust.name);
+                        handleStartVisit(Number(val), cust.name, () => {
+                          setSelectedCustomerId(val);
+                          setNewCustomerName('');
+                        });
+                        return;
                       }
+                      setSelectedCustomerId(val);
+                      setNewCustomerName('');
+                    } else {
+                      setSelectedCustomerId('');
                     }
                   }}
                   newCustomerName={newCustomerName}
@@ -2912,6 +3030,14 @@ export default function VanSalesMobilePage() {
                   onSubmitSale={() => {
                     if (cart.length === 0) {
                       showAlert('error', 'السلة فارغة حالياً. يرجى اختيار صنف واحد على الأقل لإصدار الفاتورة.');
+                      return;
+                    }
+                    if (selectedCustomerId && (!activeVisit || activeVisit.customerId !== Number(selectedCustomerId))) {
+                      const cust = allAvailableCustomers.find((c) => c.id === Number(selectedCustomerId));
+                      showAlert('warning', `يلزم تفعيل الـ GPS وبدء زيارة العميل "${cust?.name || ''}" أولاً لإصدار الفاتورة.`);
+                      if (cust) {
+                        handleStartVisit(Number(selectedCustomerId), cust.name);
+                      }
                       return;
                     }
                     setCheckoutModalOpen(true);
@@ -2945,13 +3071,19 @@ export default function VanSalesMobilePage() {
                 customers={allAvailableCustomers}
                 selectedCustomerId={selectedCustomerId}
                 onSelectCustomer={(val) => {
-                  setSelectedCustomerId(val);
                   if (val) {
-                    setNewCustomerName('');
                     const cust = allAvailableCustomers.find((c) => c.id === Number(val));
                     if (cust && (!activeVisit || activeVisit.customerId !== Number(val))) {
-                      handleStartVisit(Number(val), cust.name);
+                      handleStartVisit(Number(val), cust.name, () => {
+                        setSelectedCustomerId(val);
+                        setNewCustomerName('');
+                      });
+                      return;
                     }
+                    setSelectedCustomerId(val);
+                    setNewCustomerName('');
+                  } else {
+                    setSelectedCustomerId('');
                   }
                 }}
                 repId={session.rep.id}
@@ -2987,6 +3119,14 @@ export default function VanSalesMobilePage() {
                       showAlert('error', 'يرجى اختيار العميل وإدخال مبلغ التحصيل');
                       return;
                     }
+                    if (colCustomerId && (!activeVisit || activeVisit.customerId !== Number(colCustomerId))) {
+                      const cust = allAvailableCustomers.find((c) => c.id === Number(colCustomerId));
+                      showAlert('warning', `يلزم تفعيل الـ GPS وبدء زيارة العميل "${cust?.name || ''}" أولاً لتسجيل سند التحصيل.`);
+                      if (cust) {
+                        handleStartVisit(Number(colCustomerId), cust.name);
+                      }
+                      return;
+                    }
                     let gpsLat: number | undefined;
                     let gpsLng: number | undefined;
                     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -3002,8 +3142,8 @@ export default function VanSalesMobilePage() {
                       tripId: data.trip!.id,
                       customerId: Number(colCustomerId),
                       amount: Number(colAmount),
-                      gpsLat,
-                      gpsLng,
+                      gpsLat: gpsLat || activeVisit?.latitude,
+                      gpsLng: gpsLng || activeVisit?.longitude,
                     });
                   }}
                   isSubmitting={recordCollectionMutation.isPending}
@@ -3050,15 +3190,18 @@ export default function VanSalesMobilePage() {
                   onCountedCashChange={setCountedCash}
                   unloadRemaining={unloadRemaining}
                   onUnloadRemainingChange={setUnloadRemaining}
+                  requireSupervisorPin={Boolean(data?.requireSupervisorPinForSettlement)}
+                  isBlindSettlement={Boolean(data?.isBlindSettlement)}
                   onSubmitSettle={async (
                     supervisorPin?: string,
                     countedStock?: { productId: number; countedQty: number }[],
                     chargeStockVarianceToRep?: boolean,
                   ) => {
+                    const isBlind = Boolean(data?.isBlindSettlement);
                     const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
-                    const finalCountedCash = countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash;
+                    const finalCountedCash = isBlind ? countedCash : (countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash);
                     if (finalCountedCash === '') {
-                      showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك');
+                      showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك للتوريد');
                       return;
                     }
 
@@ -3267,6 +3410,19 @@ export default function VanSalesMobilePage() {
           }}
         />
       )}
+
+      {/* Mandatory Store Visit GPS Geolocation Modal */}
+      <VanGpsMandatoryModal
+        open={gpsBlockedModalOpen}
+        onClose={() => {
+          setGpsBlockedModalOpen(false);
+          setGpsBlockedInfo(null);
+        }}
+        customerName={gpsBlockedInfo?.customerName}
+        errorMessage={gpsBlockedInfo?.errorMessage}
+        isChecking={isCheckingGps}
+        onRetry={handleRetryGpsCheck}
+      />
 
       {/* Mobile Fixed Bottom Navigation Bar - Pinned Docked Standard with Curved Top Corners */}
       <nav

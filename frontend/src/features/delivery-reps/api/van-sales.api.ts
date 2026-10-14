@@ -304,6 +304,8 @@ export interface VanActiveTripResponse {
     customerName?: string;
   }[];
   targetMetrics?: RepTargetMetrics;
+  requireSupervisorPinForSettlement?: boolean;
+  isBlindSettlement?: boolean;
 }
 
 export interface DriverSaleHistoryItem {
@@ -1415,6 +1417,7 @@ export const vanSalesApi = {
       assignedRepId?: number | null;
       assignedRepIds?: number[];
       assignedRepName?: string;
+      repSchedules?: Array<{ repId: number; repName?: string; days: string[] }>;
     },
   ) => {
     return http(`/api/van-sales/admin/customers/${customerId}/route-schedule`, {
@@ -2089,7 +2092,133 @@ export const vanSalesApi = {
   getLiveTripBreadcrumbs: async (tripId: number): Promise<{ ok: boolean; tripId: number; pointsCount: number; breadcrumbs: any[] }> => {
     return http(`/api/van-sales/admin/trips/${tripId}/breadcrumbs`);
   },
+
+  getRepFinancialLedger: async (params?: {
+    repId?: number;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<VanRepFinancialLedgerResponse> => {
+    const q = new URLSearchParams();
+    if (params?.repId) q.set('repId', String(params.repId));
+    if (params?.status) q.set('status', params.status);
+    if (params?.dateFrom) q.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) q.set('dateTo', params.dateTo);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return http<VanRepFinancialLedgerResponse>(`/api/van-sales/admin/financial-ledger${qs}`);
+  },
+
+  settleRepFinancialItem: async (
+    id: number,
+    payload: { method: 'cash' | 'waiver'; notes?: string }
+  ): Promise<{ ok: boolean; id: number; status: string; receiptVoucherNo?: string }> => {
+    return http(`/api/van-sales/admin/financial-ledger/${id}/settle`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  pushRepShortagesToPayroll: async (payload: {
+    settlementIds: number[];
+    targetMonth?: string;
+  }): Promise<{ ok: boolean; targetMonth: string; processedCount: number; results: any[] }> => {
+    return http('/api/van-sales/admin/financial-ledger/push-to-payroll', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  addRepBonusOrCommission: async (payload: {
+    repId: number;
+    entryType: 'bonus' | 'commission';
+    amount: number;
+    notes: string;
+  }): Promise<{ ok: boolean; repName: string; settlement: any }> => {
+    return http('/api/van-sales/admin/financial-ledger/bonus', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  linkRepToEmployee: async (payload: {
+    repId: number;
+    employeeId: number | null;
+  }): Promise<{ ok: boolean; repId: number; employeeId: number | null }> => {
+    return http('/api/van-sales/admin/financial-ledger/link-employee', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getCandidateEmployees: async (): Promise<
+    Array<{ id: number; employeeNo?: string | null; displayName: string; nationalId?: string | null }>
+  > => {
+    return http('/api/van-sales/admin/financial-ledger/candidate-employees');
+  },
+
+  autoCreateEmployee: async (payload: {
+    repId: number;
+  }): Promise<{ ok: boolean; employeeId: number; displayName: string; employeeNo?: string; message?: string }> => {
+    return http('/api/van-sales/admin/financial-ledger/auto-create-employee', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 };
+
+export interface VanRepFinancialSettlementItem {
+  id: number;
+  tenantId: string;
+  repId: number;
+  repName: string;
+  repPhone?: string;
+  employeeId?: number | null;
+  employeeName?: string | null;
+  employeeNo?: string | null;
+  tripId?: number | null;
+  shiftName?: string | null;
+  vehiclePlate?: string | null;
+  entryType: 'cash_shortage' | 'stock_shortage' | 'cash_overage' | 'commission' | 'bonus' | 'cash_reimbursement' | 'waiver' | 'payroll_deduction' | string;
+  amount: number;
+  status: 'pending' | 'settled' | 'waived' | 'pushed_to_payroll' | string;
+  settledAt?: string | null;
+  settledById?: number | null;
+  settledByName?: string | null;
+  settlementMethod?: 'cash' | 'payroll' | 'waiver' | string | null;
+  notes?: string | null;
+  receiptVoucherNo?: string | null;
+  payrollRunId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VanRepLedgerBreakdown {
+  repId: number;
+  repName: string;
+  repPhone?: string;
+  employeeId?: number | null;
+  employeeName?: string | null;
+  pendingShortages: number;
+  settledShortages: number;
+  waivedShortages: number;
+  pushedToPayroll: number;
+  commissions: number;
+  netBalance: number;
+  itemsCount: number;
+}
+
+export interface VanRepFinancialLedgerResponse {
+  items: VanRepFinancialSettlementItem[];
+  summary: {
+    totalPendingShortages: number;
+    totalSettledShortages: number;
+    totalWaivedShortages: number;
+    totalPushedToPayroll: number;
+    totalCommissions: number;
+    netRepBalance: number;
+    repsBreakdown: VanRepLedgerBreakdown[];
+  };
+}
 
 export interface FmcgPromotion {
   id: number;

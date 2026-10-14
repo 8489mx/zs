@@ -15,6 +15,17 @@ export interface DeliveryRep {
   is_van_rep?: boolean;
   van_location_id?: number | null;
   is_active: boolean;
+  permissions?: {
+    can_edit_routes?: boolean;
+    can_add_customers?: boolean;
+    require_gps_on_visit?: boolean;
+    can_give_discount?: boolean;
+    max_discount_percent?: number;
+    can_sell_over_credit_limit?: boolean;
+    can_collect_cash?: boolean;
+    [key: string]: any;
+  };
+  metadata?: Record<string, any>;
 }
 
 export interface UpsertDeliveryRepPayload {
@@ -28,6 +39,17 @@ export interface UpsertDeliveryRepPayload {
   repType?: 'delivery' | 'van' | 'both';
   isVanRep?: boolean;
   isActive?: boolean;
+  permissions?: {
+    can_edit_routes?: boolean;
+    can_add_customers?: boolean;
+    require_gps_on_visit?: boolean;
+    can_give_discount?: boolean;
+    max_discount_percent?: number;
+    can_sell_over_credit_limit?: boolean;
+    can_collect_cash?: boolean;
+    [key: string]: any;
+  };
+  metadata?: Record<string, any>;
 }
 
 export interface SettleOrderPayload {

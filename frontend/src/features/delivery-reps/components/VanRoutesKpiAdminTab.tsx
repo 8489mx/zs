@@ -25,6 +25,7 @@ import {
   SearchIcon,
   CheckIcon,
 } from '@/shared/components/icons/AppIcons';
+import { normalizeDayKey, DAY_KEY_TO_ARABIC } from './VanItineraryTab';
 
 const WEEKDAYS = [
   { id: 'saturday', label: 'السبت' },
@@ -33,6 +34,7 @@ const WEEKDAYS = [
   { id: 'tuesday', label: 'الثلاثاء' },
   { id: 'wednesday', label: 'الأربعاء' },
   { id: 'thursday', label: 'الخميس' },
+  { id: 'friday', label: 'الجمعة' },
 ];
 
 const NEGATIVE_REASON_LABELS: Record<string, string> = {
@@ -195,7 +197,10 @@ export function VanRoutesKpiAdminTab() {
     setEditingCustomer(customer);
     setRouteInput(customer.route === 'غير محدد' ? '' : customer.route);
     setSequenceInput(String(customer.routeSequence || 1));
-    setSelectedDays(Array.isArray(customer.visitDays) && customer.visitDays.length > 0 ? customer.visitDays : ['saturday', 'monday', 'wednesday']);
+    const initDays = Array.isArray(customer.visitDays) && customer.visitDays.length > 0
+      ? customer.visitDays.map((d: string) => normalizeDayKey(d)).filter(Boolean)
+      : (customer.visitDay ? [normalizeDayKey(customer.visitDay)].filter(Boolean) : []);
+    setSelectedDays(initDays);
     setAssignedRepId(customer.assignedRepId ? String(customer.assignedRepId) : '');
     const initRepIds =
       Array.isArray(customer.assignedRepIds) && customer.assignedRepIds.length > 0
@@ -1266,9 +1271,9 @@ export function VanRoutesKpiAdminTab() {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {Array.isArray(c.visitDays) && c.visitDays.length > 0 ? (
-                              c.visitDays.map((d: string) => {
-                                const found = WEEKDAYS.find((w) => w.id === d);
+                            {((Array.isArray(c.visitDays) && c.visitDays.length > 0) ? c.visitDays : (c.visitDay ? [c.visitDay] : [])).length > 0 ? (
+                              ((Array.isArray(c.visitDays) && c.visitDays.length > 0) ? c.visitDays : [c.visitDay!]).map((d: string) => {
+                                const found = WEEKDAYS.find((w) => w.id === d || w.id === normalizeDayKey(d) || w.label === d);
                                 return (
                                   <span
                                     key={d}
@@ -1539,7 +1544,7 @@ export function VanRoutesKpiAdminTab() {
                     customerId: editingCustomer.customerId,
                     route: routeInput.trim() || 'غير محدد',
                     routeSequence: parseInt(sequenceInput, 10) || 1,
-                    visitDays: selectedDays,
+                    visitDays: selectedDays.map((d) => DAY_KEY_TO_ARABIC[d] || d),
                     assignedRepId: primaryRepId,
                     assignedRepIds,
                     assignedRepName: repNames || undefined,
@@ -1688,7 +1693,7 @@ export function VanRoutesKpiAdminTab() {
                     assignedRepId: repId,
                     assignedRepName: repName,
                     route: bulkRouteInput.trim() ? bulkRouteInput.trim() : undefined,
-                    visitDays: bulkApplyDays ? bulkVisitDays : undefined,
+                    visitDays: bulkApplyDays ? bulkVisitDays.map((d) => DAY_KEY_TO_ARABIC[d] || d) : undefined,
                   });
                 }}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}

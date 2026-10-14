@@ -17,6 +17,13 @@ import {
   RouteStopInput,
   RouteOptimizationResult,
 } from '../route-optimization.engine';
+import {
+  getCurrentBusinessDay,
+  extractCustomerVisitDays,
+  isCustomerScheduledForDay,
+  normalizeDayKey,
+  DAY_KEY_TO_ARABIC,
+} from '../van-routes-schedule.util';
 
 @Injectable()
 export class VanRoutesService {
@@ -60,12 +67,9 @@ export class VanRoutesService {
       customerTotalBalances,
     });
 
-    // 1. Calculate today's Arabic & English day names
-    const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const englishDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayIdx = new Date().getDay();
-    const currentDayName = arabicDays[dayIdx];
-    const currentEnglishDayName = englishDays[dayIdx];
+    // 1. Calculate today's Arabic & English day names based on business timezone (Africa/Cairo)
+    const { dayKey: todayDayKey, dayArabicName: currentDayName } = getCurrentBusinessDay();
+    const currentEnglishDayName = todayDayKey;
 
     // 2. Filter customers based on rep assignment (supporting multi-rep shared customers & ledger ownership)
     const parseCustMeta = (raw: any): any => {
@@ -150,22 +154,23 @@ export class VanRoutesService {
         status = todayVisit.visitType;
       }
 
-      const visitDays: string[] = Array.isArray(meta.visit_days)
-        ? meta.visit_days
-        : (meta.visit_day ? [meta.visit_day] : []);
-      const isScheduledToday =
-        visitDays.length > 0
-          ? visitDays.some((d: string) => {
-              if (!d) return false;
-              const s = String(d).trim().toLowerCase();
-              return (
-                s === currentDayName ||
-                s === currentEnglishDayName ||
-                s.includes(currentDayName) ||
-                s.includes(currentEnglishDayName)
-              );
-            })
-          : true;
+      const { visitDays, visitDay } = extractCustomerVisitDays(meta);
+
+      // Support rep-specific daily schedules (e.g. Rep A visits on Sunday, Rep B visits on Thursday)
+      let effectiveVisitDays = visitDays;
+      let effectiveVisitDay = visitDay;
+      if (Array.isArray(meta.rep_schedules) && meta.rep_schedules.length > 0) {
+        const specificSchedule = meta.rep_schedules.find(
+          (s: any) => Number(s?.repId ?? s?.rep_id) === numRepId,
+        );
+        if (specificSchedule && Array.isArray(specificSchedule.days) && specificSchedule.days.length > 0) {
+          const extractedSpecific = extractCustomerVisitDays({ visit_days: specificSchedule.days });
+          effectiveVisitDays = extractedSpecific.visitDays;
+          effectiveVisitDay = extractedSpecific.visitDay;
+        }
+      }
+
+      const isScheduledToday = isCustomerScheduledForDay(effectiveVisitDays, todayDayKey);
       const assignedRepId = assignedRepIds.includes(numRepId)
         ? numRepId
         : (meta.assigned_rep_id ? Number(meta.assigned_rep_id) : null);
@@ -184,8 +189,9 @@ export class VanRoutesService {
         route: meta.route || 'الخط العام',
         district: meta.district || meta.area || meta.neighborhood || '',
         routeSequence: Number(meta.route_sequence || 0),
-        visitDay: meta.visit_day || '',
-        visitDays,
+        visitDay: effectiveVisitDay || meta.visit_day || '',
+        visitDays: effectiveVisitDays,
+        repSchedules: meta.rep_schedules || [],
         isScheduledToday,
         currentDayName,
         assignedRepId,
@@ -490,6 +496,7 @@ export class VanRoutesService {
       assignedRepId?: number | null;
       assignedRepIds?: number[];
       assignedRepName?: string | null;
+      repSchedules?: Array<{ repId: number; repName?: string; days: string[] }>;
     },
   ) {
     const cust = await this.anyDb
@@ -555,11 +562,22 @@ export class VanRoutesService {
       ? extractCoordinatesFromCustomerLocation({ locationUrl: payload.locationUrl })
       : null;
 
+    let scheduleDaysUpdate: any = {};
+    if (payload.visitDays !== undefined) {
+      const normalizedDays = payload.visitDays
+        .map((d) => DAY_KEY_TO_ARABIC[normalizeDayKey(d)] || d)
+        .filter(Boolean);
+      scheduleDaysUpdate = {
+        visit_days: normalizedDays,
+        visit_day: normalizedDays[0] || '',
+      };
+    }
+
     const updatedMeta: any = {
       ...existingMeta,
       ...(payload.route !== undefined ? { route: payload.route } : {}),
       ...(payload.routeSequence !== undefined ? { route_sequence: payload.routeSequence } : {}),
-      ...(payload.visitDays !== undefined ? { visit_days: payload.visitDays } : {}),
+      ...scheduleDaysUpdate,
       ...(payload.customerCode !== undefined ? { customer_code: payload.customerCode } : {}),
       ...(payload.locationUrl !== undefined ? { location_url: payload.locationUrl } : {}),
       ...(parsedCoords ? { gps_lat: parsedCoords.lat, gps_lng: parsedCoords.lng } : {}),
@@ -570,6 +588,14 @@ export class VanRoutesService {
       updatedMeta.assigned_rep_names = resolvedRepNames;
       updatedMeta.assigned_rep_id = targetRepIds.length > 0 ? targetRepIds[0] : null;
       updatedMeta.assigned_rep_name = resolvedRepName;
+    }
+
+    if (payload.repSchedules !== undefined) {
+      updatedMeta.rep_schedules = payload.repSchedules.map((item) => ({
+        repId: Number(item.repId),
+        repName: item.repName || '',
+        days: (item.days || []).map((d) => DAY_KEY_TO_ARABIC[normalizeDayKey(d)] || d).filter(Boolean),
+      }));
     }
 
     await this.anyDb
@@ -668,7 +694,11 @@ export class VanRoutesService {
         meta.route = payload.route.trim();
       }
       if (payload.visitDays !== undefined) {
-        meta.visit_days = payload.visitDays;
+        const normalizedDays = payload.visitDays
+          .map((d) => DAY_KEY_TO_ARABIC[normalizeDayKey(d)] || d)
+          .filter(Boolean);
+        meta.visit_days = normalizedDays;
+        meta.visit_day = normalizedDays[0] || '';
       }
 
       await this.anyDb
@@ -785,6 +815,8 @@ export class VanRoutesService {
           ? assignedRepNames.join(' ، ')
           : (meta.assigned_rep_name || null);
 
+      const { visitDays, visitDay } = extractCustomerVisitDays(meta);
+
       return {
         customerId: cid,
         customerName: r.name,
@@ -793,7 +825,9 @@ export class VanRoutesService {
         customerCode: normalizeCustomerCode(meta.customer_code || meta.code, cid),
         route: meta.route || 'غير محدد',
         routeSequence: Number(meta.route_sequence || 1),
-        visitDays: Array.isArray(meta.visit_days) ? meta.visit_days : [],
+        visitDays,
+        visitDay,
+        repSchedules: meta.rep_schedules || [],
         assignedRepId: primaryRepId,
         assignedRepIds,
         assignedRepNames,

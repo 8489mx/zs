@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { systemAlert } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep, type UpsertDeliveryRepPayload } from '@/shared/api/delivery-reps.api';
-import { XIcon, TruckIcon, LayersIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, TruckIcon, LayersIcon, PackageIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
 
 export interface UpsertDeliveryRepModalProps {
   open: boolean;
@@ -43,6 +43,15 @@ export function UpsertDeliveryRepModal({
   const [vehiclePlateInput, setVehiclePlateInput] = useState('');
   const [isActiveInput, setIsActiveInput] = useState<boolean>(true);
 
+  // Field Rep Permissions & Governance
+  const [canEditRoutes, setCanEditRoutes] = useState<boolean>(false);
+  const [canAddCustomers, setCanAddCustomers] = useState<boolean>(true);
+  const [requireGpsOnVisit, setRequireGpsOnVisit] = useState<boolean>(true);
+  const [canGiveDiscount, setCanGiveDiscount] = useState<boolean>(false);
+  const [maxDiscountPercent, setMaxDiscountPercent] = useState<number>(0);
+  const [canSellOverCreditLimit, setCanSellOverCreditLimit] = useState<boolean>(false);
+  const [canCollectCash, setCanCollectCash] = useState<boolean>(true);
+
   useEffect(() => {
     if (open) {
       if (rep) {
@@ -56,6 +65,15 @@ export function UpsertDeliveryRepModal({
         setIsActiveInput(rep.is_active !== false);
         const currentType = (rep.rep_type as 'delivery' | 'van' | 'both') || (rep.is_van_rep ? 'van' : 'delivery');
         setRepTypeInput(currentType);
+
+        const perms = rep.permissions || {};
+        setCanEditRoutes(Boolean(perms.can_edit_routes));
+        setCanAddCustomers(perms.can_add_customers !== false);
+        setRequireGpsOnVisit(perms.require_gps_on_visit !== false);
+        setCanGiveDiscount(Boolean(perms.can_give_discount));
+        setMaxDiscountPercent(Number(perms.max_discount_percent || 0));
+        setCanSellOverCreditLimit(Boolean(perms.can_sell_over_credit_limit));
+        setCanCollectCash(perms.can_collect_cash !== false);
       } else {
         setNameInput('');
         setPhoneInput('');
@@ -66,6 +84,14 @@ export function UpsertDeliveryRepModal({
         setAddressInput('');
         setVehiclePlateInput('');
         setIsActiveInput(true);
+
+        setCanEditRoutes(false);
+        setCanAddCustomers(true);
+        setRequireGpsOnVisit(true);
+        setCanGiveDiscount(false);
+        setMaxDiscountPercent(0);
+        setCanSellOverCreditLimit(false);
+        setCanCollectCash(true);
       }
     }
   }, [open, rep, defaultRepType]);
@@ -140,6 +166,15 @@ export function UpsertDeliveryRepModal({
       address: addressInput.trim() || undefined,
       vehiclePlate: vehiclePlateInput.trim() || undefined,
       isActive: isActiveInput,
+      permissions: {
+        can_edit_routes: canEditRoutes,
+        can_add_customers: canAddCustomers,
+        require_gps_on_visit: requireGpsOnVisit,
+        can_give_discount: canGiveDiscount,
+        max_discount_percent: Number(maxDiscountPercent) || 0,
+        can_sell_over_credit_limit: canSellOverCreditLimit,
+        can_collect_cash: canCollectCash,
+      },
     };
 
     if (rep) {
@@ -155,406 +190,557 @@ export function UpsertDeliveryRepModal({
     <DialogShell
       open={open}
       onClose={onClose}
-      width="min(640px, 95vw)"
+      width="min(1060px, 96vw)"
       ariaLabel={rep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px 24px' }} dir="rtl">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px 18px', boxSizing: 'border-box' }} dir="rtl">
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              {rep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
-            </h3>
-            <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-              تحديد طبيعة عمل المندوب (دليفري أو فان)، بيانات الدخول للموبايل، وتفاصيل المركبة
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: '#f1f5f9',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              color: '#64748b',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <XIcon size={15} />
-          </button>
-        </div>
-
-        {/* Form Body */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '72vh', overflowY: 'auto' }}>
-          
-          {/* Account Status Card (when editing) */}
-          {rep && (
-            <div
-              style={{
-                background: isActiveInput ? '#f0fdf4' : '#fef2f2',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: `1px solid ${isActiveInput ? '#bbf7d0' : '#fecaca'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: isActiveInput ? '#166534' : '#991b1b',
-                    display: 'block',
-                  }}
-                >
-                  حالة حساب المندوب: {isActiveInput ? 'نشط ويعمل' : 'موقوف ومُعطل'}
-                </span>
-                <span style={{ fontSize: '11px', color: isActiveInput ? '#15803d' : '#b91c1c' }}>
-                  {isActiveInput
-                    ? 'المندوب مفعّل ويمكنه فتح التطبيق واستلام رحلات وإصدار فواتير'
-                    : 'الحساب موقوف ولا يمكن للمندوب الدخول لتطبيق الهاتف حتى يتم تفعيله'}
-                </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', minWidth: 0, gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  {rep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
+                </h3>
+                {rep && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: isActiveInput ? '#dcfce7' : '#fee2e2',
+                      color: isActiveInput ? '#15803d' : '#b91c1c',
+                    }}
+                  >
+                    {isActiveInput ? 'نشط ويعمل' : 'موقوف ومُعطل'}
+                  </span>
+                )}
               </div>
+              <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>
+                تحديد طبيعة عمل المندوب (دليفري أو فان)، بيانات الدخول للموبايل، وتفاصيل المركبة والصلاحيات
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {rep && (
               <button
                 type="button"
                 onClick={() => setIsActiveInput(!isActiveInput)}
                 style={{
-                  padding: '6px 14px',
+                  padding: '4px 10px',
                   borderRadius: '6px',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  border: `1px solid ${isActiveInput ? '#dc2626' : '#16a34a'}`,
-                  background: isActiveInput ? '#ffffff' : '#16a34a',
-                  color: isActiveInput ? '#dc2626' : '#ffffff',
+                  border: `1px solid ${isActiveInput ? '#fca5a5' : '#86efac'}`,
+                  background: isActiveInput ? '#fff1f2' : '#f0fdf4',
+                  color: isActiveInput ? '#dc2626' : '#16a34a',
+                  transition: 'all 0.15s ease',
                 }}
+                title={isActiveInput ? 'إيقاف الحساب وتعطيل دخول التطبيق' : 'إعادة تفعيل الحساب وتصريح الدخول'}
               >
                 {isActiveInput ? 'إيقاف الحساب' : 'إعادة التفعيل'}
               </button>
-            </div>
-          )}
-
-          {/* Section 0: Representative Type Selection */}
-          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              طبيعة العمل ونوع المندوب *
-            </span>
-            <div style={{ display: 'grid', gridTemplateColumns: hideDeliveryOption ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
-              {[
-                ...(hideDeliveryOption
-                  ? []
-                  : [
-                      {
-                        key: 'delivery' as const,
-                        label: 'طيار دليفري',
-                        subtitle: 'توصيل أوردرات (/driver)',
-                        icon: <PackageIcon size={18} color={repTypeInput === 'delivery' ? '#ea580c' : '#64748b'} />,
-                        activeBorder: '#ea580c',
-                        activeBg: '#fff7ed',
-                        activeColor: '#9a3412',
-                      },
-                    ]),
-                {
-                  key: 'van' as const,
-                  label: 'توزيع فان',
-                  subtitle: 'بيع من السيارة (/van-sales)',
-                  icon: <TruckIcon size={18} color={repTypeInput === 'van' ? '#0284c7' : '#64748b'} />,
-                  activeBorder: '#0284c7',
-                  activeBg: '#f0f9ff',
-                  activeColor: '#075985',
-                },
-                {
-                  key: 'both' as const,
-                  label: 'مندوب شامل',
-                  subtitle: 'دليفري + توزيع فان',
-                  icon: <LayersIcon size={18} color={repTypeInput === 'both' ? '#7c3aed' : '#64748b'} />,
-                  activeBorder: '#7c3aed',
-                  activeBg: '#f5f3ff',
-                  activeColor: '#5b21b6',
-                },
-              ].map((item) => {
-                const isActive = repTypeInput === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setRepTypeInput(item.key)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      gap: '4px',
-                      padding: '10px 8px',
-                      borderRadius: '8px',
-                      border: `1.5px solid ${isActive ? item.activeBorder : '#cbd5e1'}`,
-                      background: isActive ? item.activeBg : '#ffffff',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
-                    }}
-                  >
-                    {item.icon}
-                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: isActive ? item.activeColor : '#1e293b' }}>
-                      {item.label}
-                    </span>
-                    <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.2 }}>
-                      {item.subtitle}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: '#64748b',
+                width: '28px',
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <XIcon size={14} />
+            </button>
           </div>
+        </div>
 
-          {/* Section 1: Basic Info & Mobile Portal */}
-          <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية وتطبيق الموبايل</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  اسم المندوب / الشهرة *
-                </label>
-                <input
-                  type="text"
-                  placeholder="مثال: كابتن أحمد / طاهر"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    boxSizing: 'border-box',
-                  }}
-                />
+        {/* Form Body - Balanced 2-Column Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+            gap: '12px',
+            alignItems: 'start',
+            maxHeight: 'calc(88vh - 90px)',
+            overflowY: 'auto',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Column 1 (Right): Type, Basic Info & Identity */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+            {/* 1. Work Type Selection */}
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                  طبيعة العمل ونوع المندوب <span style={{ color: '#dc2626' }}>*</span>
+                </span>
+                <span style={{ fontSize: '10px', color: '#64748b' }}>يحدد واجهة تطبيق الهاتف</span>
               </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رقم الهاتف / الموبايل <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="01012345678"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    boxSizing: 'border-box',
-                    direction: 'ltr',
-                    textAlign: 'right',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رمز الدخول (PIN) {!rep && <span style={{ color: '#dc2626' }}>*</span>}
-                </label>
-                <input
-                  type="password"
-                  maxLength={6}
-                  placeholder={rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) ? '•••• (مفعّل)' : '1234'}
-                  value={pinCodeInput}
-                  onChange={(e) => setPinCodeInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    boxSizing: 'border-box',
-                    direction: 'ltr',
-                    textAlign: 'center',
-                  }}
-                  title="رمز مكون من 4 إلى 6 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
-                />
-                {rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) && (
-                  <span style={{ display: 'block', fontSize: '10.5px', color: '#16a34a', marginTop: '4px', fontWeight: 600 }}>
-                    الرمز مفعّل (اتركه فارغاً للحفاظ عليه)
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Identity & Guarantee */}
-          <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>بيانات الهوية والضمان (اختياري)</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  الاسم بالكامل (من واقع البطاقة)
-                </label>
-                <input
-                  type="text"
-                  placeholder="الاسم الرباعي كاملاً"
-                  value={fullNameInput}
-                  onChange={(e) => setFullNameInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  الرقم القومي (١٤ رقم)
-                </label>
-                <input
-                  type="text"
-                  maxLength={14}
-                  placeholder="الرقم القومي كاملاً"
-                  value={nationalIdInput}
-                  onChange={(e) => setNationalIdInput(e.target.value.replace(/\D/g, ''))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    boxSizing: 'border-box',
-                    direction: 'ltr',
-                    textAlign: 'right',
-                  }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: hideDeliveryOption ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '6px' }}>
+                {[
+                  ...(hideDeliveryOption
+                    ? []
+                    : [
+                        {
+                          key: 'delivery' as const,
+                          label: 'طيار دليفري',
+                          subtitle: 'أوردرات (/driver)',
+                          icon: <PackageIcon size={16} color={repTypeInput === 'delivery' ? '#ea580c' : '#64748b'} />,
+                          activeBorder: '#ea580c',
+                          activeBg: '#fff7ed',
+                          activeColor: '#9a3412',
+                        },
+                      ]),
+                  {
+                    key: 'van' as const,
+                    label: 'توزيع فان',
+                    subtitle: 'بيع سيارة (/van-sales)',
+                    icon: <TruckIcon size={16} color={repTypeInput === 'van' ? '#0284c7' : '#64748b'} />,
+                    activeBorder: '#0284c7',
+                    activeBg: '#f0f9ff',
+                    activeColor: '#075985',
+                  },
+                  {
+                    key: 'both' as const,
+                    label: 'مندوب شامل',
+                    subtitle: 'دليفري + توزيع',
+                    icon: <LayersIcon size={16} color={repTypeInput === 'both' ? '#7c3aed' : '#64748b'} />,
+                    activeBorder: '#7c3aed',
+                    activeBg: '#f5f3ff',
+                    activeColor: '#5b21b6',
+                  },
+                ].map((item) => {
+                  const isActive = repTypeInput === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setRepTypeInput(item.key)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '6px 8px',
+                        borderRadius: '7px',
+                        border: `1.5px solid ${isActive ? item.activeBorder : '#cbd5e1'}`,
+                        background: isActive ? item.activeBg : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {item.icon}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 800, color: isActive ? item.activeColor : '#1e293b', lineHeight: 1.2 }}>
+                          {item.label}
+                        </span>
+                        <span style={{ fontSize: '9px', color: '#64748b', lineHeight: 1.1 }}>
+                          {item.subtitle}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                العنوان بالتفصيل
-              </label>
-              <input
-                type="text"
-                placeholder="المنطقة، الشارع، رقم العقار"
-                value={addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  minHeight: '36px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '7px',
-                  fontSize: '13px',
-                  background: '#ffffff',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Section 3: Vehicle Data */}
-          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              {repTypeInput === 'van' ? 'بيانات سيارة التوزيع (الفان)' : repTypeInput === 'both' ? 'بيانات المركبة / السيارة' : 'بيانات دراجة التوصيل / المركبة'}
-            </span>
-            {fleetVehicles.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px', alignItems: 'flex-start' }}>
+            {/* 2. Basic Info & Mobile Login */}
+            <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية وتطبيق الموبايل</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.1fr 0.9fr', gap: '8px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    اختيار من أسطول سيارات الشركة
-                  </label>
-                  <CustomSelect
-                    options={[
-                      { value: '', label: '— إدخال يدوي / غير مسجلة بالأسطول —' },
-                      ...fleetVehicles.map((v) => ({
-                        value: v.plateNumber,
-                        label: `${v.plateNumber}${v.modelName ? ` (${v.modelName})` : ''}`,
-                      })),
-                    ]}
-                    value={fleetVehicles.some((v) => v.plateNumber === vehiclePlateInput) ? vehiclePlateInput : ''}
-                    onChange={(val) => {
-                      if (val) setVehiclePlateInput(val);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    رقم لوحة المركبة / السيارة
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    اسم المندوب / الشهرة <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر' : 'مثال: 1234 ص ع'}
-                    value={vehiclePlateInput}
-                    onChange={(e) => setVehiclePlateInput(e.target.value)}
+                    placeholder="كابتن أحمد / طاهر"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      minHeight: '36px',
+                      padding: '5px 8px',
+                      height: '32px',
                       border: '1px solid #cbd5e1',
-                      borderRadius: '7px',
-                      fontSize: '13px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
                       background: '#ffffff',
                       boxSizing: 'border-box',
                     }}
                   />
                 </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    رقم الهاتف / الموبايل <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="01012345678"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      height: '32px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                      direction: 'ltr',
+                      textAlign: 'right',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    رمز الدخول (PIN) {!rep && <span style={{ color: '#dc2626' }}>*</span>}
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    placeholder={rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) ? '•••• (مفعّل)' : '1234'}
+                    value={pinCodeInput}
+                    onChange={(e) => setPinCodeInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      height: '32px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                      direction: 'ltr',
+                      textAlign: 'center',
+                    }}
+                    title="رمز مكون من 4 إلى 6 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
+                  />
+                  {rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) && (
+                    <span style={{ display: 'block', fontSize: '9px', color: '#16a34a', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      الرمز مفعّل (اتركه للحفظ)
+                    </span>
+                  )}
+                </div>
               </div>
-            ) : (
+            </div>
+
+            {/* 3. Identity & Address (Optional) */}
+            <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>بيانات الهوية والضمان (اختياري)</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    الاسم بالكامل (من واقع البطاقة)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="الاسم الرباعي كاملاً"
+                    value={fullNameInput}
+                    onChange={(e) => setFullNameInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      height: '32px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    الرقم القومي (١٤ رقم)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={14}
+                    placeholder="الرقم القومي كاملاً"
+                    value={nationalIdInput}
+                    onChange={(e) => setNationalIdInput(e.target.value.replace(/\D/g, ''))}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      height: '32px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                      direction: 'ltr',
+                      textAlign: 'right',
+                    }}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                  رقم لوحة المركبة / السيارة
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                  العنوان بالتفصيل
                 </label>
                 <input
                   type="text"
-                  placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر (سيارة فان)' : 'مثال: 1234 ص ع'}
-                  value={vehiclePlateInput}
-                  onChange={(e) => setVehiclePlateInput(e.target.value)}
+                  placeholder="المنطقة، الشارع، رقم العقار"
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
-                    minHeight: '36px',
+                    padding: '5px 8px',
+                    height: '32px',
                     border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    fontSize: '13px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
                     background: '#ffffff',
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Column 2 (Left): Vehicle & Field Permissions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+            {/* 4. Vehicle Data */}
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                {repTypeInput === 'van' ? 'بيانات سيارة التوزيع (الفان)' : repTypeInput === 'both' ? 'بيانات المركبة / السيارة' : 'بيانات دراجة التوصيل / المركبة'}
+              </span>
+              {fleetVehicles.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px', alignItems: 'flex-start' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                      اختيار من أسطول سيارات الشركة
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { value: '', label: '— إدخال يدوي / غير مسجلة —' },
+                        ...fleetVehicles.map((v) => ({
+                          value: v.plateNumber,
+                          label: `${v.plateNumber}${v.modelName ? ` (${v.modelName})` : ''}`,
+                        })),
+                      ]}
+                      value={fleetVehicles.some((v) => v.plateNumber === vehiclePlateInput) ? vehiclePlateInput : ''}
+                      onChange={(val) => {
+                        if (val) setVehiclePlateInput(val);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                      رقم لوحة المركبة / السيارة
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر' : 'مثال: 1234 ص ع'}
+                      value={vehiclePlateInput}
+                      onChange={(e) => setVehiclePlateInput(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '5px 8px',
+                        height: '32px',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        background: '#ffffff',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                    رقم لوحة المركبة / السيارة
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر (سيارة فان)' : 'مثال: 1234 ص ع'}
+                    value={vehiclePlateInput}
+                    onChange={(e) => setVehiclePlateInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      height: '32px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 5. Field Rep Permissions & Governance */}
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <CheckShieldIcon size={14} color="#170e5e" />
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                    صلاحيات وضوابط المندوب في تطبيق الميدان
+                  </span>
+                </div>
+                <span style={{ fontSize: '10px', color: '#64748b' }}>
+                  الضوابط التشغيلية والمالية
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                {/* Perm 1: Edit Routes */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={canEditRoutes}
+                    onChange={(e) => setCanEditRoutes(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
+                      تعديل خطوط السير والزيارات
+                    </strong>
+                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
+                      (مقتصر على المشرف افتراضياً)
+                    </span>
+                  </div>
+                </label>
+
+                {/* Perm 2: Add Customers in Field */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={canAddCustomers}
+                    onChange={(e) => setCanAddCustomers(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
+                      تسجيل وإضافة محلات جديدة
+                    </strong>
+                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
+                      السماح بتسجيل منافذ من الميدان
+                    </span>
+                  </div>
+                </label>
+
+                {/* Perm 3: Require GPS */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={requireGpsOnVisit}
+                    onChange={(e) => setRequireGpsOnVisit(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
+                      إلزامية فتح الـ GPS
+                    </strong>
+                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
+                      إلزام الموقع لبدء وتأكيد الزيارات
+                    </span>
+                  </div>
+                </label>
+
+                {/* Perm 4: Collect Cash */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={canCollectCash}
+                    onChange={(e) => setCanCollectCash(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
+                      تحصيل دفعات نقدية
+                    </strong>
+                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
+                      استلام نقدية وإصدار سندات قبض
+                    </span>
+                  </div>
+                </label>
+
+                {/* Perm 5: Sell Over Credit Limit */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={canSellOverCreditLimit}
+                    onChange={(e) => setCanSellOverCreditLimit(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
+                      تجاوز سقف المديونية
+                    </strong>
+                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
+                      إصدار آجل عند تخطي الحد الائتماني
+                    </span>
+                  </div>
+                </label>
+
+                {/* Perm 6: Discounts */}
+                <div style={{ padding: '6px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '7px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={canGiveDiscount}
+                      onChange={(e) => setCanGiveDiscount(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <strong style={{ fontSize: '11px', color: '#0f172a', lineHeight: 1.25 }}>
+                      منح خصومات نقدية
+                    </strong>
+                  </label>
+                  {canGiveDiscount ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '18px' }}>
+                      <span style={{ fontSize: '10px', color: '#475569' }}>الحد الأقصى:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={maxDiscountPercent}
+                        onChange={(e) => setMaxDiscountPercent(Number(e.target.value))}
+                        style={{ width: '45px', height: '22px', padding: '1px 4px', fontSize: '11px', fontWeight: 800, textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '5px' }}
+                      />
+                      <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#170e5e' }}>%</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '9.5px', color: '#64748b', marginRight: '18px', display: 'block', lineHeight: 1.2 }}>
+                      السماح بخصم نسبي على الفاتورة
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
-          <Button variant="secondary" onClick={onClose} style={{ minHeight: '38px', padding: '0 18px' }}>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+          <Button variant="secondary" onClick={onClose} style={{ height: '34px', minHeight: '34px', padding: '0 16px', fontSize: '12px' }}>
             إلغاء
           </Button>
           <Button
             variant="primary"
             onClick={handleSave}
             disabled={!nameInput.trim() || isSaving}
-            style={{ minHeight: '38px', padding: '0 24px', fontWeight: 700, background: '#170e5e' }}
+            style={{ height: '34px', minHeight: '34px', padding: '0 22px', fontSize: '12px', fontWeight: 700, background: '#170e5e' }}
           >
             {isSaving ? 'جاري الحفظ...' : rep ? 'تحديث البيانات' : 'حفظ المندوب'}
           </Button>

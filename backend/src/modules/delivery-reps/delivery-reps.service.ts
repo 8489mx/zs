@@ -143,6 +143,17 @@ export class DeliveryRepsService {
       : (payload.repType === 'van' || payload.repType === 'both');
     const repType = payload.repType || (isVanRep ? 'van' : 'delivery');
 
+    const defaultPermissions = {
+      can_edit_routes: false,
+      can_add_customers: true,
+      require_gps_on_visit: true,
+      can_give_discount: false,
+      max_discount_percent: 0,
+      can_sell_over_credit_limit: false,
+      can_collect_cash: true,
+    };
+    const permissions = payload.permissions ? { ...defaultPermissions, ...payload.permissions } : defaultPermissions;
+
     const [inserted] = await this.db
       .insertInto('delivery_representatives')
       .values({
@@ -157,6 +168,8 @@ export class DeliveryRepsService {
         rep_type: repType,
         is_van_rep: isVanRep,
         is_active: payload.isActive !== false,
+        permissions: permissions as any,
+        metadata: (payload.metadata || {}) as any,
         ...this.tenantFields(actor),
       } as any)
       .returning(['id'])
@@ -172,7 +185,7 @@ export class DeliveryRepsService {
 
     const existing = await this.db
       .selectFrom('delivery_representatives')
-      .select(['id'])
+      .select(['id', 'permissions'])
       .where('id', '=', id)
       .where(this.tenantPredicate(actor))
       .executeTakeFirst();
@@ -183,6 +196,17 @@ export class DeliveryRepsService {
     const isVanRep = payload.isVanRep !== undefined
       ? Boolean(payload.isVanRep)
       : (payload.repType ? (payload.repType === 'van' || payload.repType === 'both') : undefined);
+
+    let mergedPermissions: any = undefined;
+    if (payload.permissions !== undefined) {
+      let currentPerms: any = {};
+      if (typeof existing.permissions === 'string') {
+        try { currentPerms = JSON.parse(existing.permissions); } catch { currentPerms = {}; }
+      } else if (existing.permissions && typeof existing.permissions === 'object') {
+        currentPerms = existing.permissions;
+      }
+      mergedPermissions = { ...currentPerms, ...payload.permissions };
+    }
 
     await this.db
       .updateTable('delivery_representatives')
@@ -198,6 +222,8 @@ export class DeliveryRepsService {
         rep_type: payload.repType !== undefined ? payload.repType : undefined,
         is_van_rep: isVanRep !== undefined ? isVanRep : undefined,
         is_active: payload.isActive !== undefined ? payload.isActive : undefined,
+        ...(mergedPermissions !== undefined ? { permissions: mergedPermissions as any } : {}),
+        ...(payload.metadata !== undefined ? { metadata: payload.metadata as any } : {}),
         updated_at: sql`NOW()`,
       } as any)
       .where('id', '=', id)
@@ -718,6 +744,7 @@ export class DeliveryRepsService {
         tenantName,
         isVanRep: Boolean((matchedRep as any).is_van_rep),
         vanLocationId: (matchedRep as any).van_location_id || null,
+        permissions: (matchedRep as any).permissions || {},
       },
     };
   }

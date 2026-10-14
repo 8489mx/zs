@@ -11,6 +11,7 @@ import {
   DollarSignIcon,
   ClockIcon,
   ShieldCheckIcon,
+  LockIcon,
 } from '@/shared/components/icons/AppIcons';
 import { VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
 
@@ -81,6 +82,8 @@ interface VanSettleTabProps {
     chargeStockVarianceToRep?: boolean,
   ) => void;
   isSubmitting: boolean;
+  requireSupervisorPin?: boolean;
+  isBlindSettlement?: boolean;
 }
 
 export const VanSettleTab: React.FC<VanSettleTabProps> = ({
@@ -100,6 +103,8 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   onUnloadRemainingChange,
   onSubmitSettle,
   isSubmitting,
+  requireSupervisorPin = false,
+  isBlindSettlement = false,
 }) => {
   const [activeSection, setActiveSection] = useState<'settle' | 'activity'>('settle');
   const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'expenses' | 'packaging' | 'inventory'>('sales');
@@ -379,7 +384,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
 
           {/* 2-Column Statement Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '8px' }}>
             {/* Right: Cash Sales */}
             <div
               style={{
@@ -390,13 +395,14 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                minWidth: 0,
               }}
             >
-              <span style={{ color: '#15803d', fontWeight: 700, fontSize: '11px' }}>
-                • مبيعات كاش:
+              <span style={{ color: '#15803d', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
+                • كاش:
               </span>
-              <span style={{ fontWeight: 800, color: '#15803d' }}>
-                +{cashSales.toFixed(2)} <CurrencySymbol />
+              <span style={{ fontWeight: 800, color: isBlindSettlement ? '#64748b' : '#15803d', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
+                {isBlindSettlement ? 'محجوب (عمياني)' : `+${cashSales.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
               </span>
             </div>
 
@@ -410,12 +416,13 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                minWidth: 0,
               }}
             >
-              <span style={{ color: '#b45309', fontWeight: 700, fontSize: '11px' }}>
-                • مبيعات آجل:
+              <span style={{ color: '#b45309', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
+                • آجل:
               </span>
-              <span style={{ fontWeight: 800, color: '#b45309' }}>
+              <span style={{ fontWeight: 800, color: '#b45309', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
                 {creditSales.toFixed(2)} <CurrencySymbol />
               </span>
             </div>
@@ -430,13 +437,14 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                minWidth: 0,
               }}
             >
-              <span style={{ color: '#0284c7', fontWeight: 700, fontSize: '11px' }}>
-                • تحصيلات نقدية:
+              <span style={{ color: '#0284c7', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
+                • تحصيلات:
               </span>
-              <span style={{ fontWeight: 800, color: '#0284c7' }}>
-                +{collectionsTotal.toFixed(2)} <CurrencySymbol />
+              <span style={{ fontWeight: 800, color: isBlindSettlement ? '#64748b' : '#0284c7', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
+                {isBlindSettlement ? 'محجوب (عمياني)' : `+${collectionsTotal.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
               </span>
             </div>
 
@@ -450,12 +458,13 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                minWidth: 0,
               }}
             >
-              <span style={{ color: '#64748b', fontWeight: 700, fontSize: '11px' }}>
-                • مرتجعات ({returns.length}):
+              <span style={{ color: '#64748b', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
+                • مرتجعات:
               </span>
-              <span style={{ fontWeight: 800, color: returnsAmount > 0 ? '#dc2626' : '#64748b' }}>
+              <span style={{ fontWeight: 800, color: returnsAmount > 0 ? '#dc2626' : '#64748b', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
                 {returnsAmount > 0 ? `-${returnsAmount.toFixed(2)}` : '0.00'} <CurrencySymbol />
               </span>
             </div>
@@ -500,7 +509,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             >
               {cashRefunds > 0 && (
                 <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                  مرتجع كاش سُدد: <strong>-{cashRefunds.toFixed(2)}</strong> <CurrencySymbol />
+                  مرتجع كاش سُدد: <strong>{isBlindSettlement ? 'محجوب رقابياً' : `-${cashRefunds.toFixed(2)}`}</strong> {!isBlindSettlement && <CurrencySymbol />}
                 </div>
               )}
               {creditReturns > 0 && (
@@ -521,56 +530,99 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             </div>
           )}
 
-          {/* Net Cash Required (Single Source of Truth) */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: '#f0fdf4',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid #bbf7d0',
-            }}
-          >
-            <div>
-              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', display: 'block' }}>
-                صافي النقدية المتوقع تسليمها (كاش الدرج):
-              </span>
-              <span style={{ fontSize: '10px', color: '#15803d' }}>
-                = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - المنصرف ({(cashRefunds + totalTripExpenses).toFixed(0)})
+          {/* Net Cash Required / Blind Settlement Notice */}
+          {!isBlindSettlement ? (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#f0fdf4',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div>
+                <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', display: 'block' }}>
+                  صافي النقدية المتوقع تسليمها (كاش الدرج):
+                </span>
+                <span style={{ fontSize: '10px', color: '#15803d' }}>
+                  = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - المنصرف ({(cashRefunds + totalTripExpenses).toFixed(0)})
+                </span>
+              </div>
+              <span style={{ fontSize: '15px', fontWeight: 900, color: '#166534' }}>
+                {cashCollected.toFixed(2)} <CurrencySymbol />
               </span>
             </div>
-            <span style={{ fontSize: '15px', fontWeight: 900, color: '#166534' }}>
-              {cashCollected.toFixed(2)} <CurrencySymbol />
-            </span>
-          </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                backgroundColor: '#f8fafc',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: '#eef2ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <LockIcon size={16} color="#170e5e" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', display: 'block' }}>
+                  نظام التوريد والجرد العمياني (Blind Cash Settlement)
+                </span>
+                <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '2px', lineHeight: 1.4 }}>
+                  تم حجب صافي النقدية المتوقعة رقابياً. يرجى عدّ كامل النقدية الفعلية الموجودة بالدرج وتوريدها بدقة.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Quick Action Buttons: Expenses & Packaging */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        {/* Quick Action Buttons: Expenses & Packaging (Strict Side-by-Side Flex 50%/50%) */}
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', gap: '8px', width: '100%' }}>
           {onOpenExpenseModal && (
             <button
               type="button"
               onClick={onOpenExpenseModal}
               style={{
-                height: '34px',
+                flex: '1 1 0',
+                width: '50%',
+                minWidth: 0,
+                height: '35px',
                 borderRadius: '8px',
                 border: '1px solid #e2e8f0',
                 backgroundColor: '#ffffff',
                 color: '#170e5e',
-                fontSize: '11px',
+                fontSize: 'clamp(10.5px, 2.9vw, 12px)',
                 fontWeight: 700,
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
+                gap: '5px',
+                padding: '0 6px',
+                whiteSpace: 'nowrap',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                boxSizing: 'border-box',
               }}
             >
-              <ReceiptIcon size={14} color="#170e5e" />
-              <span>تسجيل مصروف رحلة</span>
+              <ReceiptIcon size={14} color="#170e5e" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>تسجيل مصروف</span>
             </button>
           )}
           {onOpenPackagingModal && (
@@ -578,49 +630,109 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               type="button"
               onClick={onOpenPackagingModal}
               style={{
-                height: '34px',
+                flex: '1 1 0',
+                width: '50%',
+                minWidth: 0,
+                height: '35px',
                 borderRadius: '8px',
                 border: '1px solid #e2e8f0',
                 backgroundColor: '#ffffff',
                 color: '#047857',
-                fontSize: '11px',
+                fontSize: 'clamp(10.5px, 2.9vw, 12px)',
                 fontWeight: 700,
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
+                gap: '5px',
+                padding: '0 6px',
+                whiteSpace: 'nowrap',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                boxSizing: 'border-box',
               }}
             >
-              <PackageIcon size={14} color="#047857" />
-              <span>حركة فوارغ وصناديق</span>
+              <PackageIcon size={14} color="#047857" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>حركة فوارغ</span>
             </button>
           )}
         </div>
 
-        {/* Cash Counting Input */}
+        {/* Cash Counting Input - Strict Single Line Header */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <label htmlFor="counted_physical_cash_input" style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-              الكاش الفعلي الموجود معك للتوريد ({getGlobalCurrencySymbol()}):
-            </label>
-            <button
-              type="button"
-              onClick={() => onCountedCashChange(String(cashCollected))}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'nowrap',
+              gap: '6px',
+              marginBottom: '5px',
+            }}
+          >
+            <label
+              htmlFor="counted_physical_cash_input"
               style={{
-                backgroundColor: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                padding: '2px 8px',
-                fontSize: '11px',
+                fontSize: 'clamp(11px, 3.2vw, 12.5px)',
                 fontWeight: 700,
-                color: '#170e5e',
-                cursor: 'pointer',
+                color: '#1e293b',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                flexShrink: 1,
+                minWidth: 0,
               }}
             >
-              مطابقة المتوقع ({cashCollected.toFixed(2)})
-            </button>
+              <span>الكاش الفعلي للتوريد</span>
+              <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9em' }}>
+                ({getGlobalCurrencySymbol()}):
+              </span>
+            </label>
+            {!isBlindSettlement ? (
+              <button
+                type="button"
+                onClick={() => onCountedCashChange(String(cashCollected))}
+                style={{
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: 'clamp(10px, 2.8vw, 11px)',
+                  fontWeight: 700,
+                  color: '#170e5e',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                مطابقة ({cashCollected.toFixed(2)})
+              </button>
+            ) : (
+              <span
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  padding: '2px 7px',
+                  fontSize: 'clamp(9.5px, 2.7vw, 10.5px)',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  boxSizing: 'border-box',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <LockIcon size={11} color="#64748b" />
+                <span>جرد إلزامي</span>
+              </span>
+            )}
           </div>
           <input
             id="counted_physical_cash_input"
@@ -633,7 +745,11 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             data-form-type="other"
             value={countedCash}
             onChange={(e) => onCountedCashChange(e.target.value)}
-            placeholder="أدخل المبلغ بعد العد الفعلي للأوراق النقدية..."
+            placeholder={
+              isBlindSettlement
+                ? 'قم بعدّ الأوراق النقدية وأدخل المبلغ الفعلي للتوريد...'
+                : 'أدخل المبلغ بعد العد الفعلي للأوراق النقدية...'
+            }
             style={{
               width: '100%',
               height: '38px',
@@ -979,73 +1095,75 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
         </div>
 
         {/* Maker-Checker Supervisor PIN Authorization for Final Settlement */}
-        <div
-          style={{
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-          }}
-        >
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                backgroundColor: '#eef2ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <ShieldCheckIcon size={16} color="#170e5e" strokeWidth={2} />
-            </div>
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e' }}>
-                رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>
-                إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)
-              </div>
-            </div>
-          </div>
-          <input
-            id="supervisor_pin_input"
-            name="supervisor_authorization_pin"
-            type="password"
-            autoComplete="new-password"
-            data-lpignore="true"
-            data-form-type="other"
-            maxLength={6}
-            value={supervisorPin}
-            onChange={(e) => {
-              setSupervisorPin(e.target.value);
-              if (pinError) setPinError('');
-            }}
-            placeholder="PIN المشرف"
+        {requireSupervisorPin && (
+          <div
             style={{
-              width: '120px',
-              height: '36px',
-              borderRadius: '8px',
-              border: '1.5px solid #cbd5e1',
-              fontSize: '14px',
-              fontWeight: 800,
-              textAlign: 'center',
-              letterSpacing: '2px',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
-              boxSizing: 'border-box',
-              outline: 'none',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
             }}
-          />
-        </div>
+          >
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: '#eef2ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <ShieldCheckIcon size={16} color="#170e5e" strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e' }}>
+                  رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                  إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)
+                </div>
+              </div>
+            </div>
+            <input
+              id="supervisor_pin_input"
+              name="supervisor_authorization_pin"
+              type="password"
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-form-type="other"
+              maxLength={6}
+              value={supervisorPin}
+              onChange={(e) => {
+                setSupervisorPin(e.target.value);
+                if (pinError) setPinError('');
+              }}
+              placeholder="PIN المشرف"
+              style={{
+                width: '120px',
+                height: '36px',
+                borderRadius: '8px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '14px',
+                fontWeight: 800,
+                textAlign: 'center',
+                letterSpacing: '2px',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
 
         {pinError && (
           <div
@@ -1067,7 +1185,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
         <Button
           variant="primary"
           onClick={() => {
-            if (!supervisorPin.trim()) {
+            if (requireSupervisorPin && !supervisorPin.trim()) {
               setPinError('يرجى إدخال الرمز السري للمشرف أو أمين الخزينة (PIN) لاعتماد تصفية اليومية واستلام الكاش');
               return;
             }
@@ -1082,7 +1200,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 }))
               : undefined;
 
-            onSubmitSettle(supervisorPin.trim(), countedStockArray, chargeStockVarianceToRep);
+            onSubmitSettle(supervisorPin.trim() || undefined, countedStockArray, chargeStockVarianceToRep);
           }}
           disabled={isSubmitting}
           style={{
@@ -1094,7 +1212,11 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             borderRadius: '8px',
           }}
         >
-          {isSubmitting ? 'جاري التصفية والتوريد...' : 'تأكيد التصفية وإغلاق اليومية وتوريد الكاش'}
+          {isSubmitting
+            ? 'جاري التصفية والتوريد...'
+            : requireSupervisorPin
+            ? 'تأكيد التصفية واعتماد الـ PIN وتوريد الكاش'
+            : 'تأكيد التصفية وإغلاق اليومية وتوريد الكاش'}
         </Button>
       </div>
       ) : (

@@ -740,6 +740,9 @@ export interface DeliveryRepresentativeTable {
   is_van_rep?: boolean;
   van_location_id?: number | null;
   is_active: boolean;
+  employee_id?: number | null;
+  permissions?: ColumnType<Record<string, any>, string | Record<string, any> | undefined, string | Record<string, any> | undefined>;
+  metadata?: ColumnType<Record<string, any>, string | Record<string, any> | undefined, string | Record<string, any> | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -859,6 +862,25 @@ export interface DeliveryRepTargetTable {
   target_amount: number;
   collection_target?: number | null;
   visits_target?: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface VanRepFinancialSettlementTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  rep_id: number;
+  trip_id?: number | null;
+  entry_type: 'cash_shortage' | 'stock_shortage' | 'cash_overage' | 'commission' | 'bonus' | 'cash_reimbursement' | 'waiver' | 'payroll_deduction' | string;
+  amount: number;
+  status: 'pending' | 'settled' | 'waived' | 'pushed_to_payroll' | string;
+  settled_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  settled_by?: number | null;
+  settlement_method?: 'cash' | 'payroll' | 'waiver' | string | null;
+  notes?: string | null;
+  receipt_voucher_no?: string | null;
+  payroll_run_id?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -2252,6 +2274,7 @@ export interface Database {
   van_trip_packaging_movements: VanTripPackagingMovementTable;
   delivery_rep_targets: DeliveryRepTargetTable;
   van_load_requisitions: VanLoadRequisitionTable;
+  van_rep_financial_settlements: VanRepFinancialSettlementTable;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

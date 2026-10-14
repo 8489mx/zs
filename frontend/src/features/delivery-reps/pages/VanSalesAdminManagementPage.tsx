@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { StandardDialog } from '@/shared/components/StandardDialog';
+import { settingsApi } from '@/features/settings/api/settings.api';
 import { systemAlert, systemConfirm, toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import {
@@ -16,9 +18,11 @@ import {
   MapPinIcon,
   RefreshCwIcon,
   CheckShieldIcon,
+  CreditCardIcon,
 } from '@/shared/components/icons/AppIcons';
 import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
+import { VanFinancialLedgerAdminTab } from '../components/VanFinancialLedgerAdminTab';
 import { VanLoadRequisitionsAdminTab } from '../components/VanLoadRequisitionsAdminTab';
 import { VanFieldReturnsAdminTab } from '../components/VanFieldReturnsAdminTab';
 import { VanRepTargetsAdminTab } from '../components/VanRepTargetsAdminTab';
@@ -29,8 +33,9 @@ import { VanPromotionsAdminTab } from '../components/VanPromotionsAdminTab';
 import { VanVisitsTrackingAdminTab } from '../components/VanVisitsTrackingAdminTab';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import { useVanSalesAdmin, type DeliveryRep } from '../hooks/useVanSalesAdmin';
+import { vanSalesApi } from '../api/van-sales.api';
 
-type VanAdminTabKey = 'trips' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'visits_tracking' | 'fleet' | 'drivers';
+type VanAdminTabKey = 'trips' | 'financial_ledger' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'visits_tracking' | 'fleet' | 'drivers';
 
 export default function VanSalesAdminManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,6 +56,26 @@ export default function VanSalesAdminManagementPage() {
   const [isUpsertRepOpen, setIsUpsertRepOpen] = useState(false);
   const [editingRep, setEditingRep] = useState<DeliveryRep | null>(null);
 
+  // Settlement & Governance Settings State
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [requireSupervisorPinDraft, setRequireSupervisorPinDraft] = useState(false);
+  const [blindSettlementDraft, setBlindSettlementDraft] = useState(false);
+  const [managerPinDraft, setManagerPinDraft] = useState('');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  const settingsQuery = useQuery({
+    queryKey: ['van-settlement-settings'],
+    queryFn: () => settingsApi.settings(),
+  });
+
+  useEffect(() => {
+    if (settingsQuery.data) {
+      setRequireSupervisorPinDraft(Boolean(settingsQuery.data.vanSettlementRequireSupervisorPin));
+      setBlindSettlementDraft(Boolean(settingsQuery.data.vanSettlementBlindMode));
+      setManagerPinDraft(String(settingsQuery.data.managerPin || ''));
+    }
+  }, [settingsQuery.data]);
+
   const {
     reps,
     isRepsLoading,
@@ -58,6 +83,13 @@ export default function VanSalesAdminManagementPage() {
     pendingRequisitions,
     suspicionEventsCount,
   } = useVanSalesAdmin();
+
+  const ledgerBadgeQuery = useQuery({
+    queryKey: ['van-rep-financial-ledger-badge'],
+    queryFn: () => vanSalesApi.getRepFinancialLedger({ status: 'pending' }),
+    staleTime: 30_000,
+  });
+  const pendingShortagesCount = ledgerBadgeQuery.data?.items?.length || 0;
 
   const vanDrivers = useMemo(() => {
     return reps.filter((r) => r.is_van_rep || r.rep_type === 'van' || r.rep_type === 'both');
@@ -163,171 +195,325 @@ export default function VanSalesAdminManagementPage() {
         flexDirection: 'column',
         gap: '16px',
         padding: '16px 0',
+        minWidth: 0,
+        boxSizing: 'border-box',
       }}
     >
       <PageHeader
         title="مركز إدارة سيارات التوزيع وأسطول الفان (Van Sales & Fleet)"
         description="المنظومة المؤسسية لإدارة سيارات التوزيع، ورديات البيع الميداني، وجرد المستودعات المتنقلة"
         actions={
-          activeTab === 'drivers' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
-              variant="primary"
-              style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '13px' }}
-              onClick={() => {
-                setEditingRep(null);
-                setIsUpsertRepOpen(true);
+              variant="secondary"
+              onClick={() => setIsSettingsModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
               }}
             >
-              + إضافة مندوب فان جديد
+              <SlidersIcon size={15} color="#170e5e" />
+              إعدادات التصفية والرقابة
             </Button>
-          ) : undefined
+            {activeTab === 'drivers' && (
+              <Button
+                variant="primary"
+                style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '13px' }}
+                onClick={() => {
+                  setEditingRep(null);
+                  setIsUpsertRepOpen(true);
+                }}
+              >
+                + إضافة مندوب فان جديد
+              </Button>
+            )}
+          </div>
         }
       />
 
-      {/* Navigation Tabs (Zero Font Shift Rule: uniform 600 weight, 0ms transition, Zero Horizontal Scroll) */}
+      {/* Navigation Tabs - 2 Premium Balanced Rows (6 tabs each, Zero Font Shift, Zero Flickering) */}
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           gap: '6px',
           background: '#ffffff',
-          padding: '6px',
+          padding: '8px',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           width: '100%',
           boxSizing: 'border-box',
         }}
       >
-        {[
-          {
-            key: 'trips' as const,
-            label: 'رحلات التوزيع',
-            icon: <SlidersIcon size={15} />,
-          },
-          {
-            key: 'requisitions' as const,
-            label: 'أذونات التحميل',
-            count: pendingRequisitions.length > 0 ? pendingRequisitions.length : undefined,
-            badgeBg: pendingRequisitions.length > 0 ? '#fef3c7' : undefined,
-            badgeColor: pendingRequisitions.length > 0 ? '#b45309' : undefined,
-            icon: <TruckIcon size={15} />,
-          },
-          {
-            key: 'presales' as const,
-            label: 'طلبيات وحجوزات المناديب',
-            icon: <FileTextIcon size={15} />,
-          },
-          {
-            key: 'routes_kpis' as const,
-            label: 'خطوط السير والرقابة',
-            icon: <MapPinIcon size={15} />,
-          },
-          {
-            key: 'returns' as const,
-            label: 'مرتجعات الميدان',
-            count: pendingReturns.length > 0 ? pendingReturns.length : undefined,
-            badgeBg: pendingReturns.length > 0 ? '#fee2e2' : undefined,
-            badgeColor: pendingReturns.length > 0 ? '#b91c1c' : undefined,
-            icon: <FileTextIcon size={15} />,
-          },
-          {
-            key: 'radar' as const,
-            label: 'رادار الشبهات',
-            count: suspicionEventsCount > 0 ? suspicionEventsCount : undefined,
-            badgeBg: suspicionEventsCount > 0 ? '#fee2e2' : undefined,
-            badgeColor: suspicionEventsCount > 0 ? '#dc2626' : undefined,
-            icon: <CheckShieldIcon size={15} />,
-          },
-          {
-            key: 'targets' as const,
-            label: 'مستهدفات البيع',
-            icon: <CheckCircleIcon size={15} />,
-          },
-          {
-            key: 'promotions' as const,
-            label: 'العروض والخلطات',
-            icon: <SlidersIcon size={15} />,
-          },
-          {
-            key: 'visits_tracking' as const,
-            label: 'التتبع والميدان',
-            icon: <MapPinIcon size={15} />,
-          },
-          {
-            key: 'fleet' as const,
-            label: 'أسطول السيارات',
-            icon: <TruckIcon size={15} />,
-          },
-          {
-            key: 'drivers' as const,
-            label: 'مناديب الفان',
-            count: vanDrivers.length,
-            icon: <UsersIcon size={15} />,
-          },
-        ].map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-                setSearchParams({ tab: tab.key });
-              }}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                padding: '8px 4px',
-                borderRadius: '8px',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                border: isActive ? '1px solid #170e5e' : '1px solid transparent',
-                background: isActive ? '#170e5e' : 'transparent',
-                color: isActive ? '#ffffff' : '#475569',
-                cursor: 'pointer',
-                transition: 'none',
-                boxSizing: 'border-box',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
-              <span
+        {/* Row 1: Core Field Operations, Cash/Stock Ledgers & Requisitions */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gap: '6px',
+            width: '100%',
+          }}
+        >
+          {[
+            {
+              key: 'trips' as const,
+              label: 'رحلات التوزيع',
+              icon: <SlidersIcon size={14} />,
+            },
+            {
+              key: 'financial_ledger' as const,
+              label: 'تسويات وحسابات المناديب',
+              count: pendingShortagesCount > 0 ? pendingShortagesCount : undefined,
+              badgeBg: '#fee2e2',
+              badgeColor: '#dc2626',
+              icon: <CreditCardIcon size={14} />,
+            },
+            {
+              key: 'requisitions' as const,
+              label: 'أذونات التحميل',
+              count: pendingRequisitions.length > 0 ? pendingRequisitions.length : undefined,
+              badgeBg: '#fef3c7',
+              badgeColor: '#b45309',
+              icon: <TruckIcon size={14} />,
+            },
+            {
+              key: 'presales' as const,
+              label: 'طلبيات وحجوزات الميدان',
+              icon: <FileTextIcon size={14} />,
+            },
+            {
+              key: 'returns' as const,
+              label: 'مرتجعات الميدان',
+              count: pendingReturns.length > 0 ? pendingReturns.length : undefined,
+              badgeBg: '#fee2e2',
+              badgeColor: '#b91c1c',
+              icon: <FileTextIcon size={14} />,
+            },
+            {
+              key: 'routes_kpis' as const,
+              label: 'خطوط السير والرقابة',
+              icon: <MapPinIcon size={14} />,
+            },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setSearchParams({ tab: tab.key });
+                }}
                 style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '36px',
+                  padding: '0 8px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: isActive ? '#170e5e' : '#f8fafc',
+                  color: isActive ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  transition: 'none',
+                  boxSizing: 'border-box',
                   whiteSpace: 'nowrap',
+                  minWidth: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }
                 }}
               >
-                {tab.label}
-              </span>
-              {tab.count !== undefined && (
+                <span style={{ display: 'inline-flex', flexShrink: 0, opacity: isActive ? 1 : 0.85 }}>
+                  {tab.icon}
+                </span>
                 <span
                   style={{
-                    flexShrink: 0,
-                    background: isActive
-                      ? 'rgba(255,255,255,0.2)'
-                      : tab.badgeBg || '#f1f5f9',
-                    color: isActive ? '#ffffff' : tab.badgeColor || '#64748b',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '1px 6px',
-                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {tab.count}
+                  {tab.label}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {tab.count !== undefined && (
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      background: isActive
+                        ? 'rgba(255,255,255,0.22)'
+                        : tab.badgeBg || '#e2e8f0',
+                      color: isActive ? '#ffffff' : tab.badgeColor || '#475569',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                      minWidth: '16px',
+                      textAlign: 'center',
+                      lineHeight: '15px',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Subtle Row Separator */}
+        <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '1px 2px' }} />
+
+        {/* Row 2: Governance, Commercial, Tracking & Fleet */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gap: '6px',
+            width: '100%',
+          }}
+        >
+          {[
+            {
+              key: 'radar' as const,
+              label: 'رادار الشبهات والأمان',
+              count: suspicionEventsCount > 0 ? suspicionEventsCount : undefined,
+              badgeBg: '#fee2e2',
+              badgeColor: '#dc2626',
+              icon: <CheckShieldIcon size={14} />,
+            },
+            {
+              key: 'visits_tracking' as const,
+              label: 'التتبع والميدان Live',
+              icon: <MapPinIcon size={14} />,
+            },
+            {
+              key: 'targets' as const,
+              label: 'مستهدفات البيع والتارجت',
+              icon: <CheckCircleIcon size={14} />,
+            },
+            {
+              key: 'promotions' as const,
+              label: 'عروض وخلطات الأسعار',
+              icon: <SlidersIcon size={14} />,
+            },
+            {
+              key: 'fleet' as const,
+              label: 'أسطول وسيارات الفان',
+              icon: <TruckIcon size={14} />,
+            },
+            {
+              key: 'drivers' as const,
+              label: 'بيانات مناديب التوزيع',
+              count: vanDrivers.length,
+              badgeBg: '#e2e8f0',
+              badgeColor: '#334155',
+              icon: <UsersIcon size={14} />,
+            },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setSearchParams({ tab: tab.key });
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '36px',
+                  padding: '0 8px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                  background: isActive ? '#170e5e' : '#f8fafc',
+                  color: isActive ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  transition: 'none',
+                  boxSizing: 'border-box',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }
+                }}
+              >
+                <span style={{ display: 'inline-flex', flexShrink: 0, opacity: isActive ? 1 : 0.85 }}>
+                  {tab.icon}
+                </span>
+                <span
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {tab.label}
+                </span>
+                {tab.count !== undefined && (
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      background: isActive
+                        ? 'rgba(255,255,255,0.22)'
+                        : tab.badgeBg || '#e2e8f0',
+                      color: isActive ? '#ffffff' : tab.badgeColor || '#475569',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                      minWidth: '16px',
+                      textAlign: 'center',
+                      lineHeight: '15px',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tab 1: Trips */}
       {activeTab === 'trips' && <VanTripsTab />}
+
+      {/* Tab: Rep Financial Ledger & Settlements Hub */}
+      {activeTab === 'financial_ledger' && <VanFinancialLedgerAdminTab />}
 
       {/* Tab 2: Requisitions */}
       {activeTab === 'requisitions' && <VanLoadRequisitionsAdminTab />}
@@ -639,6 +825,157 @@ export default function VanSalesAdminManagementPage() {
         defaultRepType="van"
         hideDeliveryOption={true}
       />
+
+      {/* Quick Van Settlement & Governance Settings Modal */}
+      {isSettingsModalOpen && (
+        <StandardDialog
+          open={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          title="إعدادات الرقابة وتصفية رحلات الفان"
+          subtitle="التحكم في اشتراط رمز المشرف (PIN) لتصفية ورديات المناديب والرمز السري المعتمد"
+          width="540px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }} dir="rtl">
+            {/* Setting 1: Require Supervisor PIN Toggle */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
+                gap: '12px',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
+                  إلزامية رمز المشرف (PIN) لتصفية الوردية
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
+                  {requireSupervisorPinDraft
+                    ? 'مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإبراء ذمته واستلام الكاش.'
+                    : 'معطل: يقفل المندوب ورديته مباشرة وتتم مراجعة واستلام النقدية من لوحة الإدارة.'}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={requireSupervisorPinDraft}
+                onChange={(e) => setRequireSupervisorPinDraft(e.target.checked)}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#170e5e', marginTop: '2px' }}
+              />
+            </div>
+
+            {/* Setting 1.5: Blind Settlement Mode */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
+                gap: '12px',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
+                  إلزام التوريد والجرد العمياني (Blind Cash Settlement)
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
+                  {blindSettlementDraft
+                    ? 'مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُلزم المندوب بعدّ الكاش الفعلي واحتساب الفروقات رقابياً بالخزينة.'
+                    : 'معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية.'}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={blindSettlementDraft}
+                onChange={(e) => setBlindSettlementDraft(e.target.checked)}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#170e5e', marginTop: '2px' }}
+              />
+            </div>
+
+            {/* Setting 2: Manager Approval PIN */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+              }}
+            >
+              <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                الرمز السري العام للمشرفين (Manager Approval PIN):
+              </label>
+              <div style={{ fontSize: '10.5px', color: '#64748b' }}>
+                يستخدم لاعتماد التصفية الميدانية أو تجاوز سقف الائتمان الاستثنائي
+              </div>
+              <input
+                type="password"
+                maxLength={6}
+                value={managerPinDraft}
+                onChange={(e) => setManagerPinDraft(e.target.value)}
+                placeholder="مثال: 1234"
+                style={{
+                  width: '140px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  textAlign: 'center',
+                  letterSpacing: '2px',
+                  outline: 'none',
+                  marginTop: '4px',
+                  backgroundColor: '#f8fafc',
+                }}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setIsSettingsModalOpen(false)}
+                disabled={isSavingSettings}
+              >
+                إلغاء
+              </Button>
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  setIsSavingSettings(true);
+                  try {
+                    await settingsApi.update({
+                      vanSettlementRequireSupervisorPin: requireSupervisorPinDraft,
+                      vanSettlementBlindMode: blindSettlementDraft,
+                      managerPin: managerPinDraft.trim() || undefined,
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ['van-settlement-settings'] });
+                    await queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
+                    toast.success('تم حفظ إعدادات تصفية الفان والرقابة بنجاح');
+                    setIsSettingsModalOpen(false);
+                  } catch (err: any) {
+                    toast.error(err?.message || 'حدث خطأ أثناء حفظ الإعدادات');
+                  } finally {
+                    setIsSavingSettings(false);
+                  }
+                }}
+                disabled={isSavingSettings}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 800 }}
+              >
+                {isSavingSettings ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+              </Button>
+            </div>
+          </div>
+        </StandardDialog>
+      )}
     </div>
   );
 }

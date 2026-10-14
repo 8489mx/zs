@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
@@ -1887,6 +1887,58 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   </div>
                 </div>
               )}
+
+              {/* Card 8.5: Van Sales Settlement Supervisor PIN Requirement */}
+              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <CheckShieldIcon size={20} color="#170e5e" />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إلزامية رمز المشرف (PIN) لتصفية رحلات المناديب</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      {form.watch('vanSettlementRequireSupervisorPin')
+                        ? 'مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإتمام التصفية وإبراء العهدة'
+                        : 'معطل: يقفل المندوب ورديته مباشرة وتعتمد التصفية ويستلم الكاش من لوحة الإدارة'}
+                    </small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    id="vanSettlementRequireSupervisorPin"
+                    {...form.register('vanSettlementRequireSupervisorPin')}
+                    disabled={disabled}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+                  />
+                </div>
+              </div>
+
+              {/* Card 8.6: Van Sales Blind Settlement (الجرد والتوريد العمياني) */}
+              <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <div style={iconBadgeStyle}>
+                    <LockIcon size={20} color="#170e5e" />
+                  </div>
+                  <div style={premiumCardTextStyle}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إلزام التوريد العمياني لكاش المناديب (Blind Settlement)</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      {form.watch('vanSettlementBlindMode')
+                        ? 'مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُجبر المندوب على عد الكاش الفعلي واحتساب الفروقات رقابياً'
+                        : 'معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية'}
+                    </small>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    id="vanSettlementBlindMode"
+                    {...form.register('vanSettlementBlindMode')}
+                    disabled={disabled}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
+                  />
+                </div>
+              </div>
 
               {/* Card 9: Restaurant Tables Count (Only for Restaurants & Cafes) */}
               {isRestaurantVertical && (

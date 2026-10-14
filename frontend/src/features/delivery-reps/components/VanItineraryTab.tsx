@@ -54,7 +54,7 @@ interface VanItineraryTabProps {
     startedAt: number;
     startedTimeStr?: string;
   } | null;
-  onStartVisit?: (customerId: number, customerName: string) => void;
+  onStartVisit?: (customerId: number, customerName: string, onSuccess?: () => void) => void;
   onEndVisit?: () => void;
   targetMetrics?: RepTargetMetrics;
   inventory?: VanStockItem[];
@@ -62,20 +62,30 @@ interface VanItineraryTabProps {
 }
 
 const DAY_ALIASES: Record<string, string[]> = {
-  sunday: ['sunday', 'الأحد', 'احد'],
-  monday: ['monday', 'الإثنين', 'الاثنين', 'إثنين', 'اثنين'],
-  tuesday: ['tuesday', 'الثلاثاء', 'ثلاثاء', 'تلات', 'التلات'],
-  wednesday: ['wednesday', 'الأربعاء', 'الاربعاء', 'أربعاء', 'اربعاء'],
+  sunday: ['sunday', 'الأحد', 'الاحد', 'أحد', 'احد'],
+  monday: ['monday', 'الإثنين', 'الاثنين', 'إثنين', 'اثنين', 'الاتنين', 'اتنين'],
+  tuesday: ['tuesday', 'الثلاثاء', 'الثلاثا', 'ثلاثاء', 'ثلاثا', 'التلات', 'تلات'],
+  wednesday: ['wednesday', 'الأربعاء', 'الاربعاء', 'أربعاء', 'اربعاء', 'الأربعا', 'الاربعا', 'اربعا'],
   thursday: ['thursday', 'الخميس', 'خميس'],
-  friday: ['friday', 'الجمعة', 'جمعة'],
+  friday: ['friday', 'الجمعة', 'الجمعه', 'جمعة', 'جمعه'],
   saturday: ['saturday', 'السبت', 'سبت'],
 };
 
-const ALL_WEEK_DAYS = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] as const;
+export const DAY_KEY_TO_ARABIC: Record<string, string> = {
+  saturday: 'السبت',
+  sunday: 'الأحد',
+  monday: 'الإثنين',
+  tuesday: 'الثلاثاء',
+  wednesday: 'الأربعاء',
+  thursday: 'الخميس',
+  friday: 'الجمعة',
+};
 
-function normalizeDayKey(day?: string): string {
+export const ALL_WEEK_DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] as const;
+
+export function normalizeDayKey(day?: string | null): string {
   if (!day) return '';
-  const d = day.trim().toLowerCase();
+  const d = String(day).trim().toLowerCase();
   for (const [key, aliases] of Object.entries(DAY_ALIASES)) {
     if (aliases.some((a) => d === a || d.includes(a))) {
       return key;
@@ -91,28 +101,23 @@ function customerMatchesDay(
 ): boolean {
   if (!targetDay || targetDay === 'all') return true;
 
-  const targetKey = normalizeDayKey(targetDay);
   const todayKey = normalizeDayKey(todayArabicName);
-  const isTargetToday = targetDay === 'today' || (targetKey && targetKey === todayKey);
+  const targetKey = targetDay === 'today' ? todayKey : normalizeDayKey(targetDay);
+  if (!targetKey) return true;
 
-  const days: string[] = [
-    ...(Array.isArray(item.visitDays) ? item.visitDays : []),
-    ...(item.visitDay ? [item.visitDay] : []),
-  ];
+  // Extract customer scheduled days (prefer array visitDays, fallback to singular visitDay)
+  const rawDays = Array.isArray(item.visitDays) && item.visitDays.length > 0
+    ? item.visitDays
+    : (item.visitDay ? [item.visitDay] : []);
 
   // If customer has no specific restricted visit days:
-  // They are available every day (open route / daily itinerary)
-  if (days.length === 0) {
+  // They are available in the daily open route
+  if (rawDays.length === 0) {
     return true;
   }
 
-  // If target day is today and customer is marked scheduled today
-  if (isTargetToday && item.isScheduledToday) {
-    return true;
-  }
-
-  // Match against customer's assigned days (supports Arabic or English names)
-  return days.some((d) => normalizeDayKey(d) === targetKey);
+  // Match customer assigned days against the active target day key
+  return rawDays.some((d) => normalizeDayKey(d) === targetKey);
 }
 
 interface VanItineraryPaginationProps {
@@ -810,6 +815,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           district: districtVal,
           route: routeVal,
           visit_days: visitDaysVal,
+          visit_day: visitDaysVal[0] || '',
           gpsLat: newCustGps?.lat,
           gpsLng: newCustGps?.lng,
           locationUrl,
@@ -958,7 +964,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   const pendingCount = total - positiveCount - negativeCount;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: selectedCustomerForHub ? '6px' : '10px', paddingBottom: selectedCustomerForHub ? '4px' : '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: selectedCustomerForHub ? '6px' : '10px', paddingBottom: selectedCustomerForHub ? '85px' : '24px' }}>
       {selectedCustomerForHub ? (
         /* Z-SYSTEMS OFFICIAL MOBILE VISUAL IDENTITY: ZERO-SCROLL CUSTOMER VISIT HUB */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1132,7 +1138,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 flex: '1 1 0',
                 minWidth: 0,
                 backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: selectedCustomerForHub.creditLimit > 0 && selectedCustomerForHub.balance > selectedCustomerForHub.creditLimit ? '1px solid #fecaca' : '1px solid #e2e8f0',
                 borderRadius: '12px',
                 padding: '8px 10px',
                 textAlign: 'center',
@@ -1144,8 +1150,13 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 المديونية المستحقة
               </span>
               <strong style={{ fontSize: '14px', fontWeight: 900, color: selectedCustomerForHub.balance > 0 ? '#b91c1c' : '#0f172a', display: 'block', lineHeight: 1.15 }}>
-                {selectedCustomerForHub.balance.toFixed(0)} <CurrencySymbol />
+                {Number(selectedCustomerForHub.balance.toFixed(0)).toLocaleString()} <CurrencySymbol />
               </strong>
+              {selectedCustomerForHub.creditLimit > 0 && selectedCustomerForHub.balance > selectedCustomerForHub.creditLimit && (
+                <span style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', fontSize: '9px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
+                  تجاوز سقف الائتمان
+                </span>
+              )}
             </div>
 
             {/* Capsule 2: Credit Limit */}
@@ -1166,8 +1177,23 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 سقف الائتمان
               </span>
               <strong style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
-                {selectedCustomerForHub.creditLimit.toFixed(0)} <CurrencySymbol />
+                {Number(selectedCustomerForHub.creditLimit.toFixed(0)).toLocaleString()} <CurrencySymbol />
               </strong>
+              {selectedCustomerForHub.creditLimit > 0 ? (
+                selectedCustomerForHub.balance >= selectedCustomerForHub.creditLimit ? (
+                  <span style={{ fontSize: '9px', color: '#b91c1c', fontWeight: 700, display: 'block', marginTop: '2px' }}>
+                    المتاح: 0 <CurrencySymbol />
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '9px', color: '#15803d', fontWeight: 700, display: 'block', marginTop: '2px' }}>
+                    المتاح: {Number((selectedCustomerForHub.creditLimit - selectedCustomerForHub.balance).toFixed(0)).toLocaleString()} <CurrencySymbol />
+                  </span>
+                )
+              ) : (
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                  بيع نقدي فوري
+                </span>
+              )}
             </div>
           </div>
 
@@ -1293,19 +1319,24 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <span style={{ fontSize: '10.5px', color: '#64748b' }}>اختر الإجراء المطلوب</span>
           </div>
 
-          {/* 4. FOUR OPERATIONAL ACTION TILES (Z-Systems Squircle 2x2 Grid - TWO EXPLICIT HORIZONTAL FLEX ROWS) */}
+          {/* 4. FOUR OPERATIONAL ACTION TILES (Z-Systems Squircle 2x2 Grid - CALM PREMIUM EXECUTIVE PALETTE) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
             {/* ROW 1: Sale Invoice & Customer Return */}
             <div className="keep-grid-row" style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               {/* Tile 1: New Sale Invoice */}
               <div
                 onClick={() => {
-                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
-                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
-                  }
                   const cId = selectedCustomerForHub.customerId;
-                  setSelectedCustomerForHub(null);
-                  onSelectCustomerForSale(cId);
+                  const cName = selectedCustomerForHub.customerName;
+                  const proceedToSale = () => {
+                    setSelectedCustomerForHub(null);
+                    onSelectCustomerForSale(cId);
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cId) {
+                    onStartVisit?.(cId, cName, proceedToSale);
+                  } else {
+                    proceedToSale();
+                  }
                 }}
                 style={{
                   flex: '1 1 0',
@@ -1316,20 +1347,22 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#eef2ff',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1349,15 +1382,20 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               {/* Tile 2: Customer Return */}
               <div
                 onClick={() => {
-                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
-                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
-                  }
                   const cId = selectedCustomerForHub.customerId;
-                  setSelectedCustomerForHub(null);
-                  if (onSelectCustomerForReturn) {
-                    onSelectCustomerForReturn(cId);
+                  const cName = selectedCustomerForHub.customerName;
+                  const proceedToReturn = () => {
+                    setSelectedCustomerForHub(null);
+                    if (onSelectCustomerForReturn) {
+                      onSelectCustomerForReturn(cId);
+                    } else {
+                      onSelectCustomerForSale(cId);
+                    }
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cId) {
+                    onStartVisit?.(cId, cName, proceedToReturn);
                   } else {
-                    onSelectCustomerForSale(cId);
+                    proceedToReturn();
                   }
                 }}
                 style={{
@@ -1369,27 +1407,29 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f1f5f9',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <RotateCcwIcon size={18} color="#475569" strokeWidth={2} />
+                  <RotateCcwIcon size={18} color="#334155" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   مرتجع بضاعة
@@ -1405,13 +1445,18 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               {/* Tile 3: Debt Collection */}
               <div
                 onClick={() => {
-                  if (!activeVisit || activeVisit.customerId !== selectedCustomerForHub.customerId) {
-                    onStartVisit?.(selectedCustomerForHub.customerId, selectedCustomerForHub.customerName);
-                  }
                   const cId = selectedCustomerForHub.customerId;
-                  setSelectedCustomerForHub(null);
-                  if (onSelectCustomerForCollection) {
-                    onSelectCustomerForCollection(cId);
+                  const cName = selectedCustomerForHub.customerName;
+                  const proceedToCollection = () => {
+                    setSelectedCustomerForHub(null);
+                    if (onSelectCustomerForCollection) {
+                      onSelectCustomerForCollection(cId);
+                    }
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cId) {
+                    onStartVisit?.(cId, cName, proceedToCollection);
+                  } else {
+                    proceedToCollection();
                   }
                 }}
                 style={{
@@ -1423,27 +1468,29 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f0fdf4',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <CreditCardIcon size={18} color="#15803d" strokeWidth={2} />
+                  <CreditCardIcon size={18} color="#047857" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   سند تحصيل نقدية
@@ -1467,25 +1514,26 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
+                    borderRadius: '11px',
                     backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
-                    border: '1px solid #e2e8f0',
                   }}
                 >
                   <FileTextIcon size={18} color="#170e5e" strokeWidth={2} />
@@ -1505,8 +1553,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <div
                 onClick={() => {
                   const cust = selectedCustomerForHub;
-                  setSelectedCustomerForHub(null);
-                  setSwapCustomer(cust);
+                  const proceedToSwap = () => {
+                    setSelectedCustomerForHub(null);
+                    setSwapCustomer(cust);
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cust.customerId) {
+                    onStartVisit?.(cust.customerId, cust.customerName, proceedToSwap);
+                  } else {
+                    proceedToSwap();
+                  }
                 }}
                 style={{
                   flex: '1 1 0',
@@ -1517,27 +1572,29 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#fee2e2',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <RefreshCwIcon size={18} color="#dc2626" strokeWidth={2} />
+                  <RefreshCwIcon size={18} color="#9f1239" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   استبدال تالف / كسر
@@ -1551,8 +1608,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <div
                 onClick={() => {
                   const cust = selectedCustomerForHub;
-                  setSelectedCustomerForHub(null);
-                  setInventoryCustomer(cust);
+                  const proceedToInventory = () => {
+                    setSelectedCustomerForHub(null);
+                    setInventoryCustomer(cust);
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cust.customerId) {
+                    onStartVisit?.(cust.customerId, cust.customerName, proceedToInventory);
+                  } else {
+                    proceedToInventory();
+                  }
                 }}
                 style={{
                   flex: '1 1 0',
@@ -1563,27 +1627,29 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f3e8ff',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <PackageIcon size={18} color="#7e22ce" strokeWidth={2} />
+                  <PackageIcon size={18} color="#334155" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   جرد الرف (اختياري)
@@ -1600,8 +1666,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <div
                 onClick={() => {
                   const cust = selectedCustomerForHub;
-                  setSelectedCustomerForHub(null);
-                  setSurveyCustomer(cust);
+                  const proceedToSurvey = () => {
+                    setSelectedCustomerForHub(null);
+                    setSurveyCustomer(cust);
+                  };
+                  if (!activeVisit || activeVisit.customerId !== cust.customerId) {
+                    onStartVisit?.(cust.customerId, cust.customerName, proceedToSurvey);
+                  } else {
+                    proceedToSurvey();
+                  }
                 }}
                 style={{
                   flex: '1 1 0',
@@ -1612,27 +1685,29 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: '#fef3c7',
+                    borderRadius: '11px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                   }}
                 >
-                  <SearchIcon size={18} color="#b45309" strokeWidth={2} />
+                  <SearchIcon size={18} color="#475569" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                   تفتيش ومنافسين
@@ -1657,25 +1732,26 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   padding: '10px 6px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div
                   style={{
                     width: '38px',
                     height: '38px',
-                    borderRadius: '12px',
+                    borderRadius: '11px',
                     backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
-                    border: '1px solid #e2e8f0',
                   }}
                 >
                   <XCircleIcon size={18} color="#64748b" strokeWidth={2} />
@@ -1914,7 +1990,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </button>
 
           {/* Day Picker Button & Dropdown */}
-          <div ref={dayDropdownRef} style={{ position: 'relative', width: '85px', flexShrink: 0, height: '30px' }}>
+          <div ref={dayDropdownRef} style={{ position: 'relative', flex: '1 1 0', minWidth: 0, height: '30px' }}>
             <button
               type="button"
               onClick={() => setDayDropdownOpen((prev) => !prev)}
@@ -2051,36 +2127,40 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           </span>
         </div>
 
-        {/* Row 4: Route Actions & Route Filter */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          {/* Add Store Button */}
-          <button
-            type="button"
-            onClick={() => setAddCustomerModalOpen(true)}
-            style={{
-              height: '32px',
-              padding: '0 12px',
-              borderRadius: '7px',
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              border: 'none',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              whiteSpace: 'nowrap',
-            }}
-            title="إضافة محل جديد لخط السير"
-          >
-            <PlusIcon size={12} color="#ffffff" />
-            <span>+ إضافة محل</span>
-          </button>
+        {/* Row 4: Route Actions & Route Filter (Responsive 2-Row Layout to Prevent Mobile Clipping) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+          {/* Sub-row 1: Add Store Button + Route Selector */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
+            <button
+              type="button"
+              onClick={() => setAddCustomerModalOpen(true)}
+              style={{
+                flex: routes.length > 1 ? 1 : 'none',
+                width: routes.length > 1 ? 'auto' : '100%',
+                height: '32px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(23, 14, 94, 0.15)',
+              }}
+              title="إضافة محل جديد لخط السير"
+            >
+              <PlusIcon size={12} color="#ffffff" />
+              <span>+ إضافة محل جديد</span>
+            </button>
 
-          <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
             {routes.length > 1 && (
-              <div style={{ minWidth: '85px', maxWidth: '110px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <CustomSelect
                   value={routeFilter}
                   onChange={(val) => setRouteFilter(val || 'all')}
@@ -2089,35 +2169,55 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     { value: 'all', label: 'كافة الخطوط' },
                     ...routes.map((r) => ({ value: r, label: r })),
                   ]}
-                  placeholder="الخط"
+                  placeholder="تصفية بالخط"
                   style={{ height: '32px', fontSize: '11.5px' }}
                 />
               </div>
             )}
+          </div>
 
+          {/* Sub-row 2: Reorder Itinerary + Smart Route Optimization (TSP) - Strictly 1 Horizontal Row Side-by-Side */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'nowrap',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
             {/* Toggle Reordering Mode Button */}
             <button
               type="button"
               onClick={() => setIsReorderingMode((prev) => !prev)}
               style={{
+                flex: '1 1 0',
+                minWidth: 0,
+                width: '50%',
                 height: '32px',
-                padding: '0 10px',
-                borderRadius: '7px',
+                padding: '0 8px',
+                borderRadius: '8px',
                 backgroundColor: isReorderingMode ? '#1e293b' : '#ffffff',
                 color: isReorderingMode ? '#ffffff' : '#334155',
                 border: isReorderingMode ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '5px',
                 whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
               }}
-              title="إعادة ترتيب خط السير"
+              title="إعادة ترتيب خط السير يدوياً"
             >
-              <SlidersIcon size={13} color={isReorderingMode ? '#ffffff' : '#334155'} />
-              <span>{isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}</span>
+              <SlidersIcon size={12} color={isReorderingMode ? '#ffffff' : '#475569'} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}
+              </span>
             </button>
 
             {/* Dynamic Route Optimization Button */}
@@ -2126,24 +2226,31 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               onClick={handleRunRouteOptimization}
               disabled={isOptimizingRoute}
               style={{
+                flex: '1 1 0',
+                minWidth: 0,
+                width: '50%',
                 height: '32px',
-                padding: '0 10px',
-                borderRadius: '7px',
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '11.5px',
-                fontWeight: 700,
+                padding: '0 8px',
+                borderRadius: '8px',
+                backgroundColor: '#eef2ff',
+                color: '#170e5e',
+                border: '1px solid #c7d2fe',
+                fontSize: '11px',
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '5px',
                 whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
               }}
               title="تحسين مسار السير بأقصر مسار جغرافي لتوفير استهلاك الوقود وزمن الرحلة"
             >
-              <MapPinIcon size={13} color="#ffffff" />
-              <span>{isOptimizingRoute ? 'جاري التحسين...' : 'أقصر مسار (TSP)'}</span>
+              <MapPinIcon size={12} color="#170e5e" />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isOptimizingRoute ? 'جاري التحسين...' : 'أقصر مسار (GPS)'}
+              </span>
             </button>
           </div>
         </div>
@@ -2153,36 +2260,68 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
       {isReorderingMode && (
         <div
           style={{
-            backgroundColor: '#eff6ff',
-            border: '1.5px dashed #3b82f6',
+            backgroundColor: '#f0f7ff',
+            border: '1px solid #bfdbfe',
             borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '11px',
-            color: '#1e40af',
+            padding: '6px 10px',
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '6px',
+            justifyContent: 'space-between',
+            gap: '8px',
+            boxSizing: 'border-box',
           }}
         >
-          <span>
-            وضع إعادة ترتيب خط السير نشط: استخدم الأسهم (▲/▼) لتقديم أو تأخير الأحياء والمحلات.
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '5px',
+                backgroundColor: '#dbeafe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <SlidersIcon size={12} color="#1d4ed8" />
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#1e40af',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              وضع إعادة الترتيب نشط: استخدم الأسهم (▲/▼) لترتيب خط السير
+            </span>
+          </div>
           <button
             type="button"
             onClick={resetOrderToDefault}
             style={{
-              background: 'none',
-              border: 'none',
+              background: '#ffffff',
+              border: '1px solid #fecaca',
+              borderRadius: '6px',
               color: '#dc2626',
               fontSize: '11px',
               fontWeight: 700,
+              padding: '3px 8px',
               cursor: 'pointer',
-              textDecoration: 'underline',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             }}
+            title="استعادة ترتيب خط السير الافتراضي"
           >
-            استعادة الترتيب التلقائي
+            <RotateCcwIcon size={11} color="#dc2626" />
+            استعادة الترتيب
           </button>
         </div>
       )}
@@ -2326,21 +2465,26 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
                   {/* Reordering controls for District */}
                   {isReorderingMode && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>ترتيب الحي:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <button
                         type="button"
                         onClick={() => moveDistrict(group.name, 'up')}
                         disabled={groupIdx === 0}
                         style={{
-                          padding: '3px 7px',
-                          fontSize: '11px',
+                          width: '26px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
                           fontWeight: 800,
-                          backgroundColor: '#f1f5f9',
+                          backgroundColor: '#ffffff',
                           border: '1px solid #cbd5e1',
-                          borderRadius: '5px',
+                          borderRadius: '6px',
                           cursor: groupIdx === 0 ? 'not-allowed' : 'pointer',
-                          opacity: groupIdx === 0 ? 0.4 : 1,
+                          opacity: groupIdx === 0 ? 0.35 : 1,
+                          color: '#1e293b',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                         }}
                         title="تقديم الحي في خط السير"
                       >
@@ -2351,14 +2495,20 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         onClick={() => moveDistrict(group.name, 'down')}
                         disabled={groupIdx === districtGroups.length - 1}
                         style={{
-                          padding: '3px 7px',
-                          fontSize: '11px',
+                          width: '26px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
                           fontWeight: 800,
-                          backgroundColor: '#f1f5f9',
+                          backgroundColor: '#ffffff',
                           border: '1px solid #cbd5e1',
-                          borderRadius: '5px',
+                          borderRadius: '6px',
                           cursor: groupIdx === districtGroups.length - 1 ? 'not-allowed' : 'pointer',
-                          opacity: groupIdx === districtGroups.length - 1 ? 0.4 : 1,
+                          opacity: groupIdx === districtGroups.length - 1 ? 0.35 : 1,
+                          color: '#1e293b',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                         }}
                         title="تأخير الحي في خط السير"
                       >
@@ -2520,20 +2670,26 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
                             {/* Up/Down buttons if in reorder mode */}
                             {isReorderingMode && (
-                              <div style={{ display: 'flex', gap: '2px' }} onClick={(e) => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
                                 <button
                                   type="button"
                                   onClick={() => moveCustomer(group.name, item.customerId, 'up')}
                                   disabled={itemIdx === 0}
                                   style={{
-                                    padding: '2px 5px',
-                                    fontSize: '9px',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '9.5px',
                                     fontWeight: 800,
-                                    backgroundColor: '#f1f5f9',
+                                    backgroundColor: '#ffffff',
                                     border: '1px solid #cbd5e1',
-                                    borderRadius: '3px',
+                                    borderRadius: '5px',
                                     cursor: itemIdx === 0 ? 'not-allowed' : 'pointer',
                                     opacity: itemIdx === 0 ? 0.3 : 1,
+                                    color: '#1e293b',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                   }}
                                   title="تقديم المحل"
                                 >
@@ -2544,14 +2700,20 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                   onClick={() => moveCustomer(group.name, item.customerId, 'down')}
                                   disabled={itemIdx === group.items.length - 1}
                                   style={{
-                                    padding: '2px 5px',
-                                    fontSize: '9px',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '9.5px',
                                     fontWeight: 800,
-                                    backgroundColor: '#f1f5f9',
+                                    backgroundColor: '#ffffff',
                                     border: '1px solid #cbd5e1',
-                                    borderRadius: '3px',
+                                    borderRadius: '5px',
                                     cursor: itemIdx === group.items.length - 1 ? 'not-allowed' : 'pointer',
                                     opacity: itemIdx === group.items.length - 1 ? 0.3 : 1,
+                                    color: '#1e293b',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                   }}
                                   title="تأخير المحل"
                                 >
@@ -2595,8 +2757,13 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           </div>
                           <div>
                             <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
-                            <strong style={{ color: item.balance > 0 ? '#b91c1c' : item.balance < 0 ? '#0369a1' : '#475569', fontSize: '11.5px' }}>
-                              {item.balance === 0 ? 'خالص (0)' : item.balance.toFixed(0)} <CurrencySymbol />
+                            <strong style={{ color: item.balance > 0 ? '#b91c1c' : item.balance < 0 ? '#0284c7' : '#475569', fontSize: '11.5px' }}>
+                              {item.balance === 0
+                                ? 'خالص (0)'
+                                : item.balance < 0
+                                ? `دائن (${Math.abs(item.balance).toFixed(0)})`
+                                : item.balance.toFixed(0)}{' '}
+                              <CurrencySymbol />
                             </strong>
                           </div>
                         </div>

@@ -767,16 +767,15 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                             {c.originalPrice.toFixed(2)}
                           </span>
                         )}
-                        {itemDiscount > 0 && (
+                        {c.offerBadge ? (
+                          <span style={{ fontSize: '9px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            {c.offerBadge}
+                          </span>
+                        ) : itemDiscount > 0 ? (
                           <span style={{ fontSize: '9.5px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                             خصم {itemDiscount.toFixed(2)} <CurrencySymbol />
                           </span>
-                        )}
-                        {c.offerBadge && (
-                          <span style={{ fontSize: '9px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                            {c.offerBadge}
-                          </span>
-                        )}
+                        ) : null}
                         {c.isBonus && (
                           <span style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px' }}>
                             بونص عيني مجاني
@@ -851,47 +850,55 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                     </div>
 
                     {/* Strict RTL Stepper: [+] (qty) [-] */}
-                    <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                    <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                       <button
                         type="button"
                         onClick={() => onUpdateCartQty(c.productId, 1)}
                         style={{
-                          width: '28px',
-                          height: '28px',
+                          width: '26px',
+                          height: '24px',
+                          minHeight: '24px',
+                          maxHeight: '24px',
+                          padding: 0,
                           backgroundColor: '#170e5e',
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: '5px',
                           fontWeight: 800,
-                          fontSize: '15px',
+                          fontSize: '14px',
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          boxSizing: 'border-box',
                         }}
                         title="زيادة الكمية"
                       >
                         +
                       </button>
-                      <span style={{ fontWeight: 800, fontSize: '12.5px', width: '24px', textAlign: 'center', color: '#170e5e' }}>
+                      <span style={{ fontWeight: 800, fontSize: '12px', width: '22px', textAlign: 'center', color: '#170e5e', lineHeight: 1 }}>
                         {c.qty}
                       </span>
                       <button
                         type="button"
                         onClick={() => onUpdateCartQty(c.productId, -1)}
                         style={{
-                          width: '28px',
-                          height: '28px',
+                          width: '26px',
+                          height: '24px',
+                          minHeight: '24px',
+                          maxHeight: '24px',
+                          padding: 0,
                           backgroundColor: '#ffffff',
                           border: '1px solid #cbd5e1',
                           borderRadius: '5px',
                           fontWeight: 800,
-                          fontSize: '15px',
+                          fontSize: '14px',
                           color: '#0f172a',
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          boxSizing: 'border-box',
                         }}
                         title="إنقاص الكمية"
                       >
@@ -1126,42 +1133,50 @@ export const VanSaleTab: React.FC<VanSaleTabProps> = ({
                             onClick={() => onAddToCart?.(item)}
                             disabled={isMax}
                             style={{
-                              width: '28px',
-                              height: '28px',
+                              width: '26px',
+                              height: '24px',
+                              minHeight: '24px',
+                              maxHeight: '24px',
+                              padding: 0,
                               backgroundColor: isMax ? '#f1f5f9' : '#170e5e',
                               border: 'none',
-                              borderRadius: '6px',
+                              borderRadius: '5px',
                               fontWeight: 800,
                               cursor: isMax ? 'not-allowed' : 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              boxSizing: 'border-box',
                             }}
                             title={isMax ? 'تم بلوغ أقصى كمية بالسيارة' : 'زيادة صنف'}
                           >
-                            <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: isMax ? '#94a3b8' : '#ffffff' }}>+</span>
+                            <span style={{ fontSize: '14px', fontWeight: 800, lineHeight: 1, color: isMax ? '#94a3b8' : '#ffffff' }}>+</span>
                           </button>
-                          <span style={{ fontWeight: 800, fontSize: '12.5px', width: '22px', textAlign: 'center', color: '#170e5e' }}>
+                          <span style={{ fontWeight: 800, fontSize: '12px', minWidth: '20px', textAlign: 'center', color: '#170e5e', lineHeight: 1 }}>
                             {inCartQty}
                           </span>
                           <button
                             type="button"
                             onClick={() => onUpdateCartQty(item.productId, -1)}
                             style={{
-                              width: '28px',
-                              height: '28px',
+                              width: '26px',
+                              height: '24px',
+                              minHeight: '24px',
+                              maxHeight: '24px',
+                              padding: 0,
                               backgroundColor: '#ffffff',
                               border: '1px solid #cbd5e1',
-                              borderRadius: '6px',
+                              borderRadius: '5px',
                               fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              boxSizing: 'border-box',
                             }}
                             title="إنقاص صنف"
                           >
-                            <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: '#0f172a' }}>−</span>
+                            <span style={{ fontSize: '14px', fontWeight: 800, lineHeight: 1, color: '#0f172a' }}>−</span>
                           </button>
                         </div>
                       ) : (

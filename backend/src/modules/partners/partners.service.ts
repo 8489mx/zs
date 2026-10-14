@@ -11,6 +11,7 @@ import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
 import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePagination, mapCustomerRow, mapSupplierRow, parsePartnersListQuery } from './helpers/partners-listing.helper';
 import { generatePhoneSearchVariants } from '../../core/utils/phone-utils';
 import { getCustomerRepBalancesMap } from '../delivery-reps/services/van-common.util';
+import { extractCustomerVisitDays } from '../delivery-reps/van-routes-schedule.util';
 
 @Injectable()
 export class PartnersService {
@@ -691,11 +692,16 @@ export class PartnersService {
     await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
 
     const customerCode = `C-${String(inserted.id).padStart(4, '0')}`;
-    const initialMeta = {
+    const initialMeta: any = {
       ...(payload.metadata || {}),
       customer_code: customerCode,
       code: customerCode,
     };
+    if (initialMeta.visit_day !== undefined || initialMeta.visit_days !== undefined) {
+      const { visitDays, visitDay } = extractCustomerVisitDays(initialMeta);
+      initialMeta.visit_days = visitDays;
+      initialMeta.visit_day = visitDay;
+    }
     await (this.db as any)
       .updateTable('customers')
       .set({ metadata: JSON.stringify(initialMeta) })
@@ -734,6 +740,15 @@ export class PartnersService {
       throw new AppError('Store credit cannot be edited from customer form', 'CUSTOMER_CREDIT_EDIT_FORBIDDEN', 400);
     }
 
+    let metaToSave: any = payload.metadata ? { ...payload.metadata } : null;
+    if (metaToSave && typeof metaToSave === 'object') {
+      if (metaToSave.visit_day !== undefined || metaToSave.visit_days !== undefined) {
+        const { visitDays, visitDay } = extractCustomerVisitDays(metaToSave);
+        metaToSave.visit_days = visitDays;
+        metaToSave.visit_day = visitDay;
+      }
+    }
+
     await this.db
       .updateTable('customers')
       .set({
@@ -744,7 +759,7 @@ export class PartnersService {
         credit_limit: Number(payload.creditLimit || 0),
         company_name: String(payload.companyName || '').trim(),
         tax_number: String(payload.taxNumber || '').trim(),
-        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+        metadata: metaToSave ? JSON.stringify(metaToSave) : null,
         updated_at: sql`NOW()`,
       })
       .where('id', '=', id)

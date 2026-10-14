@@ -40,4 +40,10 @@ export class UpsertDeliveryRepDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsOptional()
+  permissions?: Record<string, any>;
+
+  @IsOptional()
+  metadata?: Record<string, any>;
 }

@@ -273,7 +273,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
         backgroundColor: '#ffffff',
         borderRadius: '14px',
         border: '1px solid #e2e8f0',
-        padding: '14px 14px 28px',
+        padding: '12px 10px 24px',
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
@@ -300,17 +300,20 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           style={{
             flex: '1 1 0',
             minWidth: 0,
-            padding: '8px 8px',
-            borderRadius: '8px',
+            height: '34px',
+            padding: '0 8px',
+            borderRadius: '7px',
             border: 'none',
             cursor: 'pointer',
             backgroundColor: subMode === 'collection' ? '#ffffff' : 'transparent',
             color: subMode === 'collection' ? '#170e5e' : '#64748b',
             fontWeight: 800,
-            fontSize: '12.5px',
+            fontSize: '12px',
             boxShadow: subMode === 'collection' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
             whiteSpace: 'nowrap',
-            textAlign: 'center',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           سند تحصيل نقدية
@@ -321,17 +324,20 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           style={{
             flex: '1 1 0',
             minWidth: 0,
-            padding: '5px 6px',
-            borderRadius: '6px',
+            height: '34px',
+            padding: '0 8px',
+            borderRadius: '7px',
             border: 'none',
             cursor: 'pointer',
             backgroundColor: subMode === 'return' ? '#ffffff' : 'transparent',
             color: subMode === 'return' ? '#170e5e' : '#64748b',
             fontWeight: 800,
-            fontSize: '11.5px',
+            fontSize: '12px',
             boxShadow: subMode === 'return' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
             whiteSpace: 'nowrap',
-            textAlign: 'center',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           إذن مرتجع ميداني
@@ -505,26 +511,26 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 backgroundColor: '#ffffff',
                 border: '1px solid #c7d2fe',
                 borderTop: '3px solid #170e5e',
-                borderRadius: '14px',
-                padding: '14px 16px',
+                borderRadius: '12px',
+                padding: '10px 12px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
-                boxShadow: '0 4px 14px rgba(23, 14, 94, 0.08)',
+                gap: '8px',
+                boxShadow: '0 2px 10px rgba(23, 14, 94, 0.06)',
               }}
             >
               {/* Row 1: Customer Info on Right & Debt Card on Left */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '3px' }}>
-                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
                       {selectedCustomer.name}
                     </h4>
-                    <span style={{ fontSize: '10.5px', color: '#475569', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>
+                    <span style={{ fontSize: '10px', color: '#475569', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>
                       [{selectedCustomer.customerCode?.replace(/^#/, '') || `C-${String(selectedCustomer.id).padStart(4, '0')}`}]
                     </span>
                   </div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
                     {selectedCustomer.district || selectedCustomer.route || 'الخط العام'}
                     {selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
                   </div>
@@ -535,16 +541,16 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   style={{
                     backgroundColor: selectedCustomer.balance > 0 ? '#fef2f2' : selectedCustomer.balance < 0 ? '#eff6ff' : '#f0fdf4',
                     border: `1px solid ${selectedCustomer.balance > 0 ? '#fecaca' : selectedCustomer.balance < 0 ? '#bfdbfe' : '#bbf7d0'}`,
-                    borderRadius: '8px',
-                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
                     textAlign: 'left',
                     flexShrink: 0,
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1e40af' : '#166534', fontWeight: 700, marginBottom: '2px' }}>
+                  <div style={{ fontSize: '9px', color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1e40af' : '#166534', fontWeight: 700, marginBottom: '1px' }}>
                     {selectedCustomer.balance > 0 ? 'المديونية الحالية:' : selectedCustomer.balance < 0 ? 'رصيد دائن:' : 'حساب خالص:'}
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1d4ed8' : '#15803d', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1d4ed8' : '#15803d', whiteSpace: 'nowrap' }}>
                     {selectedCustomer.balance > 0
                       ? `${selectedCustomer.balance.toFixed(2)} `
                       : selectedCustomer.balance < 0
@@ -555,31 +561,36 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 </div>
               </div>
 
-              {/* Row 2: Quick Amount Presets */}
+              {/* Row 2: Quick Amount Presets (Side by Side strictly 50%/50%) */}
               {selectedCustomer.balance > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     type="button"
                     onClick={() => onColAmountChange(String(selectedCustomer.balance))}
                     style={{
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      height: '32px',
                       backgroundColor: colAmount === String(selectedCustomer.balance) ? '#eef2ff' : '#f8fafc',
                       border: colAmount === String(selectedCustomer.balance) ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      fontSize: '12px',
-                      fontWeight: 700,
+                      borderRadius: '6px',
+                      padding: '0 6px',
+                      fontSize: '11px',
+                      fontWeight: 800,
                       color: colAmount === String(selectedCustomer.balance) ? '#170e5e' : '#1e293b',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      transition: 'all 0.15s ease',
+                      gap: '4px',
                       whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <span>سداد كامل المبلغ</span>
-                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    <span>سداد كامل</span>
+                    <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>
                       ({selectedCustomer.balance % 1 === 0 ? selectedCustomer.balance.toFixed(0) : selectedCustomer.balance.toFixed(2)})
                     </span>
                   </button>
@@ -588,24 +599,29 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     type="button"
                     onClick={() => onColAmountChange(String((selectedCustomer.balance / 2).toFixed(2)))}
                     style={{
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      height: '32px',
                       backgroundColor: colAmount === String((selectedCustomer.balance / 2).toFixed(2)) ? '#eef2ff' : '#f8fafc',
                       border: colAmount === String((selectedCustomer.balance / 2).toFixed(2)) ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      fontSize: '12px',
-                      fontWeight: 700,
+                      borderRadius: '6px',
+                      padding: '0 6px',
+                      fontSize: '11px',
+                      fontWeight: 800,
                       color: colAmount === String((selectedCustomer.balance / 2).toFixed(2)) ? '#170e5e' : '#1e293b',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      transition: 'all 0.15s ease',
+                      gap: '4px',
                       whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     <span>نصف المبلغ</span>
-                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>
                       ({(selectedCustomer.balance / 2) % 1 === 0 ? (selectedCustomer.balance / 2).toFixed(0) : (selectedCustomer.balance / 2).toFixed(2)})
                     </span>
                   </button>
@@ -620,11 +636,11 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       style={{
                         flex: 1,
                         minWidth: '60px',
-                        height: '32px',
+                        height: '30px',
                         backgroundColor: colAmount === String(amt) ? '#eef2ff' : '#f8fafc',
                         border: colAmount === String(amt) ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
                         borderRadius: '6px',
-                        fontSize: '11.5px',
+                        fontSize: '11px',
                         fontWeight: 700,
                         color: colAmount === String(amt) ? '#170e5e' : '#334155',
                         cursor: 'pointer',
@@ -638,7 +654,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
 
               {/* Row 3: Collection Input */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
                   المبلغ المحصل نقداً الآن ({getGlobalCurrencySymbol()}):
                 </label>
                 <input
@@ -649,12 +665,12 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   placeholder="0.00"
                   style={{
                     width: '100%',
-                    height: '42px',
+                    height: '36px',
                     backgroundColor: '#ffffff',
                     border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '0 12px',
-                    fontSize: '15px',
+                    borderRadius: '6px',
+                    padding: '0 10px',
+                    fontSize: '14px',
                     fontWeight: 800,
                     color: '#0f172a',
                     boxSizing: 'border-box',
@@ -664,7 +680,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               </div>
 
               {/* Row 4: Action Buttons */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
                 <Button
                   variant="primary"
                   onClick={onSubmitCollection}
@@ -674,15 +690,15 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     minWidth: 0,
                     backgroundColor: '#170e5e',
                     color: '#ffffff',
-                    height: '42px',
-                    fontSize: '13px',
+                    height: '36px',
+                    fontSize: '12.5px',
                     fontWeight: 800,
                     padding: '0 12px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     border: 'none',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                   }}
                 >
                   {isSubmitting ? 'جاري قيد السند...' : 'إثبات تحصيل النقدية'}
@@ -694,15 +710,15 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     onColAmountChange('');
                   }}
                   style={{
-                    height: '42px',
-                    padding: '0 16px',
-                    fontSize: '12px',
+                    height: '36px',
+                    padding: '0 14px',
+                    fontSize: '11.5px',
                     fontWeight: 700,
                     flexShrink: 0,
                     backgroundColor: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#475569',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                   }}
                 >
                   إلغاء
@@ -714,15 +730,29 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
           {/* 4. The Indebted / All Customers Grid */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {activeFilterMode === 'indebted' ? 'العملاء المطلوب تحصيل مديونياتهم' : 'كافة عملاء خط السير'}{' '}
-                  ({displayCustomers.length}):
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                  {activeFilterMode === 'indebted' ? 'العملاء المطلوب تحصيلهم' : 'كافة عملاء خط السير'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    backgroundColor: '#eef2ff',
+                    color: '#170e5e',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    border: '1px solid #c7d2fe',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {displayCustomers.length}
                 </span>
               </div>
-              <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                مرتبة تنازلياً من الأعلى مديونية
+              <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                مرتبة بالأعلى مديونية
               </span>
             </div>
 

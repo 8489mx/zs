@@ -89,6 +89,8 @@ export interface AppSettings {
   deliveryFeeMode?: 'freelance_courier' | 'store_fleet' | string;
   storeFleetCommissionRate?: number;
   defaultDeliveryFee?: number;
+  vanSettlementRequireSupervisorPin?: boolean;
+  vanSettlementBlindMode?: boolean;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;

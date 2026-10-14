@@ -3,6 +3,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { AuditService, AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
 import { boundedPage } from '../../common/utils/bounded-page';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DeliveryRepsService } from './delivery-reps.service';
@@ -43,6 +44,7 @@ import {
 } from './rep-target.engine';
 import { VanFleetService } from './services/van-fleet.service';
 import { VanRequisitionsService } from './services/van-requisitions.service';
+import { DAY_KEY_TO_ARABIC, normalizeDayKey } from './van-routes-schedule.util';
 import { VanReturnsService } from './services/van-returns.service';
 import { VanTargetsService } from './services/van-targets.service';
 import { VanTransfersService } from './services/van-transfers.service';
@@ -311,6 +313,58 @@ export class VanSalesService {
     };
   }
 
+  /**
+   * Checks whether the tenant requires supervisor PIN authorization for settling van trips.
+   * Configurable via system settings (vanSettlementRequireSupervisorPin).
+   */
+  async isSupervisorPinRequiredForSettlement(tenantId: string): Promise<boolean> {
+    const row = await this.anyDb
+      .selectFrom('settings')
+      .select(['value'])
+      .where('tenant_id', '=', tenantId)
+      .where((eb: any) =>
+        eb.or([
+          eb('key', '=', 'vanSettlementRequireSupervisorPin'),
+          eb('key', '=', 'van_settlement_require_supervisor_pin'),
+        ]),
+      )
+      .executeTakeFirst();
+    if (!row?.value) return false;
+    try {
+      const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      return Boolean(parsed === true || parsed === 'true' || parsed === 1 || parsed === '1');
+    } catch {
+      return row.value === 'true' || row.value === '1';
+    }
+  }
+
+  /**
+   * Checks whether the tenant enforces blind cash settlement for van trips.
+   * In blind settlement mode, expected cash target and breakdown are hidden from the representative,
+   * requiring physical cash counting without target confirmation.
+   * Configurable via system settings (vanSettlementBlindMode).
+   */
+  async isBlindSettlementEnabled(tenantId: string): Promise<boolean> {
+    const row = await this.anyDb
+      .selectFrom('settings')
+      .select(['value'])
+      .where('tenant_id', '=', tenantId)
+      .where((eb: any) =>
+        eb.or([
+          eb('key', '=', 'vanSettlementBlindMode'),
+          eb('key', '=', 'van_settlement_blind_mode'),
+        ]),
+      )
+      .executeTakeFirst();
+    if (!row?.value) return false;
+    try {
+      const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      return Boolean(parsed === true || parsed === 'true' || parsed === 1 || parsed === '1');
+    } catch {
+      return row.value === 'true' || row.value === '1';
+    }
+  }
+
   private sortItemsByProductId<T extends { productId: number }>(items: T[]): T[] {
     return sortItemsByProductId(items);
   }
@@ -389,7 +443,11 @@ export class VanSalesService {
     returns?: any[];
     swaps?: any[];
     targetMetrics?: RepTargetCalculationResult;
+    requireSupervisorPinForSettlement?: boolean;
+    isBlindSettlement?: boolean;
   }> {
+    const requireSupervisorPinForSettlement = await this.isSupervisorPinRequiredForSettlement(tenantId);
+    const isBlindSettlement = await this.isBlindSettlementEnabled(tenantId);
     const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
 
     const assignedVehicleRow = await this.anyDb
@@ -925,6 +983,8 @@ export class VanSalesService {
         customers,
         recentSales: [],
         targetMetrics,
+        requireSupervisorPinForSettlement,
+        isBlindSettlement,
       };
     }
 
@@ -969,6 +1029,8 @@ export class VanSalesService {
       returns: tripReturns,
       swaps: tripSwaps,
       targetMetrics,
+      requireSupervisorPinForSettlement,
+      isBlindSettlement,
     };
   }
 
@@ -3189,6 +3251,66 @@ export class VanSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
+      // Record cash variance in rep financial ledger
+      if (cashVariance < -0.01) {
+        await trxAny
+          .insertInto('van_rep_financial_settlements')
+          .values({
+            tenant_id: tenantId,
+            account_id: accountId,
+            rep_id: repId,
+            trip_id: payload.tripId,
+            entry_type: 'cash_shortage',
+            amount: Math.abs(cashVariance),
+            status: 'pending',
+            notes: `عجز كاش تصفية رحلة #${payload.tripId} (متوقع ${expectedCash} - مسلّم ${countedCash})`,
+            created_at: sql`NOW()`,
+            updated_at: sql`NOW()`,
+          })
+          .execute();
+      } else if (cashVariance > 0.01) {
+        await trxAny
+          .insertInto('van_rep_financial_settlements')
+          .values({
+            tenant_id: tenantId,
+            account_id: accountId,
+            rep_id: repId,
+            trip_id: payload.tripId,
+            entry_type: 'cash_overage',
+            amount: cashVariance,
+            status: 'settled',
+            settled_at: sql`NOW()`,
+            settled_by: actorUserId || null,
+            settlement_method: 'cash',
+            notes: `فائض كاش تصفية رحلة #${payload.tripId} (متوقع ${expectedCash} - مسلّم ${countedCash})`,
+            created_at: sql`NOW()`,
+            updated_at: sql`NOW()`,
+          })
+          .execute();
+      }
+
+      // Record stock shortage in rep financial ledger
+      if (totalStockVarianceCost > 0.01) {
+        await trxAny
+          .insertInto('van_rep_financial_settlements')
+          .values({
+            tenant_id: tenantId,
+            account_id: accountId,
+            rep_id: repId,
+            trip_id: payload.tripId,
+            entry_type: 'stock_shortage',
+            amount: totalStockVarianceCost,
+            status: payload.chargeStockVarianceToRep ? 'pending' : 'waived',
+            settled_at: payload.chargeStockVarianceToRep ? null : sql`NOW()`,
+            settled_by: payload.chargeStockVarianceToRep ? null : (actorUserId || null),
+            settlement_method: payload.chargeStockVarianceToRep ? null : 'waiver',
+            notes: `عجز جرد بضاعة رحلة #${payload.tripId} ${payload.chargeStockVarianceToRep ? '(محمل على المندوب)' : '(خسائر مستودع معفاة)'}`,
+            created_at: sql`NOW()`,
+            updated_at: sql`NOW()`,
+          })
+          .execute();
+      }
+
       // Auto-record / finish any ongoing active customer visit upon settlement
       if (payload.activeVisitCustomerId) {
         const custId = Number(payload.activeVisitCustomerId);
@@ -4231,6 +4353,7 @@ export class VanSalesService {
       assignedRepId?: number | null;
       assignedRepIds?: number[];
       assignedRepName?: string | null;
+      repSchedules?: Array<{ repId: number; repName?: string; days: string[] }>;
     },
   ) {
     return this.vanRoutesService.setCustomerRouteSchedule(tenantId, customerId, payload);
@@ -4567,10 +4690,12 @@ export class VanSalesService {
     const phone = (body.phone || '').trim();
     const address = (body.address || district || '').trim();
 
-    const rawDays = body.visitDays || body.metadata?.visit_days || body.metadata?.visitDays;
-    const visit_days = Array.isArray(rawDays) && rawDays.length > 0
-      ? rawDays
-      : ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const rawDays = body.visitDays || body.metadata?.visit_days || body.metadata?.visitDays || (body.metadata?.visit_day ? [body.metadata.visit_day] : []);
+    const normalizedDays = Array.isArray(rawDays)
+      ? rawDays.map((d: string) => DAY_KEY_TO_ARABIC[normalizeDayKey(d)] || d).filter(Boolean)
+      : [];
+    const visit_days = normalizedDays;
+    const visit_day = normalizedDays[0] || '';
 
     const metadata = {
       district: district || undefined,
@@ -4579,6 +4704,7 @@ export class VanSalesService {
       assigned_rep_ids: [repId],
       created_by_rep_id: repId,
       visit_days,
+      visit_day,
       ...(body.metadata || {}),
     };
 
@@ -4633,6 +4759,7 @@ export class VanSalesService {
         route: route || existingMeta.route,
         district: district || existingMeta.district,
         visit_days: mergedDays,
+        visit_day: mergedDays[0] || existingMeta.visit_day || '',
         customer_code: custCode,
         code: custCode,
       };
@@ -4898,21 +5025,94 @@ export class VanSalesService {
       .limit(5)
       .execute();
 
-    const recentCollections = await this.anyDb
-      .selectFrom('sale_payments')
+    let collectionsList: Array<{
+      id: number;
+      receiptNumber: string;
+      paymentDate: any;
+      amount: number;
+      paymentMethod: string;
+      notes: string;
+    }> = [];
+
+    const recentCustomerPayments = await this.anyDb
+      .selectFrom('customer_payments')
       .select([
         'id',
-        'receipt_number as receiptNumber',
-        'payment_date as paymentDate',
         sql<number>`cast(amount as numeric)`.as('amount'),
-        'payment_method as paymentMethod',
-        'notes',
+        'note',
+        'created_at as createdAt',
+        'transfer_reference as transferReference',
       ])
       .where('tenant_id', '=', tenantId)
       .where('customer_id', '=', customerId)
       .orderBy('id', 'desc')
       .limit(5)
       .execute();
+
+    if (recentCustomerPayments && recentCustomerPayments.length > 0) {
+      collectionsList = recentCustomerPayments.map((c: any) => {
+        const receiptMatch = c.note ? String(c.note).match(/#([A-Z0-9-]+)/) : null;
+        const receiptNumber = receiptMatch ? receiptMatch[1] : (c.transferReference ? `TR-${c.id}` : `COL-${c.id}`);
+
+        let paymentMethod = 'cash';
+        const noteText = String(c.note || '').toLowerCase();
+        if (c.transferReference || noteText.includes('إنستاباي') || noteText.includes('instapay')) {
+          paymentMethod = 'instapay';
+        } else if (noteText.includes('فودافون') || noteText.includes('vodafone')) {
+          paymentMethod = 'vodafone_cash';
+        } else if (noteText.includes('تحويل') || noteText.includes('bank')) {
+          paymentMethod = 'bank_transfer';
+        }
+
+        return {
+          id: Number(c.id),
+          receiptNumber,
+          paymentDate: c.createdAt,
+          amount: Number(c.amount || 0),
+          paymentMethod,
+          notes: c.note || '',
+        };
+      });
+    } else {
+      const recentLedgerPayments = await this.anyDb
+        .selectFrom('customer_ledger')
+        .select([
+          'id',
+          sql<number>`cast(abs(coalesce(amount, 0)) as numeric)`.as('amount'),
+          'note',
+          'created_at as createdAt',
+        ])
+        .where('tenant_id', '=', tenantId)
+        .where('customer_id', '=', customerId)
+        .where('entry_type', 'in', ['payment', 'customer_payment'])
+        .orderBy('id', 'desc')
+        .limit(5)
+        .execute();
+
+      collectionsList = recentLedgerPayments.map((l: any) => {
+        const receiptMatch = l.note ? String(l.note).match(/#([A-Z0-9-]+)/) : null;
+        const receiptNumber = receiptMatch ? receiptMatch[1] : `COL-${l.id}`;
+
+        let paymentMethod = 'cash';
+        const noteText = String(l.note || '').toLowerCase();
+        if (noteText.includes('إنستاباي') || noteText.includes('instapay')) {
+          paymentMethod = 'instapay';
+        } else if (noteText.includes('فودافون') || noteText.includes('vodafone')) {
+          paymentMethod = 'vodafone_cash';
+        } else if (noteText.includes('تحويل') || noteText.includes('bank')) {
+          paymentMethod = 'bank_transfer';
+        }
+
+        return {
+          id: Number(l.id),
+          receiptNumber,
+          paymentDate: l.createdAt,
+          amount: Number(l.amount || 0),
+          paymentMethod,
+          notes: l.note || '',
+        };
+      });
+    }
 
     let custMeta: any = {};
     if (typeof customer.metadata === 'string') {
@@ -4967,7 +5167,7 @@ export class VanSalesService {
         totalOverdueAmount,
         oldestOverdueDays,
       },
-      packagingBalance: packaging?.packages || [],
+      packagingBalance: Array.isArray(packaging) ? packaging : (packaging?.packages || []),
       recentSales: recentSales.map((s: any) => ({
         id: Number(s.id),
         docNo: String(s.docNo || `INV-${s.id}`),
@@ -4977,14 +5177,580 @@ export class VanSalesService {
         paidAmount: Number(s.paidAmount || 0),
         remaining: Number(s.remaining || 0),
       })),
-      recentCollections: recentCollections.map((c: any) => ({
-        id: Number(c.id),
-        receiptNumber: String(c.receiptNumber || `REC-${c.id}`),
-        paymentDate: c.paymentDate,
-        amount: Number(c.amount || 0),
-        paymentMethod: c.paymentMethod || 'cash',
-        notes: c.notes || '',
-      })),
+      recentCollections: collectionsList,
+    };
+  }
+
+  /**
+   * Get centralized financial ledger movements and summary for delivery representatives.
+   */
+  async getRepFinancialLedger(
+    tenantId: string,
+    filters: {
+      repId?: number;
+      status?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ) {
+    let query = this.anyDb
+      .selectFrom('van_rep_financial_settlements as fs')
+      .innerJoin('delivery_representatives as dr', 'dr.id', 'fs.rep_id')
+      .leftJoin('van_sales_trips as vt', 'vt.id', 'fs.trip_id')
+      .leftJoin('users as u', 'u.id', 'fs.settled_by')
+      .leftJoin('hr_employees as emp', 'emp.id', 'dr.employee_id')
+      .select([
+        'fs.id',
+        'fs.tenant_id as tenantId',
+        'fs.rep_id as repId',
+        'dr.name as repName',
+        'dr.phone as repPhone',
+        'dr.employee_id as employeeId',
+        'emp.display_name as employeeName',
+        'emp.employee_no as employeeNo',
+        'fs.trip_id as tripId',
+        'vt.shift_name as shiftName',
+        'dr.vehicle_plate as vehiclePlate',
+        'fs.entry_type as entryType',
+        sql<number>`cast(fs.amount as numeric)`.as('amount'),
+        'fs.status',
+        'fs.settled_at as settledAt',
+        'fs.settled_by as settledById',
+        'u.username as settledByName',
+        'fs.settlement_method as settlementMethod',
+        'fs.notes',
+        'fs.receipt_voucher_no as receiptVoucherNo',
+        'fs.payroll_run_id as payrollRunId',
+        'fs.created_at as createdAt',
+        'fs.updated_at as updatedAt',
+      ])
+      .where('fs.tenant_id', '=', tenantId);
+
+    if (filters.repId) {
+      query = query.where('fs.rep_id', '=', Number(filters.repId));
+    }
+    if (filters.status && filters.status !== 'all') {
+      query = query.where('fs.status', '=', filters.status);
+    }
+    if (filters.dateFrom) {
+      query = query.where('fs.created_at', '>=', new Date(filters.dateFrom));
+    }
+    if (filters.dateTo) {
+      const end = new Date(filters.dateTo);
+      end.setHours(23, 59, 59, 999);
+      query = query.where('fs.created_at', '<=', end);
+    }
+
+    const rawItems = await query.orderBy('fs.created_at', 'desc').execute();
+
+    const items = rawItems.map((r: any) => ({
+      id: Number(r.id),
+      tenantId: String(r.tenantId || r.tenant_id || r.tenantid || ''),
+      repId: Number(r.repId || r.rep_id || r.repid || 0),
+      repName: String(r.repName || r.rep_name || r.repname || ''),
+      repPhone: r.repPhone || r.rep_phone || r.repphone || undefined,
+      employeeId: (r.employeeId || r.employee_id || r.employeeid) ? Number(r.employeeId || r.employee_id || r.employeeid) : null,
+      employeeName: r.employeeName || r.employee_name || r.employeename || null,
+      employeeNo: r.employeeNo || r.employee_no || r.employeeno || null,
+      tripId: (r.tripId || r.trip_id || r.tripid) ? Number(r.tripId || r.trip_id || r.tripid) : null,
+      shiftName: r.shiftName || r.shift_name || r.shiftname || null,
+      vehiclePlate: r.vehiclePlate || r.vehicle_plate || r.vehicleplate || null,
+      entryType: String(r.entryType || r.entry_type || r.entrytype || ''),
+      amount: Number(r.amount || 0),
+      status: String(r.status || 'pending'),
+      settledAt: r.settledAt || r.settled_at || r.settledat || null,
+      settledById: (r.settledById || r.settled_by || r.settledby) ? Number(r.settledById || r.settled_by || r.settledby) : null,
+      settledByName: r.settledByName || r.settled_by_name || r.settledbyname || null,
+      settlementMethod: r.settlementMethod || r.settlement_method || r.settlementmethod || null,
+      notes: r.notes || null,
+      receiptVoucherNo: r.receiptVoucherNo || r.receipt_voucher_no || r.receiptvoucherno || null,
+      payrollRunId: (r.payrollRunId || r.payroll_run_id || r.payrollrunid) ? Number(r.payrollRunId || r.payroll_run_id || r.payrollrunid) : null,
+      createdAt: r.createdAt || r.created_at || r.createdat,
+      updatedAt: r.updatedAt || r.updated_at || r.updatedat,
+    }));
+
+    let totalPendingShortages = 0;
+    let totalSettledShortages = 0;
+    let totalWaivedShortages = 0;
+    let totalPushedToPayroll = 0;
+    let totalCommissions = 0;
+
+    const repMap = new Map<number, {
+      repId: number;
+      repName: string;
+      repPhone?: string;
+      employeeId?: number | null;
+      employeeName?: string | null;
+      pendingShortages: number;
+      settledShortages: number;
+      waivedShortages: number;
+      pushedToPayroll: number;
+      commissions: number;
+      netBalance: number;
+      itemsCount: number;
+    }>();
+
+    for (const it of items) {
+      const amt = Number(it.amount || 0);
+      const isShortage = ['cash_shortage', 'stock_shortage'].includes(it.entryType);
+      const isBonus = ['commission', 'bonus'].includes(it.entryType);
+
+      if (isShortage) {
+        if (it.status === 'pending') totalPendingShortages += amt;
+        else if (it.status === 'settled') totalSettledShortages += amt;
+        else if (it.status === 'waived') totalWaivedShortages += amt;
+        else if (it.status === 'pushed_to_payroll') totalPushedToPayroll += amt;
+      } else if (isBonus) {
+        totalCommissions += amt;
+      }
+
+      if (!repMap.has(it.repId)) {
+        repMap.set(it.repId, {
+          repId: it.repId,
+          repName: it.repName,
+          repPhone: it.repPhone || undefined,
+          employeeId: it.employeeId ? Number(it.employeeId) : null,
+          employeeName: it.employeeName || null,
+          pendingShortages: 0,
+          settledShortages: 0,
+          waivedShortages: 0,
+          pushedToPayroll: 0,
+          commissions: 0,
+          netBalance: 0,
+          itemsCount: 0,
+        });
+      }
+
+      const repEntry = repMap.get(it.repId)!;
+      repEntry.itemsCount++;
+      if (isShortage) {
+        if (it.status === 'pending') repEntry.pendingShortages += amt;
+        else if (it.status === 'settled') repEntry.settledShortages += amt;
+        else if (it.status === 'waived') repEntry.waivedShortages += amt;
+        else if (it.status === 'pushed_to_payroll') repEntry.pushedToPayroll += amt;
+      } else if (isBonus) {
+        repEntry.commissions += amt;
+      }
+      repEntry.netBalance = Number((repEntry.commissions - repEntry.pendingShortages).toFixed(2));
+    }
+
+    return {
+      items,
+      summary: {
+        totalPendingShortages: Number(totalPendingShortages.toFixed(2)),
+        totalSettledShortages: Number(totalSettledShortages.toFixed(2)),
+        totalWaivedShortages: Number(totalWaivedShortages.toFixed(2)),
+        totalPushedToPayroll: Number(totalPushedToPayroll.toFixed(2)),
+        totalCommissions: Number(totalCommissions.toFixed(2)),
+        netRepBalance: Number((totalCommissions - totalPendingShortages).toFixed(2)),
+        repsBreakdown: Array.from(repMap.values()),
+      },
+    };
+  }
+
+  /**
+   * Settle a specific representative financial shortage/variance via cash receipt or administrative waiver.
+   */
+  async settleRepFinancialItem(
+    tenantId: string,
+    accountId: string,
+    id: number,
+    payload: {
+      method: 'cash' | 'waiver';
+      notes?: string;
+    },
+    authContext: AuthContext,
+  ) {
+    const item = await this.anyDb
+      .selectFrom('van_rep_financial_settlements')
+      .selectAll()
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!item) {
+      throw new AppError('بند التسوية غير موجود', 'SETTLEMENT_NOT_FOUND', 404);
+    }
+
+    if (item.status !== 'pending') {
+      throw new AppError('تمت تسوية هذا البند أو إعفاؤه مسبقاً', 'ALREADY_SETTLED', 400);
+    }
+
+    const actorUserId = authContext.userId ? Number(authContext.userId) : null;
+    let receiptVoucherNo: string | null = null;
+    if (payload.method === 'cash') {
+      receiptVoucherNo = formatDailyDocumentNumber('REC', Math.floor(1000 + Math.random() * 9000));
+    }
+
+    await this.anyDb
+      .updateTable('van_rep_financial_settlements')
+      .set({
+        status: payload.method === 'cash' ? 'settled' : 'waived',
+        settlement_method: payload.method,
+        settled_at: sql`NOW()`,
+        settled_by: actorUserId,
+        receipt_voucher_no: receiptVoucherNo,
+        notes: payload.notes
+          ? `${item.notes ? item.notes + ' | ' : ''}${payload.notes}`
+          : item.notes,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      id,
+      status: payload.method === 'cash' ? 'settled' : 'waived',
+      receiptVoucherNo,
+    };
+  }
+
+  /**
+   * Bridge representative shortages directly into HR Payroll deductions.
+   */
+  async pushRepShortagesToPayroll(
+    tenantId: string,
+    accountId: string,
+    payload: {
+      settlementIds: number[];
+      targetMonth?: string;
+    },
+    authContext: AuthContext,
+  ) {
+    if (!payload.settlementIds || payload.settlementIds.length === 0) {
+      throw new AppError('يجب تحديد بنود للتسوية والترحيل للرواتب', 'NO_ITEMS_SELECTED', 400);
+    }
+
+    const rawItems = await this.anyDb
+      .selectFrom('van_rep_financial_settlements as fs')
+      .innerJoin('delivery_representatives as dr', 'dr.id', 'fs.rep_id')
+      .leftJoin('hr_employees as emp', 'emp.id', 'dr.employee_id')
+      .select([
+        'fs.id',
+        'fs.rep_id as repId',
+        'dr.name as repName',
+        'dr.phone as repPhone',
+        'dr.national_id as repNationalId',
+        'dr.employee_id as employeeId',
+        'emp.id as linkedEmpId',
+        'emp.display_name as employeeName',
+        'fs.entry_type as entryType',
+        'fs.amount',
+        'fs.notes',
+        'fs.status',
+      ])
+      .where('fs.id', 'in', payload.settlementIds)
+      .where('fs.tenant_id', '=', tenantId)
+      .execute();
+
+    const items = rawItems.map((r: any) => ({
+      id: Number(r.id),
+      repId: Number(r.repId || r.rep_id || r.repid || 0),
+      repName: String(r.repName || r.rep_name || r.repname || ''),
+      repPhone: r.repPhone || r.rep_phone || r.repphone || null,
+      repNationalId: r.repNationalId || r.rep_national_id || r.repnationalid || null,
+      employeeId: (r.employeeId || r.employee_id || r.employeeid) ? Number(r.employeeId || r.employee_id || r.employeeid) : null,
+      employeeName: r.employeeName || r.employee_name || r.employeename || null,
+      entryType: String(r.entryType || r.entry_type || r.entrytype || ''),
+      amount: Number(r.amount || 0),
+      notes: r.notes || '',
+      status: String(r.status || 'pending'),
+    }));
+
+    if (items.length === 0) {
+      throw new AppError('لم يتم العثور على أي بنود صالحة للترحيل', 'NO_ITEMS_FOUND', 404);
+    }
+
+    const actorUserId = authContext.userId ? Number(authContext.userId) : null;
+    const targetMonth = payload.targetMonth || new Date().toISOString().slice(0, 7);
+    const results: Array<{ id: number; repName: string; amount: number; success: boolean; message: string }> = [];
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+
+      for (const item of items) {
+        if (item.status !== 'pending') {
+          results.push({
+            id: Number(item.id),
+            repName: item.repName,
+            amount: Number(item.amount),
+            success: false,
+            message: 'البند تمت تسويته مسبقاً',
+          });
+          continue;
+        }
+
+        // Try to resolve HR employee if not already linked
+        let resolvedEmployeeId = item.employeeId ? Number(item.employeeId) : null;
+        if (!resolvedEmployeeId) {
+          const candidateEmp = await trxAny
+            .selectFrom('hr_employees')
+            .select(['id', 'display_name'])
+            .where('tenant_id', '=', tenantId)
+            .where((eb: any) =>
+              eb.or([
+                item.repNationalId ? eb('national_id', '=', item.repNationalId) : eb('id', '=', -1),
+                eb('display_name', 'ilike', `%${item.repName}%`),
+              ])
+            )
+            .executeTakeFirst();
+
+          if (candidateEmp?.id) {
+            resolvedEmployeeId = Number(candidateEmp.id);
+            await trxAny
+              .updateTable('delivery_representatives')
+              .set({ employee_id: resolvedEmployeeId, updated_at: sql`NOW()` })
+              .where('id', '=', item.repId)
+              .where('tenant_id', '=', tenantId)
+              .execute();
+          }
+        }
+
+        await trxAny
+          .updateTable('van_rep_financial_settlements')
+          .set({
+            status: 'pushed_to_payroll',
+            settlement_method: 'payroll',
+            settled_at: sql`NOW()`,
+            settled_by: actorUserId,
+            notes: `${item.notes ? item.notes + ' | ' : ''}تم ترحيل العجز لمسير رواتب شهر ${targetMonth}${resolvedEmployeeId ? ` (موظف #${resolvedEmployeeId})` : ' (قيد انتظار ربط الموظف)'}`,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', item.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        // If resolvedEmployeeId is available, insert into hr_employee_adjustments for HR payroll integration
+        if (resolvedEmployeeId) {
+          const isShortage = ['cash_shortage', 'stock_shortage'].includes(item.entryType);
+          const adjType = isShortage ? 'deduction' : 'allowance';
+          const adjReason = isShortage
+            ? `استقطاع عجز سيارة فان (حركة #${item.id} - ${item.notes || 'عجز مبيعات'})`
+            : `صرف بونص/عمولة سيارة فان (حركة #${item.id} - ${item.notes || 'حافز مبيعات'})`;
+
+          await trxAny
+            .insertInto('hr_employee_adjustments')
+            .values({
+              tenant_id: tenantId,
+              employee_id: resolvedEmployeeId,
+              adjustment_type: adjType,
+              amount_type: 'fixed',
+              amount: Number(item.amount),
+              date: sql`CURRENT_DATE`,
+              reason: adjReason,
+              status: 'pending',
+              source_type: 'van_sales_settlement',
+              source_id: String(item.id),
+              created_by: actorUserId,
+              updated_by: actorUserId,
+              created_at: sql`NOW()`,
+              updated_at: sql`NOW()`,
+            })
+            .execute();
+        }
+
+        results.push({
+          id: Number(item.id),
+          repName: item.repName,
+          amount: Number(item.amount),
+          success: true,
+          message: resolvedEmployeeId
+            ? `تم الترحيل بنجاح لملف الموظف في مسير شهر ${targetMonth}`
+            : `تم ترحيل البند كعجز معتمد لمسير رواتب شهر ${targetMonth}`,
+        });
+      }
+    });
+
+    return {
+      ok: true,
+      targetMonth,
+      processedCount: results.filter((r) => r.success).length,
+      results,
+    };
+  }
+
+  /**
+   * Add manual bonus or commission to representative financial ledger.
+   */
+  async addRepBonusOrCommission(
+    tenantId: string,
+    accountId: string,
+    payload: {
+      repId: number;
+      entryType: 'bonus' | 'commission';
+      amount: number;
+      notes: string;
+    },
+    authContext: AuthContext,
+  ) {
+    const rep = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .select(['id', 'name'])
+      .where('id', '=', payload.repId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!rep) throw new AppError('مندوب التوزيع غير موجود', 'REP_NOT_FOUND', 404);
+
+    const amount = Number(Number(payload.amount || 0).toFixed(2));
+    if (amount <= 0) throw new AppError('يجب أن يكون المبلغ أكبر من صفر', 'INVALID_AMOUNT', 400);
+
+    const inserted = await this.anyDb
+      .insertInto('van_rep_financial_settlements')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        rep_id: payload.repId,
+        trip_id: null,
+        entry_type: payload.entryType,
+        amount,
+        status: 'pending',
+        notes: payload.notes || (payload.entryType === 'bonus' ? 'مكافأة تميز ميداني' : 'عمولة مبيعات'),
+        created_at: sql`NOW()`,
+        updated_at: sql`NOW()`,
+      })
+      .returning(['id', 'amount', 'entry_type as entryType', 'status'])
+      .executeTakeFirst();
+
+    return {
+      ok: true,
+      settlement: inserted,
+      repName: rep.name,
+    };
+  }
+
+  /**
+   * Link delivery representative to an HR employee.
+   */
+  async linkRepToEmployee(
+    tenantId: string,
+    repId: number,
+    employeeId: number | null,
+  ) {
+    await this.anyDb
+      .updateTable('delivery_representatives')
+      .set({ employee_id: employeeId, updated_at: sql`NOW()` })
+      .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    return { ok: true, repId, employeeId };
+  }
+
+  /**
+   * List active candidate HR employees for linking to delivery representatives.
+   */
+  async listCandidateEmployees(tenantId: string) {
+    const rows = await this.anyDb
+      .selectFrom('hr_employees')
+      .select([
+        'id',
+        'employee_no as employeeNo',
+        'display_name as displayName',
+        'national_id as nationalId',
+        'status',
+      ])
+      .where('tenant_id', '=', tenantId)
+      .where('status', '!=', 'terminated')
+      .orderBy('display_name', 'asc')
+      .execute();
+
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      employeeNo: r.employeeNo || r.employeeno || null,
+      displayName: r.displayName || r.displayname || '',
+      nationalId: r.nationalId || r.nationalid || null,
+      status: r.status,
+    }));
+  }
+
+  /**
+   * Automatically create an HR employee record for a delivery representative and link them.
+   */
+  async autoCreateEmployeeForRep(
+    tenantId: string,
+    accountId: string,
+    repId: number,
+    authContext: AuthContext,
+  ) {
+    const rep = await this.anyDb
+      .selectFrom('delivery_representatives')
+      .selectAll()
+      .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!rep) throw new AppError('مندوب التوزيع غير موجود', 'REP_NOT_FOUND', 404);
+
+    if (rep.employee_id) {
+      const existingEmp = await this.anyDb
+        .selectFrom('hr_employees')
+        .select(['id', 'display_name', 'employee_no'])
+        .where('id', '=', rep.employee_id)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (existingEmp) {
+        return {
+          ok: true,
+          employeeId: Number(existingEmp.id),
+          displayName: existingEmp.display_name,
+          employeeNo: existingEmp.employee_no,
+          message: 'المندوب مربوط بالفعل بملف موظف موجود',
+        };
+      }
+    }
+
+    const nameParts = String(rep.name || 'مندوب توزيع').trim().split(/\s+/);
+    const firstName = nameParts[0] || 'مندوب';
+    const lastName = nameParts.slice(1).join(' ') || '.';
+    const displayName = String(rep.name || 'مندوب توزيع').trim();
+    const employeeNo = `EMP-${String(rep.id).padStart(4, '0')}`;
+    const actorUserId = authContext.userId ? Number(authContext.userId) : null;
+
+    const inserted = await this.anyDb
+      .insertInto('hr_employees')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        employee_no: employeeNo,
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        national_id: rep.national_id || null,
+        status: 'active',
+        compensation_type: 'salary',
+        pay_frequency: 'monthly',
+        overtime_policy: 'default',
+        attendance_policy: 'default',
+        has_social_insurance: false,
+        has_income_tax: false,
+        grace_minutes: 15,
+        notes: `تم إنشاؤه تلقائياً من منظومة مناديب وسيارات الفان (معرف مندوب #${rep.id})`,
+        created_by: actorUserId,
+        updated_by: actorUserId,
+        mobile_punch_enabled: false,
+        used_annual_leaves: 0,
+        created_at: sql`NOW()`,
+        updated_at: sql`NOW()`,
+      })
+      .returning(['id', 'employee_no as employeeNo', 'display_name as displayName'])
+      .executeTakeFirst();
+
+    if (!inserted) throw new AppError('فشل إنشاء ملف موظف HR', 'CREATE_EMPLOYEE_FAILED', 500);
+
+    await this.anyDb
+      .updateTable('delivery_representatives')
+      .set({ employee_id: Number(inserted.id), updated_at: sql`NOW()` })
+      .where('id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      employeeId: Number(inserted.id),
+      displayName: inserted.displayName,
+      employeeNo: inserted.employeeNo,
     };
   }
 }
