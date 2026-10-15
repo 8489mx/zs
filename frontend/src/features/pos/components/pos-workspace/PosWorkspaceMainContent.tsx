@@ -143,6 +143,7 @@ export function PosWorkspaceMainContent({
             searchInputRef={searchInputRef}
             posMode={posMode}
             onOpenNewProduct={onOpenNewProduct}
+            restaurantModuleEnabled={Boolean(pos.settingsQuery.data?.restaurantModuleEnabled)}
           />
           </div>
 

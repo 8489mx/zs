@@ -2830,6 +2830,8 @@ export class SalesWriteService {
           priceType: (item.priceType === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
           notes: String(item.notes || '').trim(),
           modifiers: item.modifiers || [],
+          seatNumber: item.seatNumber ? Number(item.seatNumber) : undefined,
+          course: item.course ? String(item.course).trim() : undefined,
         }))
         .filter((entry) => entry.productId > 0 && entry.qty > 0);
 
@@ -2930,6 +2932,16 @@ export class SalesWriteService {
 
       const id = Number(heldInsert.id);
       for (const item of items) {
+        const itemModifiers = item.modifiers || [];
+        const hasExtraMeta = item.seatNumber != null || Boolean(item.course);
+        const finalModifiers = hasExtraMeta
+          ? {
+              mods: Array.isArray(itemModifiers) ? itemModifiers : [],
+              ...(item.seatNumber != null ? { seatNumber: item.seatNumber } : {}),
+              ...(item.course ? { course: item.course } : {}),
+            }
+          : itemModifiers;
+
         await trx
           .insertInto('held_sale_items')
           .values({
@@ -2942,7 +2954,7 @@ export class SalesWriteService {
             unit_multiplier: item.unitMultiplier,
             price_type: item.priceType as 'retail' | 'wholesale',
             notes: item.notes || '',
-            modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
+            modifiers: JSON.stringify(finalModifiers),
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)

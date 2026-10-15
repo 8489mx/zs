@@ -271,7 +271,7 @@ export class SalesQueryService {
     const items = heldSaleIds.length
       ? await this.db
         .selectFrom('held_sale_items')
-        .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type', 'modifiers'])
+        .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type', 'modifiers', 'notes'])
         .where('held_sale_id', 'in', heldSaleIds)
         .where(this.tenantPredicate(auth))
         .orderBy('held_sale_id', 'asc')

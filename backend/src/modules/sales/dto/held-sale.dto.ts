@@ -41,6 +41,15 @@ class HeldSaleItemDto {
 
   @IsOptional()
   modifiers?: any;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  seatNumber?: number;
+
+  @IsOptional()
+  @IsString()
+  course?: string;
 }
 
 export class HeldSaleDto {

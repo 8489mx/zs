@@ -366,6 +366,10 @@ export function createPosWorkspaceAsyncActions(
         unitName: String(item.unitName || '').trim(),
         unitMultiplier: Number(item.unitMultiplier || 1),
         priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
+        notes: String(item.notes || '').trim(),
+        modifiers: item.modifiers || [],
+        seatNumber: item.seatNumber ? Number(item.seatNumber) : undefined,
+        course: item.course || undefined,
       }));
       await params.saveHeldDraftMutation.mutateAsync({
         customerId: params.customerId || null,
@@ -389,8 +393,28 @@ export function createPosWorkspaceAsyncActions(
         } : {}),
         items: sanitizedItems,
       });
+      if (params.settings?.restaurantModuleEnabled && params.settings?.posAutoPrintKitchenReceipt) {
+        try {
+          const { printKitchenTicket } = await import('@/lib/pos-printing/kitchen');
+          printKitchenTicket({
+            tableNumber: params.tableNumber,
+            orderType: params.orderType,
+            cashierName: params.authUserName,
+            guestCount: params.guestCount,
+            note: params.note,
+            items: sanitizedItems,
+            date: new Date().toISOString(),
+          } as any, params.settings);
+        } catch {
+          // Non-blocking print
+        }
+      }
       base.resetPosDraft();
-      params.setSubmitMessage('تم تعليق الفاتورة الحالية ويمكن استرجاعها لاحقًا');
+      const isRestaurant = Boolean(params.settings?.restaurantModuleEnabled);
+      const successMessage = isRestaurant
+        ? (params.tableNumber ? `تم إرسال الطلب للمطبخ وحفظ طاولة ${params.tableNumber}` : 'تم إرسال الطلب للمطبخ وحفظ الطلب')
+        : 'تم تعليق الفاتورة الحالية ويمكن استرجاعها لاحقًا';
+      params.setSubmitMessage(successMessage);
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة المعلقة');
@@ -402,9 +426,13 @@ export function createPosWorkspaceAsyncActions(
     const draft = params.heldDrafts.find((entry) => entry.id === draftId);
     if (!draft) return;
     
-    // Ensure recalled items have a lineKey so they can be modified/deleted
-    const restoredCart = (draft.cart || []).map((item, index) => ({
+    // Ensure recalled items have a lineKey and preserved restaurant properties
+    const restoredCart = (draft.cart || []).map((item: any, index: number) => ({
       ...item,
+      notes: item.notes || '',
+      modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+      seatNumber: item.seatNumber != null ? Number(item.seatNumber) : undefined,
+      course: item.course || undefined,
       lineKey: item.lineKey || `${item.productId}::${item.unitName || 'unit'}::${item.priceType || 'retail'}::recalled-${index}`
     }));
     

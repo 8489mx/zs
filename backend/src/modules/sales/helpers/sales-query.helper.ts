@@ -212,6 +212,12 @@ export function mapHeldSalesRows(
   for (const item of items) {
     const key = String(item.held_sale_id);
     if (!itemsByDraft.has(key)) itemsByDraft.set(key, []);
+    const rawModifiers = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []);
+    const isEnvelope = rawModifiers && !Array.isArray(rawModifiers) && Array.isArray(rawModifiers.mods);
+    const itemModifiers = isEnvelope ? rawModifiers.mods : (Array.isArray(rawModifiers) ? rawModifiers : []);
+    const itemSeat = isEnvelope && rawModifiers.seatNumber != null ? Number(rawModifiers.seatNumber) : ((item as any).seat_number ? Number((item as any).seat_number) : undefined);
+    const itemCourse = isEnvelope && rawModifiers.course ? String(rawModifiers.course) : ((item as any).course || undefined);
+
     itemsByDraft.get(key)!.push({
       productId: item.product_id ? String(item.product_id) : '',
       name: item.product_name || '',
@@ -220,7 +226,10 @@ export function mapHeldSalesRows(
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
       priceType: item.price_type || 'retail',
-      modifiers: typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []),
+      modifiers: itemModifiers,
+      notes: typeof item.notes === 'string' ? item.notes : '',
+      seatNumber: itemSeat,
+      course: itemCourse,
       lineKey: `${item.product_id || ''}::${item.unit_name || 'قطعة'}::${item.price_type || 'retail'}`,
     });
   }

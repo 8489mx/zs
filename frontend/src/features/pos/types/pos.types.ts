@@ -23,6 +23,7 @@ export interface PosItem {
   offerName?: string;
   modifiers?: any[];
   seatNumber?: number;
+  course?: string;
   quantityChunks?: number[];
   trackSerials?: boolean;
   serials?: string[];

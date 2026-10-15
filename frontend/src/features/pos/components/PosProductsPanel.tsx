@@ -36,6 +36,7 @@ interface PosProductsPanelProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   posMode: PosSaleMode;
   onOpenNewProduct?: (params: { name?: string; barcode?: string }) => void;
+  restaurantModuleEnabled?: boolean;
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
@@ -236,6 +237,7 @@ function PosProductsPanelComponent({
   searchInputRef,
   posMode,
   onOpenNewProduct,
+  restaurantModuleEnabled,
 }: PosProductsPanelProps) {
   // Scanner buffer: detects rapid barcode scanner input and batches it into a single
   // state update instead of triggering re-renders on every character.
@@ -294,10 +296,31 @@ function PosProductsPanelComponent({
     onSearchSubmitFirstResult(scannedCode);
   };
 
+  const [activeDaypart, setActiveDaypart] = useState<'all' | 'breakfast' | 'lunch' | 'dinner' | 'beverages'>('all');
+
+  const daypartFilteredProducts = useMemo(() => {
+    if (!restaurantModuleEnabled || activeDaypart === 'all') {
+      return products;
+    }
+    const kwMap: Record<string, RegExp> = {
+      breakfast: /فطور|إفطار|صباح|بيض|فول|بانكيك|شاي|كرواسون|breakfast/i,
+      lunch: /غداء|مشويات|شاورما|برجر|بيتزا|أرز|دجاج|لحم|lunch|burger/i,
+      dinner: /عشاء|سهرة|سندوتش|فاهيتا|بيتزا|dinner/i,
+      beverages: /عصير|مشروب|قهوة|كافيه|لاتيه|حلى|حلويات|آيسكريم|كيك|drink|coffee|dessert/i,
+    };
+    const reg = kwMap[activeDaypart];
+    if (!reg) return products;
+    const filtered = products.filter((p) => {
+      const targetStr = `${p.name} ${p.categoryName || ''} ${(p as any).description || ''}`;
+      return reg.test(targetStr);
+    });
+    return filtered.length > 0 ? filtered : products;
+  }, [restaurantModuleEnabled, activeDaypart, products]);
+
   const categoryFilteredProducts = useMemo(() => {
-    if (!selectedCategoryId) return products;
-    return products.filter((p) => String(p.categoryId) === String(selectedCategoryId));
-  }, [products, selectedCategoryId]);
+    if (!selectedCategoryId) return daypartFilteredProducts;
+    return daypartFilteredProducts.filter((p) => String(p.categoryId) === String(selectedCategoryId));
+  }, [daypartFilteredProducts, selectedCategoryId]);
 
   const groupedProducts = useMemo(() => buildPosProductGroups(categoryFilteredProducts, priceType), [priceType, categoryFilteredProducts]);
   const recentGroupKeys = useMemo(() => buildRecentGroupKeys(recentProducts, groupedProducts), [groupedProducts, recentProducts]);
@@ -570,6 +593,51 @@ function PosProductsPanelComponent({
 
           </div>
         </div>
+
+        {restaurantModuleEnabled && (
+          <div
+            className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
+            style={{
+              gap: '6px',
+              marginTop: '8px',
+              display: 'flex',
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              paddingBottom: '2px',
+            }}
+          >
+            {[
+              { id: 'all', label: 'جميع الوجبات' },
+              { id: 'breakfast', label: 'الفطور الصباحي' },
+              { id: 'lunch', label: 'وجبات الغداء' },
+              { id: 'dinner', label: 'وجبات العشاء' },
+              { id: 'beverages', label: 'الحلويات والمشروبات' },
+            ].map((dp) => (
+              <button
+                key={dp.id}
+                type="button"
+                onClick={() => {
+                  setActiveDaypart(dp.id as any);
+                  setSelectedIndex(0);
+                }}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  borderRadius: '7px',
+                  border: activeDaypart === dp.id ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                  background: activeDaypart === dp.id ? '#170e5e' : '#ffffff',
+                  color: activeDaypart === dp.id ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 700,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {dp.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isTouchMode && categories.length > 0 && (
           <div

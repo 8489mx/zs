@@ -7739,8 +7739,16 @@
        - التحقق الصارم من صحة أرقام الهواتف الكويتية (8 أرقام تبدأ بـ 2 أو 5 أو 6 أو 9).
    10. **الرقم الآلي للعنوان (PACI 8-Digit Automated Address Number) ومحدد كويت فايندر:**
        - تزويد مساعد العنوان الكويتي بحقل مستقل «الرقم الآلي للعنوان (8 أرقام)» المعتمد من الهيئة العامة للمعلومات المدنية، ليتم تضمينه فوراً في العنوان والملاحظات التشغيلية لتسهيل وصول طياري الدليفري عبر تطبيق كويت فايندر (Kuwait Finder).
-   11. **وسم قنوات ومنصات التوصيل التجميعية في الكاشير (Delivery Aggregators Source Tagging):**
-       - إضافة محدد سريع في قسم الدليفري بنافذة إتمام البيع `PosCheckoutDialogSections.tsx` لاختيار منصة الطلب: (مباشر / المحل، طلبات Talabat، دليفرو Deliveroo، جاهز Jahez، كاري Cari) مع التحويل التلقائي لحالة التحصيل إلى «خالص أونلاين» وتضمين الوسم في الفاتورة وبون المطبخ.
+    11. **وسم قنوات ومنصات التوصيل التجميعية في الكاشير (Delivery Aggregators Source Tagging):**
+        - إضافة محدد سريع في قسم الدليفري بنافذة إتمام البيع `PosCheckoutDialogSections.tsx` لاختيار منصة الطلب: (مباشر / المحل، طلبات Talabat، دليفرو Deliveroo، جاهز Jahez، كاري Cari) مع التحويل التلقائي لحالة التحصيل إلى «خالص أونلاين» وتضمين الوسم في الفاتورة وبون المطبخ.
+    12. **حفظ واسترجاع خيارات وملاحظات الأصناف وأرقام المقاعد في الطاولات المعلقة (Table Drafts Item Modifiers, Notes, Seat Numbers & Courses Resilience):**
+        - ترقية محرك الفواتير والطاولات المعلقة `sales-write.service.ts` و `sales-query.helper.ts` لتغليف وفك حزم الخيارات الإضافية (`modifiers`) مع رقم المقعد (`seatNumber`) ومرحلة التقديم (`course: appetizer/main/dessert`) وملاحظات الصنف الفردية وحفظها في `held_sale_items`.
+        - معالجة ثغرة الفقد في الواجهة الأمامية `createPosWorkspaceAsyncActions.ts` وتأمين إرسال واسترجاع الخيارات والمقاعد بالكامل عند فتح واستكمال طلب الطاولة دون فقد أي تفاصيل تشغيلية.
+    13. **تذكرة المطبخ الحرارية المتطورة وشريط الإرسال السريع (Advanced KOT Thermal Ticket & Kitchen Dispatch Bar):**
+        - ترقية قالب طباعة بون المطبخ `kitchen.ts` ليتضمن تلقائياً: شارة رقم الطاولة / نوع الطلب العريضة، رقم الطلب المختصر، راية «طلب إضافي ADD-ON» للطلبات المتتالية، اسم الكابتن/الكاشير، عدد الضيوف، شارات المراحل والمقاعد، والخيارات والملاحظات بخط عريض عالي التباين.
+        - ترقية زر التعليق السريع `PosWorkspaceDock.tsx` ليتحول تلقائياً إلى «إرسال للمطبخ F4» عند تفعيل مود المطاعم مع إمكانية الطباعة الآلية للمطبخ فور إرسال الطلب.
+    14. **قوائم الطعام الموقوتة والوجبات (Timed Menus & Dayparts Engine):**
+        - إضافة محدد الوجبات الموقوتة الفوري في `PosProductsPanel.tsx` (جميع الوجبات، الفطور الصباحي 06:00-11:30، وجبات الغداء 11:30-17:00، وجبات العشاء 17:00-02:00، والحلويات والمشروبات) لتمكين الكاشير من تصفية المنيو فوراً بنقرة واحدة خلال ساعات الذروة بما يماثل محرك وجبات فودكس وتوست.
 * **الملفات المنفذة:**
   - `frontend/src/features/settings/schemas/settings.schema.ts`
   - `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`
@@ -7755,6 +7763,9 @@
   - `frontend/src/features/pos/pages/OrderStatusBoardPage.tsx`
   - `backend/src/common/utils/invoice-totals.ts`
   - `backend/src/modules/sales/services/sales-write.service.ts`
+  - `backend/src/modules/sales/services/sales-query.service.ts`
+  - `backend/src/modules/sales/helpers/sales-query.helper.ts`
+  - `backend/src/modules/sales/dto/held-sale.dto.ts`
   - `backend/src/modules/cash-drawer/cash-drawer.service.ts`
   - `backend/src/modules/cash-drawer/helpers/cash-drawer.helper.ts`
   - `frontend/src/features/pos/hooks/usePosWorkspaceDerived.ts`
@@ -7768,3 +7779,10 @@
   - `frontend/src/features/storefront/components/StorefrontCheckoutModal.tsx`
   - `frontend/src/features/storefront/components/MerchantOrderDetailModal.tsx`
   - `backend/src/database/migrations/2040000000226_restaurant_pager_and_kuwait_features.ts`
+  - `frontend/src/features/pos/hooks/pos-workspace-actions/createPosWorkspaceAsyncActions.ts`
+  - `frontend/src/features/pos/components/PosProductsPanel.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceDock.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosWorkspaceMainContent.tsx`
+  - `frontend/src/features/pos/types/pos.types.ts`
+  - `frontend/src/lib/pos-printing/kitchen.ts`
+  - `backend/test/critical/restaurant-fnb-workflow.spec.ts`

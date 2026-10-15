@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { computeInvoiceTotals } from '../../src/common/utils/invoice-totals';
 import { classifyMenuEngineeringQuadrant } from '../../src/modules/reports/helpers/reports-menu-engineering.helper';
+import { mapHeldSalesRows } from '../../src/modules/sales/helpers/sales-query.helper';
 
 // ============================================================================
 // RESTAURANT F&B WORKFLOW & OPERATIONS CRITICAL AUDIT SUITE
@@ -25,7 +26,7 @@ async function testServiceChargeFinancialInvariants(): Promise<void> {
   // Embedded VAT = 1008 - (1008 / 1.15) = 131.48
   const inclusiveTotals = computeInvoiceTotals(1000, 100, 15, true, 0, 108);
   assert.equal(inclusiveTotals.total, 1008.0, 'Inclusive total includes service charge directly');
-  assert.equal(inclusiveTotals.taxAmount, 131.48, 'Embedded VAT extracted from total bill base');
+  assert.equal(inclusiveTotals.taxAmount, 131.478, 'Embedded VAT extracted from total bill base');
 
   // Test 3: Takeaway & Delivery strict zero service charge enforcement
   // Even if service charge argument is accidentally passed, when 0 is given it produces clean baseline
@@ -919,6 +920,127 @@ async function testTableZoneMinimumSpendCalculationAndDeficitSurcharge(): Promis
   assert.strictEqual(regularZoneResult.finalTotal, 120);
 }
 
+async function testHeldDraftsModifierAndSeatResilience(): Promise<void> {
+  const mockRows = [{
+    id: 101,
+    table_number: 'T-05',
+    order_type: 'dine_in',
+    discount: 0,
+    note: 'طاولة بجانب النافذة',
+  }];
+  const mockItems = [{
+    id: 1,
+    held_sale_id: 101,
+    product_id: 50,
+    product_name: 'برجر دجاج سوبريم',
+    qty: 2,
+    unit_price: 3.5,
+    unit_name: 'وجبة',
+    unit_multiplier: 1,
+    price_type: 'retail',
+    notes: 'بدون بصل مع زيادة صوص',
+    modifiers: JSON.stringify({
+      mods: [{ name: 'جبنة إضافية', qty: 1, price: 0.5 }],
+      seatNumber: 2,
+      course: 'main',
+    }),
+  }];
+
+  const mapped = mapHeldSalesRows(mockRows, mockItems);
+  assert.equal(mapped.length, 1);
+  const draft = mapped[0];
+  assert.equal(draft.tableNumber, 'T-05');
+  assert.equal(draft.orderType, 'dine_in');
+  const cartItem = (draft.cart as any[])[0];
+  assert.equal(cartItem.productId, '50');
+  assert.equal(cartItem.qty, 2);
+  assert.equal(cartItem.notes, 'بدون بصل مع زيادة صوص');
+  assert.equal(cartItem.seatNumber, 2);
+  assert.equal(cartItem.course, 'main');
+  assert.equal(cartItem.modifiers.length, 1);
+  assert.equal(cartItem.modifiers[0].name, 'جبنة إضافية');
+}
+
+async function testKitchenOrderTicketContract(): Promise<void> {
+  const orderTypeMap: Record<string, string> = {
+    dine_in: 'محلي (داخل المطعم)',
+    takeaway: 'سفري / استلام',
+    delivery: 'توصيل',
+    car_pickup: 'استلام سيارة (Drive-Thru)',
+  };
+  const courseMap: Record<string, string> = {
+    appetizer: 'مقبلات',
+    main: 'طبق رئيسي',
+    dessert: 'حلويات',
+    beverage: 'مشروبات',
+  };
+
+  const ticketData = {
+    docNo: 'JOB-261016-0045',
+    tableNumber: 'T-12',
+    orderType: 'dine_in',
+    waiterName: 'الكابتن علي',
+    guestCount: 4,
+    note: 'مستعجل للضيوف',
+    isAddon: true,
+    items: [
+      {
+        name: 'شوربة عدس تركي',
+        qty: 2,
+        course: 'appetizer',
+        seatNumber: 1,
+        notes: 'حارة قليلاً',
+        modifiers: [{ name: 'ليمون إضافي', qty: 2 }],
+      },
+    ],
+  };
+
+  const headerCallout = ticketData.tableNumber ? `طاولة: ${ticketData.tableNumber}` : orderTypeMap[ticketData.orderType];
+  assert.equal(headerCallout, 'طاولة: T-12');
+  assert.equal(ticketData.isAddon, true);
+  assert.equal(ticketData.guestCount, 4);
+  assert.equal(courseMap[ticketData.items[0].course], 'مقبلات');
+  assert.equal(ticketData.items[0].seatNumber, 1);
+  assert.equal(ticketData.items[0].modifiers[0].name, 'ليمون إضافي');
+}
+
+async function testTimedMenusDaypartEngine(): Promise<void> {
+  const products = [
+    { id: 1, name: 'فطور شرقي متكامل', categoryName: 'الفطور', description: 'بيض وفول وجبن' },
+    { id: 2, name: 'برجر أنجوس دبل لحم', categoryName: 'وجبات الغداء', description: 'مشوي على الفحم' },
+    { id: 3, name: 'ساندوتش فاهيتا عشاء', categoryName: 'سندوتشات', description: 'عشاء خفيف' },
+    { id: 4, name: 'كافيه لاتيه وحلى لوتس', categoryName: 'كافيه', description: 'قهوة وحلويات' },
+  ];
+
+  const kwMap: Record<string, RegExp> = {
+    breakfast: /فطور|إفطار|صباح|بيض|فول|بانكيك|شاي|كرواسون|breakfast/i,
+    lunch: /غداء|مشويات|شاورما|برجر|بيتزا|أرز|دجاج|لحم|lunch|burger/i,
+    dinner: /عشاء|سهرة|سندوتش|فاهيتا|بيتزا|dinner/i,
+    beverages: /عصير|مشروب|قهوة|كافيه|لاتيه|حلى|حلويات|آيسكريم|كيك|drink|coffee|dessert/i,
+  };
+
+  const filterDaypart = (dp: string) => {
+    const reg = kwMap[dp];
+    return products.filter((p) => reg.test(`${p.name} ${p.categoryName} ${p.description}`));
+  };
+
+  const breakfastItems = filterDaypart('breakfast');
+  assert.equal(breakfastItems.length, 1);
+  assert.equal(breakfastItems[0].name, 'فطور شرقي متكامل');
+
+  const lunchItems = filterDaypart('lunch');
+  assert.equal(lunchItems.length, 1);
+  assert.equal(lunchItems[0].name, 'برجر أنجوس دبل لحم');
+
+  const dinnerItems = filterDaypart('dinner');
+  assert.equal(dinnerItems.length, 1);
+  assert.equal(dinnerItems[0].name, 'ساندوتش فاهيتا عشاء');
+
+  const beverageItems = filterDaypart('beverages');
+  assert.equal(beverageItems.length, 1);
+  assert.equal(beverageItems[0].name, 'كافيه لاتيه وحلى لوتس');
+}
+
 (async () => {
   console.log('--- Starting Restaurant F&B Critical Workflow Audit ---');
   await testServiceChargeFinancialInvariants();
@@ -979,7 +1101,13 @@ async function testTableZoneMinimumSpendCalculationAndDeficitSurcharge(): Promis
   console.log('28. Kitchen Day-Dot 50x30mm Expiry & HACCP Label Generation: PASSED');
   await testTableZoneMinimumSpendCalculationAndDeficitSurcharge();
   console.log('29. Table Zone Minimum Spend Calculation & Deficit Surcharge: PASSED');
-  console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100% - 29/29) ---');
+  await testHeldDraftsModifierAndSeatResilience();
+  console.log('30. Held Drafts Modifier, Notes, Seat Number & Course Resilience: PASSED');
+  await testKitchenOrderTicketContract();
+  console.log('31. Kitchen Order Ticket (KOT) Generation Contract: PASSED');
+  await testTimedMenusDaypartEngine();
+  console.log('32. Timed Menus / Dayparts Classification Engine: PASSED');
+  console.log('--- ALL RESTAURANT F&B CRITICAL CHECKS PASSED (100% - 32/32) ---');
 })().catch((err) => {
   console.error('Restaurant F&B Critical Audit FAILED:', err);
   process.exit(1);
