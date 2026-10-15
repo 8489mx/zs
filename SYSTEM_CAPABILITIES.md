@@ -7722,7 +7722,11 @@
   6. **نظام نداء واستدعاء العميل بالبيجر (Pager / Buzzer System):**
      - تسجيل وتخزين رقم جهاز النداء `pagerNumber` في فواتير المطاعم السريعة، وإبراز شارة البيجر فوراً في تذاكر المطبخ `KdsTicketCard.tsx` وشاشة عرض حالة الطلبات التلفزيونية بصالة المطعم `OrderStatusBoardPage.tsx`.
   7. **نظافة الفواتير الحرارية وإخفاء الضرائب الصفرية (Zero-Tax Invoice Cleanliness):**
-     - ترقية قوالب الطباعة الحرارية `template.ts` لإخفاء أسطر ضريبة القيمة المضافة والإجمالي قبل الضريبة تلقائياً عند انعدام الضريبة (0% VAT كما في الكويت)، لمنع تشويه إيصال العميل بمسميات غير مطبقة قانونياً.
+      - ترقية قوالب الطباعة الحرارية `template.ts` لإخفاء أسطر ضريبة القيمة المضافة والإجمالي قبل الضريبة تلقائياً عند انعدام الضريبة (0% VAT كما في الكويت)، لمنع تشويه إيصال العميل بمسميات غير مطبقة قانونياً.
+  8. **اعتماد الأرقام اللاتينية الإنجليزية ورمز العملة الصريح في إيصالات الكاشير (Foodics Latin Numerals & Explicit Currency Standard):**
+      - تفعيل التنسيق اللاتيني القياسي الافتراضي للأرقام (`550.000 د.ك`) في إيصالات نقاط البيع عند اختيار دولة الكويت أو العملة `KWD` (مطابقة لمعيار فودكس وكبرى منظومات نقاط البيع الخليجية)، لمنع التباس الفاصلة العشرية العربية (`٫`) مع فاصلة الآلاف، مع تمكين المستخدم من التبديل للأرقام العربية إن رغب.
+      - إبراز رمز العملة الصريح (`د.ك`) في كافة أسطر الإجماليات، المتبقي، المدفوع، والباقي، وطرق الدفع وتفقيط المبالغ.
+      - فصل سطري التاريخ واسم الكاشير في أسطر مستقلة متناسقة في القالب الحراري القياسي لمنع التداخل والتعرج النصي.
 * **الملفات المنفذة:**
   - `frontend/src/features/settings/schemas/settings.schema.ts`
   - `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`
@@ -7735,5 +7739,6 @@
   - `frontend/src/features/cash-drawer/components/CashDrawerReviewDialog.tsx`
   - `frontend/src/features/cash-drawer/utils/cash-drawer-receipt.ts`
   - `frontend/src/features/pos/pages/OrderStatusBoardPage.tsx`
+  - `frontend/src/lib/pos-printing/shared.ts`
   - `frontend/src/lib/pos-printing/template.ts`
   - `backend/src/database/migrations/2040000000226_restaurant_pager_and_kuwait_features.ts`

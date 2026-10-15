@@ -1023,7 +1023,8 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                   form.setValue('taxNumber', '', { shouldDirty: true, shouldValidate: true });
                   form.setValue('printShowTaxNumber', false, { shouldDirty: true, shouldValidate: true });
                   form.setValue('posTerminalProvider', 'knet_pos', { shouldDirty: true, shouldValidate: true });
-                  toast.success('تم تفعيل إعدادات دولة الكويت بنجاح: د.ك (3 خانات - فلس)، ضريبة 0%، وشبكة كي نت K-NET.');
+                  form.setValue('printNumberFormat', 'english', { shouldDirty: true, shouldValidate: true });
+                  toast.success('تم تفعيل إعدادات دولة الكويت بنجاح: د.ك (3 خانات - فلس)، أرقام لاتينية قياسية، ضريبة 0%، وشبكة كي نت K-NET.');
                 } else if (val === 'SA') {
                   form.setValue('currency', 'SAR', { shouldDirty: true, shouldValidate: true });
                   form.setValue('timezone', 'Asia/Riyadh', { shouldDirty: true, shouldValidate: true });

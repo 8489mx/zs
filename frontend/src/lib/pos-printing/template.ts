@@ -1,4 +1,4 @@
-import { getGlobalCurrencySymbol, getCurrencyDecimals, getGlobalSystemCurrency } from '../currencies';
+import { getGlobalCurrencySymbol, getCurrencyDecimals, getGlobalSystemCurrency, getCurrencySymbol } from '../currencies';
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
@@ -52,7 +52,9 @@ export function formatReceiptQuantity(value: number, settings?: Partial<AppSetti
 
 function formatReceiptText(value: string | number | null | undefined, settings?: Partial<AppSettings> | null) {
   const text = String(value ?? '—');
-  if (settings?.printNumberFormat !== 'english') return text;
+  const isEnglishFormat = settings?.printNumberFormat === 'english' ||
+    (settings?.printNumberFormat !== 'arabic' && (settings?.currency === 'KWD' || settings?.country === 'KW' || getGlobalSystemCurrency() === 'KWD'));
+  if (!isEnglishFormat) return text;
   return text
     .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
     .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
@@ -175,6 +177,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
 function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<AppSettings> | null, compact = false) {
   if (!payments || payments.length <= 1 || !getPrintOption(settings, 'printShowPaymentBreakdown', true)) return '';
   const isKwd = settings?.currency === 'KWD' || getGlobalSystemCurrency() === 'KWD';
+  const currencySymbol = getCurrencySymbol(settings?.currency || getGlobalSystemCurrency());
   return `
     <section class="invoice-card invoice-payment-card${compact ? ' compact' : ''}">
       <div class="section-title">تفصيل المدفوعات</div>
@@ -182,7 +185,7 @@ function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<
         ${payments.map((payment) => `
           <div class="payment-chip">
             <span>${escapeHtml(payment.paymentChannel === 'cash' ? 'نقدي' : payment.paymentChannel === 'card' ? (isKwd ? 'بطاقة / كي نت K-NET' : 'بطاقة / فيزا') : payment.paymentChannel === 'wallet' ? (isKwd ? 'محفظة / رابط دفع' : 'محفظة إلكترونية') : payment.paymentChannel === 'instapay' ? (isKwd ? 'كي نت / دفع إلكتروني' : 'InstaPay') : payment.paymentChannel === 'credit' ? 'آجل' : 'مختلط')}</span>
-            <strong>${formatReceiptMoney(Number(payment.amount || 0), settings)}</strong>
+            <strong>${formatReceiptMoney(Number(payment.amount || 0), settings)} ${escapeHtml(currencySymbol)}</strong>
           </div>
         `).join('')}
       </div>
@@ -318,6 +321,7 @@ function renderTotals(options: {
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
   const hasTax = Number(options.taxAmount || 0) > 0.0001;
   const hasDeliveryFee = Math.abs(Number(options.deliveryFee || 0)) > 0.0001;
+  const currencySymbol = getCurrencySymbol(options.settings?.currency || getGlobalSystemCurrency());
 
   const totalOffersSavings = (options.items || []).reduce((sum, item) => {
     const unitDiscount = Number(item.offerDiscount || (item.originalPrice ? Math.max(0, item.originalPrice - Number(item.price || 0)) : 0));
@@ -340,18 +344,18 @@ function renderTotals(options: {
 
   const rows = options.isReturn ? [
     ...(showTax && hasTax ? [
-      { label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) },
-      { label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) },
+      { label: 'الإجمالي قبل الضريبة', value: `${formatReceiptMoney(Number(options.subtotal || 0), options.settings)} ${currencySymbol}` },
+      { label: 'الضريبة', value: `${formatReceiptMoney(Number(options.taxAmount || 0), options.settings)} ${currencySymbol}` },
     ] : []),
     ...(showPaymentMethod && options.paymentText ? [{
       label: `طريقة الرد: ${options.paymentText}`,
-      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">المسترد:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings)}</strong>`,
+      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">المسترد:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings)} <span style="font-size:0.82em; font-weight:700;">${escapeHtml(currencySymbol)}</span></strong>`,
       strong: true,
       isHtml: true,
       noColon: true,
     }] : [{
       label: 'إجمالي المبلغ المسترد للعميل',
-      value: formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings),
+      value: `${formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings)} ${currencySymbol}`,
       strong: true,
     }]),
     ...(showItemCount && showPiecesCount ? [
@@ -388,33 +392,33 @@ function renderTotals(options: {
     ...(Number(options.serviceCharge || 0) > 0 ? [
       { label: 'خدمة الصالة', value: formatReceiptMoney(Number(options.serviceCharge || 0), options.settings) },
     ] : []),
-    ...(showTax && hasTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
+    ...(showTax && hasTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: `${formatReceiptMoney(Number(options.taxAmount || 0), options.settings)} ${currencySymbol}` }] : []),
     ...(showPaymentMethod && options.paymentText ? [{
       label: `طريقة الدفع: ${options.paymentText}`,
-      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">الإجمالي:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || 0), options.settings)}</strong>`,
+      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">الإجمالي:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || 0), options.settings)} <span style="font-size:0.82em; font-weight:700;">${escapeHtml(currencySymbol)}</span></strong>`,
       strong: true,
       isHtml: true,
       noColon: true,
     }] : [{
       label: 'الإجمالي النهائي',
-      value: formatReceiptMoney(Number(options.total || 0), options.settings),
+      value: `${formatReceiptMoney(Number(options.total || 0), options.settings)} ${currencySymbol}`,
       strong: true,
     }]),
     ...(remaining > 0.009 && paidAmount > 0.009 ? [{
-      label: `المتبقي تحصيله: ${formatReceiptMoney(remaining, options.settings)}`,
-      value: `<span style="font-size:0.88em; font-weight:700;">المدفوع: ${formatReceiptMoney(paidAmount, options.settings)}</span>`,
+      label: `المتبقي تحصيله: ${formatReceiptMoney(remaining, options.settings)} ${currencySymbol}`,
+      value: `<span style="font-size:0.88em; font-weight:700;">المدفوع: ${formatReceiptMoney(paidAmount, options.settings)} ${currencySymbol}</span>`,
       strong: true,
       isHtml: true,
       noColon: true,
     }] : (remaining > 0.009 && options.paymentType === 'credit' && paidAmount <= 0.009 ? [{
-      label: `المتبقي على العميل: ${formatReceiptMoney(remaining, options.settings)}`,
+      label: `المتبقي على العميل: ${formatReceiptMoney(remaining, options.settings)} ${currencySymbol}`,
       value: `<span style="font-size:0.88em; font-weight:700;">(آجل)</span>`,
       strong: true,
       isHtml: true,
       noColon: true,
     }] : (showPaymentDetails && options.orderType !== 'delivery' && tenderedAmount > 0 && changeAmount > 0.009 ? [
-      { label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) },
-      { label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) },
+      { label: 'المستلم نقديًا', value: `${formatReceiptMoney(tenderedAmount, options.settings)} ${currencySymbol}` },
+      { label: 'الباقي', value: `${formatReceiptMoney(changeAmount, options.settings)} ${currencySymbol}` },
     ] : []))),
     ...(showItemCount && showPiecesCount ? [
       { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف  -  ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
@@ -887,14 +891,14 @@ export function buildReceiptDocument(options: {
       customClass: 'meta-online-order-badge',
     }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
-    ...(dateValue && cashierDisplayName ? [{
+    ...(compact && dateValue && cashierDisplayName ? [{
       label: `التاريخ: ${formatReceiptText(dateValue, options.settings)}`,
       value: `<span dir="rtl" style="font-weight:600; color:#000; direction:rtl; unicode-bidi:isolate; text-align:left; display:inline-flex; align-items:baseline; gap:3px;"><span>${options.isPurchase ? 'المسؤول' : 'الكاشير'}:</span><bdi>${escapeHtml(formatReceiptText(cashierDisplayName, options.settings))}</bdi></span>`,
       isHtml: true,
       noColon: true,
     }] : [
-      ...(dateValue ? [{ label: 'التاريخ', value: dateValue }] : []),
-      ...(cashierDisplayName ? [{ label: options.isPurchase ? 'المسؤول' : 'الكاشير', value: cashierDisplayName }] : []),
+      ...(dateValue ? [{ label: 'التاريخ', value: formatReceiptText(dateValue, options.settings) }] : []),
+      ...(cashierDisplayName ? [{ label: options.isPurchase ? 'المسؤول' : 'الكاشير', value: formatReceiptText(cashierDisplayName, options.settings) }] : []),
     ]),
     ...(showHijriDate && hijriDateValue ? [{ label: 'التاريخ الهجري', value: hijriDateValue }] : []),
     ...(shouldShowParty ? [{ label: partyLabel, value: partyValue }] : []),

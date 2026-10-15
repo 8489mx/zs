@@ -1,4 +1,5 @@
 import type { AppSettings } from '@/types/domain';
+import { getGlobalSystemCurrency } from '@/lib/currencies';
 
 export type PosPrintPageSize = 'a4' | 'receipt';
 
@@ -63,7 +64,13 @@ export function getPrintOption(settings: Partial<AppSettings> | null | undefined
 }
 
 export function getReceiptNumberLocale(settings?: Partial<AppSettings> | null) {
-  return settings?.printNumberFormat === 'english' ? 'en-US' : 'ar-EG';
+  if (settings?.printNumberFormat === 'english') return 'en-US';
+  if (settings?.printNumberFormat === 'arabic') return 'ar-EG';
+  // Kuwait and GCC standard (Foodics standard): Latin/English numerals for clarity and no comma confusion
+  if (settings?.currency === 'KWD' || settings?.country === 'KW' || getGlobalSystemCurrency() === 'KWD') {
+    return 'en-US';
+  }
+  return 'ar-EG';
 }
 
 export function isCompactReceipt(pageSize?: PosPrintPageSize, settings?: Partial<AppSettings> | null) {
