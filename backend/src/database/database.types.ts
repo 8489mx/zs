@@ -1077,6 +1077,7 @@ export interface HeldSaleItemTable {
   unit_name: string;
   unit_multiplier: number;
   price_type: 'retail' | 'wholesale';
+  notes?: string;
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
   serials?: any;
   created_at: ColumnType<Date, string | undefined, never>;

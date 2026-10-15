@@ -21,6 +21,7 @@ type CashDrawerShiftSource = {
   store_delivery_fee_total?: number | string | null;
   net_store_sales_total?: number | string | null;
   shift_sales_total?: number | string | null;
+  tip_sales_total?: number | string | null;
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
   card_operation_count?: number | string | null;

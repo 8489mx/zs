@@ -29,7 +29,7 @@ import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
-import { printXReport } from '@/features/cash-drawer/utils/cash-drawer-receipt';
+import { printXReport } from '@/features/cash-drawer';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
