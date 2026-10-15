@@ -1,4 +1,5 @@
 import type { PosItem } from '@/features/pos/types/pos.types';
+import { getCurrencyDecimals } from '@/lib/currencies';
 
 export type PaymentType = 'cash' | 'credit';
 export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
@@ -54,7 +55,8 @@ export interface CreatePosSaleInput {
 }
 
 function normalizeMoney(value: number) {
-  return Number(Number(value || 0).toFixed(2));
+  const decimals = getCurrencyDecimals();
+  return Number(Number(value || 0).toFixed(decimals));
 }
 
 function normalizeCustomerId(value: string) {

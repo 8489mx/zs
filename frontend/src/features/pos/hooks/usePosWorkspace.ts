@@ -114,6 +114,7 @@ export function usePosWorkspace() {
     discount: state.discount,
     loyaltyPointsRedeemed: state.loyaltyPointsRedeemed,
     deliveryFee: state.deliveryFee,
+    tipAmount: state.tipAmount,
     discountApprovalGranted: state.discountApprovalGranted,
     wholesaleApprovalGranted: state.wholesaleApprovalGranted,
     paidAmount,

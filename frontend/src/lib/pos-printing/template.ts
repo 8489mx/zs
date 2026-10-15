@@ -290,6 +290,7 @@ function renderTotals(options: {
   discount: number;
   deliveryFee?: number;
   serviceCharge?: number;
+  tipAmount?: number;
   taxAmount: number;
   total: number;
   paidAmount?: number;
@@ -391,6 +392,9 @@ function renderTotals(options: {
     ] : []),
     ...(Number(options.serviceCharge || 0) > 0 ? [
       { label: 'خدمة الصالة', value: formatReceiptMoney(Number(options.serviceCharge || 0), options.settings) },
+    ] : []),
+    ...(Number(options.tipAmount || 0) > 0 ? [
+      { label: 'إكرامية / بقشيش', value: `${formatReceiptMoney(Number(options.tipAmount || 0), options.settings)} ${currencySymbol}` },
     ] : []),
     ...(showTax && hasTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: `${formatReceiptMoney(Number(options.taxAmount || 0), options.settings)} ${currencySymbol}` }] : []),
     ...(showPaymentMethod && options.paymentText ? [{
@@ -820,6 +824,7 @@ export function buildReceiptDocument(options: {
   discount: number;
   deliveryFee?: number;
   serviceCharge?: number;
+  tipAmount?: number;
   guestCount?: number;
   taxAmount: number;
   total: number;
@@ -937,6 +942,7 @@ export function buildReceiptDocument(options: {
           discount: options.discount,
           deliveryFee: options.deliveryFee,
           serviceCharge: options.serviceCharge,
+          tipAmount: options.tipAmount,
           taxAmount: options.taxAmount,
           total: options.total,
           paidAmount: options.paidAmount,

@@ -1216,6 +1216,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                           </div>
                         </>
                       ) : null}
+                      {Number(selectedCloseShift.tipSalesTotal || 0) > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">إكراميات مستحقة للعمالة (Tips)</span>
+                          <strong className="close-shift-fin-value tone-primary">{formatCurrency(selectedCloseShift.tipSalesTotal || 0)}</strong>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="close-shift-fin-footnote">
                       النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.

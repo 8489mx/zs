@@ -7715,8 +7715,11 @@
      - توطين خيارات الدفع عند الاستلام لتشمل «كي نت مع المندوب K-NET» و «رابط دفع أونلاين K-NET Link»، مع ضبط فئات الفكة المطلوبة على الدنانير الكويتية (5, 10, 20 د.ك) بدلاً من الجنيه.
   3. **ازدواجية لغة المطبخ لطواقم الطهاة الأجانب (Bilingual Kitchen / KDS):**
      - ترقية بطاقات تذاكر المطبخ `KdsTicketCard.tsx` لعرض الاسم الإنجليزي للصنف والإضافات تلقائياً (من حقول `name_en` أو الأسماء ثنائية اللغة) لضمان فهم الطهاة والعمالة الآسيوية والأجنبية لمكونات الوجبة بدقة وسرعة وبدون أخطاء تحضير.
-  4. **فئات البقشيش المقترحة الواقعية بالدينار (Realistic KWD Tip Presets):**
-     - في شاشة إتمام الدفع بالكاشير `PosCheckoutDialogSections.tsx`، تتحول أزرار البقشيش المقترحة عند تفعيل الدينار الكويتي إلى الفئات الواقعية: (بدون، ربع دينار 0.250 د.ك، نصف دينار 0.500 د.ك، دينار 1.000 د.ك، ديناران 2.000 د.ك) بخطوة إدخال دقيقة (0.050 د.ك).
+  4. **دورة البقشيش الإلكتروني المتكاملة وحسابات مستحقات العمالة (End-to-End Digital Tips & Staff Payout Engine):**
+     - في شاشة إتمام الدفع بالكاشير `PosCheckoutDialogSections.tsx`، تتحول أزرار البقشيش عند تفعيل الدينار الكويتي إلى الفئات الواقعية: (بدون، ربع دينار 0.250 د.ك، نصف دينار 0.500 د.ك، دينار 1.000 د.ك، ديناران 2.000 د.ك) بخطوة إدخال دقيقة (0.050 د.ك).
+     - ربط اختيار البقشيش تلقائياً بإجمالي الفاتورة «المطلوب دفعه» وتزامن مبالغ السحب للبطاقات (K-NET) والتحويلات فورياً، ليرسل المبلغ الإجمالي شاملاً الإكرامية إلى جهاز نقاط البيع EDC.
+     - إظهار سطر مستقل «إكرامية / بقشيش» في إيصال العميل المطبوع `template.ts` لضمان الشفافية وتطابق الفاتورة مع رسالة الخصم البنكي للعميل.
+     - احتساب وتجميع إجمالي الإكراميات `tipSalesTotal` على مدار الوردية وإبرازها في شاشات إغلاق الوردية وتقارير X و Z المطبوعة `cash-drawer-receipt.ts` لتمكين الإدارة من صرف مستحقات العمالة بدقة.
   5. **جرد ومطابقة ورديات الكاشير وتقارير X و Z بشبكة كي نت (K-NET Shift Settlement & X/Z Reports):**
      - ترقية شاشات إغلاق وجرد الوردية (`CashDrawerFormsPanel.tsx` و `CashDrawerReviewDialog.tsx`) وإيصالات الجرد (`cash-drawer-receipt.ts`) لتتحول ديناميكياً عند تفعيل الدينار الكويتي KWD من مسميات «تحويل إنستاباي» إلى «عمليات كي نت / روابط دفع إلكتروني (K-NET)»، مع إبراز تقارير X الاسترشادية وتقارير Z الختامية الرسمية.
   6. **نظام نداء واستدعاء العميل بالبيجر (Pager / Buzzer System):**
@@ -7739,6 +7742,16 @@
   - `frontend/src/features/cash-drawer/components/CashDrawerReviewDialog.tsx`
   - `frontend/src/features/cash-drawer/utils/cash-drawer-receipt.ts`
   - `frontend/src/features/pos/pages/OrderStatusBoardPage.tsx`
+  - `backend/src/common/utils/invoice-totals.ts`
+  - `backend/src/modules/sales/services/sales-write.service.ts`
+  - `backend/src/modules/cash-drawer/cash-drawer.service.ts`
+  - `backend/src/modules/cash-drawer/helpers/cash-drawer.helper.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspaceDerived.ts`
+  - `frontend/src/features/pos/hooks/usePosWorkspace.ts`
+  - `frontend/src/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions.helpers.ts`
+  - `frontend/src/features/pos/contracts.ts`
+  - `frontend/src/features/cash-drawer/components/CashDrawerShiftsCard.tsx`
+  - `frontend/src/lib/pos-printing.ts`
   - `frontend/src/lib/pos-printing/shared.ts`
   - `frontend/src/lib/pos-printing/template.ts`
   - `backend/src/database/migrations/2040000000226_restaurant_pager_and_kuwait_features.ts`

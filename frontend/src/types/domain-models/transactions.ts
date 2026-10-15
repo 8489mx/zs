@@ -204,6 +204,7 @@ export interface CashierShift {
   storeDeliveryFeeTotal?: number;
   netStoreSalesTotal?: number;
   shiftSalesTotal?: number;
+  tipSalesTotal?: number;
   serviceCashTotal?: number;
   serviceCardTotal?: number;
   serviceTotal?: number;

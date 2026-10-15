@@ -222,6 +222,7 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     storeDeliveryFeeTotal: Number(row.store_delivery_fee_total || 0),
     netStoreSalesTotal: Number(row.net_store_sales_total || 0),
     shiftSalesTotal: Number(row.shift_sales_total || 0),
+    tipSalesTotal: Number(row.tip_sales_total || 0),
     saleCount: Number(row.sale_count || 0),
     mixedSalesCount: Number(row.mixed_sale_count || 0),
     cardOperationCount: Number(row.card_operation_count || 0),

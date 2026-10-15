@@ -41,6 +41,7 @@ export function generateCashDrawerSettlementReceiptHtml(
   const returnItems = movementItems.filter((i) => (i.kind as string) === 'return' || (i.kind as string) === 'sale_return');
 
   const shiftSalesTotal = Number(shift.shiftSalesTotal || 0);
+  const tipSalesTotal = Number(shift.tipSalesTotal || 0);
   const freelanceFee = Number(shift.freelanceDeliveryFeeTotal || 0);
   const netStoreSales = Number(shift.netStoreSalesTotal || Math.max(0, shiftSalesTotal - freelanceFee));
 
@@ -190,6 +191,11 @@ export function generateCashDrawerSettlementReceiptHtml(
         <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px dashed #888; padding-top: 1px; margin-top: 1px;">
           <span>صافي مبيعات المتجر:</span>
           <span>${formatCurrency(netStoreSales)}</span>
+        </div>` : ''}
+        ${tipSalesTotal > 0 ? `
+        <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 3px; padding: 2px 4px; background: #f8fafc; border: 1px dashed #475569; border-radius: 3px;">
+          <span><strong>إكراميات مستحقة للعمالة (Tips):</strong></span>
+          <strong>${formatCurrency(tipSalesTotal)}</strong>
         </div>` : ''}
       </div>
 

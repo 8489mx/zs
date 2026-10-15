@@ -1,12 +1,14 @@
 import { downloadExcelFile } from '@/lib/browser';
 import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
+import { getCurrencyDecimals } from '@/lib/currencies';
 import type { PosItem } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
 export function toMoney(value: number) {
-  return Number(Number(value || 0).toFixed(2));
+  const decimals = getCurrencyDecimals();
+  return Number(Number(value || 0).toFixed(decimals));
 }
 
 export function formatQty(value: number, isWeighted = false) {

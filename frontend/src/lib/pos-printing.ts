@@ -93,6 +93,8 @@ export function printPosDraftPreview(options: {
     subtotal: Number(options.subtotal || 0),
     discount: Number(options.discount || 0),
     deliveryFee: Number(options.deliveryFee || 0),
+    serviceCharge: Number((options as any).serviceCharge || 0),
+    tipAmount: Number((options as any).tipAmount || 0),
     taxAmount: Number(options.taxAmount || 0),
     total: Number(options.total || 0),
     paidAmount: Number(options.total || 0),
@@ -174,6 +176,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     cardScheme: (sale as any).cardScheme || (sale as any).card_scheme,
     cardLastFour: (sale as any).cardLastFour || (sale as any).card_last_four,
     serviceCharge: Number((sale as any).serviceCharge || (sale as any).service_charge || 0),
+    tipAmount: Number((sale as any).tipAmount || (sale as any).tip_amount || 0),
     guestCount: Number((sale as any).guestCount || (sale as any).guest_count || 0),
     copyType: options.copyType || (options.settings?.printDualReceiptForOnlineDelivery && (sale.orderType === 'delivery' || sale.paymentChannel === 'instapay' || sale.paymentChannel === 'wallet' || sale.paymentChannel === 'card') ? 'dual' : 'customer'),
   });

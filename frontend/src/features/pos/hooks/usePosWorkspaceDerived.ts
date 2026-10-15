@@ -27,6 +27,7 @@ interface PosWorkspaceDerivedParams {
   discount: number;
   loyaltyPointsRedeemed?: number;
   deliveryFee: number;
+  tipAmount?: number;
   discountApprovalGranted?: boolean;
   wholesaleApprovalGranted?: boolean;
   paidAmount: number;
@@ -155,6 +156,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     const loyaltyDiscount = Math.max(0, Number((Number(params.loyaltyPointsRedeemed || 0) * pointRedeemValue).toFixed(2)));
     const discountValue = manualDiscount + loyaltyDiscount;
     const deliveryFee = Math.max(0, Number(params.deliveryFee || 0));
+    const tipAmount = Math.max(0, Number(params.tipAmount || 0));
 
     // Restaurant Dine-in Service Charge
     const isServiceChargeActive = Boolean(
@@ -175,29 +177,30 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     let total = 0;
     if (taxRate > 0) {
       if (pricesIncludeTax) {
-        total = Number((baseBeforeTax + deliveryFee).toFixed(2));
-        taxAmount = Number((baseBeforeTax - (baseBeforeTax / (1 + taxRate / 100))).toFixed(2));
+        total = Number((baseBeforeTax + deliveryFee + tipAmount).toFixed(3));
+        taxAmount = Number((baseBeforeTax - (baseBeforeTax / (1 + taxRate / 100))).toFixed(3));
       } else {
-        taxAmount = Number((baseBeforeTax * (taxRate / 100)).toFixed(2));
-        total = Number((baseBeforeTax + taxAmount + deliveryFee).toFixed(2));
+        taxAmount = Number((baseBeforeTax * (taxRate / 100)).toFixed(3));
+        total = Number((baseBeforeTax + taxAmount + deliveryFee + tipAmount).toFixed(3));
       }
     } else {
-      total = Number((baseBeforeTax + deliveryFee).toFixed(2));
+      total = Number((baseBeforeTax + deliveryFee + tipAmount).toFixed(3));
     }
     return {
-      subTotal: Number(subTotal.toFixed(2)),
-      discountValue: Number(discountValue.toFixed(2)),
-      manualDiscount: Number(manualDiscount.toFixed(2)),
-      loyaltyDiscount: Number(loyaltyDiscount.toFixed(2)),
+      subTotal: Number(subTotal.toFixed(3)),
+      discountValue: Number(discountValue.toFixed(3)),
+      manualDiscount: Number(manualDiscount.toFixed(3)),
+      loyaltyDiscount: Number(loyaltyDiscount.toFixed(3)),
       serviceCharge,
       serviceChargePercent,
-      deliveryFee: Number(deliveryFee.toFixed(2)),
+      deliveryFee: Number(deliveryFee.toFixed(3)),
+      tipAmount,
       taxRate,
       pricesIncludeTax,
       taxAmount,
       total,
     };
-  }, [params.cart, params.discount, params.loyaltyPointsRedeemed, params.deliveryFee, params.settings, params.orderType]);
+  }, [params.cart, params.discount, params.loyaltyPointsRedeemed, params.deliveryFee, params.tipAmount, params.settings, params.orderType]);
 
   const changeAmount = useMemo(() => Math.max(0, Number(params.paidAmount || 0) - totals.total), [params.paidAmount, totals.total]);
   const amountDue = useMemo(() => Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0)), [params.paidAmount, totals.total]);

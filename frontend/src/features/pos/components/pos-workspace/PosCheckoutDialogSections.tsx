@@ -846,19 +846,41 @@ export function PosCheckoutPaymentSection({
           gap: '8px',
           flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-            إكرامية / بقشيش (Tip):
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+              إكرامية / بقشيش (Tip):
+            </span>
+            {Number(pos.tipAmount || 0) > 0 ? (
+              <span style={{ background: '#eef2ff', color: '#170e5e', padding: '1px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
+                +{formatCurrency(pos.tipAmount)} مضاف للمطلوب
+              </span>
+            ) : null}
+          </div>
           {(() => {
             const isKwd = getGlobalSystemCurrency() === 'KWD';
             const tipPresets = isKwd ? [0, 0.25, 0.5, 1, 2] : [0, 5, 10, 15, 20];
+            const applyTipChange = (nextTip: number) => {
+              const prevTip = Number(pos.tipAmount || 0);
+              const diff = nextTip - prevTip;
+              pos.setTipAmount?.(nextTip);
+              if (Math.abs(diff) < 0.0001) return;
+
+              // Automatically adjust the active payment amount to keep paidAmount aligned with the new total
+              if (pos.paymentChannel === 'card' || (!pos.cashAmount && pos.cardAmount > 0)) {
+                pos.setCardAmount(Math.max(0, Number(((pos.cardAmount || 0) + diff).toFixed(isKwd ? 3 : 2))));
+              } else if (pos.paymentChannel === 'cash' || (pos.cashAmount > 0 && !pos.cardAmount)) {
+                pos.setCashAmount(Math.max(0, Number(((pos.cashAmount || 0) + diff).toFixed(isKwd ? 3 : 2))));
+              } else if (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay') {
+                pos.setTransferAmount(Math.max(0, Number(((pos.transferAmount || 0) + diff).toFixed(isKwd ? 3 : 2))));
+              }
+            };
             return (
               <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                 {tipPresets.map((preset) => (
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => pos.setTipAmount?.(preset)}
+                    onClick={() => applyTipChange(preset)}
                     style={{
                       padding: '3px 8px',
                       borderRadius: '4px',
@@ -878,7 +900,7 @@ export function PosCheckoutPaymentSection({
                   min="0"
                   step={isKwd ? "0.050" : "1"}
                   value={pos.tipAmount || ''}
-                  onChange={(e) => pos.setTipAmount?.(Math.max(0, Number(e.target.value || 0)))}
+                  onChange={(e) => applyTipChange(Math.max(0, Number(e.target.value || 0)))}
                   placeholder="مخصص"
                   style={{
                     width: isKwd ? '68px' : '55px',

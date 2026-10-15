@@ -28,6 +28,7 @@ type ShiftRow = {
   store_delivery_fee_total?: number | string | null;
   net_store_sales_total?: number | string | null;
   shift_sales_total?: number | string | null;
+  tip_sales_total?: number | string | null;
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
   card_operation_count?: number | string | null;
@@ -75,6 +76,7 @@ type ShiftSalesBreakdown = {
   creditSalesTotal: number;
   deliverySalesTotal: number;
   shiftSalesTotal: number;
+  tipSalesTotal: number;
   deliveryFeeTotal: number;
   freelanceDeliveryFeeTotal: number;
   storeDeliveryFeeTotal: number;
@@ -283,6 +285,7 @@ export class CashDrawerService {
       creditSalesTotal: 0,
       deliverySalesTotal: 0,
       shiftSalesTotal: 0,
+      tipSalesTotal: 0,
       deliveryFeeTotal: 0,
       freelanceDeliveryFeeTotal: 0,
       storeDeliveryFeeTotal: 0,
@@ -298,7 +301,8 @@ export class CashDrawerService {
       with shift_sales as (
         select s.id, s.total, s.paid_amount, s.payment_type, s.payment_channel, s.collection_status,
                coalesce(s.delivery_fee, 0) as delivery_fee,
-               coalesce(s.delivery_fee_mode, 'freelance_courier') as delivery_fee_mode
+               coalesce(s.delivery_fee_mode, 'freelance_courier') as delivery_fee_mode,
+               coalesce(s.tip_amount, 0) as tip_amount
         from sales s
         where s.tenant_id = ${scope.tenantId} and s.status = 'posted' and s.created_by = ${openerId} and s.created_at >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or s.created_at <= ${shift.closed_at || null})
@@ -316,6 +320,7 @@ export class CashDrawerService {
              coalesce((select sum(total) from shift_sales where (payment_type = 'credit' or payment_channel = 'credit') and coalesce(collection_status, '') != 'cod' and coalesce(payment_channel, '') != 'cod'), 0) as credit_sales_total,
              coalesce((select sum(total) from shift_sales where coalesce(collection_status, '') = 'cod' or payment_channel = 'cod'), 0) as delivery_sales_total,
              coalesce((select sum(total) from shift_sales), 0) as shift_sales_total,
+             coalesce((select sum(tip_amount) from shift_sales), 0) as tip_sales_total,
              coalesce((select sum(delivery_fee) from shift_sales), 0) as delivery_fee_total,
              coalesce((select sum(case when delivery_fee_mode = 'freelance_courier' then delivery_fee else 0 end) from shift_sales), 0) as freelance_delivery_fee_total,
              coalesce((select sum(case when delivery_fee_mode = 'store_fleet' then delivery_fee else 0 end) from shift_sales), 0) as store_delivery_fee_total,
@@ -342,6 +347,7 @@ export class CashDrawerService {
       creditSalesTotal: this.toMoney(row.credit_sales_total || 0),
       deliverySalesTotal,
       shiftSalesTotal,
+      tipSalesTotal: this.toMoney(row.tip_sales_total || 0),
       deliveryFeeTotal,
       freelanceDeliveryFeeTotal,
       storeDeliveryFeeTotal,
@@ -561,6 +567,7 @@ export class CashDrawerService {
       store_delivery_fee_total: salesBreakdown.storeDeliveryFeeTotal,
       net_store_sales_total: salesBreakdown.netStoreSalesTotal,
       shift_sales_total: salesBreakdown.shiftSalesTotal,
+      tip_sales_total: salesBreakdown.tipSalesTotal,
       sale_count: salesBreakdown.saleCount,
       mixed_sale_count: salesBreakdown.mixedSalesCount,
       card_operation_count: salesBreakdown.cardOperationCount,
