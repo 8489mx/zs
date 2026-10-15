@@ -1,5 +1,5 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getGlobalSystemCurrency } from '@/lib/currencies';
 import { useState, useEffect, useMemo, type FormEvent, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customersApi } from '@/shared/api/customers.api';
@@ -605,12 +605,82 @@ export function PosCheckoutPaymentSection({
         ) : null}
       </div>
 
-      {/* Row 2: Payment method buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
-        <Button type="button" variant={isPaymentActive('cash') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('cash')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>نقدي</Button>
-        <Button type="button" variant={isPaymentActive('card') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('card')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>فيزا</Button>
-        <Button type="button" variant={isPaymentActive('credit') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('credit')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>آجل</Button>
-        <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>تحويلات</Button>
+      {/* Row 2: Payment method buttons (Cash, K-NET, Card, Credit, Transfers) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px' }}>
+        <Button
+          type="button"
+          variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
+          onClick={() => {
+            onSelectPaymentPreset('cash');
+            pos.setTerminalPaymentDetails?.(null);
+          }}
+          style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
+        >
+          نقدي
+        </Button>
+        <Button
+          type="button"
+          variant={
+            isPaymentActive('card') && pos.terminalPaymentDetails?.cardScheme === 'knet'
+              ? 'primary'
+              : (getGlobalSystemCurrency() === 'KWD' && isPaymentActive('card') && !pos.terminalPaymentDetails?.cardScheme)
+              ? 'primary'
+              : 'secondary'
+          }
+          onClick={() => {
+            onSelectPaymentPreset('card');
+            pos.setTerminalPaymentDetails?.({
+              ...(pos.terminalPaymentDetails || {}),
+              cardScheme: 'knet',
+              provider: 'knet',
+            });
+          }}
+          style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 800 }}
+        >
+          كي نت K-NET
+        </Button>
+        <Button
+          type="button"
+          variant={
+            isPaymentActive('card') && pos.terminalPaymentDetails?.cardScheme && pos.terminalPaymentDetails?.cardScheme !== 'knet'
+              ? 'primary'
+              : (!isPaymentActive('card') || (getGlobalSystemCurrency() === 'KWD' && (!pos.terminalPaymentDetails?.cardScheme || pos.terminalPaymentDetails?.cardScheme === 'knet')))
+              ? 'secondary'
+              : 'primary'
+          }
+          onClick={() => {
+            onSelectPaymentPreset('card');
+            pos.setTerminalPaymentDetails?.({
+              ...(pos.terminalPaymentDetails || {}),
+              cardScheme: 'visa',
+            });
+          }}
+          style={{ minHeight: '38px', fontSize: '12px', fontWeight: 700 }}
+        >
+          فيزا / ماستر
+        </Button>
+        <Button
+          type="button"
+          variant={isPaymentActive('credit') ? 'primary' : 'secondary'}
+          onClick={() => {
+            onSelectPaymentPreset('credit');
+            pos.setTerminalPaymentDetails?.(null);
+          }}
+          style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
+        >
+          آجل
+        </Button>
+        <Button
+          type="button"
+          variant={transferSelected ? 'primary' : 'secondary'}
+          onClick={() => {
+            onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet');
+            pos.setTerminalPaymentDetails?.(null);
+          }}
+          style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
+        >
+          تحويلات
+        </Button>
       </div>
 
       {/* EDC POS Terminal Direct Dispatch Banner */}
@@ -779,44 +849,50 @@ export function PosCheckoutPaymentSection({
           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
             إكرامية / بقشيش (Tip):
           </span>
-          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            {[0, 5, 10, 15, 20].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => pos.setTipAmount?.(preset)}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  border: (pos.tipAmount || 0) === preset ? '1px solid #170e5e' : '1px solid #cbd5e1',
-                  background: (pos.tipAmount || 0) === preset ? '#170e5e' : '#ffffff',
-                  color: (pos.tipAmount || 0) === preset ? '#ffffff' : '#334155',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {preset === 0 ? 'بدون' : `${preset}`}
-              </button>
-            ))}
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={pos.tipAmount || ''}
-              onChange={(e) => pos.setTipAmount?.(Math.max(0, Number(e.target.value || 0)))}
-              placeholder="مخصص"
-              style={{
-                width: '55px',
-                height: '24px',
-                borderRadius: '4px',
-                border: '1px solid #cbd5e1',
-                textAlign: 'center',
-                fontSize: '11.5px',
-                fontWeight: 700,
-              }}
-            />
-          </div>
+          {(() => {
+            const isKwd = getGlobalSystemCurrency() === 'KWD';
+            const tipPresets = isKwd ? [0, 0.25, 0.5, 1, 2] : [0, 5, 10, 15, 20];
+            return (
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                {tipPresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => pos.setTipAmount?.(preset)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      border: (pos.tipAmount || 0) === preset ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                      background: (pos.tipAmount || 0) === preset ? '#170e5e' : '#ffffff',
+                      color: (pos.tipAmount || 0) === preset ? '#ffffff' : '#334155',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset === 0 ? 'بدون' : isKwd ? (preset === 0.25 ? '¼ د.ك' : preset === 0.5 ? '½ د.ك' : `${preset} د.ك`) : `${preset}`}
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min="0"
+                  step={isKwd ? "0.050" : "1"}
+                  value={pos.tipAmount || ''}
+                  onChange={(e) => pos.setTipAmount?.(Math.max(0, Number(e.target.value || 0)))}
+                  placeholder="مخصص"
+                  style={{
+                    width: isKwd ? '68px' : '55px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    border: '1px solid #cbd5e1',
+                    textAlign: 'center',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                  }}
+                />
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -853,7 +929,7 @@ export function PosCheckoutOrderTypeSection({
   const isRestaurant = pos.settingsQuery?.data?.restaurantModuleEnabled === true;
 
   return (
-    <div style={{ display: 'flex', gap: '8px', width: '100%', marginBottom: '6px' }}>
+    <div style={{ display: 'flex', gap: '8px', width: '100%', marginBottom: '6px', alignItems: 'center' }}>
       <Button
         type="button"
         variant={pos.orderType === 'takeaway' || !pos.orderType ? 'primary' : 'secondary'}
@@ -884,6 +960,40 @@ export function PosCheckoutOrderTypeSection({
         >
           صالة (طاولات)
         </Button>
+      )}
+      {pos.orderType !== 'delivery' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            padding: '2px 8px',
+            height: '38px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>البيجر:</span>
+          <input
+            type="text"
+            value={(pos as any).pagerNumber || ''}
+            onChange={(e) => (pos as any).setPagerNumber?.(e.target.value)}
+            placeholder="رقم البيجر..."
+            style={{
+              width: '90px',
+              height: '28px',
+              padding: '0 6px',
+              fontSize: '12px',
+              fontWeight: 800,
+              border: '1px solid #e2e8f0',
+              borderRadius: '4px',
+              textAlign: 'center',
+              background: '#f8fafc',
+            }}
+          />
+        </div>
       )}
     </div>
   );

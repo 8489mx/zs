@@ -707,7 +707,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                               <button
                                 type="button"
                                 onClick={() => printCashDrawerShiftReceipt(row)}
-                                title="طباعة ريسيت الوردية (Thermal 80mm)"
+                                title={row.status === 'open' ? 'طباعة تقرير X الاسترشادي (Thermal 80mm)' : 'طباعة تقرير Z النهائي (Thermal 80mm)'}
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -900,7 +900,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                     gap: '6px'
                   }}
                 >
-                  <PrinterIcon size={16} /> طباعة الريسيت
+                  <PrinterIcon size={16} /> {mobileSelectedShift?.status === 'open' ? 'طباعة تقرير X' : 'طباعة تقرير Z (Z-Report)'}
                 </button>
                 <button
                   type="button"

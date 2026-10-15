@@ -19,6 +19,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { printCashDrawerShiftReceipt } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getGlobalSystemCurrency } from '@/lib/currencies';
 import type { CashierShift } from '@/types/domain';
 import {
   type ComparisonRow,
@@ -117,11 +118,13 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
 
   const totalShiftDiscrepancy = toMoney(dynamicVariance + electronicDiff);
 
+  const isKwd = getGlobalSystemCurrency() === 'KWD';
+
   const comparison = useMemo(() => {
     const rows: ComparisonRow[] = [
       {
         key: 'card',
-        label: 'مبيعات بطاقات (فيزا / ماستركارد)',
+        label: isKwd ? 'مبيعات بطاقات (كي نت K-NET / فيزا)' : 'مبيعات بطاقات (فيزا / ماستركارد)',
         systemAmount: expected.expectedCard,
         declaredAmount: declared.card,
         amountDiff: toMoney(declared.card - expected.expectedCard),
@@ -131,7 +134,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
       },
       {
         key: 'wallet',
-        label: 'محافظ إلكترونية (فودافون/اتصالات/أورنج/وي)',
+        label: isKwd ? 'محافظ وروابط رقمية (Apple Pay / روابط)' : 'محافظ إلكترونية (فودافون/اتصالات/أورنج/وي)',
         systemAmount: expected.expectedWallet,
         declaredAmount: declared.wallet,
         amountDiff: toMoney(declared.wallet - expected.expectedWallet),
@@ -141,7 +144,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
       },
       {
         key: 'instapay',
-        label: 'تحويلات إنستاباي (InstaPay)',
+        label: isKwd ? 'عمليات كي نت / روابط دفع (K-NET)' : 'تحويلات إنستاباي (InstaPay)',
         systemAmount: expected.expectedInstapay,
         declaredAmount: declared.instapay,
         amountDiff: toMoney(declared.instapay - expected.expectedInstapay),
@@ -854,7 +857,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 disabled={props.isPending}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: compactView ? '5px 12px' : '7px 16px', fontSize: '0.82rem' }}
               >
-                <PrinterIcon size={15} /> طباعة ريسيت الوردية
+                <PrinterIcon size={15} /> طباعة تقرير Z (Z-Report)
               </Button>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Button variant="secondary" onClick={props.onClose} disabled={props.isPending} style={{ padding: compactView ? '5px 14px' : '7px 18px', fontSize: '0.82rem' }}>

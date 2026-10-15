@@ -7695,5 +7695,45 @@
   - `frontend/src/features/delivery-reps/components/DriverNewLoadRequisitionView.tsx`
   - `frontend/src/features/delivery-reps/components/VanLoadRequisitionsAdminTab.tsx`
   - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
-  - `backend/test/critical/van-single-pending-requisition.spec.ts`
 
+## 244. محرك التوطين الإقليمي لدولة الكويت والتهيئة التلقائية المتسلسلة للمطاعم والضيافة (Kuwait Regional Profile, Country Cascading Engine & PACI/K-NET F&B Localization)
+* **الحالة / الجاهزية:** تم الإنجاز والاعتماد بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة الإعدادات العامة `/settings` (`GeneralSettingsTab.tsx`)، نقاط البيع السريعة `/pos` (`PosCheckoutDialogSections.tsx`، `PosPhoneOrderDialog.tsx`)، شاشات المطبخ KDS (`KdsTicketCard.tsx`)، ومحركات الباك إند (`settings.service.ts`).
+* **القدرات التشغيلية والتقنية:**
+  1. **مفتاح السيادة الإقليمي والتهيئة المتسلسلة (Country Profile Cascading Engine):**
+     - إضافة اختيار «دولة المقر / التشغيل» (Country) في الإعدادات العامة يشمل كافة الدول (الكويت KW، السعودية SA، مصر EG، الإمارات AE، قطر QA، البحرين BH، عمان OM).
+     - عند اختيار «دولة الكويت» أو تحويل العملة إلى `KWD`، يُطلق النظام محرك التوطين الكويتي المتسلسل تلقائياً:
+       * ضبط العملة فوراً إلى دينار كويتي `KWD` وتفعيل نظام الفلس الكويتي (3 خانات عشرية) في كافة الواجهات والإيصالات.
+       * تصفير ضريبة القيمة المضافة إلى `0%` وإخفاء الرقم الضريبي والـ QR من الإيصالات طبقاً للقانون الكويتي.
+       * ضبط المنطقة الزمنية الرسمية على `Asia/Kuwait`.
+       * تفعيل مزود ماكينات الدفع والشبكة البنكية على `knet_pos` وخيار كي نت كخيار افتراضي في الكاشير.
+       * ظهور بانر تأكيدي مؤسسي بضمان الملف الإقليمي لدولة الكويت مع الحفاظ الكامل على حرية التعديل اليدوي للمستخدم (Smart Preset with Manual Override).
+  2. **نموذج عناوين التوصيل الرسمي الكويتي (PACI Address Model):**
+     - ترقية شاشة طلبات الهاتف والدليفري في الكاشير `PosPhoneOrderDialog.tsx` للتعرف التلقائي على بيئة الكويت.
+     - تزويد نافذة العميل الجديد بمساعد المعلومات المدنية الكويتية (PACI Builder) المكون من حقول مستقلة متناسقة (المنطقة، القطعة Block، الشارع، الجادة Avenue، المنزل/القسيمة، الدور، والشقة) مع زر توليد العنوان الموحد تلقائياً.
+     - تحويل نطاقات التوصيل ورسوم الدليفري إلى قيم الدينار الكويتي (0.500 د.ك للمناطق القريبة، 1.000 د.ك للمنطقة، 1.500 د.ك للمحافظة، 2.000 د.ك للمحافظات البعيدة).
+     - توطين خيارات الدفع عند الاستلام لتشمل «كي نت مع المندوب K-NET» و «رابط دفع أونلاين K-NET Link»، مع ضبط فئات الفكة المطلوبة على الدنانير الكويتية (5, 10, 20 د.ك) بدلاً من الجنيه.
+  3. **ازدواجية لغة المطبخ لطواقم الطهاة الأجانب (Bilingual Kitchen / KDS):**
+     - ترقية بطاقات تذاكر المطبخ `KdsTicketCard.tsx` لعرض الاسم الإنجليزي للصنف والإضافات تلقائياً (من حقول `name_en` أو الأسماء ثنائية اللغة) لضمان فهم الطهاة والعمالة الآسيوية والأجنبية لمكونات الوجبة بدقة وسرعة وبدون أخطاء تحضير.
+  4. **فئات البقشيش المقترحة الواقعية بالدينار (Realistic KWD Tip Presets):**
+     - في شاشة إتمام الدفع بالكاشير `PosCheckoutDialogSections.tsx`، تتحول أزرار البقشيش المقترحة عند تفعيل الدينار الكويتي إلى الفئات الواقعية: (بدون، ربع دينار 0.250 د.ك، نصف دينار 0.500 د.ك، دينار 1.000 د.ك، ديناران 2.000 د.ك) بخطوة إدخال دقيقة (0.050 د.ك).
+  5. **جرد ومطابقة ورديات الكاشير وتقارير X و Z بشبكة كي نت (K-NET Shift Settlement & X/Z Reports):**
+     - ترقية شاشات إغلاق وجرد الوردية (`CashDrawerFormsPanel.tsx` و `CashDrawerReviewDialog.tsx`) وإيصالات الجرد (`cash-drawer-receipt.ts`) لتتحول ديناميكياً عند تفعيل الدينار الكويتي KWD من مسميات «تحويل إنستاباي» إلى «عمليات كي نت / روابط دفع إلكتروني (K-NET)»، مع إبراز تقارير X الاسترشادية وتقارير Z الختامية الرسمية.
+  6. **نظام نداء واستدعاء العميل بالبيجر (Pager / Buzzer System):**
+     - تسجيل وتخزين رقم جهاز النداء `pagerNumber` في فواتير المطاعم السريعة، وإبراز شارة البيجر فوراً في تذاكر المطبخ `KdsTicketCard.tsx` وشاشة عرض حالة الطلبات التلفزيونية بصالة المطعم `OrderStatusBoardPage.tsx`.
+  7. **نظافة الفواتير الحرارية وإخفاء الضرائب الصفرية (Zero-Tax Invoice Cleanliness):**
+     - ترقية قوالب الطباعة الحرارية `template.ts` لإخفاء أسطر ضريبة القيمة المضافة والإجمالي قبل الضريبة تلقائياً عند انعدام الضريبة (0% VAT كما في الكويت)، لمنع تشويه إيصال العميل بمسميات غير مطبقة قانونياً.
+* **الملفات المنفذة:**
+  - `frontend/src/features/settings/schemas/settings.schema.ts`
+  - `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`
+  - `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx`
+  - `backend/src/modules/settings/settings.service.ts`
+  - `frontend/src/features/pos/components/pos-workspace/PosCheckoutDialogSections.tsx`
+  - `frontend/src/features/pos/components/kds/KdsTicketCard.tsx`
+  - `frontend/src/features/pos/components/pos-workspace/PosPhoneOrderDialog.tsx`
+  - `frontend/src/features/cash-drawer/components/CashDrawerFormsPanel.tsx`
+  - `frontend/src/features/cash-drawer/components/CashDrawerReviewDialog.tsx`
+  - `frontend/src/features/cash-drawer/utils/cash-drawer-receipt.ts`
+  - `frontend/src/features/pos/pages/OrderStatusBoardPage.tsx`
+  - `frontend/src/lib/pos-printing/template.ts`
+  - `backend/src/database/migrations/2040000000226_restaurant_pager_and_kuwait_features.ts`

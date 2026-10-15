@@ -50,8 +50,9 @@ export class DeliveryAggregatorsService {
     { code: 'jahez', name: 'جاهز (Jahez)', name_en: 'Jahez', commission_rate: 18.0 },
     { code: 'hungerstation', name: 'هنقرستيشن (Hungerstation)', name_en: 'Hungerstation', commission_rate: 19.5 },
     { code: 'talabat', name: 'طلبات (Talabat)', name_en: 'Talabat', commission_rate: 20.0 },
-    { code: 'keeta', name: 'كيتا (Keeta)', name_en: 'Keeta', commission_rate: 15.0 },
     { code: 'deliveroo', name: 'دليفرو (Deliveroo)', name_en: 'Deliveroo', commission_rate: 18.5 },
+    { code: 'cari', name: 'كاري (Cari)', name_en: 'Cari', commission_rate: 0.0 },
+    { code: 'keeta', name: 'كيتا (Keeta)', name_en: 'Keeta', commission_rate: 15.0 },
     { code: 'careem', name: 'كريم فود (Careem Now)', name_en: 'Careem', commission_rate: 17.0 },
     { code: 'toyou', name: 'تويو (ToYou)', name_en: 'ToYou', commission_rate: 16.0 },
   ];
@@ -92,6 +93,36 @@ export class DeliveryAggregatorsService {
         .where('tenant_id', '=', scope.tenantId)
         .orderBy('id', 'asc')
         .execute();
+    } else {
+      // Auto-seed any newly added channel (e.g. cari) if missing
+      const existingCodes = new Set(rows.map((r) => r.code));
+      let hasAdded = false;
+      for (const ch of DeliveryAggregatorsService.DEFAULT_GCC_CHANNELS) {
+        if (!existingCodes.has(ch.code)) {
+          await this.db
+            .insertInto('pos_delivery_aggregators')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              code: ch.code,
+              name: ch.name,
+              name_en: ch.name_en,
+              commission_rate: ch.commission_rate,
+              is_active: true,
+              auto_accept_orders: true,
+            })
+            .execute();
+          hasAdded = true;
+        }
+      }
+      if (hasAdded) {
+        rows = await this.db
+          .selectFrom('pos_delivery_aggregators')
+          .selectAll()
+          .where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc')
+          .execute();
+      }
     }
 
     return rows;

@@ -249,6 +249,7 @@ export function usePosWorkspace() {
       state.setDiscount(Number(nextDraft.discount || 0));
       state.setDeliveryFee(Number(nextDraft.deliveryFee || 0));
       state.setTableNumber(nextDraft.tableNumber || '');
+      state.setPagerNumber((nextDraft as any).pagerNumber || '');
       state.setOrderType(nextDraft.orderType || 'takeaway');
       state.setNote(nextDraft.note || '');
       state.setSubmitMessage('تم استلام ودمج طلب المتجر في سلة الكاشير بنجاح');
@@ -302,6 +303,8 @@ export function usePosWorkspace() {
     locationId: operationalContext.locationId,
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
+    pagerNumber: state.pagerNumber,
+    setPagerNumber: state.setPagerNumber,
     diningCourse: state.diningCourse,
     setDiningCourse: state.setDiningCourse,
     guestCount: state.guestCount,
@@ -419,6 +422,8 @@ export function usePosWorkspace() {
     setNote: state.setNote,
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
+    pagerNumber: state.pagerNumber,
+    setPagerNumber: state.setPagerNumber,
     diningCourse: state.diningCourse,
     setDiningCourse: state.setDiningCourse,
     guestCount: state.guestCount,

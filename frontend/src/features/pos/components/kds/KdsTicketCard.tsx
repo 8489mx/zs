@@ -52,8 +52,9 @@ const getOrderTypeBadge = (type: string, tableNumber?: string, aggregatorChannel
     const chName = aggregatorChannel === 'jahez' ? 'جاهز'
       : aggregatorChannel === 'hungerstation' ? 'هنقرستيشن'
       : aggregatorChannel === 'talabat' ? 'طلبات'
-      : aggregatorChannel === 'keeta' ? 'كيتا'
       : aggregatorChannel === 'deliveroo' ? 'دليفرو'
+      : aggregatorChannel === 'cari' ? 'كاري'
+      : aggregatorChannel === 'keeta' ? 'كيتا'
       : aggregatorChannel.toUpperCase();
     return {
       label: `توصيل (${chName})`,
@@ -167,6 +168,21 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                 }}
               >
                 {ticket.course === 'appetizer' ? 'مقبلات' : ticket.course === 'main' ? 'طبق رئيسي' : ticket.course === 'dessert' ? 'حلوى' : 'مشروب'}
+              </span>
+            )}
+            {ticket.pagerNumber && (
+              <span
+                style={{
+                  backgroundColor: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                بيجر: {ticket.pagerNumber}
               </span>
             )}
           </div>
@@ -285,6 +301,32 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                       >
                         {item.name}
                       </span>
+                      {(() => {
+                        const englishName = (item as any).nameEn || (item as any).name_en || (item as any).englishName || (() => {
+                          const parenMatch = item.name.match(/\(([^)]*[a-zA-Z]{2,}[^)]*)\)/);
+                          if (parenMatch) return parenMatch[1].trim();
+                          const slashMatch = item.name.match(/[\/|\-]\s*([a-zA-Z\s]{2,})$/);
+                          if (slashMatch) return slashMatch[1].trim();
+                          return null;
+                        })();
+                        return englishName ? (
+                          <span
+                            dir="ltr"
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: isDone ? '#94a3b8' : '#475569',
+                              fontFamily: 'system-ui, -apple-system, sans-serif',
+                              backgroundColor: isDone ? 'transparent' : '#f1f5f9',
+                              border: isDone ? 'none' : '1px solid #e2e8f0',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            {englishName}
+                          </span>
+                        ) : null;
+                      })()}
                       {item.seatNumber && (
                         <span style={{
                           fontSize: '10.5px',

@@ -35,6 +35,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   accentColor: { tab: 'general', label: 'لون الواجهة الرئيسي' },
   logoData: { tab: 'general', label: 'شعار المؤسسة' },
   businessIndustry: { tab: 'general', label: 'طبيعة النشاط التجاري' },
+  country: { tab: 'general', label: 'دولة المقر والنشاط' },
   currency: { tab: 'general', label: 'العملة الافتراضية' },
   timezone: { tab: 'general', label: 'المنطقة الزمنية' },
   dateFormat: { tab: 'general', label: 'تنسيق التاريخ' },

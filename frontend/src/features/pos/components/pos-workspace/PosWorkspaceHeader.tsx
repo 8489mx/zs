@@ -29,6 +29,8 @@ import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { toast } from '@/shared/components/system-alert';
+import { printXReport } from '@/features/cash-drawer/utils/cash-drawer-receipt';
+import { cashDrawerApi } from '@/lib/api/cash-drawer';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -570,14 +572,47 @@ function PosWorkspaceHeaderComponent({
             </Button>
           )}
 
-          {/* 8. Shift Button */}
+          {/* 8. Shift Buttons: X-Report & Close Shift */}
           {pos.ownOpenShift ? (
-            <Link to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}>
-              <Button type="button" variant="secondary" className="pos-close-shift-btn">
-                <span className="pos-close-shift-text-full">تقفيل الوردية</span>
-                <span className="pos-close-shift-text-short">تقفيل</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  if (!pos.ownOpenShift?.id) return;
+                  try {
+                    const res = await cashDrawerApi.listPage({ page: 1, pageSize: 50, filter: 'open' });
+                    const fresh = res.rows.find((s) => String(s.id) === String(pos.ownOpenShift?.id));
+                    printXReport((fresh || pos.ownOpenShift) as any, settings?.storeName);
+                  } catch {
+                    printXReport(pos.ownOpenShift as any, settings?.storeName);
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  height: '32px',
+                  padding: '0 8px',
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                }}
+                title="طباعة تقرير X الاسترشادي لقراءة المبيعات ونقدية الدرج الحالية دون إغلاق الوردية"
+              >
+                <PrinterIcon size={14} color="#170e5e" />
+                <span>تقرير X</span>
               </Button>
-            </Link>
+
+              <Link to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}>
+                <Button type="button" variant="secondary" className="pos-close-shift-btn">
+                  <span className="pos-close-shift-text-full">تقفيل الوردية</span>
+                  <span className="pos-close-shift-text-short">تقفيل</span>
+                </Button>
+              </Link>
+            </div>
           ) : (
             <Button type="button" variant="primary" className="pos-close-shift-btn" onClick={onRequestOpenShift}>
               <span className="pos-close-shift-text-full">فتح وردية</span>

@@ -275,6 +275,10 @@ export class UpsertSaleDto {
   @IsOptional()
   @IsString()
   diningCourse?: string;
+
+  @IsOptional()
+  @IsString()
+  pagerNumber?: string;
 }
 
 export type NormalizedSalePayload = {
@@ -301,6 +305,7 @@ export type NormalizedSalePayload = {
   tableNumber: string | null;
   orderType: string | null;
   diningCourse?: string | null;
+  pagerNumber?: string | null;
   deliveryRepId?: number;
   deliveryStatus?: string;
   collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';

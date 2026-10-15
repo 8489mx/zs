@@ -1,4 +1,4 @@
-import { getGlobalCurrencySymbol } from '../currencies';
+import { getGlobalCurrencySymbol, getCurrencyDecimals, getGlobalSystemCurrency } from '../currencies';
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
@@ -39,7 +39,8 @@ function formatReceiptNumber(value: number, settings?: Partial<AppSettings> | nu
 }
 
 function formatReceiptMoney(value: number, settings?: Partial<AppSettings> | null) {
-  return formatReceiptNumber(Number(value || 0), settings, 2);
+  const decimals = getCurrencyDecimals(settings?.currency);
+  return formatReceiptNumber(Number(value || 0), settings, decimals);
 }
 
 export function formatReceiptQuantity(value: number, settings?: Partial<AppSettings> | null) {
@@ -62,7 +63,7 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   const showLogo = getPrintOption(settings, 'printShowLogo', true);
   const showPhone = getPrintOption(settings, 'printShowPhone', true);
   const showAddress = getPrintOption(settings, 'printShowAddress', true);
-  const showTaxNumber = getPrintOption(settings, 'printShowTaxNumber', false);
+  const showTaxNumber = settings?.currency === 'KWD' ? false : getPrintOption(settings, 'printShowTaxNumber', false);
   const phone = showPhone ? formatReceiptText(String(settings?.phone || '').trim(), settings) : '';
   const address = showAddress ? String(settings?.address || '').trim() : '';
   const taxNumber = showTaxNumber ? formatReceiptText(String(settings?.taxNumber || '').trim(), settings) : '';
@@ -173,13 +174,14 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
 
 function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<AppSettings> | null, compact = false) {
   if (!payments || payments.length <= 1 || !getPrintOption(settings, 'printShowPaymentBreakdown', true)) return '';
+  const isKwd = settings?.currency === 'KWD' || getGlobalSystemCurrency() === 'KWD';
   return `
     <section class="invoice-card invoice-payment-card${compact ? ' compact' : ''}">
       <div class="section-title">تفصيل المدفوعات</div>
       <div class="payment-grid">
         ${payments.map((payment) => `
           <div class="payment-chip">
-            <span>${escapeHtml(payment.paymentChannel === 'cash' ? 'نقدي' : payment.paymentChannel === 'card' ? 'بطاقة / فيزا' : payment.paymentChannel === 'wallet' ? 'محفظة إلكترونية' : payment.paymentChannel === 'instapay' ? 'InstaPay' : payment.paymentChannel === 'credit' ? 'آجل' : 'مختلط')}</span>
+            <span>${escapeHtml(payment.paymentChannel === 'cash' ? 'نقدي' : payment.paymentChannel === 'card' ? (isKwd ? 'بطاقة / كي نت K-NET' : 'بطاقة / فيزا') : payment.paymentChannel === 'wallet' ? (isKwd ? 'محفظة / رابط دفع' : 'محفظة إلكترونية') : payment.paymentChannel === 'instapay' ? (isKwd ? 'كي نت / دفع إلكتروني' : 'InstaPay') : payment.paymentChannel === 'credit' ? 'آجل' : 'مختلط')}</span>
             <strong>${formatReceiptMoney(Number(payment.amount || 0), settings)}</strong>
           </div>
         `).join('')}
@@ -314,6 +316,7 @@ function renderTotals(options: {
   const showDiscountBreakdown = getPrintOption(options.settings, 'printShowDiscountBreakdown', true);
   const showSavingsBanner = getPrintOption(options.settings, 'printShowSavingsBanner', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
+  const hasTax = Number(options.taxAmount || 0) > 0.0001;
   const hasDeliveryFee = Math.abs(Number(options.deliveryFee || 0)) > 0.0001;
 
   const totalOffersSavings = (options.items || []).reduce((sum, item) => {
@@ -336,7 +339,7 @@ function renderTotals(options: {
   const grossSubtotal = Number(options.subtotal || 0) + totalOffersSavings;
 
   const rows = options.isReturn ? [
-    ...(showTax && Number(options.taxAmount || 0) > 0 ? [
+    ...(showTax && hasTax ? [
       { label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) },
       { label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) },
     ] : []),
@@ -366,7 +369,7 @@ function renderTotals(options: {
         value: `<span style="display:inline-flex; align-items:center; direction:ltr;"><span>${formatReceiptMoney(totalOffersSavings, options.settings)}</span><span style="margin-left:2px;">-</span></span>`,
         isHtml: true,
       },
-    ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])) : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
+    ] : (showTax && hasTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])) : (showTax && hasTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
     ...(hasDiscount && showDiscountBreakdown ? [
       {
         label: discountLabel,
@@ -385,7 +388,7 @@ function renderTotals(options: {
     ...(Number(options.serviceCharge || 0) > 0 ? [
       { label: 'خدمة الصالة', value: formatReceiptMoney(Number(options.serviceCharge || 0), options.settings) },
     ] : []),
-    ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
+    ...(showTax && hasTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     ...(showPaymentMethod && options.paymentText ? [{
       label: `طريقة الدفع: ${options.paymentText}`,
       value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">الإجمالي:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || 0), options.settings)}</strong>`,
@@ -801,6 +804,7 @@ export function buildReceiptDocument(options: {
   branchName?: string;
   locationName?: string;
   tableNumber?: string | null;
+  pagerNumber?: string | null;
   orderType?: string | null;
   deliveryRepName?: string;
   referenceInvoice?: string;
@@ -902,6 +906,7 @@ export function buildReceiptDocument(options: {
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
     ...(Number(options.guestCount || 0) > 0 ? [{ label: 'عدد الضيوف', value: `${formatReceiptText(options.guestCount, options.settings)} فرد` }] : []),
+    ...(options.pagerNumber ? [{ label: 'رقم البيجر', value: String(options.pagerNumber), isBadge: true, customClass: 'meta-pager-badge' }] : []),
     ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' || options.orderType === 'takeaway' ? 'تيك أواي' : (options.orderType || 'تيك أواي')) }] : []),
     ...(!detectedOnlineOrderNumber && (options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين')) ? [{ label: 'المصدر', value: 'طلب متجر أونلاين', isBadge: true }] : []),
     ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'مندوب التوصيل', value: options.deliveryRepName }] : []),

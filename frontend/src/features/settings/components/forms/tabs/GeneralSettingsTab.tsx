@@ -10,6 +10,7 @@ import { ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { toast } from '@/shared/components/system-alert';
 
 function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null) {
   const norm = String(rawActivity || pillar || 'retail_general').trim().toLowerCase();
@@ -1010,6 +1011,61 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
           <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>دولة المقر / التشغيل</label>
+            <CustomSelect
+              value={form.watch('country') || (form.watch('currency') === 'KWD' ? 'KW' : form.watch('currency') === 'SAR' ? 'SA' : 'EG')}
+              onChange={(val) => {
+                form.setValue('country', val, { shouldDirty: true, shouldValidate: true });
+                if (val === 'KW') {
+                  form.setValue('currency', 'KWD', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Kuwait', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 0, { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxNumber', '', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('printShowTaxNumber', false, { shouldDirty: true, shouldValidate: true });
+                  form.setValue('posTerminalProvider', 'knet_pos', { shouldDirty: true, shouldValidate: true });
+                  toast.success('تم تفعيل إعدادات دولة الكويت بنجاح: د.ك (3 خانات - فلس)، ضريبة 0%، وشبكة كي نت K-NET.');
+                } else if (val === 'SA') {
+                  form.setValue('currency', 'SAR', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Riyadh', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 15, { shouldDirty: true, shouldValidate: true });
+                  form.setValue('printShowTaxNumber', true, { shouldDirty: true, shouldValidate: true });
+                  toast.success('تم تفعيل إعدادات المملكة العربية السعودية: ريال سعودي، ضريبة 15%، وهيئة الزكاة والضريبة ZATCA.');
+                } else if (val === 'EG') {
+                  form.setValue('currency', 'EGP', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Africa/Cairo', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 14, { shouldDirty: true, shouldValidate: true });
+                } else if (val === 'AE') {
+                  form.setValue('currency', 'AED', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Dubai', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 5, { shouldDirty: true, shouldValidate: true });
+                } else if (val === 'QA') {
+                  form.setValue('currency', 'QAR', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Qatar', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 0, { shouldDirty: true, shouldValidate: true });
+                } else if (val === 'BH') {
+                  form.setValue('currency', 'BHD', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Bahrain', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 10, { shouldDirty: true, shouldValidate: true });
+                } else if (val === 'OM') {
+                  form.setValue('currency', 'OMR', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('timezone', 'Asia/Muscat', { shouldDirty: true, shouldValidate: true });
+                  form.setValue('taxRate', 5, { shouldDirty: true, shouldValidate: true });
+                }
+              }}
+              options={[
+                { value: 'KW', label: 'دولة الكويت (Kuwait)' },
+                { value: 'SA', label: 'المملكة العربية السعودية (KSA)' },
+                { value: 'EG', label: 'جمهورية مصر العربية (Egypt)' },
+                { value: 'AE', label: 'دولة الإمارات (UAE)' },
+                { value: 'QA', label: 'دولة قطر (Qatar)' },
+                { value: 'BH', label: 'مملكة البحرين (Bahrain)' },
+                { value: 'OM', label: 'سلطنة عُمان (Oman)' },
+              ]}
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لغة النظام</label>
             <CustomSelect
               value={form.watch('uiLanguage') || 'ar'}
@@ -1026,7 +1082,14 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العملة</label>
             <CustomSelect
               value={form.watch('currency') || 'EGP'}
-              onChange={(val) => form.setValue('currency', val, { shouldDirty: true, shouldValidate: true })}
+              onChange={(val) => {
+                form.setValue('currency', val, { shouldDirty: true, shouldValidate: true });
+                if (val === 'KWD' && form.watch('country') !== 'KW') {
+                  form.setValue('country', 'KW', { shouldDirty: true, shouldValidate: true });
+                } else if (val === 'SAR' && form.watch('country') !== 'SA') {
+                  form.setValue('country', 'SA', { shouldDirty: true, shouldValidate: true });
+                }
+              }}
               options={SUPPORTED_CURRENCIES.map((c) => ({ value: c.code, label: c.label }))}
               disabled={disabled}
             />
@@ -1091,6 +1154,30 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
             />
           </div>
         </div>
+
+        {/* Kuwait Regional Profile Active Banner */}
+        {(form.watch('country') === 'KW' || form.watch('currency') === 'KWD') && (
+          <div style={{
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.8rem',
+            color: '#166534',
+            marginTop: '4px',
+          }}>
+            <ShieldCheckIcon size={18} color="#16a34a" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <strong style={{ fontSize: '0.84rem' }}>الملف الإقليمي لدولة الكويت مفعّل بالكامل</strong>
+              <span style={{ fontSize: '0.74rem', color: '#15803d' }}>
+                دقة الأسعار 3 خانات عشرية (فلس)، ضريبة 0%، شبكة كي نت (K-NET)، منصة كاري (Cari)، ونموذج عناوين المعلومات المدنية (PACI). يمكنك تعديل أي حقل مخصص يدوياً بحرية.
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

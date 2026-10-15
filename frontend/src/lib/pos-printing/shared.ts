@@ -2,8 +2,13 @@ import type { AppSettings } from '@/types/domain';
 
 export type PosPrintPageSize = 'a4' | 'receipt';
 
-export function paymentLabel(value?: string) {
+export function paymentLabel(value?: string, cardScheme?: string) {
+  const scheme = String(cardScheme || '').trim().toLowerCase();
+  if (scheme === 'knet') return 'كي نت (K-NET)';
+  if (scheme === 'mada') return 'مدى (mada)';
   const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'knet') return 'كي نت (K-NET)';
+  if (normalized === 'mada') return 'مدى (mada)';
   if (normalized === 'cash') return 'نقدي';
   if (normalized === 'card') return 'بطاقة / فيزا';
   if (normalized === 'wallet') return 'محفظة إلكترونية';
@@ -19,7 +24,8 @@ export function formatSalePaymentText(
   paidAmount?: number,
   total?: number,
   orderType?: string | null,
-  collectionStatus?: string | null
+  collectionStatus?: string | null,
+  cardScheme?: string
 ): string {
   const paid = Number(paidAmount || 0);
   const invoiceTotal = Number(total || 0);
@@ -30,14 +36,14 @@ export function formatSalePaymentText(
     if (paid > 0.009 && paid + 0.009 < invoiceTotal) {
       if (channel === 'wallet') return 'سداد جزئي (محفظة + آجل)';
       if (channel === 'instapay') return 'سداد جزئي (InstaPay + آجل)';
-      if (channel === 'card') return 'سداد جزئي (فيزا + آجل)';
+      if (channel === 'card') return `سداد جزئي (${paymentLabel('card', cardScheme)} + آجل)`;
       if (channel === 'mixed') return 'سداد جزئي (مختلط + آجل)';
       return 'سداد جزئي (نقدي + آجل)';
     }
     return 'آجل بالكامل';
   }
 
-  const channelLabel = paymentLabel(paymentChannel || paymentType);
+  const channelLabel = paymentLabel(paymentChannel || paymentType, cardScheme);
 
   if (isDelivery) {
     if (collectionStatus === 'cod' || (channelLabel === 'نقدي' && paid < 0.009)) {

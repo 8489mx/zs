@@ -38,6 +38,7 @@ export interface KdsTicket {
   course?: 'appetizer' | 'main' | 'dessert' | 'beverage';
   aggregatorChannel?: string;
   aggregatorOrderId?: string;
+  pagerNumber?: string;
 }
 
 export interface KdsSummaryStats {

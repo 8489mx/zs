@@ -30,6 +30,7 @@ export function usePosWorkspaceState() {
   const [paymentChannel, setPaymentChannel] = useState<PaymentChannel>(storedDraft?.paymentChannel || 'cash');
   const [note, setNote] = useState(storedDraft?.note || '');
   const [tableNumber, setTableNumber] = useState(storedDraft?.tableNumber || '');
+  const [pagerNumber, setPagerNumber] = useState((storedDraft as any)?.pagerNumber || '');
   const [diningCourse, setDiningCourse] = useState<'appetizer' | 'main' | 'dessert' | 'beverage' | string>(
     (storedDraft as any)?.diningCourse || 'main'
   );
@@ -103,6 +104,8 @@ export function usePosWorkspaceState() {
     setNote,
     tableNumber,
     setTableNumber,
+    pagerNumber,
+    setPagerNumber,
     diningCourse,
     setDiningCourse,
     guestCount,

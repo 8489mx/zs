@@ -1,5 +1,6 @@
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getGlobalSystemCurrency } from '@/lib/currencies';
 import type { CashierShift } from '@/types/domain';
 
 function getDurationStr(from?: string, to?: string): string {
@@ -20,7 +21,18 @@ function formatVarianceText(amount: number): string {
   return `+${formatCurrency(amount)} (زيادة)`;
 }
 
-export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, storeName?: string): string {
+export interface ShiftReceiptOptions {
+  reportType?: 'X' | 'Z' | 'settlement';
+}
+
+export function generateCashDrawerSettlementReceiptHtml(
+  shift: CashierShift,
+  storeName?: string,
+  options?: ShiftReceiptOptions
+): string {
+  const isClosed = Boolean(shift.closedAt || shift.status === 'closed');
+  const reportType = options?.reportType || (isClosed ? 'Z' : 'X');
+  const isKwd = getGlobalSystemCurrency() === 'KWD';
   const movementItems = shift.movementItems || [];
   const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
   const cashOutItems = movementItems.filter((i) => i.kind === 'cash_out');
@@ -79,6 +91,12 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
       <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 4px; margin-bottom: 4px;">
         <h2 style="margin: 0 0 1px; font-size: 14px; font-weight: 800;">${escapeHtml(storeName || 'إغلاق وردية الكاشير')}</h2>
         <div style="font-size: 10.5px; font-weight: 700;">تقرير تسوية وجرد الوردية الشامل</div>
+        <div style="margin-top: 2px;">
+          ${reportType === 'X'
+            ? '<span style="display: inline-block; padding: 2px 8px; border: 1.5px dashed #000; font-weight: 800; font-size: 11px; background: #fff;">تقرير X الاسترشادي (X-Report) - قراءة منتصف الوردية</span>'
+            : '<span style="display: inline-block; padding: 2px 8px; border: 1.5px solid #000; font-weight: 800; font-size: 11px; background: #f1f5f9;">تقرير Z النهائي (Z-Report) - إغلاق الوردية والمطابقة</span>'
+          }
+        </div>
       </div>
 
       <!-- Shift Meta -->
@@ -124,19 +142,19 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
               <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${hasDrawerMovements ? '<span style="color: #888;">—</span>' : (drawerVariance === 0 ? 'مطابق' : formatCurrency(drawerVariance))}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 2px 1px;"><strong>بطاقات (فيزا)</strong></td>
+              <td style="padding: 2px 1px;"><strong>${isKwd ? 'بطاقات (K-NET / فيزا)' : 'بطاقات (فيزا / ماستركارد)'}</strong></td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedCard)}</td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredCard)}</td>
               <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${cardDiff === 0 ? 'مطابق' : formatCurrency(cardDiff)}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 2px 1px;"><strong>محافظ إلكترونية</strong></td>
+              <td style="padding: 2px 1px;"><strong>${isKwd ? 'محافظ وروابط دفع' : 'محافظ إلكترونية'}</strong></td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedWallet)}</td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredWallet)}</td>
               <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${walletDiff === 0 ? 'مطابق' : formatCurrency(walletDiff)}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 2px 1px;"><strong>تحويل إنستاباي</strong></td>
+              <td style="padding: 2px 1px;"><strong>${isKwd ? 'كي نت / دفع إلكتروني' : 'تحويل إنستاباي'}</strong></td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedInstapay)}</td>
               <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredInstapay)}</td>
               <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${instapayDiff === 0 ? 'مطابق' : formatCurrency(instapayDiff)}</td>
@@ -320,11 +338,29 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
   `;
 }
 
-export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: string): void {
-  const html = generateCashDrawerSettlementReceiptHtml(shift, storeName);
-  printHtmlDocument(`تقرير وردية ${shift.docNo || shift.id}`, html, {
+export function printCashDrawerShiftReceipt(
+  shift: CashierShift,
+  storeName?: string,
+  options?: ShiftReceiptOptions
+): void {
+  const isClosed = Boolean(shift.closedAt || shift.status === 'closed');
+  const reportType = options?.reportType || (isClosed ? 'Z' : 'X');
+  const html = generateCashDrawerSettlementReceiptHtml(shift, storeName, { ...options, reportType });
+  const title = reportType === 'X'
+    ? `تقرير X (X-Report) - وردية ${shift.docNo || shift.id}`
+    : `تقرير Z (Z-Report) - وردية ${shift.docNo || shift.id}`;
+  printHtmlDocument(title, html, {
     pageSize: 'receipt',
     layout: 'centered',
   });
 }
+
+export function printXReport(shift: CashierShift, storeName?: string): void {
+  printCashDrawerShiftReceipt(shift, storeName, { reportType: 'X' });
+}
+
+export function printZReport(shift: CashierShift, storeName?: string): void {
+  printCashDrawerShiftReceipt(shift, storeName, { reportType: 'Z' });
+}
+
 

@@ -972,6 +972,7 @@ export interface SalesTable {
   terminal_rrn?: string | null;
   card_scheme?: string | null;
   card_last_four?: string | null;
+  pager_number?: string | null;
   service_charge?: number | null;
   tip_amount?: number | null;
   guest_count?: number | null;
@@ -2800,6 +2801,7 @@ export interface OnlineOrderTable {
   gateway_order_id?: string | null;
   gateway_response_json?: string | null;
   paid_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  pager_number?: string | null;
   coupon_code?: string | null;
   discount_amount?: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   delivery_zone_id?: number | null;

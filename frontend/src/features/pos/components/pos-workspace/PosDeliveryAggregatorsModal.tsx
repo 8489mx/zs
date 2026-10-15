@@ -99,7 +99,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
       onClose={onClose}
       onBack={onBack}
       backText="الرجوع لعمليات المطعم"
-      title="منظومة تطبيقات التوصيل الخليجية (جاهز، هنقرستيشن، طلبات، كيتا)"
+      title="منظومة تطبيقات التوصيل الخليجية (طلبات، دليفرو، كاري، جاهز، كيتا)"
       subtitle="إدارة وتوجيه الطلبيات اللحظية، عمولات المنصات، وإيقاف الأصناف التلقائي (86 Out of Stock)"
       footerNote="تكامل واجهات برمجة تطبيقات التوصيل المتعددة مع منصة المطعم المركزية"
     >

@@ -29,7 +29,10 @@ import {
   TrashIcon,
   UserIcon,
   ArrowLeftIcon,
+  SendIcon,
 } from '@/shared/components/icons/AppIcons';
+import { openWhatsAppChat, formatRestaurantOrderWhatsAppMessage } from '@/lib/whatsapp';
+import { getGlobalSystemCurrency, getCurrencySymbol } from '@/lib/currencies';
 
 interface PosPhoneOrderDialogProps {
   open: boolean;
@@ -41,12 +44,21 @@ interface PosPhoneOrderDialogProps {
 
 export type DoorstepPaymentMethod = 'cash' | 'card_pos' | 'instapay_wallet';
 
-const DELIVERY_ZONES = [
+const EGP_DELIVERY_ZONES = [
   { id: 'zone_standard', name: 'توصيل عادي / داخل النطاق', fee: 15, eta: 30 },
   { id: 'zone_near', name: 'منطقة قريبة (أقل من 3 كم)', fee: 10, eta: 25 },
   { id: 'zone_med', name: 'منطقة متوسطة (3 - 6 كم)', fee: 20, eta: 35 },
   { id: 'zone_far', name: 'منطقة بعيدة (6 - 10 كم)', fee: 30, eta: 45 },
   { id: 'zone_extra', name: 'توصيل ممتد / خارج النطاق', fee: 45, eta: 60 },
+  { id: 'zone_custom', name: 'تحديد رسوم مخصصة يدويًا', fee: 0, eta: 35 },
+];
+
+const KWD_DELIVERY_ZONES = [
+  { id: 'zone_standard', name: 'توصيل عادي / داخل المنطقة', fee: 1.000, eta: 30 },
+  { id: 'zone_near', name: 'منطقة قريبة / مجاورة', fee: 0.500, eta: 20 },
+  { id: 'zone_med', name: 'منطقة متوسطة (محافظة تابعة)', fee: 1.500, eta: 35 },
+  { id: 'zone_far', name: 'منطقة بعيدة (محافظة أخرى)', fee: 2.000, eta: 45 },
+  { id: 'zone_extra', name: 'توصيل ممتد / أطراف الكويت', fee: 2.500, eta: 60 },
   { id: 'zone_custom', name: 'تحديد رسوم مخصصة يدويًا', fee: 0, eta: 35 },
 ];
 
@@ -69,13 +81,27 @@ export function PosPhoneOrderDialog({
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [isForceNewCustomer, setIsForceNewCustomer] = useState(false);
 
+  const isKwd = getGlobalSystemCurrency() === 'KWD';
+  const deliveryZones = isKwd ? KWD_DELIVERY_ZONES : EGP_DELIVERY_ZONES;
+  const currencySym = getCurrencySymbol();
+
   // Delivery & Payment Enhancements
   const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_standard');
-  const [customDeliveryFee, setCustomDeliveryFee] = useState<number>(15);
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<number>(isKwd ? 1.000 : 15);
   const [etaMinutes, setEtaMinutes] = useState<number>(30);
   const [paymentMethodAtDoor, setPaymentMethodAtDoor] = useState<DoorstepPaymentMethod>('cash');
   const [customerPaidNote, setCustomerPaidNote] = useState<string>('');
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+
+  // Kuwait PACI Address Helper State
+  const [showPaciHelper, setShowPaciHelper] = useState<boolean>(isKwd);
+  const [paciArea, setPaciArea] = useState('');
+  const [paciBlock, setPaciBlock] = useState('');
+  const [paciStreet, setPaciStreet] = useState('');
+  const [paciAvenue, setPaciAvenue] = useState('');
+  const [paciHouse, setPaciHouse] = useState('');
+  const [paciFloor, setPaciFloor] = useState('');
+  const [paciApt, setPaciApt] = useState('');
   
   // Tab: 'desk' | 'recent_calls' | 'hardware'
   const [activeTab, setActiveTab] = useState<'desk' | 'recent_calls' | 'hardware'>('desk');
@@ -182,13 +208,13 @@ export function PosPhoneOrderDialog({
   // Zone selection calculation
   const currentDeliveryFee = useMemo(() => {
     if (selectedZoneId === 'zone_custom') return customDeliveryFee;
-    const found = DELIVERY_ZONES.find((z) => z.id === selectedZoneId);
-    return found ? found.fee : 15;
-  }, [selectedZoneId, customDeliveryFee]);
+    const found = deliveryZones.find((z) => z.id === selectedZoneId);
+    return found ? found.fee : (isKwd ? 1.000 : 15);
+  }, [selectedZoneId, customDeliveryFee, deliveryZones, isKwd]);
 
   function handleZoneChange(zoneId: string) {
     setSelectedZoneId(zoneId);
-    const found = DELIVERY_ZONES.find((z) => z.id === zoneId);
+    const found = deliveryZones.find((z) => z.id === zoneId);
     if (found) {
       if (zoneId !== 'zone_custom') {
         setCustomDeliveryFee(found.fee);
@@ -202,21 +228,21 @@ export function PosPhoneOrderDialog({
     const parts: string[] = [];
 
     // Zone & ETA
-    const zoneObj = DELIVERY_ZONES.find((z) => z.id === selectedZoneId);
+    const zoneObj = deliveryZones.find((z) => z.id === selectedZoneId);
     const zoneName = zoneObj ? zoneObj.name : 'توصيل';
-    parts.push(`[التوصيل: ${zoneName} - ${currentDeliveryFee} ج | الوقت المتوقع: ${etaMinutes} دقيقة]`);
+    parts.push(`[التوصيل: ${zoneName} - ${currentDeliveryFee} ${currencySym} | الوقت المتوقع: ${etaMinutes} دقيقة]`);
 
     // Payment method at doorstep
     if (paymentMethodAtDoor === 'cash') {
       if (customerPaidNote.trim()) {
-        parts.push(`[الدفع: كاش عند الاستلام | العميل يدفع: ${customerPaidNote.trim()} ج - تجهيز فكة للطيار]`);
+        parts.push(`[الدفع: كاش عند الاستلام | العميل يدفع: ${customerPaidNote.trim()} ${currencySym} - تجهيز فكة للطيار]`);
       } else {
         parts.push(`[الدفع: كاش عند الاستلام]`);
       }
     } else if (paymentMethodAtDoor === 'card_pos') {
-      parts.push(`[الدفع: فيزا مع الطيار | اصطحاب ماكينة POS المحمولة]`);
+      parts.push(isKwd ? `[الدفع: كي نت مع الطيار (K-NET) | اصطحاب ماكينة الدفع المحمولة]` : `[الدفع: فيزا مع الطيار | اصطحاب ماكينة POS المحمولة]`);
     } else if (paymentMethodAtDoor === 'instapay_wallet') {
-      parts.push(`[الدفع: إنستاباي / محفظة إلكترونية]`);
+      parts.push(isKwd ? `[الدفع: رابط دفع إلكتروني (K-NET Payment Link)]` : `[الدفع: إنستاباي / محفظة إلكترونية]`);
     }
 
     if (deliveryNotes.trim()) {
@@ -571,14 +597,47 @@ export function PosPhoneOrderDialog({
               إلغاء وإغلاق
             </Button>
             {currentCustomer && activeTab === 'desk' && (
-              <Button
-                size="sm"
-                style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem' }}
-                onClick={handleStartNewOrder}
-              >
-                <PlusIcon size={14} style={{ marginLeft: '4px' }} />
-                بدء طلب جديد للعميل
-              </Button>
+              <>
+                {currentCustomer.phone ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      color: '#166534',
+                    }}
+                    onClick={() => {
+                      const msg = formatRestaurantOrderWhatsAppMessage({
+                        customerName: currentCustomer.name,
+                        total: Number(pos.totals?.total || 0),
+                        deliveryFee: currentDeliveryFee,
+                        items: pos.cart.map((c) => ({ name: c.name, qty: c.qty, price: c.price })),
+                        storeName: 'المطعم',
+                        currency: 'د.ك',
+                      });
+                      openWhatsAppChat(currentCustomer.phone, msg);
+                    }}
+                    title="إرسال تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب"
+                  >
+                    <SendIcon size={13} color="#166534" />
+                    <span>واتساب وسداد K-NET</span>
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem' }}
+                  onClick={handleStartNewOrder}
+                >
+                  <PlusIcon size={14} style={{ marginLeft: '4px' }} />
+                  بدء طلب جديد للعميل
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -1065,7 +1124,7 @@ export function PosPhoneOrderDialog({
                                   handleSaveCustomAddress();
                                 }
                               }}
-                              placeholder="اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."
+                              placeholder={isKwd ? "اكتب العنوان بالتفصيل أو بنظام PACI (المنطقة، قطعة، شارع، جادة، منزل)..." : "اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."}
                               style={{
                                 flex: 1,
                                 padding: '4px 8px',
@@ -1223,9 +1282,9 @@ export function PosPhoneOrderDialog({
                             background: '#ffffff',
                           }}
                         >
-                          {DELIVERY_ZONES.map((z) => (
+                          {deliveryZones.map((z) => (
                             <option key={z.id} value={z.id}>
-                              {z.name} ({z.fee} ج)
+                              {z.name} ({z.fee} {currencySym})
                             </option>
                           ))}
                         </select>
@@ -1263,11 +1322,12 @@ export function PosPhoneOrderDialog({
                         <input
                           type="number"
                           min="0"
+                          step={isKwd ? "0.050" : "1"}
                           value={customDeliveryFee}
                           onChange={(e) => setCustomDeliveryFee(Number(e.target.value) || 0)}
                           style={{ width: '65px', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                         />
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>ج.م</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{currencySym}</span>
                       </div>
                     )}
 
@@ -1319,7 +1379,7 @@ export function PosPhoneOrderDialog({
                           }}
                         >
                           <CreditCardIcon size={11} />
-                          فيزا مع الطيار
+                          {isKwd ? 'كي نت مع المندوب' : 'فيزا مع الطيار'}
                         </button>
                         <button
                           type="button"
@@ -1340,7 +1400,7 @@ export function PosPhoneOrderDialog({
                             gap: '3px',
                           }}
                         >
-                          إنستاباي / محفظة
+                          {isKwd ? 'رابط دفع أونلاين' : 'إنستاباي / محفظة'}
                         </button>
                       </div>
 
@@ -1351,7 +1411,7 @@ export function PosPhoneOrderDialog({
                             type="text"
                             value={customerPaidNote}
                             onChange={(e) => setCustomerPaidNote(e.target.value)}
-                            placeholder="مثال: 200 ج..."
+                            placeholder={isKwd ? "مثال: 10 د.ك..." : "مثال: 200 ج..."}
                             style={{
                               flex: 1,
                               padding: '2px 6px',
@@ -1361,7 +1421,7 @@ export function PosPhoneOrderDialog({
                             }}
                           />
                           <div style={{ display: 'flex', gap: '2px' }}>
-                            {['100', '200', '500'].map((val) => (
+                            {(isKwd ? ['5', '10', '20'] : ['100', '200', '500']).map((val) => (
                               <button
                                 key={val}
                                 type="button"
@@ -1792,7 +1852,7 @@ export function PosPhoneOrderDialog({
                     type="text"
                     value={newAddress}
                     onChange={(e) => setNewAddress(e.target.value)}
-                    placeholder="مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"
+                    placeholder={isKwd ? "مثال: حولي - ق 4 - ش تونس - جادة 2 - منزل 18 - دور 3 شقة 6" : "مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"}
                     style={{
                       width: '100%',
                       padding: '5px 8px',
@@ -1802,6 +1862,139 @@ export function PosPhoneOrderDialog({
                     }}
                   />
                 </div>
+
+                {isKwd && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#170e5e' }}>
+                        نموذج المعلومات المدنية الكويتية (PACI):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const parts = [
+                            paciArea.trim(),
+                            paciBlock.trim() ? `ق ${paciBlock.trim()}` : '',
+                            paciStreet.trim() ? `ش ${paciStreet.trim()}` : '',
+                            paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '',
+                            paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '',
+                            paciFloor.trim() ? `دور ${paciFloor.trim()}` : '',
+                            paciApt.trim() ? `شقة ${paciApt.trim()}` : '',
+                          ].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: '#1d4ed8',
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        توليد العنوان تلقائياً
+                      </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                      <input
+                        type="text"
+                        placeholder="المنطقة (حولي)"
+                        value={paciArea}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciArea(val);
+                          const parts = [val.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="القطعة (Block)"
+                        value={paciBlock}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciBlock(val);
+                          const parts = [paciArea.trim(), val.trim() ? `ق ${val.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="الشارع"
+                        value={paciStreet}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciStreet(val);
+                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', val.trim() ? `ش ${val.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="الجادة (اختياري)"
+                        value={paciAvenue}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciAvenue(val);
+                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', val.trim() ? `جادة ${val.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      <input
+                        type="text"
+                        placeholder="المنزل / القسيمة / المبنى"
+                        value={paciHouse}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciHouse(val);
+                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', val.trim() ? `منزل ${val.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="الدور (اختياري)"
+                        value={paciFloor}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciFloor(val);
+                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', val.trim() ? `دور ${val.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="الشقة (اختياري)"
+                        value={paciApt}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPaciApt(val);
+                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', val.trim() ? `شقة ${val.trim()}` : ''].filter(Boolean);
+                          setNewAddress(parts.join(' - '));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Delivery Zone & Payment in New Customer Form */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#f8fafc', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
@@ -1821,9 +2014,9 @@ export function PosPhoneOrderDialog({
                         background: '#ffffff',
                       }}
                     >
-                      {DELIVERY_ZONES.map((z) => (
+                      {deliveryZones.map((z) => (
                         <option key={z.id} value={z.id}>
-                          {z.name} ({z.fee} ج)
+                          {z.name} ({z.fee} {currencySym})
                         </option>
                       ))}
                     </select>
@@ -1846,8 +2039,8 @@ export function PosPhoneOrderDialog({
                       }}
                     >
                       <option value="cash">كاش عند الاستلام</option>
-                      <option value="card_pos">فيزا مع الطيار (POS)</option>
-                      <option value="instapay_wallet">إنستاباي / محفظة إلكترونية</option>
+                      <option value="card_pos">{isKwd ? 'كي نت مع المندوب (K-NET)' : 'فيزا مع الطيار (POS)'}</option>
+                      <option value="instapay_wallet">{isKwd ? 'رابط دفع أونلاين (K-NET Link)' : 'إنستاباي / محفظة إلكترونية'}</option>
                     </select>
                   </div>
                 </div>

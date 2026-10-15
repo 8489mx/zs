@@ -8,10 +8,13 @@ import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { formatCurrency } from '@/lib/format';
+import { getGlobalSystemCurrency } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, CashierShift, Location } from '@/types/domain';
 import type { CloseShiftValues, MovementValues, OpenShiftValues } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
 import { getOfflineSalesQueue } from '@/features/pos/lib/pos-offline-sync';
+import { PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { printZReport } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 
 interface MutationLike {
   isPending: boolean;
@@ -524,6 +527,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const [showCardDetails, setShowCardDetails] = useState(false);
   const [showWalletDetails, setShowWalletDetails] = useState(false);
   const [showInstapayDetails, setShowInstapayDetails] = useState(false);
+  const isKwd = getGlobalSystemCurrency() === 'KWD';
 
   const [offlinePendingCount, setOfflinePendingCount] = useState(() => {
     try {
@@ -1036,10 +1040,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {/* Card / Visa */}
+                    {/* Card / Visa / K-NET */}
                     <PaymentChannelRow
-                      title="فيزا وماكينات POS"
-                      subtitle="مدفوعات البطاقات البنكية حسب تقرير الماكينة"
+                      title={isKwd ? "بطاقات K-NET وفيزا" : "فيزا وماكينات POS"}
+                      subtitle={isKwd ? "مدفوعات كي نت والبطاقات البنكية حسب تقرير الماكينة" : "مدفوعات البطاقات البنكية حسب تقرير الماكينة"}
                       icon={<CardIcon size={18} color="#2563eb" />}
                       themeColor="#2563eb"
                       bgLight="#eff6ff"
@@ -1058,8 +1062,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
                     {/* Wallets */}
                     <PaymentChannelRow
-                      title="المحافظ الإلكترونية"
-                      subtitle="فودافون كاش، أورنج، اتصالات كاش، وي باي"
+                      title={isKwd ? "المحافظ وروابط الدفع" : "المحافظ الإلكترونية"}
+                      subtitle={isKwd ? "Apple Pay والمحافظ الرقمية وروابط الدفع" : "فودافون كاش، أورنج، اتصالات كاش، وي باي"}
                       icon={<WalletIcon size={18} color="#7c3aed" />}
                       themeColor="#7c3aed"
                       bgLight="#f5f3ff"
@@ -1076,10 +1080,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       disabled={props.closeMutation.isPending}
                     />
 
-                    {/* InstaPay */}
+                    {/* InstaPay / K-NET Electronic Links */}
                     <PaymentChannelRow
-                      title="تحويلات InstaPay"
-                      subtitle="التحويلات البنكية اللحظية وتطبيق إنستاباي"
+                      title={isKwd ? "عمليات كي نت / روابط الدفع" : "تحويلات InstaPay"}
+                      subtitle={isKwd ? "عمليات الدفع عبر شبكة K-NET وروابط الدفع الإلكتروني" : "التحويلات البنكية اللحظية وتطبيق إنستاباي"}
                       icon={<InstaPayIcon size={18} color="#059669" />}
                       themeColor="#059669"
                       bgLight="#ecfdf5"
@@ -1263,6 +1267,27 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             )}
 
             <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
+            {props.closeMutation.isSuccess && selectedCloseShift ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => printZReport(selectedCloseShift)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  margin: '8px 0',
+                  width: '100%',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                }}
+              >
+                <PrinterIcon size={16} color="#170e5e" />
+                <span>طباعة تقرير Z النهائي (Z-Report)</span>
+              </Button>
+            ) : null}
             <SubmitButton
               type="submit"
               isPending={props.closeMutation.isPending}

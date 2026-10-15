@@ -16,8 +16,54 @@ export function cleanWhatsAppPhone(phone: string): string {
   if (digits.startsWith('5') && digits.length === 9) {
     return `966${digits}`;
   }
+  // Kuwait numbers: 8 digits starting with 2, 5, 6, 9
+  if (digits.length === 8 && /^[2569]/.test(digits)) {
+    return `965${digits}`;
+  }
+  // Strip leading 00 if present
+  if (digits.startsWith('00')) {
+    return digits.slice(2);
+  }
   // Already has country code
   return digits;
+}
+
+export function formatRestaurantOrderWhatsAppMessage({
+  customerName,
+  orderNumber,
+  items,
+  total,
+  deliveryFee,
+  paymentLink,
+  storeName,
+  currency = 'د.ك',
+}: {
+  customerName?: string;
+  orderNumber?: string;
+  items?: Array<{ name: string; qty: number; price?: number }>;
+  total: number;
+  deliveryFee?: number;
+  paymentLink?: string;
+  storeName?: string;
+  currency?: string;
+}): string {
+  const storeHeader = storeName ? `*${storeName}*\n` : '';
+  const greeting = customerName ? `مرحباً أستاذ/ة *${customerName}*،\n` : 'مرحباً بك،\n';
+  const orderLine = orderNumber ? `تم استلام وتجهيز طلبك رقم: *#${orderNumber}*\n\n` : '';
+  
+  let itemsList = '';
+  if (items && items.length > 0) {
+    itemsList = '📋 *تفاصيل الطلب:*\n' + items.map(it => `• ${it.name} × ${it.qty}`).join('\n') + '\n\n';
+  }
+
+  const feeLine = deliveryFee && deliveryFee > 0 ? `(شامل رسوم التوصيل: ${deliveryFee.toFixed(3)} ${currency})\n` : '';
+  const totalLine = `💰 *الإجمالي المطلوب:* *${total.toFixed(3)} ${currency}* ${feeLine}`;
+  
+  const paymentSection = paymentLink
+    ? `\n💳 *رابط السداد الإلكتروني المباشر (كي نت K-NET / بطاقة):*\n${paymentLink}\n`
+    : '\n💳 *طريقة الدفع:* كي نت (K-NET) أو نقدي عند الاستلام\n';
+
+  return `${storeHeader}${greeting}${orderLine}${itemsList}${totalLine}${paymentSection}\nيسعدنا خدمتكم دائماً ونتمنى لكم وجبة شهية!`;
 }
 
 export function openWhatsAppChat(phone: string, message: string): boolean {

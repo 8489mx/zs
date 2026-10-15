@@ -153,6 +153,9 @@ export class SettingsService {
     const isAlmhnds = tenant?.slug === 'almhnds';
 
     if (tenant) {
+      if (!settings.country && (tenant as any).country_code) settings.country = (tenant as any).country_code;
+      if (!settings.country && settings.currency === 'KWD') settings.country = 'KW';
+      if (!settings.country && settings.currency === 'SAR') settings.country = 'SA';
       if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
       if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
       if (!settings.phone && tenant.owner_phone) settings.phone = tenant.owner_phone;

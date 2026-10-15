@@ -1450,6 +1450,7 @@ export class SalesWriteService {
           terminal_rrn: normalized.terminalRrn || null,
           card_scheme: normalized.cardScheme || null,
           card_last_four: normalized.cardLastFour || null,
+          pager_number: normalized.pagerNumber || null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)

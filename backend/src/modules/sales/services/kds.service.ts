@@ -41,6 +41,7 @@ export interface KdsTicket {
   course?: 'appetizer' | 'main' | 'dessert' | 'beverage';
   aggregatorChannel?: string;
   aggregatorOrderId?: string;
+  pagerNumber?: string;
 }
 
 export interface KdsSummaryStats {
@@ -201,6 +202,7 @@ export class KdsService {
         's.customer_name',
         's.dining_course',
         's.aggregator_channel',
+        's.pager_number',
         'c.name as customer_name_ref',
         'u.username as cashier_username',
       ])
@@ -334,6 +336,7 @@ export class KdsService {
         urgencyLevel,
         course: (sale as any).dining_course || undefined,
         aggregatorChannel: (sale as any).aggregator_channel || undefined,
+        pagerNumber: (sale as any).pager_number || undefined,
       });
 
       totalMinutes += elapsedMinutes;

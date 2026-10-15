@@ -55,6 +55,7 @@ export function printPosDraftPreview(options: {
   note?: string;
   tableNumber?: string | null;
   orderType?: string | null;
+  pagerNumber?: string | null;
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
   loyaltyPointsEarned?: number;
@@ -76,6 +77,7 @@ export function printPosDraftPreview(options: {
     note: options.note,
     tableNumber: options.tableNumber,
     orderType: options.orderType,
+    pagerNumber: options.pagerNumber,
     deliveryRepName: (options as any).deliveryRepName,
     items: (options.items || []).map((item) => ({
       name: item.name,
@@ -132,7 +134,8 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
       sale.paidAmount,
       sale.total,
       (sale as any).orderType || (sale as any).order_type,
-      (sale as any).collectionStatus || (sale as any).collection_status
+      (sale as any).collectionStatus || (sale as any).collection_status,
+      (sale as any).cardScheme || (sale as any).card_scheme
     ),
     cashierName: sale.createdBy || options.cashierName || '—',
     branchName: sale.branchName || 'المتجر الرئيسي',
@@ -140,6 +143,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     note: sale.note || '',
     tableNumber: (sale as any).tableNumber || (sale as any).table_number || null,
     orderType: (sale as any).orderType || (sale as any).order_type || null,
+    pagerNumber: (sale as any).pagerNumber || (sale as any).pager_number || null,
     deliveryRepName: (sale as any).deliveryRepName || (sale as any).delivery_rep_name || null,
     items: ((sale as any).cart || sale.items || []).map((item: any) => ({
       name: item.name,

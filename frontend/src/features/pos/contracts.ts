@@ -46,6 +46,7 @@ export interface CreatePosSaleInput {
   cardScheme?: string | null;
   cardLastFour?: string | null;
   diningCourse?: 'appetizer' | 'main' | 'dessert' | 'beverage' | string | null;
+  pagerNumber?: string | null;
   serviceCharge?: number;
   guestCount?: number;
   guestCheckPrintedAt?: string | null;
@@ -179,6 +180,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     } : {}),
     ...(input.tableNumber ? { tableNumber: input.tableNumber } : {}),
     ...(input.diningCourse ? { diningCourse: input.diningCourse } : {}),
+    ...(input.pagerNumber ? { pagerNumber: input.pagerNumber } : {}),
     ...(input.terminalId ? { terminalId: input.terminalId } : {}),
     ...(input.terminalAuthCode ? { terminalAuthCode: input.terminalAuthCode } : {}),
     ...(input.terminalRrn ? { terminalRrn: input.terminalRrn } : {}),
@@ -231,6 +233,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     orderType: input.orderType || 'direct',
     collectionStatus: input.collectionStatus || (input.orderType === 'delivery' ? 'cod' : null),
     ...(Number(input.onlineOrderId) > 0 ? { onlineOrderId: Number(input.onlineOrderId) } : {}),
+    ...(input.pagerNumber ? { pagerNumber: input.pagerNumber } : {}),
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
     } : {}),

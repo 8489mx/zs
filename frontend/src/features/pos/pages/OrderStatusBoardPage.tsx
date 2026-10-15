@@ -323,6 +323,11 @@ export function OrderStatusBoardPage() {
                           طاولة {t.tableNumber}
                         </span>
                       )}
+                      {t.pagerNumber && (
+                        <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                          بيجر: {t.pagerNumber}
+                        </span>
+                      )}
                       {t.aggregatorChannel ? (
                         <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
                           {t.aggregatorChannel}
@@ -442,6 +447,11 @@ export function OrderStatusBoardPage() {
                       {t.tableNumber && (
                         <span style={{ background: '#dcfce7', color: '#065f46', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                           طاولة {t.tableNumber}
+                        </span>
+                      )}
+                      {t.pagerNumber && (
+                        <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800, border: '1px solid #fde68a' }}>
+                          بيجر: {t.pagerNumber}
                         </span>
                       )}
                       {t.aggregatorChannel ? (

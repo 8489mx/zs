@@ -274,6 +274,7 @@ export function createPosWorkspaceAsyncActions(
         orderType: params.orderType,
         tableNumber: params.tableNumber,
         diningCourse: params.diningCourse,
+        pagerNumber: params.pagerNumber || undefined,
         serviceCharge: params.totals.serviceCharge,
         guestCount: params.guestCount,
         guestCheckPrintedAt: params.guestCheckPrintedAt,
@@ -301,6 +302,7 @@ export function createPosWorkspaceAsyncActions(
         terminalRrn: params.terminalPaymentDetails?.rrn || (createdSale as any)?.terminalRrn,
         cardScheme: params.terminalPaymentDetails?.cardScheme || (createdSale as any)?.cardScheme,
         cardLastFour: params.terminalPaymentDetails?.cardLastFour || (createdSale as any)?.cardLastFour,
+        pagerNumber: params.pagerNumber || (createdSale as any)?.pagerNumber || (createdSale as any)?.pager_number,
       } as any;
       params.setLastSale(hydratedSale);
       const createdSaleKey = getSaleKey(hydratedSale);

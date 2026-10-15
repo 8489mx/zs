@@ -127,6 +127,7 @@ export const settingsFormSchema = z.object({
   printNumberFormat: z.enum(['arabic', 'english']).default('arabic'),
   printDualReceiptForOnlineDelivery: z.boolean().default(false),
   uiLanguage: z.enum(['ar', 'en']).default('ar'),
+  country: z.string().trim().optional().default('KW'),
   currency: z.string().trim().min(2).default('EGP'),
   timezone: z.string().trim().min(2).default('Africa/Cairo'),
   dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('dd/MM/yyyy'),

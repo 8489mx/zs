@@ -105,6 +105,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     tableNumber: typeof payload.tableNumber === 'string' ? payload.tableNumber.trim() : null,
     orderType: typeof payload.orderType === 'string' ? payload.orderType.trim() : null,
     diningCourse: typeof payload.diningCourse === 'string' ? payload.diningCourse.trim() : null,
+    pagerNumber: typeof (payload as any).pagerNumber === 'string' ? (payload as any).pagerNumber.trim() : null,
     terminalId: payload.terminalId ? String(payload.terminalId).trim() : null,
     terminalAuthCode: payload.terminalAuthCode ? String(payload.terminalAuthCode).trim() : null,
     terminalRrn: payload.terminalRrn ? String(payload.terminalRrn).trim() : null,

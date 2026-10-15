@@ -22,6 +22,12 @@ export function formatWhatsAppNumber(phone: string) {
   if (cleaned.length === 11 && cleaned.startsWith('01')) {
     cleaned = '2' + cleaned;
   }
+  if (cleaned.length === 10 && cleaned.startsWith('05')) {
+    cleaned = '966' + cleaned.slice(1);
+  }
+  if (cleaned.length === 8 && /^[2569]/.test(cleaned)) {
+    cleaned = '965' + cleaned;
+  }
   return cleaned;
 }
 

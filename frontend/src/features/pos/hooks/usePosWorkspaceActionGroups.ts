@@ -51,6 +51,8 @@ export interface PosWorkspaceActionParams {
   locationId: string;
   tableNumber: string;
   setTableNumber: Dispatch<SetStateAction<string>>;
+  pagerNumber?: string;
+  setPagerNumber?: Dispatch<SetStateAction<string>>;
   diningCourse?: string;
   setDiningCourse?: Dispatch<SetStateAction<any>>;
   guestCount?: number;

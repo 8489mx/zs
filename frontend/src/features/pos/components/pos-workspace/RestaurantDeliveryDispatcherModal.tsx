@@ -6,6 +6,7 @@ import { toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
 import { storefrontApi } from '@/features/storefront';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { openWhatsAppChat, formatRestaurantOrderWhatsAppMessage } from '@/lib/whatsapp';
 import {
   TruckIcon,
   PhoneIcon,
@@ -282,7 +283,7 @@ export function RestaurantDeliveryDispatcherModal({
                             </span>
                           </div>
                         )}
-                        <div style={{ marginTop: '4px', display: 'flex', gap: '6px' }}>
+                        <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                           <span
                             style={{
                               fontSize: '10px',
@@ -295,6 +296,40 @@ export function RestaurantDeliveryDispatcherModal({
                           >
                             {order.paymentStatus === 'paid' ? 'مسدد إلكترونياً' : 'مطلوب تحصيل كاش (COD)'}
                           </span>
+                          {order.customerPhone ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const msg = formatRestaurantOrderWhatsAppMessage({
+                                  customerName: order.customerName,
+                                  orderNumber: order.orderNumber,
+                                  total: Number(order.totalAmount || 0),
+                                  deliveryFee: Number(order.deliveryFee || 0),
+                                  storeName: 'المطعم',
+                                  currency: currencySymbol,
+                                });
+                                openWhatsAppChat(order.customerPhone!, msg);
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                background: '#f0fdf4',
+                                border: '1px solid #bbf7d0',
+                                color: '#166534',
+                                borderRadius: '4px',
+                                padding: '2px 7px',
+                                cursor: 'pointer',
+                              }}
+                              title="إرسال رسالة تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب"
+                            >
+                              <SendIcon size={11} color="#166534" />
+                              <span>واتساب K-NET</span>
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     </div>
