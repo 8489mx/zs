@@ -318,6 +318,7 @@ function ShiftDetailsGrid({
                 <strong style={{ fontWeight: 800, color: '#16a34a' }}>{formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}</strong>
               </div>
             </>
+          )}
           {Number(row.tipSalesTotal || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '0.82rem', background: '#eef2ff', padding: '3px 6px', borderRadius: '4px', marginTop: '2px' }}>
               <span>إكراميات مستحقة للعمالة (Tips):</span>
