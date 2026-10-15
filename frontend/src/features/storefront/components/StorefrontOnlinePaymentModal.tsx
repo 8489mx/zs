@@ -1,4 +1,4 @@
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
 import { useState } from 'react';
 import { CreateOnlineOrderResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -32,7 +32,12 @@ export function StorefrontOnlinePaymentModal({
 
   const orderToken = orderData.accessToken || '';
   const totalAmount = session.amount || orderData.totalAmount;
-  const currencyLabel = session.currency || getGlobalCurrencySymbol();
+  const rawCurrency = session.currency || getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(rawCurrency);
+  const currencyLabel = getCurrencySymbol(rawCurrency);
+  const formattedTotal = isThreeDec
+    ? Number(totalAmount).toFixed(3)
+    : (rawCurrency === 'EGP' && Number(totalAmount) % 1 === 0 ? Number(totalAmount).toFixed(0) : Number(totalAmount).toFixed(2));
   const isLiveIframe =
     (session.mode === 'paymob' || session.mode === 'xpay' || session.mode === 'tap' || session.mode === 'stripe') &&
     !session.testMode &&
@@ -141,7 +146,7 @@ export function StorefrontOnlinePaymentModal({
                 {isLiveIframe ? `بوابة الدفع الآمنة (${providerLabel})` : `بوابة الدفع الإلكتروني (${providerLabel} - تجريبي)`}
               </div>
               <div style={{ fontSize: '11px', opacity: 0.85 }}>
-                طلب رقم: #{session.orderNumber} • الإجمالي: {totalAmount.toFixed(0)} {currencyLabel}
+                طلب رقم: #{session.orderNumber} • الإجمالي: {formattedTotal} {currencyLabel}
               </div>
             </div>
           </div>
@@ -531,7 +536,7 @@ export function StorefrontOnlinePaymentModal({
                   'جاري معالجة الدفع...'
                 ) : (
                   <>
-                    <span>دفع فوري تجريبي ({totalAmount.toFixed(0)} {currencyLabel})</span>
+                    <span>دفع فوري تجريبي ({formattedTotal} {currencyLabel})</span>
                     <CheckIcon size={16} />
                   </>
                 )}

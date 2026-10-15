@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
@@ -46,9 +46,24 @@ export function StorefrontCartDrawer({
     };
   }, [isOpen, onClose]);
 
+  const storeCurrency = info?.currency || 'EGP';
+  const isThreeDec = isThreeDecimalCurrency(storeCurrency);
+  const activeCurrencySymbol = getCurrencySymbol(storeCurrency);
+
+  const formatPriceNumber = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) {
+      return num.toFixed(3);
+    }
+    if (storeCurrency === 'EGP') {
+      return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    }
+    return num.toFixed(2);
+  };
+
   if (!isOpen) return null;
 
-  const cartTotals = calculateCartSubtotal(cartItems);
+  const cartTotals = calculateCartSubtotal(cartItems, storeCurrency);
   const subtotal = cartTotals.subtotal;
   const totalSavings = cartTotals.totalSavings;
   const freeShippingThreshold = info?.freeShippingMinOrder || 500;
@@ -261,20 +276,20 @@ export function StorefrontCartDrawer({
                     {item.product.name}
                   </h4>
                   {(() => {
-                    const linePricing = calculateCartLinePricing(item.product, item.quantity);
+                    const linePricing = calculateCartLinePricing(item.product, item.quantity, storeCurrency);
                     return (
                       <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                         <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                          {linePricing.lineTotal.toFixed(0)} <CurrencySymbol />
+                          {formatPriceNumber(linePricing.lineTotal)} <CurrencySymbol />
                         </span>
                         {linePricing.savings > 0 && (
                           <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
-                            {linePricing.originalLineTotal.toFixed(0)} <CurrencySymbol />
+                            {formatPriceNumber(linePricing.originalLineTotal)} <CurrencySymbol />
                           </span>
                         )}
                         {item.quantity > 1 && (
                           <span style={{ fontSize: '10.5px', color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
-                            ({linePricing.unitPrice.toFixed(0)} × {item.quantity})
+                            ({formatPriceNumber(linePricing.unitPrice)} × {item.quantity})
                           </span>
                         )}
                         {linePricing.isBogoApplied && (
@@ -379,7 +394,7 @@ export function StorefrontCartDrawer({
                   textAlign: 'center',
                 }}
               >
-                الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {(minOrder - subtotal).toFixed(0)} ج)
+                الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
               </div>
             )}
 
@@ -387,12 +402,12 @@ export function StorefrontCartDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
                 <span>مجموع الأصناف:</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
               </div>
               {totalSavings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--storefront-secondary-color, #e11d48)' }}>
                   <span style={{ fontWeight: 700 }}>وفرت من العروض:</span>
-                  <span style={{ fontWeight: 800 }}>- {totalSavings.toFixed(0)} <CurrencySymbol /></span>
+                  <span style={{ fontWeight: 800 }}>- {formatPriceNumber(totalSavings)} <CurrencySymbol /></span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
@@ -400,10 +415,10 @@ export function StorefrontCartDrawer({
                 <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   {deliveryFee === 0 && baseDeliveryFee > 0 && (
                     <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px' }}>
-                      {baseDeliveryFee.toFixed(0)} <CurrencySymbol />
+                      {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
                     </span>
                   )}
-                  <span>{deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ${getGlobalCurrencySymbol()}` : 'مجاناً'}</span>
+                  <span>{deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : 'مجاناً'}</span>
                 </span>
               </div>
               <div
@@ -418,7 +433,7 @@ export function StorefrontCartDrawer({
                 }}
               >
                 <span>المبلغ الإجمالي:</span>
-                <span>{total.toFixed(0)} <CurrencySymbol /></span>
+                <span>{formatPriceNumber(total)} <CurrencySymbol /></span>
               </div>
             </div>
 
@@ -442,7 +457,7 @@ export function StorefrontCartDrawer({
                   transition: 'all 0.15s ease',
                 }}
               >
-                إتمام الطلب الآن ({total.toFixed(0)} ج)
+                إتمام الطلب الآن ({formatPriceNumber(total)} {activeCurrencySymbol})
               </button>
               <button
                 type="button"

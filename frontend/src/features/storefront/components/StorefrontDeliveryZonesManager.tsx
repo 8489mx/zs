@@ -1,10 +1,11 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontDeliveryZone, CreateDeliveryZonePayload } from '../types/storefront.types';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   TruckIcon,
   BuildingIcon,
@@ -17,6 +18,11 @@ import {
 
 export function StorefrontDeliveryZonesManager() {
   const queryClient = useQueryClient();
+  const currCode = getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(currCode);
+  const isKuwait = currCode === 'KWD';
+  const currencySymbol = getGlobalCurrencySymbol();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<StorefrontDeliveryZone | null>(null);
   const [actionError, setActionError] = useState('');
@@ -24,7 +30,7 @@ export function StorefrontDeliveryZonesManager() {
 
   // Form state
   const [formName, setFormName] = useState('');
-  const [formDeliveryFee, setFormDeliveryFee] = useState<number>(20);
+  const [formDeliveryFee, setFormDeliveryFee] = useState<number>(isThreeDec ? 1.5 : 20);
   const [formEstimatedTime, setFormEstimatedTime] = useState('');
   const [formSortOrder, setFormSortOrder] = useState<number>(0);
   const [formIsActive, setFormIsActive] = useState<boolean>(true);
@@ -41,6 +47,7 @@ export function StorefrontDeliveryZonesManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-delivery-zones'] });
       handleCloseModal();
+      toast.success('تم إضافة منطقة التوصيل بنجاح');
     },
     onError: (err: any) => {
       setActionError(err.message || 'حدث خطأ أثناء حفظ منطقة التوصيل');
@@ -53,6 +60,7 @@ export function StorefrontDeliveryZonesManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-delivery-zones'] });
       handleCloseModal();
+      toast.success('تم تحديث منطقة التوصيل بنجاح');
     },
     onError: (err: any) => {
       setActionError(err.message || 'حدث خطأ أثناء تعديل منطقة التوصيل');
@@ -71,16 +79,17 @@ export function StorefrontDeliveryZonesManager() {
     mutationFn: storefrontApi.deleteDeliveryZone,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-delivery-zones'] });
+      toast.success('تم حذف منطقة التوصيل بنجاح');
     },
     onError: (err: any) => {
-      alert(`تعذر حذف المنطقة: ${err.message || 'خطأ غير معروف'}`);
+      toast.error(`تعذر حذف المنطقة: ${err.message || 'خطأ غير معروف'}`);
     },
   });
 
   const handleOpenCreateModal = () => {
     setEditingZone(null);
     setFormName('');
-    setFormDeliveryFee(20);
+    setFormDeliveryFee(isThreeDec ? 1.5 : 20);
     setFormEstimatedTime('');
     setFormSortOrder(zones.length);
     setFormIsActive(true);
@@ -135,8 +144,15 @@ export function StorefrontDeliveryZonesManager() {
     }
   };
 
-  const handleDeleteZone = (zone: StorefrontDeliveryZone) => {
-    if (window.confirm(`هل أنت متأكد من رغبتك في حذف منطقة "${zone.name}"؟`)) {
+  const handleDeleteZone = async (zone: StorefrontDeliveryZone) => {
+    const ok = await systemConfirm({
+      title: 'حذف منطقة التوصيل',
+      message: `هل أنت متأكد من رغبتك في حذف منطقة "${zone.name}"؟`,
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      isDestructive: true,
+    });
+    if (ok) {
       deleteMutation.mutate(zone.id);
     }
   };
@@ -144,9 +160,13 @@ export function StorefrontDeliveryZonesManager() {
   // Quick Preset Presets
   const applyPreset = async (presetList: Array<{ name: string; deliveryFee: number; estimatedTime: string; sortOrder: number }>) => {
     if (zones.length > 0) {
-      if (!window.confirm('لديك مناطق توصيل معرفة بالفعل. هل تريد إضافة مناطق القالب الجديد إليها؟')) {
-        return;
-      }
+      const ok = await systemConfirm({
+        title: 'تطبيق قالب التوصيل',
+        message: 'لديك مناطق توصيل معرفة بالفعل. هل تريد إضافة مناطق القالب الجديد إليها؟',
+        confirmText: 'نعم، إضافة القالب',
+        cancelText: 'إلغاء',
+      });
+      if (!ok) return;
     }
 
     setIsApplyingPreset(true);
@@ -161,25 +181,39 @@ export function StorefrontDeliveryZonesManager() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-delivery-zones'] });
+      toast.success('تم تطبيق قالب التوصيل بنجاح');
     } catch (err: any) {
-      alert(`حدث خطأ أثناء تطبيق القالب: ${err.message || 'خطأ غير معروف'}`);
+      toast.error(`حدث خطأ أثناء تطبيق القالب: ${err.message || 'خطأ غير معروف'}`);
     } finally {
       setIsApplyingPreset(false);
     }
   };
 
-  const localPreset = [
-    { name: 'داخل الحي والمنطقة المجاورة', deliveryFee: 15, estimatedTime: '30 - 45 دقيقة', sortOrder: 1 },
-    { name: 'أحياء مجاورة (نطاق متوسط)', deliveryFee: 25, estimatedTime: '45 - 60 دقيقة', sortOrder: 2 },
-    { name: 'أطراف المدينة وضواحيها', deliveryFee: 40, estimatedTime: '60 - 90 دقيقة', sortOrder: 3 },
-  ];
+  const localPreset = isKuwait
+    ? [
+        { name: 'توصيل سريع داخل المنطقة', deliveryFee: 0.5, estimatedTime: '20 - 35 دقيقة', sortOrder: 1 },
+        { name: 'المناطق المجاورة', deliveryFee: 1.0, estimatedTime: '35 - 50 دقيقة', sortOrder: 2 },
+        { name: 'النطاق المتوسط والبعيد', deliveryFee: 1.5, estimatedTime: '50 - 75 دقيقة', sortOrder: 3 },
+      ]
+    : [
+        { name: 'داخل الحي والمنطقة المجاورة', deliveryFee: 15, estimatedTime: '30 - 45 دقيقة', sortOrder: 1 },
+        { name: 'أحياء مجاورة (نطاق متوسط)', deliveryFee: 25, estimatedTime: '45 - 60 دقيقة', sortOrder: 2 },
+        { name: 'أطراف المدينة وضواحيها', deliveryFee: 40, estimatedTime: '60 - 90 دقيقة', sortOrder: 3 },
+      ];
 
-  const governoratesPreset = [
-    { name: 'القاهرة والجيزة', deliveryFee: 35, estimatedTime: 'خلال 24 ساعة', sortOrder: 1 },
-    { name: 'الإسكندرية ومحافظات الدلتا والوجه البحري', deliveryFee: 50, estimatedTime: '24 - 48 ساعة', sortOrder: 2 },
-    { name: 'محافظات القناة (الإسماعيلية، السويس، بورسعيد)', deliveryFee: 55, estimatedTime: '24 - 48 ساعة', sortOrder: 3 },
-    { name: 'محافظات الصعيد والوجه القبلي', deliveryFee: 65, estimatedTime: '48 - 72 ساعة', sortOrder: 4 },
-  ];
+  const governoratesPreset = isKuwait
+    ? [
+        { name: 'محافظة العاصمة وحولي', deliveryFee: 1.0, estimatedTime: 'خلال ساعتين إلى 3 ساعات', sortOrder: 1 },
+        { name: 'محافظة الفروانية ومبارك الكبير', deliveryFee: 1.5, estimatedTime: 'خلال 3 إلى 5 ساعات', sortOrder: 2 },
+        { name: 'محافظة الأحمدي والجهراء', deliveryFee: 2.0, estimatedTime: 'خلال نفس اليوم', sortOrder: 3 },
+        { name: 'المناطق البعيدة والشاليهات (صباح الأحمد، الخيران، الوفرة، العبدلي)', deliveryFee: 2.5, estimatedTime: 'خلال 24 ساعة', sortOrder: 4 },
+      ]
+    : [
+        { name: 'القاهرة والجيزة', deliveryFee: 35, estimatedTime: 'خلال 24 ساعة', sortOrder: 1 },
+        { name: 'الإسكندرية ومحافظات الدلتا والوجه البحري', deliveryFee: 50, estimatedTime: '24 - 48 ساعة', sortOrder: 2 },
+        { name: 'محافظات القناة (الإسماعيلية، السويس، بورسعيد)', deliveryFee: 55, estimatedTime: '24 - 48 ساعة', sortOrder: 3 },
+        { name: 'محافظات الصعيد والوجه القبلي', deliveryFee: 65, estimatedTime: '48 - 72 ساعة', sortOrder: 4 },
+      ];
 
   const activeZonesCount = zones.filter((z) => z.isActive !== false).length;
 
@@ -293,7 +327,11 @@ export function StorefrontDeliveryZonesManager() {
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
           >
             <BuildingIcon size={14} />
-            <span>قالب دليفري محلي (أحياء قريبة / متوسطة / بعيدة)</span>
+            <span>
+              {isKuwait
+                ? 'قالب توصيل سريع (نفس المنطقة 0.500 / المجاورة 1.000 / البعيدة 1.500 د.ك)'
+                : 'قالب دليفري محلي (أحياء قريبة / متوسطة / بعيدة)'}
+            </span>
           </button>
 
           <button
@@ -318,7 +356,11 @@ export function StorefrontDeliveryZonesManager() {
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
           >
             <TruckIcon size={14} />
-            <span>قالب شحن محافظات (القاهرة / الإسكندرية / القناة / الصعيد)</span>
+            <span>
+              {isKuwait
+                ? 'قالب محافظات الكويت (العاصمة وحولي 1.000 / الفروانية 1.500 / الأحمدي والجهراء 2.000 / الشاليهات 2.500)'
+                : 'قالب شحن محافظات (القاهرة / الإسكندرية / القناة / الصعيد)'}
+            </span>
           </button>
         </div>
       </div>
@@ -486,7 +528,7 @@ export function StorefrontDeliveryZonesManager() {
                           border: '1px solid #bbf7d0',
                         }}
                       >
-                        توصيل مجاني (0 ج)
+                        توصيل مجاني
                       </span>
                     ) : (
                       <span
@@ -497,7 +539,7 @@ export function StorefrontDeliveryZonesManager() {
                           fontFamily: 'monospace',
                         }}
                       >
-                        {zone.deliveryFee} <span style={{ fontSize: '11px', fontFamily: 'inherit', fontWeight: 600 }}><CurrencySymbol /></span>
+                        {isThreeDec ? Number(zone.deliveryFee).toFixed(3) : (currCode === 'EGP' && zone.deliveryFee % 1 === 0 ? zone.deliveryFee.toFixed(0) : Number(zone.deliveryFee).toFixed(2))} <span style={{ fontSize: '11px', fontFamily: 'inherit', fontWeight: 600 }}><CurrencySymbol /></span>
                       </span>
                     )}
                   </div>
@@ -684,7 +726,7 @@ export function StorefrontDeliveryZonesManager() {
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder="مثال: مدينة نصر ومصر الجديدة، أو داخل الحي، أو الإسكندرية"
+                    placeholder={isKuwait ? 'مثال: السالمية وحولي، أو العاصمة، أو الفروانية' : 'مثال: مدينة نصر ومصر الجديدة، أو داخل الحي، أو الإسكندرية'}
                     style={{
                       width: '100%',
                       padding: '7px 10px',
@@ -707,10 +749,10 @@ export function StorefrontDeliveryZonesManager() {
                       type="number"
                       required
                       min="0"
-                      step="0.5"
+                      step={isThreeDec ? '0.05' : '0.5'}
                       value={formDeliveryFee}
                       onChange={(e) => setFormDeliveryFee(Number(e.target.value))}
-                      placeholder="مثال: 25"
+                      placeholder={isThreeDec ? 'مثال: 1.500' : 'مثال: 25'}
                       style={{
                         width: '100%',
                         padding: '7px 10px',

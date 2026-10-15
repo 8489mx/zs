@@ -12,6 +12,7 @@ import {
   shouldShowBostaShipping,
   shouldShowGccShipping,
 } from '../lib/order-shipping-destination';
+import { isThreeDecimalCurrency, getCurrencySymbol, getGlobalSystemCurrency } from '@/lib/currencies';
 
 interface MerchantOrdersTableProps {
   orders: OnlineOrderRecord[];
@@ -45,6 +46,13 @@ export function getStatusBadge(status: string) {
     default:
       return { label: status, bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
   }
+}
+
+function formatOrderTotal(amount: number, orderCurrency?: string): string {
+  const code = orderCurrency || getGlobalSystemCurrency();
+  const decimals = isThreeDecimalCurrency(code) ? 3 : (code === 'EGP' && amount % 1 === 0 ? 0 : 2);
+  const symbol = getCurrencySymbol(code);
+  return `${amount.toFixed(decimals)} ${symbol}`;
 }
 
 function OrderShippingDropdown({
@@ -500,7 +508,7 @@ export function MerchantOrdersTable({
                   </div>
                 </td>
                 <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', fontSize: '13.5px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  {order.totalAmount.toFixed(0)} ج
+                  {formatOrderTotal(order.totalAmount, order.currency)}
                 </td>
                 <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
                   <span

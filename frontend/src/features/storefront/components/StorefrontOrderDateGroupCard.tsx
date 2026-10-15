@@ -1,4 +1,5 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 import { CalendarIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontCustomerOrderCard } from './StorefrontCustomerOrderCard';
@@ -32,6 +33,12 @@ export function StorefrontOrderDateGroupCard({
   onCancelOrder,
   isCancelling,
 }: StorefrontOrderDateGroupCardProps) {
+  const currCode = info?.currency || getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(currCode);
+  const formattedGroupTotal = isThreeDec
+    ? Number(group.totalAmount).toFixed(3)
+    : (currCode === 'EGP' && Number(group.totalAmount) % 1 === 0 ? Number(group.totalAmount).toFixed(0) : Number(group.totalAmount).toFixed(2));
+
   return (
     <div
       style={{
@@ -156,8 +163,8 @@ export function StorefrontOrderDateGroupCard({
               whiteSpace: 'nowrap',
             }}
           >
-            <span>{group.totalAmount.toFixed(0)}</span>
-            <CurrencySymbol />
+            <span>{formattedGroupTotal}</span>
+            <CurrencySymbol currency={currCode} />
           </span>
 
           <div

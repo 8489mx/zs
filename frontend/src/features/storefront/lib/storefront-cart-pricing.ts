@@ -1,4 +1,5 @@
 import type { StorefrontProduct } from '../types/storefront.types';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 
 export interface CartLinePricingResult {
   lineTotal: number;
@@ -9,6 +10,10 @@ export interface CartLinePricingResult {
   offerBadge?: string;
 }
 
+function getCartRoundFactor(currencyCode?: string | null): number {
+  return isThreeDecimalCurrency(currencyCode || getGlobalSystemCurrency()) ? 1000 : 100;
+}
+
 /**
  * Calculates exact line pricing for a storefront product accounting for
  * BOGO volume thresholds, bundles, and active discounts.
@@ -16,10 +21,12 @@ export interface CartLinePricingResult {
 export function calculateCartLinePricing(
   product: StorefrontProduct,
   quantity: number = 1,
+  currencyCode?: string | null,
 ): CartLinePricingResult {
+  const factor = getCartRoundFactor(currencyCode);
   const qty = Math.max(1, Math.trunc(Number(quantity) || 1));
   const basePrice = Number(product.originalPrice || product.price || 0);
-  const originalLineTotal = Math.round(basePrice * qty * 100) / 100;
+  const originalLineTotal = Math.round(basePrice * qty * factor) / factor;
 
   // BOGO Offer
   if (product.offerType === 'bogo' && product.bogoBuyQty && product.bogoGetQty) {
@@ -31,13 +38,13 @@ export function calculateCartLinePricing(
     if (freeUnits > 0) {
       const normalTotal = qty * basePrice;
       const savings = freeUnits * basePrice * (discPct / 100);
-      const discountedTotal = Math.round(Math.max(0, normalTotal - savings) * 100) / 100;
-      const unitPrice = Math.round((discountedTotal / qty) * 100) / 100;
+      const discountedTotal = Math.round(Math.max(0, normalTotal - savings) * factor) / factor;
+      const unitPrice = Math.round((discountedTotal / qty) * factor) / factor;
       return {
         lineTotal: discountedTotal,
         unitPrice,
         originalLineTotal,
-        savings: Math.round(savings * 100) / 100,
+        savings: Math.round(savings * factor) / factor,
         isBogoApplied: true,
         offerBadge: discPct === 100 ? `اشتري ${buyQ} واكسب ${getQ}` : `اشتري ${buyQ} و${getQ} بخصم ${discPct}%`,
       };
@@ -50,13 +57,13 @@ export function calculateCartLinePricing(
     if (qty >= minQ) {
       const bundles = Math.floor(qty / minQ);
       const remainder = qty % minQ;
-      const discountedTotal = Math.round(((bundles * product.offerValue) + (remainder * basePrice)) * 100) / 100;
-      const unitPrice = Math.round((discountedTotal / qty) * 100) / 100;
+      const discountedTotal = Math.round(((bundles * product.offerValue) + (remainder * basePrice)) * factor) / factor;
+      const unitPrice = Math.round((discountedTotal / qty) * factor) / factor;
       return {
         lineTotal: discountedTotal,
         unitPrice,
         originalLineTotal,
-        savings: Math.max(0, Math.round((originalLineTotal - discountedTotal) * 100) / 100),
+        savings: Math.max(0, Math.round((originalLineTotal - discountedTotal) * factor) / factor),
         isBogoApplied: false,
         offerBadge: product.offerBadge,
       };
@@ -65,37 +72,41 @@ export function calculateCartLinePricing(
 
   // Standard line with already discounted product.price
   const effectiveUnitPrice = Number(product.price || basePrice);
-  const lineTotal = Math.round(effectiveUnitPrice * qty * 100) / 100;
+  const lineTotal = Math.round(effectiveUnitPrice * qty * factor) / factor;
   return {
     lineTotal,
     unitPrice: effectiveUnitPrice,
     originalLineTotal,
-    savings: Math.max(0, Math.round((originalLineTotal - lineTotal) * 100) / 100),
+    savings: Math.max(0, Math.round((originalLineTotal - lineTotal) * factor) / factor),
     isBogoApplied: false,
     offerBadge: product.offerBadge,
   };
 }
 
-export function calculateCartSubtotal(items: Array<{ product: StorefrontProduct; quantity: number }>): {
+export function calculateCartSubtotal(
+  items: Array<{ product: StorefrontProduct; quantity: number }>,
+  currencyCode?: string | null,
+): {
   subtotal: number;
   originalSubtotal: number;
   totalSavings: number;
 } {
+  const factor = getCartRoundFactor(currencyCode);
   let subtotal = 0;
   let originalSubtotal = 0;
 
   for (const item of items) {
-    const pricing = calculateCartLinePricing(item.product, item.quantity);
+    const pricing = calculateCartLinePricing(item.product, item.quantity, currencyCode);
     subtotal += pricing.lineTotal;
     originalSubtotal += pricing.originalLineTotal;
   }
 
-  subtotal = Math.round(subtotal * 100) / 100;
-  originalSubtotal = Math.round(originalSubtotal * 100) / 100;
+  subtotal = Math.round(subtotal * factor) / factor;
+  originalSubtotal = Math.round(originalSubtotal * factor) / factor;
 
   return {
     subtotal,
     originalSubtotal,
-    totalSavings: Math.max(0, Math.round((originalSubtotal - subtotal) * 100) / 100),
+    totalSavings: Math.max(0, Math.round((originalSubtotal - subtotal) * factor) / factor),
   };
 }

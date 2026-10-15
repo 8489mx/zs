@@ -22,6 +22,7 @@ import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 import { getStoreHostSlug } from '@/lib/store-public-url';
 import { applyStorefrontThemeVariables } from '../lib/storefront-theme-contrast';
 import { TableBillModal } from '../components/TableBillModal';
+import { setGlobalSystemCurrency } from '@/lib/currencies';
 
 export function PublicStorefrontPage() {
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
@@ -168,6 +169,9 @@ export function PublicStorefrontPage() {
 
   useEffect(() => {
     if (info) {
+      if (info.currency) {
+        setGlobalSystemCurrency(info.currency);
+      }
       initStorefrontPixels(info);
       trackStorefrontEvent('ViewContent', {
         contentName: info.title || info.businessName || 'المتجر الإلكتروني',

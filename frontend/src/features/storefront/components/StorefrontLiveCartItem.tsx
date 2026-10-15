@@ -5,6 +5,7 @@ import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { calculateCartLinePricing } from '../lib/storefront-cart-pricing';
 import { resolveProductPhoto } from '../lib/storefront-photo-matcher';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency, getGlobalCurrencySymbol } from '@/lib/currencies';
 
 interface StorefrontLiveCartItemProps {
   item: CartItem;
@@ -12,7 +13,18 @@ interface StorefrontLiveCartItemProps {
 }
 
 export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiveCartItemProps) {
-  const linePricing = calculateCartLinePricing(item.product, item.quantity);
+  const currCode = getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(currCode);
+  const activeSymbol = getGlobalCurrencySymbol();
+
+  const formatPriceNumber = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) return num.toFixed(3);
+    if (currCode === 'EGP') return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    return num.toFixed(2);
+  };
+
+  const linePricing = calculateCartLinePricing(item.product, item.quantity, currCode);
   const lineTotal = linePricing.lineTotal;
   const [imageError, setImageError] = useState(false);
 
@@ -25,7 +37,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
         alignItems: 'center',
         gap: '8px',
         padding: '5px 8px',
-        borderRadius: '9px',
+        borderRadius: '99px',
         background: '#f8fafc',
         border: '1px solid #f1f5f9',
         transition: 'background 0.15s ease',
@@ -75,21 +87,21 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
         </div>
         <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
           <strong style={{ color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 800 }}>
-            {lineTotal.toFixed(0)} <CurrencySymbol />
+            {formatPriceNumber(lineTotal)} <CurrencySymbol />
           </strong>
           {linePricing.savings > 0 && (
             <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '10.5px' }}>
-              {linePricing.originalLineTotal.toFixed(0)} <CurrencySymbol />
+              {formatPriceNumber(linePricing.originalLineTotal)} <CurrencySymbol />
             </span>
           )}
           {item.quantity > 1 && (
             <span style={{ fontSize: '10px', color: '#64748b', background: '#e2e8f0', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
-              ({linePricing.unitPrice.toFixed(0)} × {item.quantity})
+              ({formatPriceNumber(linePricing.unitPrice)} × {item.quantity})
             </span>
           )}
           {linePricing.savings > 0 && !linePricing.isBogoApplied && (
             <span style={{ fontSize: '10px', color: 'var(--storefront-secondary-color, #d97706)', fontWeight: 700 }}>
-              (وفر {linePricing.savings.toFixed(0)} ج)
+              (وفر {formatPriceNumber(linePricing.savings)} {activeSymbol})
             </span>
           )}
           {linePricing.isBogoApplied && (

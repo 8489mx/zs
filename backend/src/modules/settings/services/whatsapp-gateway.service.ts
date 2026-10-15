@@ -185,6 +185,36 @@ export class WhatsAppGatewayService {
     }
   }
 
+  private async getTenantCurrencyInfo(tenantId: string): Promise<{ symbol: string; decimals: number; code: string }> {
+    const row = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'currency')
+      .executeTakeFirst();
+
+    let code = 'EGP';
+    if (row?.value) {
+      try {
+        code = JSON.parse(row.value);
+      } catch {
+        code = row.value;
+      }
+    }
+    code = String(code || 'EGP').trim().toUpperCase();
+    const isThreeDec = code === 'KWD' || code === 'BHD' || code === 'OMR';
+    const symbol = code === 'KWD' ? 'د.ك' : code === 'SAR' ? 'ر.س' : code === 'AED' ? 'د.إ' : code === 'QAR' ? 'ر.ق' : code === 'BHD' ? 'د.ب' : code === 'OMR' ? 'ر.ع' : 'ج.م';
+    return { symbol, decimals: isThreeDec ? 3 : 2, code };
+  }
+
+  private formatAmountWithCurrency(amount: number | string | undefined | null, curr: { symbol: string; decimals: number; code: string }): string {
+    const num = Number(amount || 0);
+    const formatted = curr.decimals === 3
+      ? num.toFixed(3)
+      : (curr.code === 'EGP' && num % 1 === 0 ? num.toFixed(0) : num.toFixed(2));
+    return `${formatted} ${curr.symbol}`;
+  }
+
   async sendTestMessage(phone: string, actor: AuthContext): Promise<{ success: boolean; message?: string }> {
     const { tenantId } = requireTenantScope(actor);
     const tenant = await this.db
@@ -234,14 +264,19 @@ export class WhatsAppGatewayService {
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
+    const curr = await this.getTenantCurrencyInfo(tenantId);
+
     let template = cfg.whatsapp_gateway_invoice_template ||
-      'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} ج.م عبر الرابط التالي: {invoiceLink}';
+      'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} عبر الرابط التالي: {invoiceLink}';
 
     const customerName = customer?.name || 'عميلنا العزيز';
     const businessName = tenant?.business_name || 'متجرنا';
     const invoiceNo = sale.doc_no || String(sale.id);
-    const totalAmount = Number(sale.total || 0).toLocaleString('ar-EG');
+    const totalAmount = this.formatAmountWithCurrency(sale.total, curr);
     const invoiceLink = `https://${tenant?.slug || 'my'}.sslip.io/invoice/${sale.doc_no || sale.id}`;
+
+    // Clean up template if it still has hardcoded "ج.م"
+    template = template.replace(/{totalAmount}\s*ج\.م/g, '{totalAmount}');
 
     const text = template
       .replace(/{customerName}/g, customerName)
@@ -278,22 +313,23 @@ export class WhatsAppGatewayService {
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
+    const curr = await this.getTenantCurrencyInfo(tenantId);
     const businessName = tenant?.business_name || 'متجرنا';
     const customerPhone = order.customer_phone;
     const orderNo = order.order_number || String(order.id);
-    const total = Number(order.total_amount || 0).toLocaleString('ar-EG');
+    const total = this.formatAmountWithCurrency(order.total_amount, curr);
 
     // Send confirmation to customer
     if (customerPhone) {
       const trackingLine = options?.trackingUrl ? `\nتابع حالة طلبك من هنا: ${options.trackingUrl}` : '';
-      const customerMsg = `مرحباً بك ${order.customer_name || 'عميلنا العزيز'}!\nتم استلام طلبك رقم #${orderNo} بنجاح من متجر ${businessName} بقيمة ${total} ج.م.\nسنقوم بتجهيزه وتأكيده في أقرب وقت.${trackingLine}\nشكراً لتسوقك معنا!`;
+      const customerMsg = `مرحباً بك ${order.customer_name || 'عميلنا العزيز'}!\nتم استلام طلبك رقم #${orderNo} بنجاح من متجر ${businessName} بقيمة ${total}.\nسنقوم بتجهيزه وتأكيده في أقرب وقت.${trackingLine}\nشكراً لتسوقك معنا!`;
       void this.sendRawMessage(tenantId, customerPhone, customerMsg).catch(() => undefined);
     }
 
     // Send alert to store owner/merchant
     const merchantPhone = tenant?.owner_phone;
     if (merchantPhone) {
-      const merchantMsg = `طلب أونلاين جديد #${orderNo}!\nالعميل: ${order.customer_name} (${order.customer_phone})\nالإجمالي: ${total} ج.م\nالعنوان: ${order.customer_address || 'استلام من الفرع'}\nيرجى فتح لوحة التحكم لتأكيد الطلب.`;
+      const merchantMsg = `طلب أونلاين جديد #${orderNo}!\nالعميل: ${order.customer_name} (${order.customer_phone})\nالإجمالي: ${total}\nالعنوان: ${order.customer_address || 'استلام من الفرع'}\nيرجى فتح لوحة التحكم لتأكيد الطلب.`;
       void this.sendRawMessage(tenantId, merchantPhone, merchantMsg).catch(() => undefined);
     }
 
@@ -332,18 +368,19 @@ export class WhatsAppGatewayService {
       ? await this.db.selectFrom('branches').select(['name']).where('id', '=', shift.branch_id).executeTakeFirst()
       : null;
 
+    const curr = await this.getTenantCurrencyInfo(tenantId);
     const businessName = tenant?.business_name || 'منظومة Z-Systems';
     const cashierName = cashierUser?.username || 'كاشير الوردية';
     const branchName = branch?.name || 'الفرع الرئيسي';
     const docNo = shift.doc_no || `#CS-${shift.id}`;
-    const counted = Number(shift.counted_cash || 0).toLocaleString('ar-EG');
-    const expected = Number(shift.expected_cash || 0).toLocaleString('ar-EG');
+    const counted = this.formatAmountWithCurrency(shift.counted_cash, curr);
+    const expected = this.formatAmountWithCurrency(shift.expected_cash, curr);
     const varianceVal = Number(shift.variance || 0);
     const varianceText = varianceVal === 0
-      ? 'متطابق تماماً (0 ج.م)'
+      ? `متطابق تماماً (0 ${curr.symbol})`
       : varianceVal > 0
-        ? `زيادة بمقدار +${varianceVal.toLocaleString('ar-EG')} ج.م 🟢`
-        : `عجز بمقدار ${varianceVal.toLocaleString('ar-EG')} ج.م 🔴`;
+        ? `زيادة بمقدار +${this.formatAmountWithCurrency(varianceVal, curr)} 🟢`
+        : `عجز بمقدار ${this.formatAmountWithCurrency(Math.abs(varianceVal), curr)} 🔴`;
 
     const closeNote = shift.close_note ? `\n📝 ملاحظة: ${shift.close_note}` : '';
     const closeTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
@@ -352,8 +389,8 @@ export class WhatsAppGatewayService {
       `📍 *الفرع:* ${branchName}\n` +
       `👤 *الكاشير:* ${cashierName}\n` +
       `🔢 *رقم الوردية:* ${docNo}\n` +
-      `💵 *المتوقع في الصندوق:* ${expected} ج.م\n` +
-      `💰 *الكاش الفعلي المحصي:* ${counted} ج.م\n` +
+      `💵 *المتوقع في الصندوق:* ${expected}\n` +
+      `💰 *الكاش الفعلي المحصي:* ${counted}\n` +
       `📊 *الفارق (عجز/زيادة):* ${varianceText}` +
       closeNote +
       `\n⏰ *وقت الإغلاق:* ${closeTime}\n\n` +
@@ -378,13 +415,14 @@ export class WhatsAppGatewayService {
     const merchantPhone = tenant?.owner_phone;
     if (!merchantPhone) return { success: false, message: 'رقم هاتف المالك غير مسجل' };
 
+    const curr = await this.getTenantCurrencyInfo(tenantId);
     const businessName = tenant?.business_name || 'منظومة Z-Systems';
-    const formattedAmount = Number(amount || 0).toLocaleString('ar-EG');
+    const formattedAmount = this.formatAmountWithCurrency(amount, curr);
     const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
     const msg = `⚠️ *تنبيه عملية مرتجع مبيعات - ${businessName}*\n\n` +
       `📄 *رقم المرتجع:* #${docNo}\n` +
-      `💰 *المبلغ المسترد للعميل:* ${formattedAmount} ج.م\n` +
+      `💰 *المبلغ المسترد للعميل:* ${formattedAmount}\n` +
       `👤 *الموظف المنفذ:* ${authorName}\n` +
       `📝 *السبب:* ${reason || 'لم يُحدد سبب'}\n` +
       `⏰ *الوقت:* ${time}\n\n` +

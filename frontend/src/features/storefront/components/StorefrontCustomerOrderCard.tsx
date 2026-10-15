@@ -1,5 +1,6 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { 
   CheckIcon, 
@@ -76,6 +77,15 @@ export function StorefrontCustomerOrderCard({
   const badge = getStatusBadge(order.status);
   const isPending = order.status === 'pending' && !order.saleId;
   const currentStepIndex = getStepIndex(order.status);
+
+  const currCode = order.currency || info.currency || getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(currCode);
+  const formatPriceNumber = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) return num.toFixed(3);
+    if (currCode === 'EGP') return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    return num.toFixed(2);
+  };
 
   const orderTimeStr = new Date(order.createdAt).toLocaleTimeString('ar-EG', {
     hour: '2-digit',
@@ -557,8 +567,8 @@ export function StorefrontCustomerOrderCard({
                   {it.name} <span style={{ color: '#64748b', fontWeight: 600 }}>(×{it.quantity})</span>
                 </span>
                 <span style={{ fontWeight: 700, flexShrink: 0, marginInlineStart: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <span>{it.total.toFixed(0)}</span>
-                  <CurrencySymbol />
+                  <span>{formatPriceNumber(it.total)}</span>
+                  <CurrencySymbol currency={currCode} />
                 </span>
               </div>
             ))}
@@ -587,8 +597,8 @@ export function StorefrontCustomerOrderCard({
               >
                 <span>خدمة التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <span>{order.deliveryFee.toFixed(0)}</span>
-                  <CurrencySymbol />
+                  <span>{formatPriceNumber(order.deliveryFee)}</span>
+                  <CurrencySymbol currency={currCode} />
                 </span>
               </div>
             )}
@@ -605,8 +615,8 @@ export function StorefrontCustomerOrderCard({
               >
                 <span>خصم الكوبون {order.couponCode ? `(${order.couponCode})` : ''}:</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <span>-{(order.discountAmount ?? 0).toFixed(0)}</span>
-                  <CurrencySymbol />
+                  <span>-{formatPriceNumber(order.discountAmount)}</span>
+                  <CurrencySymbol currency={currCode} />
                 </span>
               </div>
             )}
@@ -629,8 +639,8 @@ export function StorefrontCustomerOrderCard({
         <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span>
           <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '14.5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-            <span>{order.totalAmount.toFixed(0)}</span>
-            <CurrencySymbol />
+            <span>{formatPriceNumber(order.totalAmount)}</span>
+            <CurrencySymbol currency={currCode} />
           </strong>
         </div>
 

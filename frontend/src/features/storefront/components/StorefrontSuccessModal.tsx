@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { CreateOnlineOrderResponse } from '../types/storefront.types';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 import {
   PackageIcon,
   ReceiptIcon,
@@ -31,6 +32,16 @@ export function StorefrontSuccessModal({
   const activeOrder = order || orderData;
   const [linkCopied, setLinkCopied] = useState(false);
   const [orderNumCopied, setOrderNumCopied] = useState(false);
+
+  const currCode = getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(currCode);
+
+  const formatPriceNumber = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) return num.toFixed(3);
+    if (currCode === 'EGP') return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    return num.toFixed(2);
+  };
 
   if (!activeOrder || !isOpen) return null;
 
@@ -280,7 +291,7 @@ export function StorefrontSuccessModal({
                     color: '#0f172a',
                   }}
                 >
-                  <span>{i.total.toFixed(0)}</span>
+                  <span>{formatPriceNumber(i.total)}</span>
                   <CurrencySymbol />
                 </span>
               </div>
@@ -318,7 +329,7 @@ export function StorefrontSuccessModal({
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
                 <span style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  <span>{activeOrder.deliveryFee.toFixed(0)}</span>
+                  <span>{formatPriceNumber(activeOrder.deliveryFee)}</span>
                   <CurrencySymbol />
                 </span>
               </div>
@@ -328,7 +339,7 @@ export function StorefrontSuccessModal({
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                 <span>خصم الكوبون {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
                 <span style={{ fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  <span>-{(activeOrder.discountAmount ?? 0).toFixed(0)}</span>
+                  <span>-{formatPriceNumber(activeOrder.discountAmount ?? 0)}</span>
                   <CurrencySymbol />
                 </span>
               </div>
@@ -359,7 +370,7 @@ export function StorefrontSuccessModal({
                 gap: '3px',
               }}
             >
-              <span>{activeOrder.totalAmount.toFixed(0)}</span>
+              <span>{formatPriceNumber(activeOrder.totalAmount)}</span>
               <CurrencySymbol />
             </span>
           </div>

@@ -5,6 +5,7 @@ import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
 import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
+import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 
 function formatArabicItems(count: number): string {
   if (count === 1) return 'صنف واحد';
@@ -82,8 +83,18 @@ export function StorefrontLiveCartDock({
     };
   }, [isOpen, showClearConfirm, onClose]);
 
+  const storeCurrency = info?.currency || 'EGP';
+  const isThreeDec = isThreeDecimalCurrency(storeCurrency);
+
+  const formatPriceNumber = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) return num.toFixed(3);
+    if (storeCurrency === 'EGP') return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    return num.toFixed(2);
+  };
+
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const cartTotals = calculateCartSubtotal(cartItems);
+  const cartTotals = calculateCartSubtotal(cartItems, storeCurrency);
   const subtotal = cartTotals.subtotal;
 
   const freeShippingThreshold = info?.freeShippingMinOrder || 500;
@@ -433,7 +444,7 @@ export function StorefrontLiveCartDock({
                   </span>
                 ) : (
                   <span style={{ color: '#334155' }}>
-                    أضف بـ <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> للشحن المجاني
+                    أضف بـ <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{formatPriceNumber(freeShippingRemaining)} <CurrencySymbol /></strong> للشحن المجاني
                   </span>
                 )}
               </div>
@@ -575,7 +586,7 @@ export function StorefrontLiveCartDock({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
               <span>قيمة الأصناف ({cartItems.length}):</span>
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
@@ -583,10 +594,10 @@ export function StorefrontLiveCartDock({
               <span style={{ fontWeight: 700, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 {effectiveDeliveryFee === 0 && baseDeliveryFee > 0 && (
                   <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
-                    {baseDeliveryFee.toFixed(0)} <CurrencySymbol />
+                    {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
                   </span>
                 )}
-                <span>{effectiveDeliveryFee > 0 ? <>{effectiveDeliveryFee.toFixed(0)} <CurrencySymbol /></> : 'توصيل مجاني'}</span>
+                <span>{effectiveDeliveryFee > 0 ? <>{formatPriceNumber(effectiveDeliveryFee)} <CurrencySymbol /></> : 'توصيل مجاني'}</span>
               </span>
             </div>
 
@@ -604,7 +615,7 @@ export function StorefrontLiveCartDock({
               }}
             >
               <span>المبلغ الإجمالي:</span>
-              <span style={{ fontSize: '15px', color: '#166534' }}>{total.toFixed(0)} <CurrencySymbol /></span>
+              <span style={{ fontSize: '15px', color: '#166534' }}>{formatPriceNumber(total)} <CurrencySymbol /></span>
             </div>
           </div>
 
@@ -625,7 +636,7 @@ export function StorefrontLiveCartDock({
               }}
             >
               <AlertTriangleIcon size={12} color="#c2410c" />
-              <span>الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {(minOrder - subtotal).toFixed(0)} <CurrencySymbol />)</span>
+              <span>الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {formatPriceNumber(minOrder - subtotal)} <CurrencySymbol />)</span>
             </div>
           )}
 

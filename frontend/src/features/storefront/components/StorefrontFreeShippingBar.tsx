@@ -1,6 +1,7 @@
 import React from 'react';
 import { TruckIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 
 interface StorefrontFreeShippingBarProps {
   subtotal: number;
@@ -14,15 +15,21 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
   subtotal,
   freeShippingEnabled,
   freeShippingMinOrder = 500,
+  currency,
   compact = false,
 }: StorefrontFreeShippingBarProps) {
   if (!freeShippingEnabled || freeShippingMinOrder <= 0) {
     return null;
   }
 
+  const curr = currency || getGlobalSystemCurrency();
+  const isThreeDec = isThreeDecimalCurrency(curr);
   const isUnlocked = subtotal >= freeShippingMinOrder;
   const remaining = Math.max(0, freeShippingMinOrder - subtotal);
   const progressPercent = Math.min(100, Math.round((subtotal / freeShippingMinOrder) * 100));
+  const formattedRemaining = isThreeDec
+    ? remaining.toFixed(3)
+    : (curr === 'EGP' && remaining % 1 === 0 ? remaining.toFixed(0) : remaining.toFixed(2));
 
   return (
     <div
@@ -73,7 +80,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
               <span>تهانينا! حصلت على <strong>شحن مجاني</strong> لطلبك!</span>
             ) : (
               <span>
-                أضف بـ <strong>{remaining.toFixed(0)} <CurrencySymbol /></strong> إضافية لـ <strong>شحن مجاني</strong>
+                أضف بـ <strong>{formattedRemaining} <CurrencySymbol /></strong> إضافية لـ <strong>شحن مجاني</strong>
               </span>
             )}
           </span>

@@ -2,6 +2,7 @@ import { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { IconCheckCircle } from './StorefrontIcons';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
 import { StorefrontPredictiveSearch } from './StorefrontPredictiveSearch';
+import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 
 interface StorefrontHeaderProps {
   info: StorefrontInfo;
@@ -543,11 +544,19 @@ export function StorefrontHeader({
                 {cartCount}
               </span>
             )}
-            {cartTotal > 0 && (
-              <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
-                {cartTotal.toFixed(0)} ج
-              </span>
-            )}
+            {cartTotal > 0 && (() => {
+              const storeCurr = info?.currency || 'EGP';
+              const isThreeDec = isThreeDecimalCurrency(storeCurr);
+              const currSymbol = getCurrencySymbol(storeCurr);
+              const formattedTotal = isThreeDec
+                ? cartTotal.toFixed(3)
+                : (storeCurr === 'EGP' && cartTotal % 1 === 0 ? cartTotal.toFixed(0) : cartTotal.toFixed(2));
+              return (
+                <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
+                  {formattedTotal} {currSymbol}
+                </span>
+              );
+            })()}
           </button>
         </div>
       </div>

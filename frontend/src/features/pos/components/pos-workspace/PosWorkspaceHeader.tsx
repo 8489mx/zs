@@ -139,6 +139,12 @@ function PosWorkspaceHeaderComponent({
   const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
   const [isComboMealModalOpen, setIsComboMealModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (isRestaurantActive && posMode !== 'touch') {
+      onModeChange('touch');
+    }
+  }, [isRestaurantActive, posMode, onModeChange]);
+
   const handleNoSaleDrawerKick = useCallback(async () => {
     if (isNoSalePending) return;
     const branchId = Number(pos.branchId);
@@ -243,11 +249,13 @@ function PosWorkspaceHeaderComponent({
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
         <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', overflow: 'visible' }}>
-          {/* 1. Mode Toggle */}
-          <div className="pos-mode-toggle" role="group" aria-label="POS mode">
-            <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
-            <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
-          </div>
+          {/* 1. Mode Toggle (Retail only - Restaurants use Touch exclusively) */}
+          {!isRestaurantActive && (
+            <div className="pos-mode-toggle" role="group" aria-label="POS mode">
+              <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
+              <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
+            </div>
+          )}
 
           {/* 2. Branch Info */}
           {pos.currentBranch?.name && (
@@ -270,12 +278,11 @@ function PosWorkspaceHeaderComponent({
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale} title="إعادة طباعة الفواتير (F9)">
             F9 إعادة طباعة
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setIsNoSaleOpen(true)} disabled={!pos.ownOpenShift} title="فتح الدرج بدون بيع بعد اعتماد المشرف">
-            فتح الدرج
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => setIsExchangeOpen(true)} disabled={!pos.ownOpenShift || !pos.cart.length} title="استبدال بضاعة بالفاتورة الأصلية">
-            استبدال فوري
-          </Button>
+          {!isRestaurantActive && (
+            <Button type="button" variant="secondary" onClick={() => setIsExchangeOpen(true)} disabled={!pos.ownOpenShift || !pos.cart.length} title="استبدال بضاعة بالفاتورة الأصلية">
+              استبدال فوري
+            </Button>
+          )}
 
           {/* Phone & Delivery Order Desk (F7) */}
           {isPhoneOrdersActive && onOpenPhoneOrder && (
@@ -448,9 +455,9 @@ function PosWorkspaceHeaderComponent({
                     color: currentCartTotal >= activeZoneMinSpend ? '#047857' : '#b91c1c',
                     border: `1px solid ${currentCartTotal >= activeZoneMinSpend ? '#a7f3d0' : '#fecaca'}`,
                   }}
-                  title={`الحد الأدنى لإنفاق الطاولة في هذه المنطقة: ${activeZoneMinSpend}`}
+                  title={`الحد الأدنى لإنفاق الطاولة في هذه المنطقة: ${formatCurrency(activeZoneMinSpend)}`}
                 >
-                  الحد الأدنى: {activeZoneMinSpend} ر.س {currentCartTotal < activeZoneMinSpend && `(عجز: ${(activeZoneMinSpend - currentCartTotal).toFixed(2)})`}
+                  الحد الأدنى: {formatCurrency(activeZoneMinSpend)} {currentCartTotal < activeZoneMinSpend && `(عجز: ${formatCurrency(activeZoneMinSpend - currentCartTotal)})`}
                 </span>
               )}
             </div>
@@ -572,9 +579,30 @@ function PosWorkspaceHeaderComponent({
             </Button>
           )}
 
-          {/* 8. Shift Buttons: X-Report & Close Shift */}
+          {/* 8. Shift Buttons: Drawer Kick, X-Report & Close Shift */}
           {pos.ownOpenShift ? (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsNoSaleOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  height: '32px',
+                  padding: '0 8px',
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                }}
+                title="فتح الدرج بدون بيع بعد اعتماد المشرف"
+              >
+                <span>فتح الدرج</span>
+              </Button>
+
               <Button
                 type="button"
                 variant="secondary"

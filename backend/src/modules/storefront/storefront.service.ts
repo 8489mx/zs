@@ -1270,6 +1270,10 @@ export class StorefrontService {
       if (!isNaN(numId)) productMap.set(numId, p);
     }
 
+    const currency = String(settings.get('currency') || (tenant as any).currency || 'EGP').trim().toUpperCase();
+    const isThreeDec = currency === 'KWD' || currency === 'BHD' || currency === 'OMR';
+    const roundFactor = isThreeDec ? 1000 : 100;
+
     let subtotal = 0;
     let originalSubtotal = 0;
     const validatedItems = [];
@@ -1285,8 +1289,8 @@ export class StorefrontService {
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
       const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : baseUnitPrice;
-      const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
-      const originalLineTotal = Math.round(baseUnitPrice * quantity * 100) / 100;
+      const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
+      const originalLineTotal = Math.round(baseUnitPrice * quantity * roundFactor) / roundFactor;
 
       subtotal += lineTotal;
       originalSubtotal += originalLineTotal;
@@ -1323,20 +1327,20 @@ export class StorefrontService {
       couponCode: dto.couponCode,
     });
 
-    const bogoSavings = Math.max(0, Math.round((originalSubtotal - subtotal) * 100) / 100);
+    const bogoSavings = Math.max(0, Math.round((originalSubtotal - subtotal) * roundFactor) / roundFactor);
     const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
     return {
       ok: true,
-      subtotal: Math.round(subtotal * 100) / 100,
-      originalSubtotal: Math.round(originalSubtotal * 100) / 100,
+      subtotal: Math.round(subtotal * roundFactor) / roundFactor,
+      originalSubtotal: Math.round(originalSubtotal * roundFactor) / roundFactor,
       bogoSavings,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      deliveryFee: Math.round(deliveryFee * 100) / 100,
+      discountAmount: Math.round(discountAmount * roundFactor) / roundFactor,
+      deliveryFee: Math.round(deliveryFee * roundFactor) / roundFactor,
       deliveryZoneId,
       deliveryZoneName,
       appliedCouponCode,
-      totalAmount: Math.round(totalAmount * 100) / 100,
+      totalAmount: Math.round(totalAmount * roundFactor) / roundFactor,
       items: validatedItems,
     };
   }
@@ -1497,6 +1501,10 @@ export class StorefrontService {
 
     const allowOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type);
 
+    const orderCurrency = String(settings.get('currency') || (tenant as any).currency || 'EGP').trim().toUpperCase();
+    const isThreeDec = orderCurrency === 'KWD' || orderCurrency === 'BHD' || orderCurrency === 'OMR';
+    const roundFactor = isThreeDec ? 1000 : 100;
+
     let subtotal = 0;
     // One line per product: the sales engine that will invoice this order rejects two rows of the
     // same product and unit (ensureUniqueFlowItems), so two variants of one product cannot both be
@@ -1522,7 +1530,7 @@ export class StorefrontService {
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
       const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
-      const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
+      const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
       subtotal += lineTotal;
 
       return {
@@ -1865,8 +1873,11 @@ export class StorefrontService {
     const cleanPhone = whatsappPhone.replace(/[^0-9]/g, '');
     const targetPhone = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
+    const currencySymbol = orderCurrency === 'KWD' ? 'د.ك' : orderCurrency === 'SAR' ? 'ر.س' : orderCurrency === 'AED' ? 'د.إ' : orderCurrency === 'QAR' ? 'ر.ق' : orderCurrency === 'BHD' ? 'د.ب' : orderCurrency === 'OMR' ? 'ر.ع' : 'ج';
+    const formatMoney = (n: number) => isThreeDec ? n.toFixed(3) : (orderCurrency === 'EGP' && n % 1 === 0 ? n.toFixed(0) : n.toFixed(2));
+
     const itemsSummary = validatedItems
-      .map((i) => `- ${i.name} (×${i.quantity}) = ${i.total} ج`)
+      .map((i) => `- ${i.name} (×${i.quantity}) = ${formatMoney(i.total)} ${currencySymbol}`)
       .join('\n');
 
     const paymentLabel = (dto.paymentMethod === 'credit_card')
@@ -1876,8 +1887,8 @@ export class StorefrontService {
       : 'دفع عند الاستلام (كاش)';
     const notesPart = dto.customerNotes ? `\nملاحظات: ${dto.customerNotes}` : '';
     const zonePart = deliveryZoneName ? `\nالمنطقة: ${deliveryZoneName}` : '';
-    const discountPart = discountAmount > 0 ? `\nالخصم (${appliedCouponCode}): -${discountAmount.toFixed(0)} ج` : '';
-    const shippingText = deliveryFee === 0 ? 'شحن مجاني' : `شامل التوصيل ${deliveryFee} ج`;
+    const discountPart = discountAmount > 0 ? `\nالخصم (${appliedCouponCode}): -${formatMoney(discountAmount)} ${currencySymbol}` : '';
+    const shippingText = deliveryFee === 0 ? 'شحن مجاني' : `شامل التوصيل ${formatMoney(deliveryFee)} ${currencySymbol}`;
 
     const whatsappMessage = encodeURIComponent(
       `مرحباً، أود متابعة طلبي من متجركم:\n` +
@@ -1889,8 +1900,8 @@ export class StorefrontService {
       `${notesPart}\n` +
       `طريقة الدفع: ${paymentLabel}\n\n` +
       `الأصناف المطلوبة:\n${itemsSummary}\n\n` +
-      `المجموع: ${subtotal} ج${discountPart}\n` +
-      `الإجمالي: ${totalAmount} ج (${shippingText})`
+      `المجموع: ${formatMoney(subtotal)} ${currencySymbol}${discountPart}\n` +
+      `الإجمالي: ${formatMoney(totalAmount)} ${currencySymbol} (${shippingText})`
     );
 
     const whatsappUrl = targetPhone ? `https://wa.me/${targetPhone}?text=${whatsappMessage}` : null;

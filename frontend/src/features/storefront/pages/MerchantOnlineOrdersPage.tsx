@@ -18,7 +18,7 @@ import type { Sale } from '@/types/domain';
 import { PageHeader } from '@/shared/components/page-header';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast } from '@/shared/components/system-alert';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
 import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
@@ -67,6 +67,14 @@ export function MerchantOnlineOrdersPage() {
         gccSettingsQuery.data?.aramexAccountNumber?.trim() ||
         gccSettingsQuery.data?.aramexUserName?.trim())
   );
+
+  const formatAmount = (val: number | null | undefined): string => {
+    const num = Number(val || 0);
+    const curr = getGlobalSystemCurrency();
+    if (isThreeDecimalCurrency(curr)) return num.toFixed(3);
+    if (curr === 'EGP') return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    return num.toFixed(2);
+  };
 
   const ordersQuery = useQuery({
     queryKey: ['storefront-admin-orders', statusFilter, page, pageSize],
@@ -742,7 +750,7 @@ export function MerchantOnlineOrdersPage() {
                             </div>
                           </td>
                           <td style={{ padding: '10px 12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                            {Number(cart.subtotal).toFixed(0)} {getGlobalCurrencySymbol()}
+                            {formatAmount(cart.subtotal)} {getGlobalCurrencySymbol()}
                           </td>
                           <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                             {cart.recovered ? (
