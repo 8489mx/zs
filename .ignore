@@ -1,6 +1,33 @@
-﻿# ==============================================================================
-# Global Ignore Rules for Language Servers & AI Tooling (Low-Data Mode)
 # ==============================================================================
+# Global Ignore Rules for Language Servers & AI Tooling (Low-Data Mode Optimizer)
+# ==============================================================================
+
+# Git & VCS Internals
+.git/**
+.github/**
+.history/**
+
+# Package Managers & Dependencies
+node_modules/**
+**/node_modules/**
+.pnpm-store/**
+.yarn/**
+
+# Build Outputs & Bundles
+**/dist/**
+**/build/**
+**/.vite/**
+**/dev-dist/**
+**/.turbo/**
+**/.cache/**
+**/.parcel-cache/**
+**/.vitest-cache/**
+**/.next/**
+**/.nuxt/**
+release/**
+releases/**
+
+# Runtime, Portable & Stored State
 portable/**
 portable/
 safe_backup_data/**
@@ -8,25 +35,41 @@ safe_backup_data/
 scripts/dev/.runtime/**
 scripts/dev/.state/**
 backend/runtime/**
-
-node_modules/**
-**/node_modules/**
-**/dist/**
-**/build/**
-**/.vite/**
-**/dev-dist/**
-**/.vitest-cache/**
-
-frontend/android/**
 frontend/portable_data/**
 frontend/electron/backend/portable_data/**
+frontend/android/**
 
+# Uploads & Storage Folders
 backend/uploads/**
 backend/storage/**
 storage/**
+uploads/**
 
-release/**
-releases/**
+# Database & Dump Files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+*.backup
+
+# Logs & Diagnostics
+*.log
+logs/**
+backend-log/**
+errors/**
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Test & Coverage Outputs
+**/test-results/**
+**/coverage/**
+**/*.tsbuildinfo
+
+# Binary & Compressed Packages
 *.exe
 *.dll
 *.apk
@@ -34,20 +77,18 @@ releases/**
 *.zip
 *.tar.gz
 *.tgz
+*.tar
 *.iso
 *.msi
+*.bin
+*.dmg
+*.bak
+*.localbak
+*.patch
 
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sql
-
-*.log
-logs/**
-backend-log/**
-errors/**
-**/test-results/**
-**/coverage/**
-**/*.tsbuildinfo
-.git/**
+# Heavy Media Files
+*.mp4
+*.mp3
+*.mov
+*.avi
+*.pdf

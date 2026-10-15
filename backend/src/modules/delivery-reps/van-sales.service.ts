@@ -110,6 +110,11 @@ export interface VanTripSummary {
 export class VanSalesService {
   static readonly FLEET_VEHICLE_STATUSES = FLEET_VEHICLE_STATUSES;
 
+  private static readonly inFlightSalePromises = new Map<string, Promise<any>>();
+  private static readonly recentSalesCache = new Map<string, { result: any; timestamp: number }>();
+  private static readonly inFlightCollectionPromises = new Map<string, Promise<any>>();
+  private static readonly recentCollectionsCache = new Map<string, { result: any; timestamp: number }>();
+
   private readonly vanFleetService: VanFleetService;
   private readonly vanRequisitionsService: VanRequisitionsService;
   private readonly vanReturnsService: VanReturnsService;
@@ -1315,30 +1320,156 @@ export class VanSalesService {
       throw new AppError('يجب تحديد صنف واحد على الأقل لإصدار الفاتورة', 'EMPTY_SALE_ITEMS', 400);
     }
 
-    // Idempotency: Prevent duplicate sale posting if offline queue retries
-    if (payload.clientTxId) {
-      const existingSale = await this.anyDb
+    const txKey = payload.clientTxId ? `${tenantId}:${payload.tripId}:${payload.clientTxId}` : null;
+    const sortedItems = [...payload.items].sort((a, b) => a.productId - b.productId);
+    const itemsSig = sortedItems.map((it) => `${it.productId}:${it.qty}:${it.unitPrice ?? 0}`).join('|');
+    const fingerprintKey = `${tenantId}:${payload.tripId}:${repId}:${payload.customerId || 'walkin'}:${itemsSig}`;
+
+    // 1. In-flight Promise Deduplication: Await concurrent request and return its result
+    if (txKey && VanSalesService.inFlightSalePromises.has(txKey)) {
+      return await VanSalesService.inFlightSalePromises.get(txKey)!;
+    }
+    if (VanSalesService.inFlightSalePromises.has(fingerprintKey)) {
+      return await VanSalesService.inFlightSalePromises.get(fingerprintKey)!;
+    }
+
+    // 2. Recent In-Memory Cache Deduplication (< 5 seconds for fingerprint, < 30s for txKey)
+    const nowMs = Date.now();
+    if (txKey && VanSalesService.recentSalesCache.has(txKey)) {
+      const entry = VanSalesService.recentSalesCache.get(txKey)!;
+      if (nowMs - entry.timestamp < 30000) return entry.result;
+    }
+    if (VanSalesService.recentSalesCache.has(fingerprintKey)) {
+      const entry = VanSalesService.recentSalesCache.get(fingerprintKey)!;
+      if (nowMs - entry.timestamp < 5000) return entry.result;
+    }
+
+    // Register promise IMMEDIATELY (synchronously) before any await call
+    const salePromise = (async () => {
+      // 3. Database Idempotency Check via [tx:clientTxId]
+      if (payload.clientTxId) {
+        const existingSale = await this.anyDb
+          .selectFrom('sales')
+          .select(['id', 'doc_no', 'total', 'payment_type'])
+          .where('tenant_id', '=', tenantId)
+          .where('van_trip_id', '=', payload.tripId)
+          .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
+          .executeTakeFirst();
+
+        if (existingSale) {
+          return {
+            ok: true,
+            saleId: Number(existingSale.id),
+            docNo: existingSale.doc_no,
+            total: Number(existingSale.total),
+            paymentMethod: existingSale.payment_type || payload.paymentMethod,
+            customerName: payload.customerName || 'عميل نقدي ميداني',
+            itemsCount: payload.items.length,
+            cashPaid: 0,
+            creditOwed: 0,
+          };
+        }
+      }
+
+      // 4. Database Rapid-Fire Duplicate Check (within last 4 seconds for identical trip, rep, customer, and items count)
+      const fourSecondsAgo = new Date(Date.now() - 4000);
+      const recentDbSale = await this.anyDb
         .selectFrom('sales')
         .select(['id', 'doc_no', 'total', 'payment_type'])
         .where('tenant_id', '=', tenantId)
         .where('van_trip_id', '=', payload.tripId)
-        .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
+        .where('delivery_rep_id', '=', repId)
+        .where('customer_id', payload.customerId ? '=' : 'is', payload.customerId ? Number(payload.customerId) : null)
+        .where('created_at', '>=', fourSecondsAgo)
+        .orderBy('id', 'desc')
         .executeTakeFirst();
 
-      if (existingSale) {
-        return {
-          ok: true,
-          saleId: Number(existingSale.id),
-          docNo: existingSale.doc_no,
-          total: Number(existingSale.total),
-          paymentMethod: existingSale.payment_type || payload.paymentMethod,
-          customerName: payload.customerName || 'عميل نقدي ميداني',
-          itemsCount: payload.items.length,
-          cashPaid: 0,
-          creditOwed: 0,
-        };
+      if (recentDbSale) {
+        const dbItemsCount = await this.anyDb
+          .selectFrom('sale_items')
+          .select((eb: any) => eb.fn.count('id').as('cnt'))
+          .where('sale_id', '=', Number(recentDbSale.id))
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        if (Number(dbItemsCount?.cnt || 0) === payload.items.length) {
+          return {
+            ok: true,
+            saleId: Number(recentDbSale.id),
+            docNo: recentDbSale.doc_no,
+            total: Number(recentDbSale.total),
+            paymentMethod: recentDbSale.payment_type || payload.paymentMethod,
+            customerName: payload.customerName || 'عميل نقدي ميداني',
+            itemsCount: payload.items.length,
+            cashPaid: 0,
+            creditOwed: 0,
+          };
+        }
       }
+
+      // 5. Execute internal sale
+      return await this.executeFieldSaleInternal(repId, tenantId, accountId, payload);
+    })();
+
+    if (txKey) VanSalesService.inFlightSalePromises.set(txKey, salePromise);
+    VanSalesService.inFlightSalePromises.set(fingerprintKey, salePromise);
+
+    try {
+      const result = await salePromise;
+      const ts = Date.now();
+      if (txKey) VanSalesService.recentSalesCache.set(txKey, { result, timestamp: ts });
+      VanSalesService.recentSalesCache.set(fingerprintKey, { result, timestamp: ts });
+
+      if (VanSalesService.recentSalesCache.size > 200) {
+        const threshold = ts - 60000;
+        for (const [k, v] of VanSalesService.recentSalesCache.entries()) {
+          if (v.timestamp < threshold) VanSalesService.recentSalesCache.delete(k);
+        }
+      }
+      return result;
+    } finally {
+      if (txKey) VanSalesService.inFlightSalePromises.delete(txKey);
+      VanSalesService.inFlightSalePromises.delete(fingerprintKey);
     }
+  }
+
+  private async executeFieldSaleInternal(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      customerId?: number;
+      customerName?: string;
+      customerPhone?: string;
+      paymentMethod: 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash';
+      paidAmount?: number;
+      transferReference?: string;
+      transferReceiptUrl?: string;
+      recipientName?: string;
+      recipientPhone?: string;
+      recipientRole?: string;
+      recipientSignature?: string;
+      items: {
+        productId: number;
+        qty: number;
+        unitPrice?: number;
+        unitName?: string;
+        unitMultiplier?: number;
+        isBonus?: boolean;
+        bonusReason?: string;
+        originalPrice?: number;
+      }[];
+      notes?: string;
+      deliveryGpsLat?: number;
+      deliveryGpsLng?: number;
+      deliveryProofPhoto?: string;
+      packagingBreakdown?: { cartonsCount?: number; piecesCount?: number; itemsCount?: number };
+      clientTxId?: string;
+      supervisorOverridePin?: string;
+      supervisorOverrideReason?: string;
+      cashDiscountAmount?: number;
+    },
+  ) {
 
     const trip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
@@ -2249,9 +2380,122 @@ export class VanSalesService {
     const amount = Number(payload.amount || 0);
     if (amount <= 0) throw new AppError('المبلغ المحصل يجب أن يكون أكبر من صفر', 'INVALID_AMOUNT', 400);
 
-    // tripId arrives straight from the driver-portal request body, so it must be
-    // proven to belong to this tenant before anything is written against it —
-    // exactly as settleTrip already does.
+    const txKey = payload.clientTxId ? `${tenantId}:${payload.tripId}:${payload.clientTxId}` : null;
+    const fingerprintKey = `${tenantId}:${payload.tripId}:${repId}:${payload.customerId}:${amount}`;
+
+    // 1. In-flight Promise Deduplication: Await concurrent request and return its result
+    if (txKey && VanSalesService.inFlightCollectionPromises.has(txKey)) {
+      return await VanSalesService.inFlightCollectionPromises.get(txKey)!;
+    }
+    if (VanSalesService.inFlightCollectionPromises.has(fingerprintKey)) {
+      return await VanSalesService.inFlightCollectionPromises.get(fingerprintKey)!;
+    }
+
+    // 2. Recent In-Memory Cache Deduplication (< 5 seconds for fingerprint, < 30s for txKey)
+    const nowMs = Date.now();
+    if (txKey && VanSalesService.recentCollectionsCache.has(txKey)) {
+      const entry = VanSalesService.recentCollectionsCache.get(txKey)!;
+      if (nowMs - entry.timestamp < 30000) return entry.result;
+    }
+    if (VanSalesService.recentCollectionsCache.has(fingerprintKey)) {
+      const entry = VanSalesService.recentCollectionsCache.get(fingerprintKey)!;
+      if (nowMs - entry.timestamp < 5000) return entry.result;
+    }
+
+    // Register collection promise IMMEDIATELY (synchronously) before any await
+    const colPromise = (async () => {
+      // 3. Database Idempotency Check via [tx:clientTxId]
+      if (payload.clientTxId) {
+        const existingPayment = await this.anyDb
+          .selectFrom('customer_payments')
+          .select(['id', 'amount', 'note'])
+          .where('tenant_id', '=', tenantId)
+          .where('customer_id', '=', payload.customerId)
+          .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
+          .executeTakeFirst();
+
+        if (existingPayment) {
+          const cust = await this.anyDb.selectFrom('customers').select(['name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
+          return {
+            ok: true,
+            receiptNo: existingPayment.note?.match(/#([A-Z0-9-]+)/)?.[1] || 'COL-SYNCED',
+            amount: Number(existingPayment.amount),
+            customerName: cust?.name || 'العميل',
+            previousBalance: 0,
+            newBalance: 0,
+          };
+        }
+      }
+
+      // 4. Database Rapid-Fire Duplicate Check (within last 4 seconds for identical customer and amount)
+      const fourSecondsAgo = new Date(Date.now() - 4000);
+      const recentDbPayment = await this.anyDb
+        .selectFrom('customer_payments')
+        .select(['id', 'amount', 'note'])
+        .where('tenant_id', '=', tenantId)
+        .where('customer_id', '=', payload.customerId)
+        .where('amount', '=', amount)
+        .where('created_at', '>=', fourSecondsAgo)
+        .orderBy('id', 'desc')
+        .executeTakeFirst();
+
+      if (recentDbPayment) {
+        const cust = await this.anyDb.selectFrom('customers').select(['name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        return {
+          ok: true,
+          receiptNo: recentDbPayment.note?.match(/#([A-Z0-9-]+)/)?.[1] || 'COL-SYNCED',
+          amount: Number(recentDbPayment.amount),
+          customerName: cust?.name || 'العميل',
+          previousBalance: 0,
+          newBalance: 0,
+        };
+      }
+
+      // 5. Execute internal collection
+      return await this.recordFieldCollectionInternal(repId, tenantId, accountId, payload);
+    })();
+
+    if (txKey) VanSalesService.inFlightCollectionPromises.set(txKey, colPromise);
+    VanSalesService.inFlightCollectionPromises.set(fingerprintKey, colPromise);
+
+    try {
+      const result = await colPromise;
+      const ts = Date.now();
+      if (txKey) VanSalesService.recentCollectionsCache.set(txKey, { result, timestamp: ts });
+      VanSalesService.recentCollectionsCache.set(fingerprintKey, { result, timestamp: ts });
+
+      if (VanSalesService.recentCollectionsCache.size > 200) {
+        const threshold = ts - 60000;
+        for (const [k, v] of VanSalesService.recentCollectionsCache.entries()) {
+          if (v.timestamp < threshold) VanSalesService.recentCollectionsCache.delete(k);
+        }
+      }
+      return result;
+    } finally {
+      if (txKey) VanSalesService.inFlightCollectionPromises.delete(txKey);
+      VanSalesService.inFlightCollectionPromises.delete(fingerprintKey);
+    }
+  }
+
+  private async recordFieldCollectionInternal(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    payload: {
+      tripId: number;
+      customerId: number;
+      amount: number;
+      paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer';
+      transferReference?: string;
+      transferReceiptUrl?: string;
+      notes?: string;
+      gpsLat?: number;
+      gpsLng?: number;
+      clientTxId?: string;
+    },
+  ) {
+    const amount = Number(payload.amount || 0);
+
     const trip = await this.anyDb
       .selectFrom('van_sales_trips as vt')
       .leftJoin('stock_locations as van', 'van.id', 'vt.van_location_id')
@@ -2265,28 +2509,6 @@ export class VanSalesService {
 
     const cust = await this.anyDb.selectFrom('customers').select(['id', 'name']).where('id', '=', payload.customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cust) throw new AppError('العميل غير موجود', 'CUSTOMER_NOT_FOUND', 404);
-
-    // Idempotency: Prevent duplicate collection posting if offline queue retries
-    if (payload.clientTxId) {
-      const existingPayment = await this.anyDb
-        .selectFrom('customer_payments')
-        .select(['id', 'amount', 'note'])
-        .where('tenant_id', '=', tenantId)
-        .where('customer_id', '=', payload.customerId)
-        .where('note', 'like', `%[tx:${payload.clientTxId}]%`)
-        .executeTakeFirst();
-
-      if (existingPayment) {
-        return {
-          ok: true,
-          receiptNo: existingPayment.note?.match(/#([A-Z0-9-]+)/)?.[1] || 'COL-SYNCED',
-          amount: Number(existingPayment.amount),
-          customerName: cust.name,
-          previousBalance: 0,
-          newBalance: 0,
-        };
-      }
-    }
 
     const branchId = trip.vanBranchId ? Number(trip.vanBranchId) : null;
     const vanLocId = trip.van_location_id ? Number(trip.van_location_id) : null;

@@ -339,16 +339,16 @@ export class VanRoutesService {
   ) {
     let query = this.anyDb
       .selectFrom('van_field_visits as vfv')
-      .innerJoin('customers as c', 'c.id', 'vfv.customer_id')
-      .innerJoin('delivery_representatives as dr', 'dr.id', 'vfv.rep_id')
+      .leftJoin('customers as c', 'c.id', 'vfv.customer_id')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 'vfv.rep_id')
       .leftJoin('sales as s', 's.id', 'vfv.sale_id')
       .select([
         'vfv.id',
         'vfv.trip_id as tripId',
         'vfv.rep_id as repId',
-        'dr.name as repName',
+        sql<string>`coalesce(dr.name, 'مندوب توزيع')`.as('repName'),
         'vfv.customer_id as customerId',
-        'c.name as customerName',
+        sql<string>`coalesce(c.name, 'عميل ميداني')`.as('customerName'),
         'c.phone as customerPhone',
         'c.metadata as customerMetadata',
         'vfv.visit_type as visitType',
@@ -371,7 +371,58 @@ export class VanRoutesService {
     if (filters?.dateTo) query = query.where('vfv.visited_at', '<=', `${filters.dateTo} 23:59:59`);
 
     const rows = await query.orderBy('vfv.visited_at', 'desc').limit(300).execute();
-    return rows.map((r: any) => {
+
+    let directSaleVisits: any[] = [];
+    if (!filters?.visitType || filters.visitType === 'positive') {
+      const linkedSaleIds = rows.map((r: any) => r.saleId).filter(Boolean);
+      let sq = this.anyDb
+        .selectFrom('sales as s')
+        .leftJoin('customers as c', 'c.id', 's.customer_id')
+        .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+        .select([
+          's.id as saleId',
+          's.van_trip_id as tripId',
+          's.delivery_rep_id as repId',
+          sql<string>`coalesce(dr.name, 'مندوب توزيع')`.as('repName'),
+          's.customer_id as customerId',
+          sql<string>`coalesce(c.name, s.customer_name, 'عميل نقدي عام')`.as('customerName'),
+          's.customer_phone as customerPhone',
+          'c.metadata as customerMetadata',
+          sql<string>`'positive'`.as('visitType'),
+          's.doc_no as saleDocNo',
+          sql<number>`cast(coalesce(s.total, 0) as numeric)`.as('saleTotal'),
+          sql<string | null>`null`.as('negativeReason'),
+          sql<string | null>`null`.as('postponedToDate'),
+          sql<number | null>`cast(s.delivery_gps_lat as double precision)`.as('gpsLat'),
+          sql<number | null>`cast(s.delivery_gps_lng as double precision)`.as('gpsLng'),
+          sql<string>`coalesce(s.note, 'فاتورة بيع ميداني مباشر')`.as('notes'),
+          's.created_at as visitedAt',
+        ])
+        .where('s.tenant_id', '=', tenantId)
+        .where('s.van_trip_id', 'is not', null);
+
+      if (filters?.repId) sq = sq.where('s.delivery_rep_id', '=', filters.repId);
+      if (filters?.customerId) sq = sq.where('s.customer_id', '=', filters.customerId);
+      if (filters?.dateFrom) sq = sq.where('s.created_at', '>=', new Date(filters.dateFrom));
+      if (filters?.dateTo) sq = sq.where('s.created_at', '<=', new Date(`${filters.dateTo} 23:59:59`));
+      if (linkedSaleIds.length > 0) {
+        sq = sq.where('s.id', 'not in', linkedSaleIds);
+      }
+
+      const directRows = await sq.orderBy('s.created_at', 'desc').limit(100).execute();
+      directSaleVisits = directRows.map((r: any) => ({
+        ...r,
+        id: -Number(r.saleId),
+      }));
+    }
+
+    const allVisits = [...rows, ...directSaleVisits].sort((a: any, b: any) => {
+      const ta = new Date(a.visitedAt).getTime();
+      const tb = new Date(b.visitedAt).getTime();
+      return tb - ta;
+    });
+
+    return allVisits.map((r: any) => {
       const custCoords = extractCoordinatesFromCustomerLocation({ metadata: r.customerMetadata });
       const geo = evaluateGeofenceCompliance({
         repLat: r.gpsLat != null ? Number(r.gpsLat) : null,
@@ -413,14 +464,47 @@ export class VanRoutesService {
 
     const visits = await visitQuery.execute();
 
-    const totalVisits = visits.length;
-    const positiveVisits = visits.filter((v: any) => v.visitType === 'positive').length;
-    const negativeVisits = visits.filter((v: any) => v.visitType === 'negative').length;
+    // Fetch unlinked direct van sales to include in KPI strike rate & total visits
+    const linkedSaleIds = (await this.anyDb
+      .selectFrom('van_field_visits')
+      .select(['sale_id'])
+      .where('tenant_id', '=', tenantId)
+      .where('sale_id', 'is not', null)
+      .execute()).map((r: any) => r.sale_id).filter(Boolean);
+
+    let sq = this.anyDb
+      .selectFrom('sales as s')
+      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .select([
+        's.id',
+        sql<string>`'positive'`.as('visitType'),
+        sql<string | null>`null`.as('negativeReason'),
+        's.customer_id as customerId',
+        's.delivery_rep_id as repId',
+        sql<number | null>`cast(s.delivery_gps_lat as double precision)`.as('gpsLat'),
+        sql<number | null>`cast(s.delivery_gps_lng as double precision)`.as('gpsLng'),
+        'c.metadata as customerMetadata',
+      ])
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.van_trip_id', 'is not', null);
+
+    if (dateFrom) sq = sq.where('s.created_at', '>=', new Date(dateFrom));
+    if (dateTo) sq = sq.where('s.created_at', '<=', new Date(`${dateTo} 23:59:59`));
+    if (linkedSaleIds.length > 0) {
+      sq = sq.where('s.id', 'not in', linkedSaleIds);
+    }
+    const directSalesKpi = await sq.execute();
+
+    const allVisitsKpi = [...visits, ...directSalesKpi];
+
+    const totalVisits = allVisitsKpi.length;
+    const positiveVisits = allVisitsKpi.filter((v: any) => v.visitType === 'positive').length;
+    const negativeVisits = allVisitsKpi.filter((v: any) => v.visitType === 'negative').length;
     const strikeRate = totalVisits > 0 ? Number(((positiveVisits / totalVisits) * 100).toFixed(1)) : 0;
 
     let geofenceCompliantCount = 0;
     let geofenceViolationsCount = 0;
-    for (const v of visits) {
+    for (const v of allVisitsKpi) {
       const custCoords = extractCoordinatesFromCustomerLocation({ metadata: v.customerMetadata });
       const geo = evaluateGeofenceCompliance({
         repLat: v.gpsLat != null ? Number(v.gpsLat) : null,

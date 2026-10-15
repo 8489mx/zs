@@ -7621,6 +7621,20 @@
   - `frontend/src/features/delivery-reps/components/VanFinancialLedgerAdminTab.tsx`
   - `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`
 
-
-
-
+## 241. درع الحماية اللحظي ومنع تكرار الفواتير والتحصيلات في مبيعات الفان الميدانية (Van Sales Concurrency, Deduplication & Idempotency Shield)
+* **الحالة / الجاهزية:** تم الإنجاز والاعتماد بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة المندوب الميداني `/driver` وتطبيق الفان سيلز والباك إند `van-sales.service.ts`.
+* **القدرات التشغيلية والتقنية:**
+  1. **قفل الواجهة الفوري المتزامن (Instant Synchronous UI Lock):**
+     - إضافة حارس فوري `isCheckoutProcessingRef` و `isCollectionProcessingRef` ينشطان في زمن 0ms بمجرد اللمس، وقبل البدء في طلب إحداثيات الـ GPS غير المتزامن (`navigator.geolocation.getCurrentPosition`).
+     - تعطيل أزرار التأكيد فوراً وتحويل النص إلى `جاري الإصدار...`، مع حظر نقري مزدوج (Double-Tap) في `VanSaleCheckoutModal.tsx` و `VanSalesMobilePage.tsx`.
+     - توليد مفتاح معاملة فريد حتمي (`clientTxId`) لكل محاولة بيع أو تحصيل وإرساله مع حمولة الطلب.
+  2. **قفل التوازي اللحظي في السيرفر (In-Flight Concurrency Promise Lock):**
+     - خريطة وعود قيد المعالجة `inFlightSalePromises` و `inFlightCollectionPromises` تشارك نفس الوعد فوراً لأي طلبين متزامنين بنفس السلة والمندوب والعميل حتى لو وصلا بفارق أجزاء من الثانية (Milliseconds)، وإرجاع نفس الفاتورة المحفوظة دون تكرار أي قيد أو خصم مخزون.
+  3. **حائط صد التكرار السريع في الذاكرة وقاعدة البيانات (Rapid-Duplicate Safeguard):**
+     - تخزين كاش محلي سريع للعمليات الناجحة في الذاكرة لمدة 30 ثانية.
+     - فحص أمني في قاعدة البيانات والذاكرة يمنع تكرار أي فاتورة أو سند قبض مالي لنفس المندوب والرحلة والعميل خلال 5 ثوانٍ، وإرجاع نتيجة الفاتورة المسجلة.
+* **الملفات المنفذة:**
+  - `frontend/src/features/delivery-reps/components/VanSaleCheckoutModal.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`

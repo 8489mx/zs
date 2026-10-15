@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi } from '../api/van-sales.api';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -18,7 +18,23 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
   const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [filterNoSaleOnly, setFilterNoSaleOnly] = useState(false);
   const [selectedTripIdForTrail, setSelectedTripIdForTrail] = useState<number | null>(null);
+  const [focusedPointIndex, setFocusedPointIndex] = useState<number | null>(null);
   const [selectedInventoryVisit, setSelectedInventoryVisit] = useState<any | null>(null);
+
+  // 0. Fetch Admin Trips for automatic trip selection & breadcrumbs dropdown
+  const { data: adminTrips = [] } = useQuery({
+    queryKey: ['van-sales-admin-trips'],
+    queryFn: () => vanSalesApi.listAdminTrips(),
+  });
+
+  useEffect(() => {
+    if (!selectedTripIdForTrail && adminTrips.length > 0) {
+      const activeOrLatest = adminTrips.find((t) => t.status === 'open') || adminTrips[0];
+      if (activeOrLatest) {
+        setSelectedTripIdForTrail(activeOrLatest.id);
+      }
+    }
+  }, [adminTrips, selectedTripIdForTrail]);
 
   // 1. Fetch Visits History & Strike Rate KPIs
   const {
@@ -531,22 +547,31 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                 رسم المسار الفعلي المتصل للسيارة طوال اليوم مع نقاط التوقف والمحطات المنفذة
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>رقم الرحلة:</span>
-              <input
-                type="number"
-                placeholder="أدخل رقم الرحلة..."
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>اختر رحلة التوزيع:</span>
+              <select
                 value={selectedTripIdForTrail || ''}
                 onChange={(e) => setSelectedTripIdForTrail(e.target.value ? Number(e.target.value) : null)}
                 style={{
-                  width: '140px',
+                  minWidth: '220px',
                   height: '32px',
                   padding: '0 8px',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
                   fontSize: '12px',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  cursor: 'pointer',
                 }}
-              />
+              >
+                <option value="">-- اختر الرحلة --</option>
+                {adminTrips.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    رحلة #{t.id} • {t.repName} ({t.status === 'open' ? 'نشطة الآن' : 'مغلقة'})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -556,13 +581,13 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               backgroundColor: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: '10px',
-              padding: '24px',
+              padding: breadcrumbs.length > 0 ? '16px' : '24px',
               minHeight: '320px',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
+              alignItems: breadcrumbs.length > 0 ? 'stretch' : 'center',
+              justifyContent: breadcrumbs.length > 0 ? 'flex-start' : 'center',
+              textAlign: breadcrumbs.length > 0 ? 'start' : 'center',
             }}
           >
             {!selectedTripIdForTrail ? (
@@ -587,49 +612,178 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                   تأكد من بدء الرحلة وتفعيل صلاحية الموقع الجغرافي بهاتف المندوب
                 </div>
               </div>
-            ) : (
-              <div style={{ width: '100%', textAlign: 'start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
-                    تم تسجيل {breadcrumbs.length} نقطة مسار جغرافي للرحلة #{selectedTripIdForTrail}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    آخر نقطة: {new Date(breadcrumbs[breadcrumbs.length - 1].recordedAt).toLocaleTimeString('ar-EG')}
-                  </span>
-                </div>
+            ) : (() => {
+              const activeIndex = focusedPointIndex !== null && breadcrumbs[focusedPointIndex] ? focusedPointIndex : breadcrumbs.length - 1;
+              const activePoint = breadcrumbs[activeIndex];
+              return (
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Top Stats Banner */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#166534' }}>
+                        تم تسجيل {breadcrumbs.length} نقطة مسار جغرافي للرحلة #{selectedTripIdForTrail}
+                      </span>
+                      <span style={{ fontSize: '11.5px', color: '#475569', backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>
+                        النقطة المعروضة: #{activeIndex + 1}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11.5px', color: '#64748b' }}>
+                      <span>آخر تحديث: {new Date(breadcrumbs[breadcrumbs.length - 1].recordedAt).toLocaleTimeString('ar-EG')}</span>
+                      <a
+                        href={`https://www.google.com/maps?q=${activePoint.latitude},${activePoint.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          color: '#170e5e',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        فتح في خرائط Google ↗
+                      </a>
+                    </div>
+                  </div>
 
-                {/* Breadcrumb Steps Timeline */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
-                  {breadcrumbs.map((b: any, idx: number) => (
+                  {/* Interactive Map Canvas */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '380px',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#e2e8f0',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <iframe
+                      title="Interactive Route Map"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={`https://maps.google.com/maps?q=${activePoint.latitude},${activePoint.longitude}&hl=ar&z=16&output=embed`}
+                    />
+                    {/* Floating Info Pill */}
                     <div
-                      key={b.id}
                       style={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                        backdropFilter: 'blur(4px)',
+                        padding: '8px 14px',
                         borderRadius: '8px',
-                        padding: '8px 12px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        color: '#170e5e',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '11.5px',
+                        gap: '8px',
+                        border: '1px solid #e2e8f0',
+                        flexWrap: 'wrap',
+                        maxWidth: '90%',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800 }}>
-                          {idx + 1}
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }} />
+                      <span>محطة #{activeIndex + 1}</span>
+                      {activePoint.customerName && (
+                        <span style={{ color: '#0f172a' }}>• {activePoint.customerName}</span>
+                      )}
+                      {activePoint.saleAmount != null && activePoint.saleAmount > 0 && (
+                        <span style={{ color: '#166534', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
+                          فاتورة #{activePoint.docNo}: {activePoint.saleAmount} ج.م ({activePoint.paymentType === 'cash' ? 'نقدي' : 'آجل'})
                         </span>
-                        <span>إحداثيات: {b.latitude.toFixed(5)}, {b.longitude.toFixed(5)}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#64748b' }}>
-                        <span>السرعة: {b.speedKmh} كم/س</span>
-                        <span>البطارية: {b.batteryLevel}%</span>
-                        <span>{new Date(b.recordedAt).toLocaleTimeString('ar-EG')}</span>
-                      </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Waypoints Timeline List */}
+                  <div>
+                    <h5 style={{ margin: '0 0 8px', fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>
+                      سجل نقاط ومحطات المسار الفعلي وتفاصيل العمليات (اضغط على أي محطة لإظهارها على الخريطة):
+                    </h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
+                      {breadcrumbs.map((b: any, idx: number) => {
+                        const isCurrentActive = idx === activeIndex;
+                        return (
+                          <div
+                            key={b.id || idx}
+                            onClick={() => setFocusedPointIndex(idx)}
+                            style={{
+                              backgroundColor: isCurrentActive ? '#f0fdf4' : '#ffffff',
+                              border: isCurrentActive ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '10px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '11.5px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              boxShadow: isCurrentActive ? '0 1px 3px rgba(22, 101, 52, 0.1)' : 'none',
+                              gap: '12px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  backgroundColor: isCurrentActive ? '#16a34a' : '#170e5e',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {idx + 1}
+                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
+                                    {b.customerName ? b.customerName : `محطة توقف #${idx + 1}`}
+                                  </span>
+                                  {b.saleAmount != null && b.saleAmount > 0 && (
+                                    <span style={{ fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '1px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                      فاتورة بيع #{b.docNo} • {b.saleAmount.toFixed(2)} ج.م ({b.paymentType === 'cash' ? 'كاش' : b.paymentType === 'credit' ? 'آجل' : 'مجزء'})
+                                    </span>
+                                  )}
+                                  {isCurrentActive && (
+                                    <span style={{ fontSize: '10.5px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                      معروضة على الخريطة أعلاه
+                                    </span>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                  الموقع: {b.latitude.toFixed(5)}, {b.longitude.toFixed(5)} {b.customerPhone ? `• هاتف: ${b.customerPhone}` : ''} {b.notes ? `• ملاحظات: ${b.notes}` : ''}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#64748b', flexShrink: 0 }}>
+                              <span>السرعة: {b.speedKmh} كم/س</span>
+                              <span>البطارية: {b.batteryLevel}%</span>
+                              <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
+                                {new Date(b.recordedAt).toLocaleTimeString('ar-EG')}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

@@ -92,7 +92,7 @@ export default function VanSalesAdminManagementPage() {
   const pendingShortagesCount = ledgerBadgeQuery.data?.items?.length || 0;
 
   const vanDrivers = useMemo(() => {
-    return reps.filter((r) => r.is_van_rep || r.rep_type === 'van' || r.rep_type === 'both');
+    return reps.filter((r) => r.is_van_rep || r.rep_type === 'van' || r.rep_type === 'both' || !r.rep_type);
   }, [reps]);
 
   const filteredDrivers = useMemo(() => {

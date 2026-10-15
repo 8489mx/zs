@@ -318,6 +318,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   };
 
   const handleConfirm = () => {
+    if (isSubmitting) return;
     setValidationError('');
 
     const finalMethod: VanPaymentMethod = isActuallySplit ? 'split' : paymentMethod;

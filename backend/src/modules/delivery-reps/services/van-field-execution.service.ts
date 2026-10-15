@@ -366,17 +366,81 @@ export class VanFieldExecutionService {
       .orderBy('recorded_at', 'asc')
       .execute();
 
+    // Fetch trip sales with recorded GPS to attach operational details to waypoints
+    const salesWaypoints = await (this.db as any)
+      .selectFrom('sales as s')
+      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .select([
+        's.id',
+        's.doc_no',
+        sql<number>`cast(s.delivery_gps_lat as double precision)`.as('latitude'),
+        sql<number>`cast(s.delivery_gps_lng as double precision)`.as('longitude'),
+        's.created_at as recorded_at',
+        sql<string>`coalesce(c.name, s.customer_name, 'عميل نقدي عام')`.as('customer_name'),
+        's.customer_phone',
+        's.total as sale_amount',
+        's.payment_type',
+        's.note',
+      ])
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.van_trip_id', '=', tripId)
+      .where('s.delivery_gps_lat', 'is not', null)
+      .where('s.delivery_gps_lng', 'is not', null)
+      .orderBy('s.created_at', 'asc')
+      .execute();
+
+    if (points.length > 0) {
+      // Enrich high-density breadcrumbs with nearby sale operational events
+      const enrichedBreadcrumbs = points.map((p) => {
+        const matchingSale = salesWaypoints.find((s: any) => {
+          const latDiff = Math.abs(Number(s.latitude) - Number(p.latitude));
+          const lngDiff = Math.abs(Number(s.longitude) - Number(p.longitude));
+          return latDiff < 0.003 && lngDiff < 0.003;
+        });
+        return {
+          id: p.id,
+          latitude: Number(p.latitude),
+          longitude: Number(p.longitude),
+          speedKmh: Number(p.speed_kmh || 0),
+          batteryLevel: Number(p.battery_level || 100),
+          recordedAt: p.recorded_at,
+          customerName: matchingSale?.customer_name || null,
+          customerPhone: matchingSale?.customer_phone || null,
+          docNo: matchingSale?.doc_no || null,
+          saleAmount: matchingSale ? Number(matchingSale.sale_amount || 0) : null,
+          paymentType: matchingSale?.payment_type || null,
+          notes: matchingSale?.note || null,
+          eventType: matchingSale ? 'sale' : 'waypoint',
+        };
+      });
+
+      return {
+        ok: true,
+        tripId,
+        pointsCount: enrichedBreadcrumbs.length,
+        breadcrumbs: enrichedBreadcrumbs,
+      };
+    }
+
+    // Fallback: Waypoints from trip sales with recorded GPS
     return {
       ok: true,
       tripId,
-      pointsCount: points.length,
-      breadcrumbs: points.map((p) => ({
-        id: p.id,
+      pointsCount: salesWaypoints.length,
+      breadcrumbs: salesWaypoints.map((p: any) => ({
+        id: -Number(p.id),
         latitude: Number(p.latitude),
         longitude: Number(p.longitude),
-        speedKmh: Number(p.speed_kmh || 0),
-        batteryLevel: Number(p.battery_level || 100),
+        speedKmh: 0,
+        batteryLevel: 100,
         recordedAt: p.recorded_at,
+        customerName: p.customer_name || 'عميل نقدي عام',
+        customerPhone: p.customer_phone || null,
+        docNo: p.doc_no || `SALE-${p.id}`,
+        saleAmount: Number(p.sale_amount || 0),
+        paymentType: p.payment_type || 'cash',
+        notes: p.note || null,
+        eventType: 'sale',
       })),
     };
   }
@@ -394,6 +458,7 @@ export class VanFieldExecutionService {
       noSaleOnly?: boolean;
     },
   ) {
+    // 1. Fetch visits recorded via itinerary check-in
     let q = this.db
       .selectFrom('van_store_visits')
       .selectAll()
@@ -408,12 +473,79 @@ export class VanFieldExecutionService {
     }
 
     const rows = await q.orderBy('check_in_at', 'desc').limit(200).execute();
-    const metrics = FmcgVisitExecutionEngine.calculateStrikeRateMetrics(rows);
+
+    // 2. Fetch direct van field sales (cash / walk-in sales) not already linked in van_store_visits
+    let directVisits: any[] = [];
+    if (!filters?.noSaleOnly) {
+      const linkedSaleIds = rows.map((r) => r.sale_id).filter(Boolean);
+      let sq = (this.db as any)
+        .selectFrom('sales as s')
+        .leftJoin('customers as c', (join: any) => join.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
+        .select([
+          's.id',
+          's.van_trip_id as trip_id',
+          's.delivery_rep_id as rep_id',
+          's.customer_id',
+          sql<string>`coalesce(c.name, s.customer_name, 'عميل نقدي عام')`.as('customer_name'),
+          's.created_at as check_in_at',
+          's.created_at as check_out_at',
+          sql<number>`cast(s.delivery_gps_lat as double precision)`.as('check_in_lat'),
+          sql<number>`cast(s.delivery_gps_lng as double precision)`.as('check_in_lng'),
+          's.total as sale_amount',
+          's.payment_type',
+          's.doc_no',
+        ])
+        .where('s.tenant_id', '=', tenantId)
+        .where('s.van_trip_id', 'is not', null);
+
+      if (filters?.tripId) sq = sq.where('s.van_trip_id', '=', filters.tripId);
+      if (filters?.repId) sq = sq.where('s.delivery_rep_id', '=', filters.repId);
+      if (filters?.customerId) sq = sq.where('s.customer_id', '=', filters.customerId);
+      if (filters?.date) {
+        sq = sq.where(sql`DATE(s.created_at)`, '=', filters.date);
+      }
+      if (linkedSaleIds.length > 0) {
+        sq = sq.where('s.id', 'not in', linkedSaleIds);
+      }
+
+      const directSales = await sq.orderBy('s.created_at', 'desc').limit(100).execute();
+
+      directVisits = directSales.map((s: any) => ({
+        id: -Number(s.id),
+        trip_id: s.trip_id ? Number(s.trip_id) : null,
+        rep_id: s.rep_id ? Number(s.rep_id) : 0,
+        customer_id: s.customer_id ? Number(s.customer_id) : null,
+        customer_name: s.customer_name || 'عميل نقدي عام',
+        check_in_at: s.check_in_at,
+        check_out_at: s.check_out_at,
+        dwell_time_seconds: 60,
+        check_in_lat: s.check_in_lat != null ? Number(s.check_in_lat) : null,
+        check_in_lng: s.check_in_lng != null ? Number(s.check_in_lng) : null,
+        is_geofence_valid: true,
+        geofence_distance_meters: 0,
+        has_sale: true,
+        sale_id: Number(s.id),
+        sale_amount: Number(s.sale_amount || 0),
+        has_collection: s.payment_type === 'cash',
+        collection_amount: s.payment_type === 'cash' ? Number(s.sale_amount || 0) : 0,
+        no_sale_reason: null,
+        no_sale_notes: s.doc_no ? `فاتورة بيع مباشر #${s.doc_no}` : 'فاتورة بيع ميداني',
+        store_inventory: '[]',
+      }));
+    }
+
+    const allVisits = [...rows, ...directVisits].sort((a: any, b: any) => {
+      const ta = new Date(a.check_in_at).getTime();
+      const tb = new Date(b.check_in_at).getTime();
+      return tb - ta;
+    });
+
+    const metrics = FmcgVisitExecutionEngine.calculateStrikeRateMetrics(allVisits);
 
     return {
       ok: true,
       metrics,
-      visits: rows.map((r) => ({
+      visits: allVisits.map((r: any) => ({
         id: r.id,
         tripId: r.trip_id,
         repId: r.rep_id,
@@ -431,7 +563,7 @@ export class VanFieldExecutionService {
         collectionAmount: Number(r.collection_amount || 0),
         noSaleReason: r.no_sale_reason,
         noSaleNotes: r.no_sale_notes,
-        storeInventory: typeof r.store_inventory === 'string' ? JSON.parse(r.store_inventory) : r.store_inventory,
+        storeInventory: typeof r.store_inventory === 'string' ? JSON.parse(r.store_inventory) : (r.store_inventory || []),
       })),
     };
   }

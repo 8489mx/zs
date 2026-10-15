@@ -337,15 +337,25 @@ export class VanTargetsService {
       .executeTakeFirst();
     const actualCollections = Number(collectionsMtdRow?.total_collected || 0);
 
-    const visitsMtdRow = await this.anyDb
-      .selectFrom('van_field_visits')
-      .select([sql<number>`count(*)`.as('total_visits')])
-      .where('rep_id', '=', repId)
-      .where('tenant_id', '=', tenantId)
-      .where('visited_at', '>=', startOfMonth)
-      .where('visited_at', '<=', endOfMonth)
-      .executeTakeFirst();
-    const actualVisits = Number(visitsMtdRow?.total_visits || 0);
+    const [visitsFieldRow, visitsStoreRow] = await Promise.all([
+      this.anyDb
+        .selectFrom('van_field_visits')
+        .select([sql<number>`count(*)`.as('total_visits')])
+        .where('rep_id', '=', repId)
+        .where('tenant_id', '=', tenantId)
+        .where('visited_at', '>=', startOfMonth)
+        .where('visited_at', '<=', endOfMonth)
+        .executeTakeFirst(),
+      this.anyDb
+        .selectFrom('van_store_visits')
+        .select([sql<number>`count(*)`.as('total_visits')])
+        .where('rep_id', '=', repId)
+        .where('tenant_id', '=', tenantId)
+        .where('check_in_at', '>=', startOfMonth)
+        .where('check_in_at', '<=', endOfMonth)
+        .executeTakeFirst(),
+    ]);
+    const actualVisits = Number(visitsFieldRow?.total_visits || 0) + Number(visitsStoreRow?.total_visits || 0);
 
     const [officialHolidays, commissionConfig, paidMap] = await Promise.all([
       getMonthlyOfficialHolidayDates(this.anyDb, tenantId, startOfMonth, endOfMonth),
@@ -466,17 +476,33 @@ export class VanTargetsService {
     const collectionsMap = new Map<number, number>();
     for (const c of collectionsMtd) collectionsMap.set(Number(c.rep_id), Number(c.total_collected || 0));
 
-    const visitsMtd = await this.anyDb
-      .selectFrom('van_field_visits')
-      .select(['rep_id', sql<number>`count(*)`.as('total_visits')])
-      .where('tenant_id', '=', tenantId)
-      .where('visited_at', '>=', startOfMonth)
-      .where('visited_at', '<=', endOfMonth)
-      .where(sql<boolean>`rep_id is not null`)
-      .groupBy('rep_id')
-      .execute();
+    const [visitsFieldMtd, visitsStoreMtd] = await Promise.all([
+      this.anyDb
+        .selectFrom('van_field_visits')
+        .select(['rep_id', sql<number>`count(*)`.as('total_visits')])
+        .where('tenant_id', '=', tenantId)
+        .where('visited_at', '>=', startOfMonth)
+        .where('visited_at', '<=', endOfMonth)
+        .where(sql<boolean>`rep_id is not null`)
+        .groupBy('rep_id')
+        .execute(),
+      this.anyDb
+        .selectFrom('van_store_visits')
+        .select(['rep_id', sql<number>`count(*)`.as('total_visits')])
+        .where('tenant_id', '=', tenantId)
+        .where('check_in_at', '>=', startOfMonth)
+        .where('check_in_at', '<=', endOfMonth)
+        .where(sql<boolean>`rep_id is not null`)
+        .groupBy('rep_id')
+        .execute(),
+    ]);
     const visitsMap = new Map<number, number>();
-    for (const v of visitsMtd) visitsMap.set(Number(v.rep_id), Number(v.total_visits || 0));
+    for (const v of visitsFieldMtd) {
+      visitsMap.set(Number(v.rep_id), (visitsMap.get(Number(v.rep_id)) || 0) + Number(v.total_visits || 0));
+    }
+    for (const v of visitsStoreMtd) {
+      visitsMap.set(Number(v.rep_id), (visitsMap.get(Number(v.rep_id)) || 0) + Number(v.total_visits || 0));
+    }
 
     const [officialHolidays, commissionConfig, paidMap] = await Promise.all([
       getMonthlyOfficialHolidayDates(this.anyDb, tenantId, startOfMonth, endOfMonth),

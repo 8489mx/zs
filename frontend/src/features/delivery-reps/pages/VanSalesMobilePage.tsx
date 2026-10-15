@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -522,6 +522,10 @@ export default function VanSalesMobilePage() {
   const [isTargetMetricsExpanded, setIsTargetMetricsExpanded] = useState(false);
   const [inventorySubMode, setInventorySubMode] = useState<'stock' | 'requisitions'>('stock');
   const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
+  const [isCheckoutProcessing, setIsCheckoutProcessing] = useState<boolean>(false);
+  const isCheckoutProcessingRef = useRef<boolean>(false);
+  const [isCollectionProcessing, setIsCollectionProcessing] = useState<boolean>(false);
+  const isCollectionProcessingRef = useRef<boolean>(false);
 
   const showAlert = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
     setAlert({ type, message });
@@ -796,6 +800,10 @@ export default function VanSalesMobilePage() {
       queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] });
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل إصدار الفاتورة'),
+    onSettled: () => {
+      isCheckoutProcessingRef.current = false;
+      setIsCheckoutProcessing(false);
+    },
   });
 
   const recordCollectionMutation = useMutation({
@@ -889,6 +897,10 @@ export default function VanSalesMobilePage() {
       queryClient.invalidateQueries({ queryKey: ['driver-sales-history'] });
     },
     onError: (err: any) => showAlert('error', err?.message || 'فشل تسجيل التحصيل'),
+    onSettled: () => {
+      isCollectionProcessingRef.current = false;
+      setIsCollectionProcessing(false);
+    },
   });
 
   const settleTripMutation = useMutation({
@@ -1057,6 +1069,12 @@ export default function VanSalesMobilePage() {
           position: 'sticky',
           top: 0,
           zIndex: 40,
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
@@ -1064,7 +1082,17 @@ export default function VanSalesMobilePage() {
             <TruckIcon size={14} color="#170e5e" />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#0f172a',
+                lineHeight: 1.3,
+                WebkitFontSmoothing: 'antialiased',
+                textRendering: 'optimizeLegibility',
+              }}
+            >
               مبيعات وتوزيع الفان
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', flexWrap: 'wrap' }}>
@@ -3115,6 +3143,9 @@ export default function VanSalesMobilePage() {
                   initialSubMode={colSubMode}
                   initialReturnCustomerId={colReturnCustomerId}
                   onSubmitCollection={async () => {
+                    if (isCollectionProcessingRef.current || recordCollectionMutation.isPending) {
+                      return;
+                    }
                     if (!colCustomerId || !Number(colAmount)) {
                       showAlert('error', 'يرجى اختيار العميل وإدخال مبلغ التحصيل');
                       return;
@@ -3127,6 +3158,12 @@ export default function VanSalesMobilePage() {
                       }
                       return;
                     }
+
+                    isCollectionProcessingRef.current = true;
+                    setIsCollectionProcessing(true);
+
+                    const clientTxId = `van_col_${data.trip!.id}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
                     let gpsLat: number | undefined;
                     let gpsLng: number | undefined;
                     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -3138,15 +3175,21 @@ export default function VanSalesMobilePage() {
                         gpsLng = pos.coords.longitude;
                       } catch {}
                     }
-                    recordCollectionMutation.mutate({
-                      tripId: data.trip!.id,
-                      customerId: Number(colCustomerId),
-                      amount: Number(colAmount),
-                      gpsLat: gpsLat || activeVisit?.latitude,
-                      gpsLng: gpsLng || activeVisit?.longitude,
-                    });
+                    try {
+                      recordCollectionMutation.mutate({
+                        tripId: data.trip!.id,
+                        clientTxId,
+                        customerId: Number(colCustomerId),
+                        amount: Number(colAmount),
+                        gpsLat: gpsLat || activeVisit?.latitude,
+                        gpsLng: gpsLng || activeVisit?.longitude,
+                      });
+                    } catch (err) {
+                      isCollectionProcessingRef.current = false;
+                      setIsCollectionProcessing(false);
+                    }
                   }}
-                  isSubmitting={recordCollectionMutation.isPending}
+                  isSubmitting={isCollectionProcessing || recordCollectionMutation.isPending}
                   onReturnSuccess={(docNo, amount) => {
                     showAlert('success', `تم رفع إذن المرتجع #${docNo} بقيمة ${amount.toFixed(2)} ${getGlobalCurrencySymbol()} للإدارة بنجاح`);
                   }}
@@ -3284,8 +3327,16 @@ export default function VanSalesMobilePage() {
           onDeliveryProofPhotoChange={setDeliveryProofPhoto}
           notes={saleNotes}
           onNotesChange={setSaleNotes}
-          isSubmitting={executeSaleMutation.isPending}
+          isSubmitting={isCheckoutProcessing || executeSaleMutation.isPending}
           onConfirmCheckout={async (checkoutData) => {
+            if (isCheckoutProcessingRef.current || executeSaleMutation.isPending) {
+              return;
+            }
+            isCheckoutProcessingRef.current = true;
+            setIsCheckoutProcessing(true);
+
+            const clientTxId = `van_sale_${data.trip!.id}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
             let gpsLat: number | undefined;
             let gpsLng: number | undefined;
             if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -3298,45 +3349,51 @@ export default function VanSalesMobilePage() {
               } catch {}
             }
 
-            executeSaleMutation.mutate({
-              tripId: data.trip!.id,
-              customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
-              customerName: newCustomerName || undefined,
-              paymentMethod: checkoutData.paymentMethod,
-              paidAmount: checkoutData.paidAmount,
-              cashDiscountAmount: checkoutData.cashDiscountAmount,
-              subtotal: cartSubtotal,
-              discount: cartDiscount,
-              notes: checkoutData.notes,
-              deliveryGpsLat: gpsLat,
-              deliveryGpsLng: gpsLng,
-              deliveryProofPhoto: checkoutData.deliveryProofPhoto || deliveryProofPhoto || undefined,
-              supervisorOverridePin: checkoutData.supervisorOverridePin,
-              supervisorOverrideReason: checkoutData.supervisorOverrideReason,
-              transferReference: checkoutData.transferReference,
-              transferReceiptUrl: checkoutData.transferReceiptUrl,
-              recipientName: checkoutData.recipientName,
-              recipientPhone: checkoutData.recipientPhone,
-              recipientRole: checkoutData.recipientRole,
-              recipientSignature: checkoutData.recipientSignature,
-              packagingBreakdown: checkoutData.cartonsCount
-                ? {
-                    cartonsCount: Number(checkoutData.cartonsCount) || 0,
-                    piecesCount: cart.reduce((s, it) => s + it.qty, 0),
-                    itemsCount: cart.length,
-                  }
-                : undefined,
-              items: cart.map((c) => ({
-                productId: c.productId,
-                qty: c.qty,
-                unitPrice: c.unitPrice,
-                originalPrice: c.originalPrice,
-                unitName: c.unitName,
-                unitMultiplier: c.unitMultiplier,
-                isBonus: c.isBonus,
-                bonusReason: c.bonusReason,
-              })),
-            });
+            try {
+              executeSaleMutation.mutate({
+                tripId: data.trip!.id,
+                clientTxId,
+                customerId: selectedCustomerId ? Number(selectedCustomerId) : undefined,
+                customerName: newCustomerName || undefined,
+                paymentMethod: checkoutData.paymentMethod,
+                paidAmount: checkoutData.paidAmount,
+                cashDiscountAmount: checkoutData.cashDiscountAmount,
+                subtotal: cartSubtotal,
+                discount: cartDiscount,
+                notes: checkoutData.notes,
+                deliveryGpsLat: gpsLat,
+                deliveryGpsLng: gpsLng,
+                deliveryProofPhoto: checkoutData.deliveryProofPhoto || deliveryProofPhoto || undefined,
+                supervisorOverridePin: checkoutData.supervisorOverridePin,
+                supervisorOverrideReason: checkoutData.supervisorOverrideReason,
+                transferReference: checkoutData.transferReference,
+                transferReceiptUrl: checkoutData.transferReceiptUrl,
+                recipientName: checkoutData.recipientName,
+                recipientPhone: checkoutData.recipientPhone,
+                recipientRole: checkoutData.recipientRole,
+                recipientSignature: checkoutData.recipientSignature,
+                packagingBreakdown: checkoutData.cartonsCount
+                  ? {
+                      cartonsCount: Number(checkoutData.cartonsCount) || 0,
+                      piecesCount: cart.reduce((s, it) => s + it.qty, 0),
+                      itemsCount: cart.length,
+                    }
+                  : undefined,
+                items: cart.map((c) => ({
+                  productId: c.productId,
+                  qty: c.qty,
+                  unitPrice: c.unitPrice,
+                  originalPrice: c.originalPrice,
+                  unitName: c.unitName,
+                  unitMultiplier: c.unitMultiplier,
+                  isBonus: c.isBonus,
+                  bonusReason: c.bonusReason,
+                })),
+              });
+            } catch (err) {
+              isCheckoutProcessingRef.current = false;
+              setIsCheckoutProcessing(false);
+            }
           }}
         />
       )}
