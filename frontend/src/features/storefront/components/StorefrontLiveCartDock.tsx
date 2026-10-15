@@ -5,7 +5,7 @@ import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
 import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
-import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
+import { isThreeDecimalCurrency } from '@/lib/currencies';
 
 function formatArabicItems(count: number): string {
   if (count === 1) return 'صنف واحد';

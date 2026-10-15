@@ -226,11 +226,11 @@ export function mapHeldSalesRows(
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
       priceType: item.price_type || 'retail',
-      modifiers: itemModifiers,
-      notes: typeof item.notes === 'string' ? item.notes : '',
-      seatNumber: itemSeat,
-      course: itemCourse,
       lineKey: `${item.product_id || ''}::${item.unit_name || 'قطعة'}::${item.price_type || 'retail'}`,
+      modifiers: itemModifiers,
+      ...(typeof item.notes === 'string' && item.notes.trim() ? { notes: item.notes } : {}),
+      ...(itemSeat != null ? { seatNumber: itemSeat } : {}),
+      ...(itemCourse != null ? { course: itemCourse } : {}),
     });
   }
 

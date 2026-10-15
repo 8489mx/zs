@@ -4,7 +4,6 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
   PrinterIcon,
   AlertTriangleIcon,
-  Share2Icon,
   RefreshCwIcon,
   SendIcon,
   CopyIcon,

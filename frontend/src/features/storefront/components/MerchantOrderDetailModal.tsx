@@ -1,4 +1,3 @@
-import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalSystemCurrency, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import type { OnlineOrderRecord } from '../types/storefront.types';

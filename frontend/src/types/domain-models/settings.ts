@@ -100,6 +100,7 @@ export interface AppSettings {
   posMaxDiscountThresholdValue?: number;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
+  posAutoPrintKitchenReceipt?: boolean;
   weightedBarcodeEnabled?: boolean;
   weightedBarcodePrefix?: string;
   weightedBarcodeProductCodeLength?: number;
@@ -108,6 +109,7 @@ export interface AppSettings {
   weightedBarcodeValueMode?: 'weight' | 'price';
   theme?: string;
   uiLanguage?: 'ar' | 'en' | string;
+  country?: string;
   currency?: string;
   timezone?: string;
   dateFormat?: string;

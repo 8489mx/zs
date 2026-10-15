@@ -94,7 +94,6 @@ export function PosPhoneOrderDialog({
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
 
   // Kuwait PACI Address Helper State
-  const [showPaciHelper, setShowPaciHelper] = useState<boolean>(isKwd);
   const [paciArea, setPaciArea] = useState('');
   const [paciBlock, setPaciBlock] = useState('');
   const [paciStreet, setPaciStreet] = useState('');

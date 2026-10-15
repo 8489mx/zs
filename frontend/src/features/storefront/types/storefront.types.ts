@@ -257,6 +257,7 @@ export interface OnlineOrderRecord {
   gcc_shipping_created_at?: string | null;
   countryCode?: string | null;
   country_code?: string | null;
+  currency?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: Array<{

@@ -21,7 +21,6 @@ export function StorefrontDeliveryZonesManager() {
   const currCode = getGlobalSystemCurrency();
   const isThreeDec = isThreeDecimalCurrency(currCode);
   const isKuwait = currCode === 'KWD';
-  const currencySymbol = getGlobalCurrencySymbol();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<StorefrontDeliveryZone | null>(null);
@@ -150,7 +149,7 @@ export function StorefrontDeliveryZonesManager() {
       message: `هل أنت متأكد من رغبتك في حذف منطقة "${zone.name}"؟`,
       confirmText: 'نعم، حذف',
       cancelText: 'إلغاء',
-      isDestructive: true,
+      variant: 'danger',
     });
     if (ok) {
       deleteMutation.mutate(zone.id);

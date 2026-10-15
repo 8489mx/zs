@@ -31,6 +31,7 @@ function createWrapper() {
 const baseSettingsMutationValues = {
   storeName: 'My Store',
   brandName: 'My Store',
+  country: 'EG',
   phone: '',
   address: '',
   lowStockThreshold: 5,

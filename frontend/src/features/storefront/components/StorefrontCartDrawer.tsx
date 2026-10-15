@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
+import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';

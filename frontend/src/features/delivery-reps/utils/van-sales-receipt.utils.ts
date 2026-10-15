@@ -13,6 +13,7 @@ export interface VanSaleReceiptItem {
   consumerPrice?: number | null;
   unitOfferSavings?: number | null;
   pricingTierType?: 'cash' | 'credit' | 'offer';
+  isBonus?: boolean;
 }
 
 export interface VanSaleReceiptData {

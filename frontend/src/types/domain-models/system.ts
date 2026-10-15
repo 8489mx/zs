@@ -240,6 +240,7 @@ export interface AppSettings {
   requireCashierShiftForSales?: boolean;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
+  posAutoPrintKitchenReceipt?: boolean;
   posKitchenPrinterMode?: 'detailed' | 'mini';
   posElectronCashierPrinter?: string;
   posElectronKitchenPrinter?: string;
@@ -251,6 +252,7 @@ export interface AppSettings {
   weightedBarcodeValueMode?: 'weight' | 'price';
   theme?: string;
   uiLanguage?: 'ar' | 'en' | string;
+  country?: string;
   currency?: string;
   timezone?: string;
   dateFormat?: string;

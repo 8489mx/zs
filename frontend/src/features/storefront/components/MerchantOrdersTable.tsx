@@ -48,7 +48,7 @@ export function getStatusBadge(status: string) {
   }
 }
 
-function formatOrderTotal(amount: number, orderCurrency?: string): string {
+function formatOrderTotal(amount: number, orderCurrency?: string | null): string {
   const code = orderCurrency || getGlobalSystemCurrency();
   const decimals = isThreeDecimalCurrency(code) ? 3 : (code === 'EGP' && amount % 1 === 0 ? 0 : 2);
   const symbol = getCurrencySymbol(code);

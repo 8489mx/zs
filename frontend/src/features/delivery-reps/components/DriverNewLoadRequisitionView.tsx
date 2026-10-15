@@ -24,7 +24,6 @@ import {
   BuildingIcon,
   ClockIcon,
   RefreshCwIcon,
-  AlertCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { VanFloatingActionBar } from './VanFloatingActionBar';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
