@@ -1131,6 +1131,59 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
       </div>
 
+      {/* Aggregator / Channel Source Tag Selector */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
+          مصدر طلب التوصيل (قناة الاستلام):
+        </span>
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'direct', label: 'مباشر (المحل)' },
+            { id: 'talabat', label: 'طلبات Talabat' },
+            { id: 'deliveroo', label: 'دليفرو Deliveroo' },
+            { id: 'jahez', label: 'جاهز Jahez' },
+            { id: 'cari', label: 'كاري Cari' },
+          ].map((channel) => {
+            const isSelected = channel.id === 'direct'
+              ? !['طلبات', 'دليفرو', 'جاهز', 'كاري'].some(k => (pos.note || '').includes(k))
+              : (pos.note || '').includes(channel.label.split(' ')[0]);
+
+            return (
+              <button
+                key={channel.id}
+                type="button"
+                onClick={() => {
+                  let nextNote = (pos.note || '').replace(/\[(مصدر|منصة|قناة):[^\]]+\]/g, '').trim();
+                  if (channel.id !== 'direct') {
+                    nextNote = `[منصة: ${channel.label}] ${nextNote}`.trim();
+                    // Auto-set collection to prepaid_online because customers pay through the aggregator app
+                    pos.setCollectionStatus('prepaid_online');
+                    pos.setPaymentChannel('wallet');
+                    pos.setTransferAmount(Number(pos.totals.total || 0));
+                    pos.setCashAmount(0);
+                    pos.setCardAmount(0);
+                  }
+                  pos.setNote(nextNote);
+                }}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: isSelected ? 800 : 600,
+                  border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  background: isSelected ? '#170e5e' : '#f8fafc',
+                  color: isSelected ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  transition: 'none',
+                }}
+              >
+                {channel.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
         {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
           <Button

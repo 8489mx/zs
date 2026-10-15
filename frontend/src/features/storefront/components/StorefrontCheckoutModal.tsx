@@ -1,5 +1,5 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse, QuoteCartResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -85,6 +85,20 @@ export function getDynamicPhoneValidation(phone: string, countryCode: string = '
       return { isValid: false, message: `متبقي ${9 - digits.length} أرقام`, isComplete: false };
     }
     return { isValid: true, message: 'رقم هاتف مكتمل', isComplete: true };
+  }
+
+  if (countryCode === 'KW') {
+    const digits = clean.replace(/\D/g, '').replace(/^965/, '').replace(/^00965/, '').replace(/^0/, '');
+    if (digits.length > 0 && !['2', '5', '6', '9'].includes(digits[0])) {
+      return { isValid: false, message: 'يجب أن يبدأ بـ 2, 5, 6, أو 9', isComplete: false };
+    }
+    if (digits.length === 8) {
+      return { isValid: true, message: 'رقم هاتف كويتي صحيح (8 أرقام)', isComplete: true };
+    }
+    if (digits.length < 8) {
+      return { isValid: false, message: `متبقي ${8 - digits.length} أرقام`, isComplete: false };
+    }
+    return { isValid: false, message: 'رقم الهاتف الكويتي يتكون من 8 أرقام', isComplete: false };
   }
 
   const generalDigits = clean.replace(/\D/g, '');
@@ -411,6 +425,22 @@ export function StorefrontCheckoutModal({
   const total = serverQuote
     ? serverQuote.totalAmount
     : (Math.max(0, subtotal - discountAmount) + effectiveDeliveryFee);
+
+  const storeCurrency = info?.currency || getGlobalCurrencySymbol();
+  const isThreeDec = isThreeDecimalCurrency(storeCurrency);
+  const activeCurrencySymbol = getCurrencySymbol(storeCurrency);
+  const isKuwait = selectedCountry === 'KW' || storeCurrency === 'KWD';
+
+  const formatMoney = (val: number | string | undefined | null): string => {
+    const num = Number(val || 0);
+    if (isThreeDec) {
+      return num.toFixed(3);
+    }
+    if (storeCurrency === 'EGP') {
+      return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    }
+    return num.toFixed(2);
+  };
 
   const phoneStatus = getDynamicPhoneValidation(customerPhone, selectedCountry);
   const nameStatus = getCustomerNameValidation(customerName);
@@ -1388,7 +1418,7 @@ export function StorefrontCheckoutModal({
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        إنستاباي / محفظة
+                        {isKuwait ? 'تحويل بنكي / رابط دفع' : 'إنستاباي / محفظة'}
                       </span>
                     </div>
 
@@ -1432,7 +1462,7 @@ export function StorefrontCheckoutModal({
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          بطاقة بنكية
+                          {isKuwait ? 'بطاقة / كي نت K-NET' : 'بطاقة بنكية'}
                         </span>
                       </div>
                     )}
@@ -1455,10 +1485,12 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
-                        دفع إلكتروني فوري وآمن:
+                        {isKuwait ? 'دفع إلكتروني فوري وآمن (كي نت / بطاقات بنكية):' : 'دفع إلكتروني فوري وآمن:'}
                       </div>
                       <div style={{ color: '#0c4a6e', fontSize: '10.5px', lineHeight: '1.3' }}>
-                        سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) ببطاقتك البنكية فور الضغط على إرسال الطلب.
+                        {isKuwait
+                          ? `سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب (${formatMoney(total)} ${activeCurrencySymbol}) فور الضغط على إرسال الطلب.`
+                          : `سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب (${formatMoney(total)} ${activeCurrencySymbol}) ببطاقتك البنكية فور الضغط على إرسال الطلب.`}
                       </div>
                     </div>
                   )}
@@ -1480,13 +1512,15 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
-                        رقم التحويل (إنستاباي / كاش):{' '}
+                        {isKuwait ? 'بيانات التحويل البنكي / الرابط:' : 'رقم التحويل (إنستاباي / كاش):'}{' '}
                         <span style={{ direction: 'ltr', display: 'inline-block', color: brandColor, fontWeight: 900 }}>
                           {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
                         </span>
                       </div>
                       <div style={{ color: '#15803d', fontSize: '10.5px', lineHeight: '1.3' }}>
-                        يرجى تحويل مبلغ الطلب ({total.toFixed(0)} <CurrencySymbol />) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.
+                        {isKuwait
+                          ? `يرجى تحويل مبلغ الطلب (${formatMoney(total)} ${activeCurrencySymbol}) وإرسال إشعار التحويل عبر الواتساب لتأكيد الطلب فوراً.`
+                          : `يرجى تحويل مبلغ الطلب (${formatMoney(total)} ${activeCurrencySymbol}) وإرسال إشعار التحويل عبر الواتساب لتأكيد الشحن فوراً.`}
                       </div>
                     </div>
                   )}
@@ -1511,7 +1545,7 @@ export function StorefrontCheckoutModal({
                         }}
                       >
                         <span>
-                          مبروك! مشترياتك تجاوزت {freeShippingThreshold} <CurrencySymbol /> وحصلت على شحن مجاني{rawDeliveryFee > 0 ? <> (توفير {rawDeliveryFee.toFixed(0)} <CurrencySymbol />)</> : ''}.
+                          مبروك! مشترياتك تجاوزت {formatMoney(freeShippingThreshold)} <CurrencySymbol currency={storeCurrency} /> وحصلت على شحن مجاني{rawDeliveryFee > 0 ? <> (توفير {formatMoney(rawDeliveryFee)} <CurrencySymbol currency={storeCurrency} />)</> : ''}.
                         </span>
                       </div>
                     ) : freeShippingRemaining > 0 ? (
@@ -1531,7 +1565,7 @@ export function StorefrontCheckoutModal({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <TruckIcon size={12} color="#0284c7" />
                           <span>
-                            أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} <CurrencySymbol /></strong> لشحن مجاني!
+                            أضف بـ <strong style={{ color: '#0284c7' }}>{formatMoney(freeShippingRemaining)} <CurrencySymbol currency={storeCurrency} /></strong> لشحن مجاني!
                           </span>
                         </div>
                         <span
@@ -1591,7 +1625,7 @@ export function StorefrontCheckoutModal({
                             {appliedCoupon.code}
                           </span>
                           <span style={{ fontSize: '10px', color: '#15803d', marginRight: '4px' }}>
-                            {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
+                            {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${formatMoney(discountAmount)} ${activeCurrencySymbol})`}
                           </span>
                         </div>
                         <button
@@ -1687,13 +1721,13 @@ export function StorefrontCheckoutModal({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
                     <span>مجموع الأصناف:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} <CurrencySymbol /></span>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>{formatMoney(subtotal)} <CurrencySymbol currency={storeCurrency} /></span>
                   </div>
 
                   {bogoSavings > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#059669', background: '#ecfdf5', padding: '2px 5px', borderRadius: '4px' }}>
                       <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
-                      <strong style={{ fontWeight: 800 }}>- {bogoSavings.toFixed(0)} <CurrencySymbol /></strong>
+                      <strong style={{ fontWeight: 800 }}>- {formatMoney(bogoSavings)} <CurrencySymbol currency={storeCurrency} /></strong>
                     </div>
                   )}
 
@@ -1704,19 +1738,19 @@ export function StorefrontCheckoutModal({
                     ) : effectiveDeliveryFee === 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {rawDeliveryFee > 0 && (
-                          <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{rawDeliveryFee.toFixed(0)} ج</span>
+                          <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{formatMoney(rawDeliveryFee)} {activeCurrencySymbol}</span>
                         )}
                         <strong style={{ color: '#166534' }}>توصيل مجاني</strong>
                       </div>
                     ) : (
-                      <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} <CurrencySymbol /></span>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{formatMoney(effectiveDeliveryFee)} <CurrencySymbol currency={storeCurrency} /></span>
                     )}
                   </div>
 
                   {discountAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#16a34a' }}>
                       <span>خصم الكوبون ({appliedCoupon?.code}):</span>
-                      <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} <CurrencySymbol /></strong>
+                      <strong style={{ fontWeight: 800 }}>- {formatMoney(discountAmount)} <CurrencySymbol currency={storeCurrency} /></strong>
                     </div>
                   )}
 
@@ -1734,7 +1768,7 @@ export function StorefrontCheckoutModal({
                       المبلغ الإجمالي للدفع:
                     </span>
                     <span style={{ fontSize: '14.5px', fontWeight: 900, color: '#0f172a' }}>
-                      {total.toFixed(0)} <CurrencySymbol />
+                      {formatMoney(total)} <CurrencySymbol currency={storeCurrency} />
                     </span>
                   </div>
                 </div>

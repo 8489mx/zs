@@ -7729,7 +7729,14 @@
   8. **اعتماد الأرقام اللاتينية الإنجليزية ورمز العملة الصريح في إيصالات الكاشير (Foodics Latin Numerals & Explicit Currency Standard):**
       - تفعيل التنسيق اللاتيني القياسي الافتراضي للأرقام (`550.000 د.ك`) في إيصالات نقاط البيع عند اختيار دولة الكويت أو العملة `KWD` (مطابقة لمعيار فودكس وكبرى منظومات نقاط البيع الخليجية)، لمنع التباس الفاصلة العشرية العربية (`٫`) مع فاصلة الآلاف، مع تمكين المستخدم من التبديل للأرقام العربية إن رغب.
       - إبراز رمز العملة الصريح (`د.ك`) في كافة أسطر الإجماليات، المتبقي، المدفوع، والباقي، وطرق الدفع وتفقيط المبالغ.
-      - فصل سطري التاريخ واسم الكاشير في أسطر مستقلة متناسقة في القالب الحراري القياسي لمنع التداخل والتعرج النصي.
+   9. **تنسيق الفلس والأرقام العشرية بالمتجر الإلكتروني وتوطين الدفع (Storefront Currency & Decimal Cleanliness):**
+       - ترقية نافذة إتمام الطلب بالمتجر `StorefrontCheckoutModal.tsx` ونافذة تفاصيل الطلب لدى التاجر `MerchantOrderDetailModal.tsx` لتطبيق التنسيق العشري الدقيق تلقائياً (3 خانات للفلس الكويتي) واقتلاع أي كتابة صامتة لرمز الجنيه (`ج`) أو التصفير القسري للكسور (`toFixed(0)`).
+       - توطين خيارات الدفع عند اختيار دولة الكويت أو الدينار الكويتي إلى «تحويل بنكي / رابط دفع» و «دفع إلكتروني (بطاقة / كي نت K-NET)» بدلاً من إنستاباي.
+       - التحقق الصارم من صحة أرقام الهواتف الكويتية (8 أرقام تبدأ بـ 2 أو 5 أو 6 أو 9).
+   10. **الرقم الآلي للعنوان (PACI 8-Digit Automated Address Number) ومحدد كويت فايندر:**
+       - تزويد مساعد العنوان الكويتي بحقل مستقل «الرقم الآلي للعنوان (8 أرقام)» المعتمد من الهيئة العامة للمعلومات المدنية، ليتم تضمينه فوراً في العنوان والملاحظات التشغيلية لتسهيل وصول طياري الدليفري عبر تطبيق كويت فايندر (Kuwait Finder).
+   11. **وسم قنوات ومنصات التوصيل التجميعية في الكاشير (Delivery Aggregators Source Tagging):**
+       - إضافة محدد سريع في قسم الدليفري بنافذة إتمام البيع `PosCheckoutDialogSections.tsx` لاختيار منصة الطلب: (مباشر / المحل، طلبات Talabat، دليفرو Deliveroo، جاهز Jahez، كاري Cari) مع التحويل التلقائي لحالة التحصيل إلى «خالص أونلاين» وتضمين الوسم في الفاتورة وبون المطبخ.
 * **الملفات المنفذة:**
   - `frontend/src/features/settings/schemas/settings.schema.ts`
   - `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`
@@ -7754,4 +7761,6 @@
   - `frontend/src/lib/pos-printing.ts`
   - `frontend/src/lib/pos-printing/shared.ts`
   - `frontend/src/lib/pos-printing/template.ts`
+  - `frontend/src/features/storefront/components/StorefrontCheckoutModal.tsx`
+  - `frontend/src/features/storefront/components/MerchantOrderDetailModal.tsx`
   - `backend/src/database/migrations/2040000000226_restaurant_pager_and_kuwait_features.ts`

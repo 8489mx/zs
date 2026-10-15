@@ -1,4 +1,5 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
+import { getGlobalSystemCurrency, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import type { OnlineOrderRecord } from '../types/storefront.types';
 import {
@@ -73,6 +74,22 @@ export function MerchantOrderDetailModal({
   isGccConfigured = false,
 }: MerchantOrderDetailModalProps) {
   if (!order) return null;
+
+  const isKwdOrder = order?.countryCode === 'KW' || (order as any)?.country_code === 'KW' || getGlobalSystemCurrency() === 'KWD';
+  const orderCurrency = isKwdOrder ? 'KWD' : (getGlobalSystemCurrency() || 'EGP');
+  const isThreeDec = isThreeDecimalCurrency(orderCurrency);
+  const orderCurrencySymbol = getCurrencySymbol(orderCurrency);
+
+  const formatOrderMoney = (amount: number | null | undefined): string => {
+    const num = Number(amount || 0);
+    if (isThreeDec) {
+      return num.toFixed(3);
+    }
+    if (orderCurrency === 'EGP') {
+      return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    }
+    return num.toFixed(2);
+  };
 
   const payment = describeOrderPayment(order);
   const showBosta = shouldShowBostaShipping(order, isBostaConfigured);
@@ -302,7 +319,7 @@ export function MerchantOrderDetailModal({
                   </span>
                 </div>
                 <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                  {item.total.toFixed(0)} ج
+                  {formatOrderMoney(item.total)} {orderCurrencySymbol}
                 </span>
               </div>
             ))}
@@ -407,14 +424,14 @@ export function MerchantOrderDetailModal({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
               <span>المجموع الفرعي:</span>
-              <span style={{ fontWeight: 600 }}>{order.subtotal.toFixed(0)} ج</span>
+              <span style={{ fontWeight: 600 }}>{formatOrderMoney(order.subtotal)} {orderCurrencySymbol}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
               <span>رسوم التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
               {order.deliveryFee === 0 ? (
                 <span style={{ fontWeight: 700, color: '#16a34a' }}>مجاناً</span>
               ) : (
-                <span style={{ fontWeight: 600 }}>{order.deliveryFee.toFixed(0)} ج</span>
+                <span style={{ fontWeight: 600 }}>{formatOrderMoney(order.deliveryFee)} {orderCurrencySymbol}</span>
               )}
             </div>
             {order.couponCode && (
@@ -426,7 +443,7 @@ export function MerchantOrderDetailModal({
             {(order.discountAmount ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                 <span>قيمة الخصم:</span>
-                <span style={{ fontWeight: 700 }}>-{(order.discountAmount ?? 0).toFixed(0)} <CurrencySymbol /></span>
+                <span style={{ fontWeight: 700 }}>- {formatOrderMoney(order.discountAmount)} {orderCurrencySymbol}</span>
               </div>
             )}
             <div
@@ -441,7 +458,7 @@ export function MerchantOrderDetailModal({
               }}
             >
               <span>المبلغ المطلوب:</span>
-              <span>{order.totalAmount.toFixed(0)} <CurrencySymbol /></span>
+              <span>{formatOrderMoney(order.totalAmount)} {orderCurrencySymbol}</span>
             </div>
           </div>
 

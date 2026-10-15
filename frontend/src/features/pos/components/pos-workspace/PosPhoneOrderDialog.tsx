@@ -102,6 +102,40 @@ export function PosPhoneOrderDialog({
   const [paciHouse, setPaciHouse] = useState('');
   const [paciFloor, setPaciFloor] = useState('');
   const [paciApt, setPaciApt] = useState('');
+  const [paciAutoNumber, setPaciAutoNumber] = useState('');
+
+  function buildPaciAddress(overrides?: {
+    area?: string;
+    block?: string;
+    street?: string;
+    avenue?: string;
+    house?: string;
+    floor?: string;
+    apt?: string;
+    autoNumber?: string;
+  }): string {
+    const a = overrides?.area !== undefined ? overrides.area : paciArea;
+    const b = overrides?.block !== undefined ? overrides.block : paciBlock;
+    const s = overrides?.street !== undefined ? overrides.street : paciStreet;
+    const av = overrides?.avenue !== undefined ? overrides.avenue : paciAvenue;
+    const h = overrides?.house !== undefined ? overrides.house : paciHouse;
+    const fl = overrides?.floor !== undefined ? overrides.floor : paciFloor;
+    const ap = overrides?.apt !== undefined ? overrides.apt : paciApt;
+    const num = overrides?.autoNumber !== undefined ? overrides.autoNumber : paciAutoNumber;
+
+    const parts = [
+      a.trim(),
+      b.trim() ? `ق ${b.trim()}` : '',
+      s.trim() ? `ش ${s.trim()}` : '',
+      av.trim() ? `جادة ${av.trim()}` : '',
+      h.trim() ? `منزل ${h.trim()}` : '',
+      fl.trim() ? `دور ${fl.trim()}` : '',
+      ap.trim() ? `شقة ${ap.trim()}` : '',
+      num.trim() ? `[الرقم الآلي: ${num.trim()}]` : '',
+    ].filter(Boolean);
+
+    return parts.join(' - ');
+  }
   
   // Tab: 'desk' | 'recent_calls' | 'hardware'
   const [activeTab, setActiveTab] = useState<'desk' | 'recent_calls' | 'hardware'>('desk');
@@ -247,6 +281,10 @@ export function PosPhoneOrderDialog({
 
     if (deliveryNotes.trim()) {
       parts.push(`[ملاحظات الطيار: ${deliveryNotes.trim()}]`);
+    }
+
+    if (paciAutoNumber.trim()) {
+      parts.push(`[الرقم الآلي للعنوان: ${paciAutoNumber.trim()}]`);
     }
 
     return parts.join(' ');
@@ -847,7 +885,7 @@ export function PosPhoneOrderDialog({
                   setIsForceNewCustomer(false);
                   setNewPhone(e.target.value);
                 }}
-                placeholder="أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."
+                placeholder={isKwd ? "أدخل رقم هاتف العميل بالكويت (8 أرقام مثال: 91234567) أو اسم العميل..." : "أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."}
                 style={{
                   width: '100%',
                   padding: '6px 32px 6px 10px',
@@ -1124,7 +1162,7 @@ export function PosPhoneOrderDialog({
                                   handleSaveCustomAddress();
                                 }
                               }}
-                              placeholder={isKwd ? "اكتب العنوان بالتفصيل أو بنظام PACI (المنطقة، قطعة، شارع، جادة، منزل)..." : "اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."}
+                              placeholder={isKwd ? "اكتب العنوان بالتفصيل (المنطقة، قطعة، شارع، منزل، والرقم الآلي للعنوان)..." : "اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."}
                               style={{
                                 flex: 1,
                                 padding: '4px 8px',
@@ -1880,16 +1918,7 @@ export function PosPhoneOrderDialog({
                       <button
                         type="button"
                         onClick={() => {
-                          const parts = [
-                            paciArea.trim(),
-                            paciBlock.trim() ? `ق ${paciBlock.trim()}` : '',
-                            paciStreet.trim() ? `ش ${paciStreet.trim()}` : '',
-                            paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '',
-                            paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '',
-                            paciFloor.trim() ? `دور ${paciFloor.trim()}` : '',
-                            paciApt.trim() ? `شقة ${paciApt.trim()}` : '',
-                          ].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress());
                         }}
                         style={{
                           fontSize: '0.68rem',
@@ -1913,8 +1942,7 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciArea(val);
-                          const parts = [val.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ area: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
@@ -1925,8 +1953,7 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciBlock(val);
-                          const parts = [paciArea.trim(), val.trim() ? `ق ${val.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ block: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
@@ -1937,8 +1964,7 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciStreet(val);
-                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', val.trim() ? `ش ${val.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ street: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
@@ -1949,13 +1975,12 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciAvenue(val);
-                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', val.trim() ? `جادة ${val.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ avenue: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                       <input
                         type="text"
                         placeholder="المنزل / القسيمة / المبنى"
@@ -1963,8 +1988,7 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciHouse(val);
-                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', val.trim() ? `منزل ${val.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ house: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
@@ -1975,8 +1999,7 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciFloor(val);
-                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', val.trim() ? `دور ${val.trim()}` : '', paciApt.trim() ? `شقة ${paciApt.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ floor: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                       />
@@ -1987,10 +2010,23 @@ export function PosPhoneOrderDialog({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPaciApt(val);
-                          const parts = [paciArea.trim(), paciBlock.trim() ? `ق ${paciBlock.trim()}` : '', paciStreet.trim() ? `ش ${paciStreet.trim()}` : '', paciAvenue.trim() ? `جادة ${paciAvenue.trim()}` : '', paciHouse.trim() ? `منزل ${paciHouse.trim()}` : '', paciFloor.trim() ? `دور ${paciFloor.trim()}` : '', val.trim() ? `شقة ${val.trim()}` : ''].filter(Boolean);
-                          setNewAddress(parts.join(' - '));
+                          setNewAddress(buildPaciAddress({ apt: val }));
                         }}
                         style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={8}
+                        placeholder="الرقم الآلي (8 أرقام)"
+                        title="الرقم الآلي للعنوان المعتمد من PACI كويت فايندر"
+                        value={paciAutoNumber}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 8);
+                          setPaciAutoNumber(val);
+                          setNewAddress(buildPaciAddress({ autoNumber: val }));
+                        }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1.5px solid #3b82f6', background: '#eff6ff', fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: '#1e40af' }}
                       />
                     </div>
                   </div>
