@@ -935,6 +935,20 @@ export const vanSalesApi = {
     return res.requisitions || [];
   },
 
+  cancelMyRequisition: async (id: number): Promise<{
+    ok: boolean;
+    requisitionId: number;
+    docNo: string;
+    previousItems: any[];
+    notes?: string;
+    sourceWarehouseId?: number;
+  }> => {
+    return http(`/api/driver-portal/van-sales/requisitions/${id}`, {
+      method: 'DELETE',
+      headers: getDriverAuthHeaders(),
+    });
+  },
+
   getWarehouses: async (): Promise<DriverWarehouse[]> => {
     const res = await http<{ ok: boolean; warehouses: DriverWarehouse[] }>(
       '/api/driver-portal/van-sales/warehouses',
@@ -1288,7 +1302,7 @@ export const vanSalesApi = {
     });
   },
 
-  dispatchRequisition: async (id: number): Promise<{ ok: boolean; requisitionId: number; tripId: number; docNo: string }> => {
+  dispatchRequisition: async (id: number): Promise<{ ok: boolean; requisitionId: number; tripId: number; docNo: string; isSupplementary?: boolean }> => {
     return http(`/api/van-sales/admin/requisitions/${id}/dispatch`, { method: 'POST' });
   },
 

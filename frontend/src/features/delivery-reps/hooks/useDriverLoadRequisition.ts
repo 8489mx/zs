@@ -5,6 +5,7 @@ import {
   type DriverWarehouse,
   type DriverAvailableProduct,
   type DriverProductStock,
+  type VanLoadRequisitionRecord,
 } from '../api/van-sales.api';
 import { driverPortalApi } from '@/shared/api/delivery-reps.api';
 import { toast } from '@/shared/components/system-alert';
@@ -90,7 +91,31 @@ export function useDriverLoadRequisition(selectedWarehouseFilter: string, option
     staleTime: 30_000,
   });
 
-  // 3. Submit Requisition Mutation (with offline outbox auto-sync)
+  // 3. Fetch driver's requisitions to monitor status and pending loads
+  const myRequisitionsQuery = useQuery<VanLoadRequisitionRecord[]>({
+    queryKey: ['driver-my-requisitions'],
+    queryFn: () => vanSalesApi.listMyRequisitions(),
+    enabled: isEnabled,
+    staleTime: 10_000,
+  });
+
+  const pendingRequisition = useMemo(() => {
+    return (myRequisitionsQuery.data || []).find((r) => r.status === 'pending') || null;
+  }, [myRequisitionsQuery.data]);
+
+  // 4. Cancel Requisition Mutation (driver withdrawing their own pending request)
+  const cancelMutation = useMutation({
+    mutationFn: (requisitionId: number) => vanSalesApi.cancelMyRequisition(requisitionId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['driver-my-requisitions'] });
+      toast.success(`تم إلغاء طلب إذن التحميل #${res.docNo} واسترجاع الأصناف بنجاح`);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'فشل إلغاء طلب إذن التحميل');
+    },
+  });
+
+  // 5. Submit Requisition Mutation (with offline outbox auto-sync)
   const submitMutation = useMutation({
     mutationFn: async (payload: {
       sourceWarehouseId?: number;
@@ -142,9 +167,14 @@ export function useDriverLoadRequisition(selectedWarehouseFilter: string, option
     isLoadingWarehouses: warehousesQuery.isLoading,
     availableProducts: availableProductsQuery.data || [],
     isLoadingProducts: availableProductsQuery.isLoading,
+    myRequisitions: myRequisitionsQuery.data || [],
+    isLoadingMyRequisitions: myRequisitionsQuery.isLoading,
+    pendingRequisition,
+    cancelRequisition: cancelMutation.mutateAsync,
+    isCancellingRequisition: cancelMutation.isPending,
     submitRequisition: submitMutation.mutateAsync,
     isSubmitting: submitMutation.isPending,
   };
 }
 
-export type { DriverWarehouse, DriverAvailableProduct, DriverProductStock };
+export type { DriverWarehouse, DriverAvailableProduct, DriverProductStock, VanLoadRequisitionRecord };

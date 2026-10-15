@@ -91,4 +91,32 @@ describe('Van Sales Receipt Utilities', () => {
     expect(message).toContain('• سكر أبيض 1كجم × 2 = 400.00 ج.م');
     expect(message).toContain('450.00 ج.م');
   });
+
+  it('formats WhatsApp sharing message with storeName, bonus items, and electronic payment details', () => {
+    const electronicReceipt: VanSaleReceiptData = {
+      docNo: 'VAN-261015-0012',
+      total: 350,
+      paymentMethod: 'instapay',
+      transferReference: 'IP-9988221',
+      customerName: 'سوبرماركت المدينة',
+      customerCode: 'CUST-88',
+      storeName: 'شركة الأمل لتوزيع الأغذية',
+      customerTotalBalance: 1200,
+      items: [
+        { productId: 10, name: 'لبن جهينة 1 لتر', qty: 10, unitPrice: 35, unitName: 'كرتونة', lineTotal: 350 },
+        { productId: 11, name: 'عصير برتقال هدية', qty: 1, unitPrice: 0, unitName: 'قطعة', lineTotal: 0, isBonus: true },
+      ],
+      packagingBreakdown: { cartonsCount: 10, piecesCount: 1, itemsCount: 2 },
+    };
+
+    const message = formatVanSaleShareMessage(electronicReceipt, { storeName: 'شركة الأمل لتوزيع الأغذية', currency: 'ج.م' });
+    expect(message).toContain('*شركة الأمل لتوزيع الأغذية*');
+    expect(message).toContain('VAN-261015-0012');
+    expect(message).toContain('سوبرماركت المدينة');
+    expect(message).toContain('[CUST-88]');
+    expect(message).toContain('تحويل بنكي / إنستاباي (مرجع: IP-9988221)');
+    expect(message).toContain('• لبن جهينة 1 لتر × 10 كرتونة = 350.00 ج.م');
+    expect(message).toContain('• عصير برتقال هدية × 1 قطعة [بونص مجاني 0.00]');
+    expect(message).toContain('*إجمالي رصيد الحساب المتبقي:* 1200.00 ج.م');
+  });
 });

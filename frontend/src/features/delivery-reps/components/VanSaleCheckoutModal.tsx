@@ -11,6 +11,7 @@ import {
   SlidersIcon,
   EditIcon,
   SmartphoneIcon,
+  SendIcon,
 } from '@/shared/components/icons/AppIcons';
 import { VanSignaturePadModal, RecipientSignatureData } from './VanSignaturePadModal';
 
@@ -66,6 +67,7 @@ export interface VanSaleCheckoutModalProps {
     recipientPhone?: string;
     recipientRole?: string;
     recipientSignature?: string;
+    autoShareWhatsApp?: boolean;
   }) => void;
 }
 
@@ -147,6 +149,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   const [walletType, setWalletType] = useState<'instapay' | 'vodafone_cash'>('instapay');
   const [recipientSignatureData, setRecipientSignatureData] = useState<RecipientSignatureData | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState<boolean>(false);
+  const [autoShareWhatsApp, setAutoShareWhatsApp] = useState<boolean>(
+    Boolean(customer?.phone || (customer as any)?.metadata?.phone || (customer as any)?.metadata?.whatsapp)
+  );
 
   useEffect(() => {
     if (open) {
@@ -408,6 +413,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
       recipientPhone: recipientSignatureData?.recipientPhone || undefined,
       recipientRole: recipientSignatureData?.recipientRole || undefined,
       recipientSignature: recipientSignatureData?.recipientSignature || undefined,
+      autoShareWhatsApp,
     });
   };
 
@@ -1348,6 +1354,37 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               boxSizing: 'border-box',
             }}
           />
+
+          {/* Quick WhatsApp Share Switch */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: autoShareWhatsApp ? '#15803d' : '#64748b',
+              backgroundColor: autoShareWhatsApp ? '#f0fdf4' : '#f8fafc',
+              border: `1px solid ${autoShareWhatsApp ? '#bbf7d0' : '#e2e8f0'}`,
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              userSelect: 'none',
+              boxSizing: 'border-box',
+              transition: 'none',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={autoShareWhatsApp}
+              onChange={(e) => setAutoShareWhatsApp(e.target.checked)}
+              style={{ width: '15px', height: '15px', accentColor: '#16a34a', cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <SendIcon size={13} color={autoShareWhatsApp ? '#16a34a' : '#64748b'} />
+              <span>مشاركة الفاتورة مع العميل عبر واتساب فور الإصدار</span>
+            </div>
+          </label>
 
           {/* Interactive Signature Pad if opened */}
           {showSignaturePad && !deliveryProofPhoto && (

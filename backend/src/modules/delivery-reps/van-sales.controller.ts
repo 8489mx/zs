@@ -391,6 +391,24 @@ export class VanSalesController {
     return { ok: true, requisitions };
   }
 
+  @Delete('requisitions/:id')
+  async cancelMyRequisition(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.cancelLoadRequisitionByDriver(driver.tenantId, driver.repId, id);
+  }
+
+  @Post('requisitions/:id/cancel')
+  async cancelMyRequisitionPost(
+    @Headers('authorization') authHeader: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);
+    return this.vanSalesService.cancelLoadRequisitionByDriver(driver.tenantId, driver.repId, id);
+  }
+
   @Get('warehouses')
   async getDriverWarehouses(@Headers('authorization') authHeader: string) {
     const driver = await this.deliveryRepsService.verifyDriverToken(authHeader);

@@ -524,6 +524,7 @@ export default function VanSalesMobilePage() {
   const [showFleetInCockpit, setShowFleetInCockpit] = useState<boolean>(false);
   const [isCheckoutProcessing, setIsCheckoutProcessing] = useState<boolean>(false);
   const isCheckoutProcessingRef = useRef<boolean>(false);
+  const pendingAutoShareWhatsAppRef = useRef<boolean>(false);
   const [isCollectionProcessing, setIsCollectionProcessing] = useState<boolean>(false);
   const isCollectionProcessingRef = useRef<boolean>(false);
 
@@ -757,10 +758,12 @@ export default function VanSalesMobilePage() {
       const matchedCustomer = allAvailableCustomers.find((c) => String(c.id) === String(selectedCustomerId));
       setLastSaleReceipt({
         ...res,
+        autoShareWhatsApp: pendingAutoShareWhatsAppRef.current,
         subtotal: res.subtotal ?? cartSubtotal,
         discount: res.discount ?? cartDiscount,
         paidAmount: res.cashPaid,
         remainingCredit: res.creditOwed,
+        customerTotalBalance: matchedCustomer?.balance != null ? Number(matchedCustomer.balance) : undefined,
         packagingBreakdown: {
           cartonsCount: Number(cartonsCount) || 0,
           piecesCount: cart.reduce((s, it) => s + it.qty, 0),
@@ -2828,6 +2831,48 @@ export default function VanSalesMobilePage() {
                                 </span>
                               </div>
                             )}
+
+                            {req.status === 'pending' && (
+                              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={async () => {
+                                    const confirmed = await systemConfirm({
+                                      title: 'إلغاء طلب إذن التحميل',
+                                      message: `هل تريد إلغاء طلب إذن التحميل #${req.docNo} وإعادة تجهيز أصنافه؟`,
+                                      confirmText: 'نعم، إلغاء وتجهيز',
+                                      cancelText: 'تراجع',
+                                    });
+                                    if (!confirmed) return;
+                                    try {
+                                      await vanSalesApi.cancelMyRequisition(req.id);
+                                      queryClient.invalidateQueries({ queryKey: ['driver-my-requisitions'] });
+                                      showAlert('success', `تم إلغاء طلب إذن التحميل #${req.docNo} واسترجاع الأصناف بنجاح`);
+                                      setViewMode('new-requisition');
+                                    } catch (err: any) {
+                                      showAlert('error', err?.message || 'فشل إلغاء الطلب');
+                                    }
+                                  }}
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: '#b45309',
+                                    backgroundColor: '#fef3c7',
+                                    borderColor: '#fde68a',
+                                    padding: '4px 10px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <RefreshCwIcon size={12} />
+                                  <span>إلغاء الطلب المعلق وتعديل الأصناف</span>
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -3006,6 +3051,48 @@ export default function VanSalesMobilePage() {
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {req.rejectionReason}
                               </span>
+                            </div>
+                          )}
+
+                          {req.status === 'pending' && (
+                            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={async () => {
+                                  const confirmed = await systemConfirm({
+                                    title: 'إلغاء طلب إذن التحميل',
+                                    message: `هل تريد إلغاء طلب إذن التحميل #${req.docNo} وإعادة تجهيز أصنافه؟`,
+                                    confirmText: 'نعم، إلغاء وتجهيز',
+                                    cancelText: 'تراجع',
+                                  });
+                                  if (!confirmed) return;
+                                  try {
+                                    await vanSalesApi.cancelMyRequisition(req.id);
+                                    queryClient.invalidateQueries({ queryKey: ['driver-my-requisitions'] });
+                                    showAlert('success', `تم إلغاء طلب إذن التحميل #${req.docNo} واسترجاع الأصناف بنجاح`);
+                                    setViewMode('new-requisition');
+                                  } catch (err: any) {
+                                    showAlert('error', err?.message || 'فشل إلغاء الطلب');
+                                  }
+                                }}
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  color: '#b45309',
+                                  backgroundColor: '#fef3c7',
+                                  borderColor: '#fde68a',
+                                  padding: '4px 10px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <RefreshCwIcon size={12} />
+                                <span>إلغاء الطلب المعلق وتعديل الأصناف</span>
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -3334,6 +3421,7 @@ export default function VanSalesMobilePage() {
             }
             isCheckoutProcessingRef.current = true;
             setIsCheckoutProcessing(true);
+            pendingAutoShareWhatsAppRef.current = Boolean(checkoutData.autoShareWhatsApp);
 
             const clientTxId = `van_sale_${data.trip!.id}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 

@@ -22,10 +22,31 @@ export class VanRequisitionsService {
       sourceWarehouseId?: number;
       items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
       notes?: string;
+      allowMultiplePending?: boolean;
     },
   ) {
     if (!payload.items || !payload.items.length) {
       throw new AppError('يجب تحديد صنف واحد على الأقل لطلب التحميل', 'EMPTY_LOAD_ITEMS', 400);
+    }
+
+    // Single Pending Requisition Invariant: prevent driver from spamming pending requests
+    if (!payload.allowMultiplePending) {
+      const pendingReq = await this.anyDb
+        .selectFrom('van_load_requisitions')
+        .select(['id', 'doc_no'])
+        .where('tenant_id', '=', tenantId)
+        .where('rep_id', '=', repId)
+        .where('status', '=', 'pending')
+        .orderBy('id', 'desc')
+        .executeTakeFirst();
+
+      if (pendingReq) {
+        throw new AppError(
+          `لديك طلب إذن تحميل معلق بالفعل (#${pendingReq.doc_no}) قيد مراجعة المشرف، يمكنك إلغاؤه وتعديل أصنافه أو انتظار اعتماده وصرفه`,
+          'PENDING_REQUISITION_EXISTS',
+          400,
+        );
+      }
     }
 
     let defaultWhId: number | undefined;
@@ -425,6 +446,49 @@ export class VanRequisitionsService {
       .where('tenant_id', '=', tenantId)
       .execute();
     return { ok: true, requisitionId, docNo: req.doc_no };
+  }
+
+  async cancelLoadRequisitionByDriver(tenantId: string, repId: number, requisitionId: number) {
+    const req = await this.anyDb
+      .selectFrom('van_load_requisitions')
+      .selectAll()
+      .where('id', '=', requisitionId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!req) {
+      throw new AppError('طلب التحميل غير موجود', 'REQUISITION_NOT_FOUND', 404);
+    }
+
+    if (Number(req.rep_id) !== Number(repId)) {
+      throw new AppError('غير مصرح لك بإلغاء هذا الطلب', 'FORBIDDEN', 403);
+    }
+
+    if (req.status !== 'pending') {
+      if (req.status === 'dispatched') {
+        throw new AppError('لا يمكن إلغاء إذن تحميل تم اعتماده وصرفه بالفعل للسيارة', 'ALREADY_DISPATCHED', 400);
+      }
+      throw new AppError('لا يمكن إلغاء طلب تمت معالجته بالفعل', 'ALREADY_PROCESSED', 400);
+    }
+
+    const previousItems = typeof req.requested_items === 'string'
+      ? JSON.parse(req.requested_items)
+      : (req.requested_items || []);
+
+    await this.anyDb
+      .deleteFrom('van_load_requisitions')
+      .where('id', '=', requisitionId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return {
+      ok: true,
+      requisitionId,
+      docNo: req.doc_no,
+      previousItems,
+      notes: req.notes,
+      sourceWarehouseId: req.source_warehouse_id ? Number(req.source_warehouse_id) : undefined,
+    };
   }
 
   async getDriverWarehouses(tenantId: string) {

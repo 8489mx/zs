@@ -63,10 +63,16 @@
   - امتصاص تكلفة الإضافات (Modifier Costs) تلقائياً في `preparedItem.costPrice` لضمان دقة قيد تكلفة البضاعة المباعة (COGS) في دفتر الأستاذ العام.
 - **بوابة مجمعات التوصيل الخليجية الموحدة (GCC Delivery Aggregators Hub & KDS Auto-Injection):**
   - جداول `pos_delivery_aggregators` و `pos_aggregator_orders` في الهجرة `2040000000210_pos_restaurant_fnb_advanced_features.ts`.
-  - دعم منصات (جاهز، هنقرستيشن، طلبات، كيتا، دليفرو، كريم، تويو) مع حساب العمولات وصافي المستحقات.
+  - دعم منصات الخليج (طلبات، دليفرو، كاري Cari بنموذج 0% عمولة، جاهز، هنقرستيشن، كيتا، كريم، تويو) مع حساب العمولات وصافي المستحقات.
   - إيقاف الأصناف التلقائي الفوري عبر إشعار 86 للمنصات لمنع الغرامات (`trigger86`).
   - واجهة تحكم متكاملة في الكاشير `PosDeliveryAggregatorsModal.tsx` وخدمات الباك إند `delivery-aggregators.service.ts` و `delivery-aggregators.controller.ts`.
-  - **الحقن التلقائي المباشر في شاشة المطبخ (KDS):** استعلام `kds.service.ts` يدمج طلبات المنصات النشطة تلقائياً مع تمييز شارة كل منصة (جاهز، هنقرستيشن، طلبات، كيتا)، ومزامنة حالة الطلب ثنائياً بين المطبخ وقاعدة البيانات.
+  - **الحقن التلقائي المباشر في شاشة المطبخ (KDS):** استعلام `kds.service.ts` يدمج طلبات المنصات النشطة تلقائياً مع تمييز شارة كل منصة (جاهز، هنقرستيشن، طلبات، كاري، دليفرو)، ومزامنة حالة الطلب ثنائياً بين المطبخ وقاعدة البيانات.
+- **توطين المطاعم لدولة الكويت ودول الخليج (Kuwait F&B Market Localization & K-NET Engine):**
+  - **سداد كي نت المباشر (K-NET):** زر مستقل ومميز في نافذة الدفع السريع بالكاشير `PosCheckoutDialogSections.tsx` يتم اختياره تلقائياً عند تحديد عملة الدينار الكويتي (KWD)، مع توثيق `cardScheme: 'knet'` في جداول المدفوعات `sale_payments` وإيصالات الطباعة الحرارية 80mm.
+  - **نظام نداء واستدعاء العميل (Pager / Buzzer System):** حقل `pager_number` في جدول `sales` و `online_orders` (الهجرة `2040000000226_restaurant_pager_and_kuwait_features.ts`) مع إدخال رقم البيجر في نافذة الدفع للطلبات الخارجية والسفري، وعرض شارة البيجر فوراً في تذاكر المطبخ `KdsTicketCard.tsx` وشاشة حالة الطلبات التلفزيونية للعملاء `OrderStatusBoardPage.tsx` وإيصال الاستلام للعميل.
+  - **تقارير الوردية الحرارية Z-Report و X-Report:** طباعة تقرير X الاسترشادي (X-Report) مباشرة من هيدر الكاشير `PosWorkspaceHeader.tsx` دون إغلاق الوردية، وطباعة تقرير Z النهائي (Z-Report) عند الإقفال والمراجعة في `CashDrawerFormsPanel.tsx` و `CashDrawerReviewDialog.tsx` و `CashDrawerShiftsCard.tsx` متضمناً تفصيلاً دقيقاً لمدفوعات كي نت (K-NET) ومبيعات تطبيقات التوصيل.
+  - **روابط سداد كي نت الفورية عبر الواتساب (Fast WhatsApp Payment Links):** دعم أرقام هواتف الكويت المكونة من 8 أرقام (+965) تلقائياً في `whatsapp.ts` و `format.ts`، مع زر إرسال تفاصيل الطلب ورابط السداد بنقرة واحدة في مكتب طلبات التوصيل بالهاتف `PosPhoneOrderDialog.tsx` وموجه مناديب التوصيل `RestaurantDeliveryDispatcherModal.tsx`.
+  - **دقة العملة وإلغاء الضرائب:** دعم الدقة الحسابية للدينار الكويتي (3 خانات عشرية - 1000 فلس) في الإيصالات الحرارية `template.ts` و `currencies.ts`، وإلغاء أسطر الأرقام الضريبية والفواتير الضريبية تلقائياً لبيئة الكويت الخالية من ضريبة القيمة المضافة (0% VAT).
 - **إدارة مسارات الأطباق وإطلاق الوجبات (Dining Course Firing Action & Floor Plan Sync):**
   - دعم مسارات تقديم الوجبات (مقبلات، أطباق رئيسية، حلويات) وربطها بالفواتير وطاولات الصالة وتذاكر المطبخ.
   - تحكم مباشر للنادل والكاشير من هيدر نقطة البيع `PosWorkspaceHeader.tsx` وخريطة الصالة `PosTablesFloorPlanDialog.tsx`.
@@ -7638,3 +7644,56 @@
   - `frontend/src/features/delivery-reps/components/VanSaleCheckoutModal.tsx`
   - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
   - `backend/src/modules/delivery-reps/van-sales.service.ts`
+
+## 242. جناح المشاركة الفورية عبر واتساب لفواتير الميدان وكشوف حسابات العملاء (Van Sales Direct WhatsApp Sharing & One-Click Statement Dispatch)
+* **الحالة / الجاهزية:** تم الإنجاز والاعتماد بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة المندوب الميداني `/driver` (نافذة إتمام الفاتورة `VanSaleCheckoutModal.tsx`، نافذة الإيصال الميداني `VanSalesReceiptModal.tsx`، وسجل فواتير اليومية `VanSalesHistoryTab.tsx`، ونافذة كشف حساب العميل `VanCustomerStatementModal.tsx`).
+* **القدرات التشغيلية والتقنية:**
+  1. **التفعيل التلقائي للمشاركة المباشرة فور الإصدار (Auto-Share WhatsApp Toggle):**
+     - إضافة مفتاح تشغيلي ذكي `autoShareWhatsApp` في نافذة السداد الميداني `VanSaleCheckoutModal.tsx` يُفعل تلقائياً عند توفر هاتف العميل، لفتح محادثة واتساب فورية وإرسال الفاتورة بنقرة واحدة بمجرد اعتمادها.
+  2. **بطاقة إرسال واتساب السريعة ونسخ الحافظة في إيصال الفاتورة (Instant WhatsApp Share Card):**
+     - بطاقة مخصصة في نافذة الإيصال `VanSalesReceiptModal.tsx` تعرض خانة رقم هاتف العميل مع زر مباشر عالي الوضوح (`#16a34a`) وزر إضافي "نسخ النص" لنسخ تفاصيل الفاتورة فورياً ومشاركتها عبر أي وسيلة.
+     - تشغيل تلقائي ذكي يحمي من حظر النوافذ المنبثقة وينسق الرقم طبقاً للمعيار المصري عبر `cleanWhatsAppPhone`.
+  3. **قالب نصي منسق واحترافي وشامل (Structured WhatsApp Invoice Template):**
+     - تنسيق الفاتورة بدقة مع دعم اسم المنشأة، رقم الفاتورة وتاريخها بالدقيقة، كود واسم العميل، اسم المندوب ورقم السيارة، تفقيط البنود مع الوحدات (كرتونة/قطعة) وأسعارها وخصوماتها، شارات البونص المجاني `[بونص مجاني 0.00]`، إجمالي الفاتورة، طرق السداد وتفاصيل إنستاباي/فودافون كاش، وإجمالي الرصيد المتبقي على حساب العميل.
+  4. **مشاركة ونسخ كشف حساب ومطابقة الرصيد بنقرة واحدة (One-Click Customer Statement Dispatch):**
+     - تمكين المندوب في `VanCustomerStatementModal.tsx` من إرسال كشف الحساب ومطابقة الرصيد وأمانات الفوارغ وآخر فواتير وسندات تحصيل لواتساب العميل أو نسخ النص بضغطة زر.
+* **الملفات المنفذة:**
+  - `frontend/src/features/delivery-reps/utils/van-sales-receipt.utils.ts`
+  - `frontend/src/features/delivery-reps/components/VanSalesReceiptModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSaleCheckoutModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanCustomerStatementModal.tsx`
+  - `frontend/src/features/delivery-reps/components/VanSalesHistoryTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
+  - `frontend/src/features/delivery-reps/utils/van-sales-receipt.spec.ts`
+
+## 243. حوكمة أذونات شحن البضاعة ومنع تكرار الطلبات المعلقة مع استرجاع الأصناف ودعم الشحن الإضافي (Van Single Pending Requisition Governance, Cancellation Recovery & Supplementary Load Support)
+* **الحالة / الجاهزية:** تم الإنجاز والاعتماد بنسبة 100% (أكتوبر 2026).
+* **المسار:** شاشة المندوب الميداني `/driver` (بوابة التحميل `DriverNewLoadRequisitionView.tsx`، شاشة التوزيع `VanSalesMobilePage.tsx`) ولوحة الإدارة `VanLoadRequisitionsAdminTab.tsx` ومحرك الباك إند `van-requisitions.service.ts` و `van-sales.service.ts`.
+* **المشكلة المعالجة:**
+  - كان بإمكان المندوب إرسال عدة أذونات تحميل متتالية في نفس اليوم تظل جميعها بحالة معلقة (`pending`) وتغرق شاشة المشرف بطلبات متكررة ومتضاربة.
+  - عند رغبة المندوب في تعديل الكميات أو إضافة صنف بعد إرسال الطلب، لم تكن لديه وسيلة لسحب أو إلغاء الطلب المعلق، مما كان يدفعه لإرسال طلب جديد إضافي من الصفر.
+  - عند قيام المشرف باعتماد طلب تحميل لمندوب لديه بالفعل رحلة يومية مفتوحة في الميدان، كان النظام يفشل برسالة خطأ (`TRIP_ALREADY_OPEN`) بدلاً من إضافة البضاعة كشحن إضافي (استعواض أثناء اليوم).
+* **القدرات التشغيلية والتقنية:**
+  1. **قاعدة الإذن المعلق الواحد الصارمة (Single Pending Requisition Invariant):**
+     - إضافة قفل تشغيلي حاسم في السيرفر `submitLoadRequisition` يمنع المندوب من إرسال أي إذن تحميل جديد إذا كان لديه طلب سابق بحالة `pending` قيد انتظار مراجعة المشرف، ويعيد خطأ تشغيلياً صريحاً (`PENDING_REQUISITION_EXISTS`).
+  2. **إلغاء الطلب المعلق واسترجاع الأصناف بنقرة واحدة (Driver Requisition Cancellation & Items Recovery):**
+     - توفير نقطة نهاية آمنة `@Delete('requisitions/:id')` و `@Post('requisitions/:id/cancel')` تمكّن المندوب من إلغاء طلبه المعلق بنفسه.
+     - عند الإلغاء، يقوم السيرفر بحذف السجل المعلق وإرجاع مصفوفة الأصناف السابقة `previousItems` مع المستودع والملاحظات، ليقوم الفرونت إند تلقائياً بإعادة تعبئتها في سلة التحميل دون إجبار المندوب على إعادة اختيار الأصناف من الصفر.
+  3. **بانر تنبيهي ذكي وتعديل فوري في شاشات المندوب (Pending Requisition Alert & Action Banner):**
+     - إضافة بانر تحذيري كهرماني مؤسسي في أعلى شاشة `DriverNewLoadRequisitionView.tsx` يوضح رقم الطلب المعلق وحالته، مع زر بارز «إلغاء الطلب المعلق وتعديل الأصناف» يسترجع الأصناف فوراً إلى السلة، مع تحويل أزرار الإرسال إلى زر الإلغاء والتعديل طالما يوجد طلب معلق.
+     - إضافة زر إلغاء وتجهيز مباشر في بطاقات الأذونات المعلقة بشاشة المندوب `VanSalesMobilePage.tsx`.
+  4. **دعم الشحن الإضافي والاستعواض على الرحلات المفتوحة (Supplementary Load on Active Open Trips):**
+     - ترقية محرك الاعتماد والصرف `approveAndDispatchRequisition` في `van-sales.service.ts`: إذا كان لدى المندوب رحلة مفتوحة بالفعل، لا يتم رفض العملية، بل يتم نقل المخزون من المستودع إلى سيارة المندوب طبقاً لترتيب الأقفال القياسي (`Canonical Lock Order`) وتحديث حقل `loaded_amount` بالزيادة وتوليد القيد المحاسبي إن وُجد، وربط الإذن بالرحلة المفتوحة بحالة `dispatched` وعلم `isSupplementary: true`.
+     - إشعار المشرف في لوحة الإدارة برسالة نجاح واضحة: «تم اعتماد وصرف البضاعة وتحميل السيارة بنجاح كشحن إضافي على الرحلة المفتوحة #X».
+* **الملفات المنفذة:**
+  - `backend/src/modules/delivery-reps/services/van-requisitions.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.service.ts`
+  - `backend/src/modules/delivery-reps/van-sales.controller.ts`
+  - `frontend/src/features/delivery-reps/api/van-sales.api.ts`
+  - `frontend/src/features/delivery-reps/hooks/useDriverLoadRequisition.ts`
+  - `frontend/src/features/delivery-reps/components/DriverNewLoadRequisitionView.tsx`
+  - `frontend/src/features/delivery-reps/components/VanLoadRequisitionsAdminTab.tsx`
+  - `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`
+  - `backend/test/critical/van-single-pending-requisition.spec.ts`
+

@@ -2,8 +2,9 @@ import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, PrinterIcon, SendIcon, CopyIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { cleanWhatsAppPhone } from '@/lib/whatsapp';
 import {
   VanSaleReceiptData,
   printVanSaleThermalReceipt,
@@ -74,18 +75,50 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
     }
   };
 
+  const handleCopyReceiptText = () => {
+    try {
+      const message = formatVanSaleShareMessage(receipt, { storeName: storeName || receipt.storeName });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(message);
+        toast.success('تم نسخ نص الفاتورة بنجاح للحافظة');
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = message;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast.success('تم نسخ نص الفاتورة بنجاح للحافظة');
+      }
+    } catch {
+      toast.error('تعذر نسخ النص تلقائياً');
+    }
+  };
+
   const handleWhatsAppShare = () => {
     const phoneToUse = targetPhone.trim();
     if (!phoneToUse) {
       toast.warning('يرجى إدخال رقم هاتف العميل للمشاركة');
       return;
     }
-    const message = formatVanSaleShareMessage(receipt);
-    const cleanPhone = phoneToUse.replace(/[^0-9]/g, '');
-    const target = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
+    const message = formatVanSaleShareMessage(receipt, { storeName: storeName || receipt.storeName });
+    const target = cleanWhatsAppPhone(phoneToUse);
+    if (!target) {
+      toast.warning('رقم هاتف العميل غير صالح لإرسال واتساب');
+      return;
+    }
     window.open(`https://wa.me/${target}?text=${encodeURIComponent(message)}`, '_blank');
     toast.info('تم فتح تطبيق الواتساب لمشاركة الإيصال');
   };
+
+  React.useEffect(() => {
+    if (receipt.autoShareWhatsApp && targetPhone.trim()) {
+      const timer = setTimeout(() => {
+        handleWhatsAppShare();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <StandardDialog
@@ -110,11 +143,13 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                   gap: '6px',
                   borderColor: '#16a34a',
                   color: '#16a34a',
+                  backgroundColor: '#f0fdf4',
                   fontSize: '12px',
                   fontWeight: 700,
                   height: '38px',
                 }}
               >
+                <SendIcon size={14} color="#16a34a" />
                 <span>مشاركة واتساب</span>
               </Button>
               <Button
@@ -219,29 +254,14 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-            <span style={{ color: '#64748b' }}>هاتف واتساب للمشاركة:</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                type="tel"
-                inputMode="tel"
-                placeholder="أدخل رقم هاتف العميل..."
-                value={targetPhone}
-                onChange={(e) => setTargetPhone(e.target.value)}
-                style={{
-                  height: '32px',
-                  width: '155px',
-                  padding: '0 8px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '12px',
-                  direction: 'ltr',
-                  textAlign: 'right',
-                  boxSizing: 'border-box',
-                }}
-              />
+          {receipt.customerPhone && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#64748b' }}>هاتف العميل:</span>
+              <span style={{ fontWeight: 700, color: '#0f172a', direction: 'ltr' }}>
+                {receipt.customerPhone}
+              </span>
             </div>
-          </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#64748b' }}>المندوب / السيارة:</span>
@@ -457,6 +477,100 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             <span style={{ color: '#166534', fontSize: '15px' }}>
               {Number(receipt.total).toFixed(2)} <CurrencySymbol />
             </span>
+          </div>
+        </div>
+
+        {/* INSTANT WHATSAPP DIRECT SHARE CARD */}
+        <div
+          style={{
+            backgroundColor: '#f0fdf4',
+            border: '1.5px solid #86efac',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginTop: '12px',
+            textAlign: 'right',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <SendIcon size={16} color="#15803d" />
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#166534' }}>
+                مشاركة الفاتورة للعميل عبر واتساب
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyReceiptText}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#15803d',
+                backgroundColor: '#ffffff',
+                border: '1px solid #bbf7d0',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              title="نسخ نص الفاتورة للحافظة لمشاركتها بأي وسيلة"
+            >
+              <CopyIcon size={12} color="#15803d" />
+              <span>نسخ النص</span>
+            </button>
+          </div>
+
+          <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px', lineHeight: 1.4 }}>
+            أدخل أو راجع رقم هاتف العميل واضغط إرسال لفتح محادثة واتساب بنص منسق يشمل رقم الفاتورة والأصناف والإجمالي:
+          </p>
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="رقم هاتف العميل (مثال: 01012345678)..."
+              value={targetPhone}
+              onChange={(e) => setTargetPhone(e.target.value)}
+              style={{
+                flex: 1,
+                height: '38px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid #86efac',
+                backgroundColor: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#0f172a',
+                direction: 'ltr',
+                textAlign: 'right',
+                boxSizing: 'border-box',
+              }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleWhatsAppShare}
+              style={{
+                height: '38px',
+                backgroundColor: '#16a34a',
+                borderColor: '#15803d',
+                color: '#ffffff',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                padding: '0 14px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+              }}
+            >
+              <SendIcon size={14} color="#ffffff" />
+              <span>إرسال واتساب</span>
+            </Button>
           </div>
         </div>
       </div>

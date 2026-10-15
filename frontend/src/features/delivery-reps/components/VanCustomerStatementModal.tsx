@@ -6,8 +6,11 @@ import {
   AlertTriangleIcon,
   Share2Icon,
   RefreshCwIcon,
+  SendIcon,
+  CopyIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { cleanWhatsAppPhone } from '@/lib/whatsapp';
 import { vanSalesApi } from '../api/van-sales.api';
 
 export interface VanCustomerStatementModalProps {
@@ -172,11 +175,8 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
     }
   };
 
-  const handleWhatsAppShare = () => {
-    if (!data) return;
-    const phone = data.customer.phone ? data.customer.phone.replace(/[^0-9]/g, '') : '';
-    const cleanPhone = phone.startsWith('0') ? '2' + phone : phone;
-
+  const buildStatementText = () => {
+    if (!data) return '';
     const lines = [
       `*كشف حساب ومطابقة رصيد عميل*`,
       `المنشأة: ${storeName}`,
@@ -219,12 +219,39 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
 
     lines.push(`---------------------------------`);
     lines.push(`تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}`);
+    return lines.join('\n');
+  };
 
-    const text = encodeURIComponent(lines.join('\n'));
+  const handleCopyStatementText = () => {
+    try {
+      const text = buildStatementText();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+        toast.success('تم نسخ كشف الحساب بنجاح للحافظة');
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast.success('تم نسخ كشف الحساب بنجاح للحافظة');
+      }
+    } catch {
+      toast.error('تعذر نسخ كشف الحساب');
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!data) return;
+    const text = buildStatementText();
+    const cleanPhone = cleanWhatsAppPhone(data.customer.phone || '');
+
     if (cleanPhone) {
-      window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
     } else {
-      window.open(`https://wa.me/?text=${text}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
     toast.info('تم فتح تطبيق الواتساب لمشاركة كشف الحساب');
   };
@@ -261,10 +288,9 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             onClick={handleWhatsAppShare}
             disabled={loading || !data}
             style={{
-              flex: '1 1 0',
-              width: '50%',
+              flex: '1.2 1 0',
               minWidth: 0,
-              height: '35px',
+              height: '36px',
               fontSize: '12px',
               fontWeight: 700,
               padding: '0 8px',
@@ -272,17 +298,47 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              backgroundColor: '#25D366',
+              backgroundColor: '#16a34a',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               boxSizing: 'border-box',
+              boxShadow: '0 1px 3px rgba(22, 163, 74, 0.25)',
             }}
           >
-            <Share2Icon size={14} color="#ffffff" style={{ flexShrink: 0 }} />
+            <SendIcon size={13} color="#ffffff" style={{ flexShrink: 0 }} />
             <span>واتساب</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyStatementText}
+            disabled={loading || !data}
+            style={{
+              flex: '0.8 1 0',
+              minWidth: 0,
+              height: '36px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              padding: '0 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxSizing: 'border-box',
+            }}
+            title="نسخ كشف الحساب للحافظة"
+          >
+            <CopyIcon size={13} color="#475569" style={{ flexShrink: 0 }} />
+            <span>نسخ</span>
           </button>
 
           <button
@@ -290,10 +346,9 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             onClick={handlePrintThermal}
             disabled={loading || !data}
             style={{
-              flex: '1 1 0',
-              width: '50%',
+              flex: '1.2 1 0',
               minWidth: 0,
-              height: '35px',
+              height: '36px',
               fontSize: '12px',
               fontWeight: 700,
               padding: '0 8px',
@@ -308,6 +363,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               boxSizing: 'border-box',
+              boxShadow: '0 1px 3px rgba(23, 14, 94, 0.25)',
             }}
           >
             <PrinterIcon size={14} color="#ffffff" style={{ flexShrink: 0 }} />

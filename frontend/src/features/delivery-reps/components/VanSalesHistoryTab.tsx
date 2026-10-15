@@ -11,6 +11,7 @@ import {
   XIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { cleanWhatsAppPhone } from '@/lib/whatsapp';
 import { vanSalesApi, DriverSaleHistoryItem } from '../api/van-sales.api';
 import {
   printVanSaleThermalReceipt,
@@ -166,7 +167,8 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
 
   const handleShareWhatsApp = (sale: DriverSaleHistoryItem) => {
     if (!sale.customerPhone) {
-      toast.warning('رقم هاتف العميل غير متوفر في هذه الفاتورة');
+      toast.info('رقم هاتف العميل غير مسجل بالفاتورة. يرجى إدخال الرقم في نافذة الإيصال للمشاركة.');
+      handleOpenReceiptModal(sale);
       return;
     }
     const receiptData: VanSaleReceiptData = {
@@ -181,14 +183,21 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
       customerName: sale.customerName,
       customerPhone: sale.customerPhone || undefined,
       customerCode: sale.customerCode || undefined,
-      items: sale.items,
+      customerAddress: sale.customerAddress || undefined,
+      itemsCount: sale.itemsCount,
       packagingBreakdown: sale.packagingBreakdown || undefined,
+      deliveryProofPhoto: sale.deliveryProofPhoto || undefined,
+      items: sale.items,
       repName: sale.repName,
       vehiclePlate: sale.vehiclePlate || undefined,
+      date: sale.createdAt,
     };
-    const message = formatVanSaleShareMessage(receiptData);
-    const cleanPhone = sale.customerPhone.replace(/[^0-9]/g, '');
-    const target = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
+    const message = formatVanSaleShareMessage(receiptData, { storeName });
+    const target = cleanWhatsAppPhone(sale.customerPhone);
+    if (!target) {
+      handleOpenReceiptModal(sale);
+      return;
+    }
     window.open(`https://wa.me/${target}?text=${encodeURIComponent(message)}`, '_blank');
     toast.info('تم فتح تطبيق الواتساب لإرسال الإيصال');
   };

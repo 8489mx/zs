@@ -340,7 +340,11 @@ export function VanLoadRequisitionsAdminTab() {
   const dispatchMutation = useMutation({
     mutationFn: (id: number) => vanSalesApi.dispatchRequisition(id),
     onSuccess: (data) => {
-      toast.success(`تم اعتماد وصرف البضاعة وتحميل السيارة بنجاح! تم فتح الرحلة #${data.tripId}`);
+      toast.success(
+        data.isSupplementary
+          ? `تم اعتماد وصرف البضاعة وتحميل السيارة بنجاح كشحن إضافي على الرحلة المفتوحة #${data.tripId}`
+          : `تم اعتماد وصرف البضاعة وتحميل السيارة بنجاح! تم فتح الرحلة #${data.tripId}`,
+      );
       queryClient.invalidateQueries({ queryKey: ['van-admin-load-requisitions'] });
       queryClient.invalidateQueries({ queryKey: ['van-sales-admin-trips'] });
       setSelectedReq(null);

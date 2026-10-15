@@ -22,6 +22,9 @@ import {
   XIcon,
   BoxesIcon,
   BuildingIcon,
+  ClockIcon,
+  RefreshCwIcon,
+  AlertCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { VanFloatingActionBar } from './VanFloatingActionBar';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
@@ -345,6 +348,8 @@ export function DriverNewLoadRequisitionView({
   });
 
   const isSubmitting = isAdmin ? adminSubmitMutation.isPending : driverHook.isSubmitting;
+  const pendingRequisition = !isAdmin ? driverHook.pendingRequisition : null;
+  const isCancellingRequisition = !isAdmin ? driverHook.isCancellingRequisition : false;
 
   // Selected Requisition Lines (Orders cart logic)
   const [lines, setLines] = useState<RequisitionLineItem[]>([]);
@@ -804,8 +809,72 @@ export function DriverNewLoadRequisitionView({
     }
   }, [hasDraftContent, hasSavedDraft, clearDraft, dismissRestoredNotice]);
 
+  // Handle cancel pending requisition and restore items into draft lines
+  const handleCancelPendingAndRestore = async () => {
+    if (!pendingRequisition) return;
+    const confirmed = await systemConfirm({
+      title: 'إلغاء طلب إذن التحميل المعلق',
+      message: `هل أنت متأكد من إلغاء طلب إذن التحميل #${pendingRequisition.docNo}؟ سيتم إلغاؤه من لوحة المشرف واسترجاع الأصناف بالسلة لتتمكن من تعديل كمياتها وإعادة الإرسال.`,
+      confirmText: 'نعم، إلغاء واسترجاع الأصناف',
+      cancelText: 'تراجع',
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await driverHook.cancelRequisition(pendingRequisition.id);
+      if (res?.previousItems && res.previousItems.length > 0) {
+        if (res.sourceWarehouseId) {
+          setSelectedWarehouseFilter(String(res.sourceWarehouseId));
+        }
+        if (res.notes) {
+          setNotes(res.notes);
+        }
+        const restoredLines: RequisitionLineItem[] = [];
+        for (const item of res.previousItems) {
+          const pId = Number(item.productId);
+          const prod = availableProducts.find((p) => p.id === pId);
+          const mult = item.cartonMultiplier || item.packagingUnit?.multiplier || prod?.packagingUnit?.multiplier || 1;
+          const isCartonItem = Boolean(mult > 1);
+          const qty = Number(item.qty || 0);
+          const cartons = item.cartons !== undefined ? Number(item.cartons) : (isCartonItem ? Math.floor(qty / mult) : undefined);
+          const pieces = item.pieces !== undefined ? Number(item.pieces) : (isCartonItem ? qty % mult : undefined);
+
+          restoredLines.push({
+            id: `line-${Date.now()}-${pId}-${Math.random().toString(36).substr(2, 4)}`,
+            productId: pId,
+            productName: item.productName || prod?.name || `صنف #${pId}`,
+            barcode: item.barcode || prod?.barcode || '',
+            unitPrice: prod?.retailPrice || Number(item.unitPrice || 0),
+            unit: item.unitName || item.unit || prod?.unit || 'قطعة',
+            packagingUnit: item.packagingUnit || prod?.packagingUnit,
+            isWeight: Boolean(item.isWeight ?? prod?.isWeight),
+            cartons,
+            pieces,
+            sourceWarehouseId: item.sourceWarehouseId ? Number(item.sourceWarehouseId) : (res.sourceWarehouseId || 1),
+            sourceWarehouseName: item.sourceWarehouseName || prod?.warehouseStocks?.[0]?.warehouseName || 'المستودع',
+            availableInWarehouse: prod?.totalStock || 0,
+            warehouseStocks: prod?.warehouseStocks || [],
+            qty,
+            searchQuery: item.productName || prod?.name,
+            isSearchOpen: false,
+          });
+        }
+        setLines(restoredLines);
+        setActiveViewTab('selected');
+        toast.info(`تم استرجاع ${restoredLines.length} صنف بالسلة، يمكنك الآن تعديل الكميات وإعادة الإرسال.`);
+      }
+    } catch {
+      // Toast handled in mutation onError
+    }
+  };
+
   // Handle submit in driver mode
   const handleSubmit = async () => {
+    if (pendingRequisition && !isAdmin) {
+      toast.warning(`لديك طلب إذن تحميل معلق بالفعل برقم #${pendingRequisition.docNo}. يرجى إلغاؤه لتعديل كمياته أو انتظار اعتماده وصرفه.`);
+      return;
+    }
+
     if (validLines.length === 0) {
       toast.error('يرجى اختيار صنف واحد على الأقل لطلب التحميل');
       return;
@@ -1540,6 +1609,29 @@ export function DriverNewLoadRequisitionView({
                 >
                   {adminSubmitMutation.isPending ? 'جاري الصرف...' : `صرف وتحميل (${distinctItemsCount})`}
                 </Button>
+              ) : pendingRequisition ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleCancelPendingAndRestore}
+                  disabled={isCancellingRequisition}
+                  style={{
+                    backgroundColor: '#b45309',
+                    color: '#ffffff',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    padding: '6px 12px',
+                    whiteSpace: 'nowrap',
+                    height: '32px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={`لديك طلب معلق #${pendingRequisition.docNo} - انقر لإلغائه وتعديل أصنافه`}
+                >
+                  <RefreshCwIcon size={12} />
+                  {isCancellingRequisition ? 'جاري الإلغاء...' : 'إلغاء المعلق وتعديل الأصناف'}
+                </Button>
               ) : (
                 <Button
                   type="button"
@@ -1562,6 +1654,78 @@ export function DriverNewLoadRequisitionView({
             </div>
           )}
         </header>
+
+        {/* Pending Requisition Warning & Recovery Banner */}
+        {pendingRequisition && !isAdmin && (
+          <div
+            style={{
+              marginBottom: '10px',
+              padding: '12px 14px',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: '10px',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <ClockIcon size={18} color="#b45309" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>طلب إذن تحميل معلق برقم #{pendingRequisition.docNo}</span>
+                  <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#b45309', fontWeight: 700 }}>
+                    قيد انتظار مراجعة المشرف
+                  </span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#78350f', marginTop: '3px' }}>
+                  المستودع: <strong>{pendingRequisition.sourceWarehouseName || 'المستودع الرئيسي'}</strong> | الأصناف: <strong>{pendingRequisition.requestedItems?.length || 0} صنف</strong>. لمنع تكرار الطلبات، يلزم إلغاء الطلب المعلق أولاً لتعديل كمياته أو انتظار اعتماده وصرفه.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleCancelPendingAndRestore}
+                disabled={isCancellingRequisition}
+                style={{
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  whiteSpace: 'nowrap',
+                  height: '34px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <RefreshCwIcon size={13} />
+                {isCancellingRequisition ? 'جاري الإلغاء...' : 'إلغاء الطلب المعلق وتعديل الأصناف'}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Draft Restored Banner */}
         {isDraftRestored && (
@@ -2618,6 +2782,32 @@ export function DriverNewLoadRequisitionView({
                   إذن معلق
                 </Button>
               </>
+            ) : pendingRequisition ? (
+              <Button
+                variant="primary"
+                type="button"
+                onClick={handleCancelPendingAndRestore}
+                disabled={isCancellingRequisition}
+                style={{
+                  flex: '1.4 1 auto',
+                  backgroundColor: '#b45309',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  padding: '7px 12px',
+                  borderRadius: '7px',
+                  height: '34px',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                }}
+                title={`لديك طلب معلق #${pendingRequisition.docNo} - انقر لإلغائه وتعديل أصنافه`}
+              >
+                <RefreshCwIcon size={13} />
+                {isCancellingRequisition ? 'جاري الإلغاء...' : `إلغاء المعلق (#${pendingRequisition.docNo}) وتعديل الأصناف`}
+              </Button>
             ) : (
               <Button
                 variant="primary"

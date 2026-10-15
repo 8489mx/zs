@@ -19,7 +19,7 @@ export interface VanSaleReceiptData {
   docNo: string;
   saleId?: number;
   total: number;
-  paymentMethod: 'cash' | 'credit' | 'card' | 'split';
+  paymentMethod: 'cash' | 'credit' | 'card' | 'split' | 'instapay' | 'vodafone_cash' | string;
   paidAmount?: number;
   cashPaid?: number;
   remainingCredit?: number;
@@ -28,6 +28,7 @@ export interface VanSaleReceiptData {
   customerPhone?: string;
   customerCode?: string;
   customerAddress?: string;
+  customerTotalBalance?: number;
   itemsCount?: number;
   packagingBreakdown?: {
     cartonsCount?: number;
@@ -42,6 +43,9 @@ export interface VanSaleReceiptData {
   vehiclePlate?: string;
   warehouseName?: string;
   date?: string;
+  storeName?: string;
+  transferReference?: string;
+  autoShareWhatsApp?: boolean;
 }
 
 export function buildVanSaleThermalReceiptHtml(
@@ -123,6 +127,8 @@ export function buildVanSaleThermalReceiptHtml(
   const isCash = receipt.paymentMethod === 'cash';
   const isCard = receipt.paymentMethod === 'card';
   const isSplit = receipt.paymentMethod === 'split';
+  const isInstapay = receipt.paymentMethod === 'instapay';
+  const isVodafoneCash = receipt.paymentMethod === 'vodafone_cash';
   const paidCash = receipt.paidAmount != null ? receipt.paidAmount : (receipt.cashPaid != null ? receipt.cashPaid : 0);
   const remainingDebt = receipt.remainingCredit != null ? receipt.remainingCredit : (receipt.creditOwed != null ? receipt.creditOwed : Math.max(0, Number(receipt.total) - paidCash));
 
@@ -131,6 +137,10 @@ export function buildVanSaleThermalReceiptHtml(
       ? 'نقدي (مسلم للمندوب)'
       : isCard
       ? 'شبكة / فيزا'
+      : isInstapay
+      ? `تحويل بنكي / إنستاباي${receipt.transferReference ? ` (${receipt.transferReference})` : ''}`
+      : isVodafoneCash
+      ? `محفظة إلكترونية${receipt.transferReference ? ` (${receipt.transferReference})` : ''}`
       : isSplit
       ? 'دفع مركب (نقدي + آجل)'
       : 'آجل (على حساب العميل)';
@@ -208,7 +218,7 @@ export function buildVanSaleThermalReceiptHtml(
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 1px; color: #222;">
         <span>حالة السداد:</span>
-        <span style="font-weight: 800;">${isCash ? 'تم التحصيل نقداً' : (receipt.paymentMethod === 'card' ? 'مدفوع بالشبكة' : (isSplit ? 'دفع مركب (جزء كاش)' : 'سجلت كمديونية آجلة'))}</span>
+        <span style="font-weight: 800;">${isCash ? 'تم التحصيل نقداً' : (receipt.paymentMethod === 'card' ? 'مدفوع بالشبكة' : (isInstapay ? 'محول عبر إنستاباي' : (isVodafoneCash ? 'محول عبر محفظة إلكترونية' : (isSplit ? 'دفع مركب (جزء كاش)' : 'سجلت كمديونية آجلة'))))}</span>
       </div>
       ${isSplit ? `
         <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 2px; color: #000;">
@@ -244,36 +254,62 @@ export function buildVanSaleThermalReceiptHtml(
 
 export function formatVanSaleShareMessage(
   receipt: VanSaleReceiptData,
-  currency = getGlobalCurrencySymbol()
+  optionsOrCurrency?: { storeName?: string; currency?: string } | string
 ): string {
+  const storeName = typeof optionsOrCurrency === 'object' ? optionsOrCurrency.storeName : receipt.storeName;
+  const currency = typeof optionsOrCurrency === 'string'
+    ? optionsOrCurrency
+    : (typeof optionsOrCurrency === 'object' && optionsOrCurrency.currency ? optionsOrCurrency.currency : getGlobalCurrencySymbol());
+
   const isCash = receipt.paymentMethod === 'cash';
   const isCard = receipt.paymentMethod === 'card';
   const isSplit = receipt.paymentMethod === 'split';
+  const isInstapay = receipt.paymentMethod === 'instapay';
+  const isVodafoneCash = receipt.paymentMethod === 'vodafone_cash';
+
   const paidCash = receipt.paidAmount != null ? receipt.paidAmount : (receipt.cashPaid != null ? receipt.cashPaid : 0);
   const remainingDebt = receipt.remainingCredit != null ? receipt.remainingCredit : (receipt.creditOwed != null ? receipt.creditOwed : Math.max(0, Number(receipt.total) - paidCash));
 
-  const paymentMethodLabel =
-    isCash
-      ? 'نقدي (مسلم للمندوب)'
-      : isCard
-      ? 'شبكة / فيزا'
-      : isSplit
-      ? `دفع مركب (مسدد كاش: ${paidCash.toFixed(2)} ${currency} | متبقي آجل: ${remainingDebt.toFixed(2)} ${currency})`
-      : 'آجل (على حساب العميل)';
+  let paymentMethodLabel = 'آجل (على حساب العميل)';
+  if (isCash) {
+    paymentMethodLabel = 'نقدي (مسلم للمندوب)';
+  } else if (isCard) {
+    paymentMethodLabel = 'شبكة / فيزا';
+  } else if (isInstapay) {
+    paymentMethodLabel = `تحويل بنكي / إنستاباي${receipt.transferReference ? ` (مرجع: ${receipt.transferReference})` : ''}`;
+  } else if (isVodafoneCash) {
+    paymentMethodLabel = `محفظة إلكترونية / فودافون كاش${receipt.transferReference ? ` (مرجع: ${receipt.transferReference})` : ''}`;
+  } else if (isSplit) {
+    paymentMethodLabel = `دفع مركب (مسدد كاش: ${paidCash.toFixed(2)} ${currency} | متبقي آجل: ${remainingDebt.toFixed(2)} ${currency})`;
+  }
 
-  const lines: string[] = [
+  const now = receipt.date ? new Date(receipt.date) : new Date();
+  const dateStr = now.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const lines: string[] = [];
+  if (storeName && storeName.trim()) {
+    lines.push(`*${storeName.trim()}*`);
+  }
+  lines.push(
     `*فاتورة بيع مباشر (Van Sale)*`,
     `رقم الفاتورة: #${receipt.docNo}`,
-    `العميل: ${receipt.customerName}`,
+    `التاريخ والوقت: ${dateStr} - ${timeStr}`,
+    `العميل: ${receipt.customerName}${receipt.customerCode ? ` [${receipt.customerCode.replace(/^#/, '')}]` : ''}`,
     `المندوب: ${receipt.repName || 'مندوب التوزيع'}${receipt.vehiclePlate ? ` (${receipt.vehiclePlate})` : ''}`,
     `طريقة السداد: ${paymentMethodLabel}`,
-  ];
+  );
 
   if (receipt.items && receipt.items.length > 0) {
     lines.push('', '*الأصناف والبنود:*');
     receipt.items.forEach((it) => {
       const lineTot = Number(it.lineTotal != null ? it.lineTotal : it.qty * it.unitPrice).toFixed(2);
-      lines.push(`• ${it.name} × ${it.qty} = ${lineTot} ${currency}`);
+      const unitLabel = it.unitName ? ` ${it.unitName}` : '';
+      if (it.isBonus) {
+        lines.push(`• ${it.name} × ${it.qty}${unitLabel} [بونص مجاني 0.00]`);
+      } else {
+        lines.push(`• ${it.name} × ${it.qty}${unitLabel} = ${lineTot} ${currency}`);
+      }
     });
   }
 
@@ -291,6 +327,11 @@ export function formatVanSaleShareMessage(
   }
   lines.push(`إجمالي الخصومات والعروض: ${Number(receipt.discount || 0).toFixed(2)} ${currency}`);
   lines.push(`*الإجمالي المطلوب:* ${Number(receipt.total).toFixed(2)} ${currency}`);
+
+  if (receipt.customerTotalBalance != null && receipt.customerTotalBalance > 0) {
+    lines.push(`*إجمالي رصيد الحساب المتبقي:* ${Number(receipt.customerTotalBalance).toFixed(2)} ${currency}`);
+  }
+
   lines.push('', 'شكراً لتعاملكم معنا!');
 
   return lines.join('\n');

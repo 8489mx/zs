@@ -1264,6 +1264,189 @@ export class VanSalesService {
   }
 
   /**
+   * Loads supplementary stock into an existing active van trip (e.g. from an approved load requisition).
+   * Adheres strictly to canonical lock order, dual stock movements, and ledger posting invariants.
+   */
+  async loadSupplementaryStockToActiveTrip(
+    repId: number,
+    tenantId: string,
+    accountId: string,
+    tripId: number,
+    payload: {
+      sourceWarehouseId?: number;
+      items: { productId: number; qty: number; sourceWarehouseId?: number }[];
+      notes?: string;
+    },
+  ): Promise<{ ok: boolean; tripId: number; totalLoadedValue: number; itemsCount: number }> {
+    const existingTrip = await this.anyDb
+      .selectFrom('van_sales_trips as vt')
+      .selectAll()
+      .where('vt.id', '=', tripId)
+      .where('vt.rep_id', '=', repId)
+      .where('vt.tenant_id', '=', tenantId)
+      .where('vt.status', '=', 'open')
+      .executeTakeFirst();
+
+    if (!existingTrip) {
+      throw new AppError('رحلة التوزيع المحددة غير موجودة أو تم إغلاقها بالفعل', 'TRIP_NOT_FOUND', 404);
+    }
+
+    const vanLoc = await this.getOrCreateVanLocation(repId, tenantId, accountId);
+    let sourceLocId = payload.sourceWarehouseId ? Number(payload.sourceWarehouseId) : null;
+    if (!sourceLocId) {
+      const defaultWh = await this.anyDb
+        .selectFrom('stock_locations')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where(sql<boolean>`location_type in ('branch_stock', 'internal_warehouse')`)
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc')
+        .executeTakeFirst();
+      sourceLocId = defaultWh ? Number(defaultWh.id) : 0;
+    }
+
+    let totalLoadedValue = 0;
+    let totalLoadedCost = 0;
+    const hasItemsToLoad = Boolean(payload.items && payload.items.length > 0);
+
+    if (!hasItemsToLoad) {
+      return { ok: true, tripId, totalLoadedValue: 0, itemsCount: 0 };
+    }
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxAny = trx as any;
+
+      if (sourceLocId === vanLoc.id) {
+        throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
+      }
+
+      for (const item of this.sortItemsByProductId(payload.items)) {
+        const pid = Number(item.productId);
+        const qty = Number(item.qty || 0);
+        if (qty <= 0) continue;
+
+        const effectiveLocId = Number((item as any).sourceWarehouseId || sourceLocId);
+        if (effectiveLocId === vanLoc.id) {
+          throw new AppError('لا يمكن أن يكون المستودع المصدر هو نفس سيارة المندوب', 'INVALID_SOURCE_WAREHOUSE', 400);
+        }
+
+        // CANONICAL LOCK ORDER: Lock products first!
+        const prod = await trxAny
+          .selectFrom('products')
+          .select(['id', 'name', 'cost_price', 'retail_price'])
+          .where('id', '=', pid)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (!prod) {
+          throw new AppError(`الصنف رقم #${pid} غير موجود في النظام`, 'PRODUCT_NOT_FOUND', 404);
+        }
+
+        const sourceStock = await trxAny
+          .selectFrom('product_location_stock')
+          .select(['qty'])
+          .where('product_id', '=', pid)
+          .where('location_id', '=', effectiveLocId)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        const avail = Number(sourceStock?.qty || 0);
+        if (avail < qty) {
+          throw new AppError(
+            `رصيد المستودع المصدر لا يكفي للصنف "${prod?.name || pid}". المتوفر: ${avail}، المطلوب: ${qty}`,
+            'INSUFFICIENT_SOURCE_STOCK',
+            400,
+          );
+        }
+
+        const price = Number(prod?.retail_price || 0);
+        const cost = Number(prod?.cost_price || 0);
+        totalLoadedValue += price * qty;
+        totalLoadedCost += cost * qty;
+
+        // Loading supplementary van stock is a location-to-location move
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: -qty,
+          locationId: effectiveLocId,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_load_out',
+          note: `تحميل سيارة توزيع إضافي (استعواض) - خروج من المستودع`,
+          referenceType: 'van_sales_trip',
+          referenceId: tripId,
+          skipGlobalUpdate: false,
+          unitCost: cost,
+        });
+
+        await this.moveVanStock(trx, {
+          productId: pid,
+          delta: qty,
+          locationId: vanLoc.id,
+          tenantId,
+          accountId,
+          userId: null,
+          movementType: 'van_load_in',
+          note: `تحميل سيارة توزيع إضافي (استعواض) - دخول للسيارة`,
+          referenceType: 'van_sales_trip',
+          referenceId: tripId,
+          skipGlobalUpdate: false,
+          unitCost: cost,
+        });
+      }
+
+      const additionalNote = payload.notes || 'تحميل بضاعة إضافية (استعواض أثناء اليوم)';
+      await trxAny
+        .updateTable('van_sales_trips')
+        .set({
+          loaded_amount: sql`coalesce(loaded_amount, 0) + ${Number(totalLoadedValue.toFixed(2))}`,
+          notes: sql`case 
+            when notes is null or notes = '' then ${additionalNote}
+            else notes || E'\n' || ${additionalNote}
+          end`,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', tripId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      // Post van loading stock transfer journal
+      if (totalLoadedCost > 0) {
+        const systemAuth = await this.resolveSystemAuthContext(tenantId, accountId);
+        const vanLocRow = await trxAny
+          .selectFrom('stock_locations')
+          .select(['branch_id'])
+          .where('id', '=', vanLoc.id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        const branchId = vanLocRow?.branch_id ? Number(vanLocRow.branch_id) : null;
+        await this.accountingPosting.postVanStockTransfer(
+          trx,
+          tripId,
+          {
+            sourceLocationId: sourceLocId || vanLoc.id,
+            targetLocationId: vanLoc.id,
+            totalCost: totalLoadedCost,
+            branchId,
+            type: 'load',
+          },
+          systemAuth,
+        );
+      }
+    });
+
+    return {
+      ok: true,
+      tripId,
+      totalLoadedValue: Number(totalLoadedValue.toFixed(2)),
+      itemsCount: payload.items.length,
+    };
+  }
+
+  /**
    * Executes a direct field sale in the street from van stock (Cash or Credit).
    */
   async executeFieldSale(
@@ -4273,6 +4456,7 @@ export class VanSalesService {
       sourceWarehouseId?: number;
       items: { productId: number; qty: number; sourceWarehouseId?: number; sourceWarehouseName?: string }[];
       notes?: string;
+      allowMultiplePending?: boolean;
     },
   ) {
     return this.vanRequisitionsService.submitLoadRequisition(repId, tenantId, accountId, payload);
@@ -4298,6 +4482,7 @@ export class VanSalesService {
       sourceWarehouseId: payload.sourceWarehouseId,
       items: payload.items,
       notes: payload.notes,
+      allowMultiplePending: Boolean(payload.dispatchImmediately),
     });
 
     if (payload.dispatchImmediately) {
@@ -4313,6 +4498,7 @@ export class VanSalesService {
         requisitionId: subRes.requisitionId,
         dispatched: true,
         tripId: dispatchRes.tripId,
+        isSupplementary: dispatchRes.isSupplementary,
       };
     }
 
@@ -4341,20 +4527,52 @@ export class VanSalesService {
   async approveAndDispatchRequisition(tenantId: string, accountId: string, requisitionId: number, reviewedByUserId: number) {
     const req = await this.vanRequisitionsService.getRequisitionForDispatch(tenantId, requisitionId);
 
-    const tripResult = await this.openTripAndLoad(
-      Number(req.rep_id),
-      tenantId,
-      accountId,
-      {
-        sourceWarehouseId: Number(req.source_warehouse_id),
-        items: req.itemsToLoad,
-        notes: req.notes || `صرف وتحميل بناءً على طلب إذن تحميل #${req.doc_no}`,
-      },
-    );
+    // Check if the rep already has an active open trip
+    const existingTrip = await this.anyDb
+      .selectFrom('van_sales_trips as vt')
+      .select(['vt.id'])
+      .where('vt.rep_id', '=', Number(req.rep_id))
+      .where('vt.tenant_id', '=', tenantId)
+      .where('vt.status', '=', 'open')
+      .orderBy('vt.id', 'desc')
+      .executeTakeFirst();
 
-    await this.vanRequisitionsService.markRequisitionDispatched(tenantId, requisitionId, tripResult.tripId, reviewedByUserId);
+    let tripId: number;
+    let isSupplementary = false;
 
-    return { ok: true, requisitionId, tripId: tripResult.tripId, docNo: req.doc_no };
+    if (existingTrip) {
+      // Driver already has an open trip -> Supplementary load into active trip!
+      const loadResult = await this.loadSupplementaryStockToActiveTrip(
+        Number(req.rep_id),
+        tenantId,
+        accountId,
+        Number(existingTrip.id),
+        {
+          sourceWarehouseId: Number(req.source_warehouse_id),
+          items: req.itemsToLoad,
+          notes: req.notes || `صرف وتحميل إضافي (استعواض) بناءً على طلب إذن تحميل #${req.doc_no}`,
+        },
+      );
+      tripId = loadResult.tripId;
+      isSupplementary = true;
+    } else {
+      // Open a fresh trip for the rep
+      const tripResult = await this.openTripAndLoad(
+        Number(req.rep_id),
+        tenantId,
+        accountId,
+        {
+          sourceWarehouseId: Number(req.source_warehouse_id),
+          items: req.itemsToLoad,
+          notes: req.notes || `صرف وتحميل بناءً على طلب إذن تحميل #${req.doc_no}`,
+        },
+      );
+      tripId = tripResult.tripId;
+    }
+
+    await this.vanRequisitionsService.markRequisitionDispatched(tenantId, requisitionId, tripId, reviewedByUserId);
+
+    return { ok: true, requisitionId, tripId, docNo: req.doc_no, isSupplementary };
   }
 
   async rejectLoadRequisition(tenantId: string, requisitionId: number, rejectionReason: string, reviewedByUserId: number) {
@@ -4363,6 +4581,10 @@ export class VanSalesService {
 
   async deleteLoadRequisition(tenantId: string, requisitionId: number) {
     return this.vanRequisitionsService.deleteLoadRequisition(tenantId, requisitionId);
+  }
+
+  async cancelLoadRequisitionByDriver(tenantId: string, repId: number, requisitionId: number) {
+    return this.vanRequisitionsService.cancelLoadRequisitionByDriver(tenantId, repId, requisitionId);
   }
 
   async getDriverWarehouses(tenantId: string) {
