@@ -173,7 +173,7 @@ function resolveCurrentTransaction(action) {
     }
 
     printReceiptOnSunmi(tx);
-    broadcastSSE({ type: 'tx_resolved', status: 'approved', tx });
+    broadcastSSE({ type: 'tx_resolved', status: 'approved', tx: sanitizeTx(tx) });
     return true;
   }
 

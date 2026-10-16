@@ -1,0 +1,41 @@
+{
+  "name": "z-systems-hardware-bridge",
+  "productName": "Z-Systems Hardware Bridge",
+  "version": "1.0.0",
+  "description": "Z-Systems Hardware Bridge for Smart POS Terminals (ECR), ESC/POS Thermal Printers, and Cash Drawers",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/server/bridge-server.js",
+    "app": "electron src/index.js"
+  },
+  "build": {
+    "appId": "com.zsystems.hardwarebridge",
+    "productName": "Z-Systems Hardware Bridge",
+    "electronVersion": "30.1.2",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    }
+  },
+  "keywords": [
+    "pos",
+    "ecr",
+    "pax",
+    "geidea",
+    "knet",
+    "escpos",
+    "hardware-bridge"
+  ],
+  "author": "Z-Systems ERP",
+  "license": "PROPRIETARY"
+}

@@ -72,3 +72,10 @@ backend/runtime/
 **/.last_migrated_*
 *.apk
 *.aab
+android-app/bin/
+android-app/*.keystore
+*.idsig
+screen*.png
+tools/z-systems-bridge/dist/
+tools/z-systems-bridge/*.exe
+

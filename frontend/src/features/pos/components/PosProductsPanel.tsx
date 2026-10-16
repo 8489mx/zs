@@ -21,6 +21,7 @@ import { useProductIconSettings } from '@/shared/components/icons/product-icon-t
 import { isInvoiceBarcodeQuery, sanitizeSearchInputLive } from '@/features/pos/lib/pos-barcode-normalizer';
 import { useScannerBuffer } from '@/features/pos/hooks/useScannerBuffer';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
+import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 
 interface PosProductsPanelProps {
   search: string;
@@ -329,8 +330,9 @@ function PosProductsPanelComponent({
   const scannerSearchQuery = deferredSearch.trim();
   const isScannerMode = posMode === 'scanner';
   const isTouchMode = posMode === 'touch';
+  const isMobile = useIsMobile(900);
   const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
-  const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2 || hasBrowseFilter;
+  const canShowScannerResults = !isScannerMode || isMobile || scannerSearchQuery.length >= 2 || hasBrowseFilter;
   const visibleGroups = useMemo(() => getGroupShelfGroups({
     groups: groupedProducts,
     shelf,
@@ -381,7 +383,7 @@ function PosProductsPanelComponent({
 
   useEffect(() => {
     setTouchVisibleCount(touchModeVisibleStep);
-  }, [isTouchMode, productFilter, products, search, shelf]);
+  }, [isTouchMode, isMobile, productFilter, products, search, shelf]);
 
   useEffect(() => {
     if (!displayedGroups.length) {
@@ -639,7 +641,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        {isTouchMode && categories.length > 0 && (
+        {(isTouchMode || isMobile) && categories.length > 0 && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
             style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
@@ -699,7 +701,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        {isTouchMode && (
+        {(isTouchMode || isMobile) && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
             style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
@@ -863,7 +865,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        {isTouchMode && visibleRecentGroups.length ? (
+        {(isTouchMode || isMobile) && visibleRecentGroups.length ? (
           <div className="pos-quick-picks-row" aria-label="وصول سريع">
             <span className="muted small">وصول سريع</span>
             <div className="pos-quick-picks-buttons">

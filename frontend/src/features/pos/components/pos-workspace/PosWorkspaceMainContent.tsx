@@ -1,6 +1,7 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
@@ -147,7 +148,17 @@ export function PosWorkspaceMainContent({
           />
           </div>
 
-        <div className={`pos-checkout-column ${mobileActiveTab === 'cart' ? 'is-mobile-active' : 'is-mobile-hidden'}`}>
+        <div
+          className={`pos-checkout-column ${mobileActiveTab === 'cart' ? 'is-mobile-active' : 'is-mobile-hidden'}`}
+          style={{
+            display: mobileActiveTab === 'cart' ? 'flex' : undefined,
+            flexDirection: mobileActiveTab === 'cart' ? 'column' : undefined,
+            width: mobileActiveTab === 'cart' ? '100%' : undefined,
+            flex: mobileActiveTab === 'cart' ? '1 1 auto' : undefined,
+            minHeight: 0,
+            paddingBottom: mobileActiveTab === 'cart' ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : undefined,
+          }}
+        >
           <PosCartPanel
             cart={pos.cart}
             customers={pos.customersQuery.data || []}
@@ -280,130 +291,154 @@ export function PosWorkspaceMainContent({
         </div>
 
         {/* Mobile Sticky Floating Cart Bar (visible only on small mobile screens when on products tab and cart has items) */}
-        {mobileActiveTab === 'products' && cartItemsCount > 0 && (
-          <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
-            {/* Header / Drawer Handle with Toggle Button */}
-            <div className="pos-mobile-floating-cart-header">
-              <button
-                type="button"
-                className="pos-mobile-floating-cart-toggle-btn"
-                onClick={() => setIsFloatingCartExpanded((prev) => !prev)}
-                aria-label={isFloatingCartExpanded ? 'تصغير قائمة الأصناف' : 'عرض أصناف السلة'}
-                title={isFloatingCartExpanded ? 'تصغير' : 'عرض الأصناف'}
-              >
-                <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
-                <div className="pos-mobile-floating-cart-text">
-                  <div className="pos-mobile-floating-cart-text-row">
-                    <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
-                    <span className="pos-mobile-floating-cart-unit"><CurrencySymbol /></span>
-                  </div>
-                  <span className="pos-mobile-floating-cart-sub">
-                    {isFloatingCartExpanded ? 'أصناف السلة (انقر للإغلاق)' : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
-                  </span>
-                </div>
-                <span className="pos-mobile-floating-cart-chevron">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      transform: isFloatingCartExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.22s ease',
-                    }}
-                  >
-                    <polyline points="18 15 12 9 6 15"></polyline>
-                  </svg>
-                </span>
-              </button>
-
-              <div className="pos-mobile-floating-cart-actions">
+        {mobileActiveTab === 'products' && cartItemsCount > 0 && typeof document !== 'undefined' && createPortal(
+          <>
+            {isFloatingCartExpanded && (
+              <div
+                className="pos-mobile-floating-cart-backdrop"
+                onClick={() => setIsFloatingCartExpanded(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(15, 23, 42, 0.4)',
+                  backdropFilter: 'blur(2px)',
+                  WebkitBackdropFilter: 'blur(2px)',
+                  zIndex: 999,
+                }}
+              />
+            )}
+            <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
+              {/* Header / Drawer Handle with Toggle Button */}
+              <div className="pos-mobile-floating-cart-header">
                 <button
                   type="button"
-                  className="pos-mobile-floating-checkout-btn"
-                  onClick={() => {
-                    if (pos.canOpenCheckout) {
-                      onRequestCheckout();
-                    } else {
-                      setMobileActiveTab('cart');
-                    }
-                  }}
+                  className="pos-mobile-floating-cart-toggle-btn"
+                  onClick={() => setIsFloatingCartExpanded((prev) => !prev)}
+                  aria-label={isFloatingCartExpanded ? 'تصغير قائمة الأصناف' : 'عرض أصناف السلة'}
+                  title={isFloatingCartExpanded ? 'تصغير' : 'عرض الأصناف'}
                 >
-                  <span>الدفع (F10)</span>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
+                  <div className="pos-mobile-floating-cart-text">
+                    <div className="pos-mobile-floating-cart-text-row">
+                      <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
+                      <span className="pos-mobile-floating-cart-unit"><CurrencySymbol /></span>
+                    </div>
+                    <span className="pos-mobile-floating-cart-sub">
+                      {isFloatingCartExpanded ? 'أصناف السلة (انقر للإغلاق)' : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
+                    </span>
+                  </div>
+                  <span className="pos-mobile-floating-cart-chevron">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: isFloatingCartExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.22s ease',
+                      }}
+                    >
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </span>
                 </button>
-              </div>
-            </div>
 
-            {/* Expanded Compact Items Preview */}
-            {isFloatingCartExpanded && (
-              <div className="pos-mobile-floating-cart-items-drawer">
-                <div className="pos-mobile-floating-cart-items-list">
-                  {pos.cart.map((item, idx) => {
-                    const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => sum + Number(mod.price || 0), 0);
-                    const lineTotal = Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal);
-                    return (
-                      <div key={item.lineKey || idx} className="pos-mobile-floating-cart-item-row">
-                        <div className="pos-mobile-floating-cart-item-name-col">
-                          <strong className="pos-mobile-floating-cart-item-name">{item.name}</strong>
-                          <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} <CurrencySymbol /> / للوحدة</span>
-                        </div>
-
-                        <div className="pos-mobile-floating-cart-item-qty-col">
-                          <button
-                            type="button"
-                            className="pos-mobile-floating-qty-btn"
-                            onClick={() => pos.changeLineQtyByDelta(item.lineKey, -1)}
-                            aria-label="تقليل الكمية"
-                          >
-                            -
-                          </button>
-                          <span className="pos-mobile-floating-qty-val">{item.qty}</span>
-                          <button
-                            type="button"
-                            className="pos-mobile-floating-qty-btn"
-                            onClick={() => pos.changeLineQtyByDelta(item.lineKey, 1)}
-                            aria-label="زيادة الكمية"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <div className="pos-mobile-floating-cart-item-total-col">
-                          <strong>{formatCurrency(lineTotal)}</strong>
-                          <span className="pos-mobile-floating-cart-unit-small"><CurrencySymbol /></span>
-                        </div>
-
-                        <button
-                          type="button"
-                          className="pos-mobile-floating-item-delete-btn"
-                          onClick={() => onRequestLineDelete(item.lineKey)}
-                          title="حذف الصنف"
-                          aria-label="حذف"
-                        ><XIcon size={15} /></button>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="pos-mobile-floating-cart-drawer-footer">
+                <div className="pos-mobile-floating-cart-actions">
                   <button
                     type="button"
-                    className="pos-mobile-floating-view-full-cart-link"
-                    onClick={() => setMobileActiveTab('cart')}
+                    className="pos-mobile-floating-checkout-btn"
+                    onClick={() => {
+                      setIsFloatingCartExpanded(false);
+                      if (pos.canOpenCheckout) {
+                        onRequestCheckout();
+                      } else {
+                        setMobileActiveTab('cart');
+                      }
+                    }}
                   >
-                    عرض صفحة السلة الكاملة والملاحظات ←
+                    <span>الدفع (F10)</span>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* Expanded Compact Items Preview */}
+              {isFloatingCartExpanded && (
+                <div className="pos-mobile-floating-cart-items-drawer">
+                  <div className="pos-mobile-floating-cart-items-list">
+                    {pos.cart.map((item, idx) => {
+                      const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => sum + Number(mod.price || 0), 0);
+                      const lineTotal = Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal);
+                      return (
+                        <div key={item.lineKey || idx} className="pos-mobile-floating-cart-item-row">
+                          <div className="pos-mobile-floating-cart-item-name-col">
+                            <strong className="pos-mobile-floating-cart-item-name">{item.name}</strong>
+                            <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} <CurrencySymbol /> / للوحدة</span>
+                          </div>
+
+                          <div className="pos-mobile-floating-cart-item-qty-col">
+                            <button
+                              type="button"
+                              className="pos-mobile-floating-qty-btn"
+                              onClick={() => pos.changeLineQtyByDelta(item.lineKey, 1)}
+                              aria-label="زيادة الكمية"
+                            >
+                              +
+                            </button>
+                            <span className="pos-mobile-floating-qty-val">{item.qty}</span>
+                            <button
+                              type="button"
+                              className="pos-mobile-floating-qty-btn"
+                              onClick={() => pos.changeLineQtyByDelta(item.lineKey, -1)}
+                              aria-label="تقليل الكمية"
+                            >
+                              -
+                            </button>
+                          </div>
+
+                          <div className="pos-mobile-floating-cart-item-total-col">
+                            <strong>{formatCurrency(lineTotal)}</strong>
+                            <span className="pos-mobile-floating-cart-unit-small"><CurrencySymbol /></span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="pos-mobile-floating-item-delete-btn"
+                            onClick={() => onRequestLineDelete(item.lineKey)}
+                            title="حذف الصنف"
+                            aria-label="حذف"
+                          ><XIcon size={15} /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="pos-mobile-floating-cart-drawer-footer">
+                    <button
+                      type="button"
+                      className="pos-mobile-floating-view-full-cart-link"
+                      onClick={() => {
+                        setIsFloatingCartExpanded(false);
+                        setMobileActiveTab('cart');
+                      }}
+                    >
+                      عرض صفحة السلة الكاملة والملاحظات ←
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>,
+          document.body
         )}
       </div>
     </QueryFeedback>

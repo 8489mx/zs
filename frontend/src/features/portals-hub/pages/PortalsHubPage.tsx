@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { SearchIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
 import { PORTALS_LIST, type PortalItem } from '../components/portals-data';
 import { PortalCard } from '../components/PortalCard';
@@ -9,6 +9,33 @@ export function PortalsHubPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeQrPortal, setActiveQrPortal] = useState<PortalItem | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - (tabsContainerRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = tabsContainerRef.current?.scrollLeft || 0;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !tabsContainerRef.current) return;
+    const x = e.pageX - (tabsContainerRef.current.offsetLeft || 0);
+    const walk = x - startXRef.current;
+    if (Math.abs(walk) > 4) {
+      hasDraggedRef.current = true;
+    }
+    tabsContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
 
   const filteredPortals = useMemo(() => {
     return PORTALS_LIST.filter((portal) => {
@@ -160,57 +187,150 @@ export function PortalsHubPage() {
 
           <div
             style={{
+              position: 'relative',
+              width: '100%',
               display: 'flex',
-              flexWrap: 'nowrap',
-              overflowX: 'auto',
               alignItems: 'center',
               gap: '4px',
-              backgroundColor: '#f1f5f9',
-              padding: '3px',
-              borderRadius: '8px',
-              width: '100%',
-              boxSizing: 'border-box',
-              scrollbarWidth: 'none',
             }}
           >
-            {[
-              { id: 'all', label: `الكل (${PORTALS_LIST.length})` },
-              { id: 'logistics', label: 'شحن ولوجستيات' },
-              { id: 'projects', label: 'مشاريع ومقاولات' },
-              { id: 'staff', label: 'خدمة ذاتية' },
-              { id: 'field', label: 'توزيع وميداني' },
-              { id: 'branch', label: 'تشغيل وصالة' },
-              { id: 'management', label: 'إدارة ورقابة' },
-            ].map((tab) => {
-              const isActive = selectedCategory === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(tab.id)}
-                  style={{
-                    flex: '1 1 auto',
-                    minWidth: 'max-content',
-                    height: '28px',
-                    padding: '0 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: isActive ? '#ffffff' : 'transparent',
-                    color: isActive ? '#170e5e' : '#64748b',
-                    fontWeight: 800,
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+            {/* Scroll Left Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (tabsContainerRef.current) {
+                  tabsContainerRef.current.scrollBy({ left: -140, behavior: 'smooth' });
+                }
+              }}
+              title="تمرير لليسار"
+              aria-label="تمرير لليسار"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <div
+              ref={tabsContainerRef}
+              className="portals-hub-category-tabs"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={(e) => {
+                if (e.deltaY !== 0 && tabsContainerRef.current) {
+                  tabsContainerRef.current.scrollLeft -= e.deltaY;
+                }
+              }}
+              style={{
+                display: 'flex',
+                flexWrap: 'nowrap',
+                overflowX: 'auto',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: '#f1f5f9',
+                padding: '3px',
+                borderRadius: '8px',
+                flex: 1,
+                minWidth: 0,
+                boxSizing: 'border-box',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x pan-y',
+                cursor: 'grab',
+                userSelect: 'none',
+              }}
+            >
+              {[
+                { id: 'all', label: `الكل (${PORTALS_LIST.length})` },
+                { id: 'logistics', label: 'شحن ولوجستيات' },
+                { id: 'projects', label: 'مشاريع ومقاولات' },
+                { id: 'staff', label: 'خدمة ذاتية' },
+                { id: 'field', label: 'توزيع وميداني' },
+                { id: 'branch', label: 'تشغيل وصالة' },
+                { id: 'management', label: 'إدارة ورقابة' },
+              ].map((tab) => {
+                const isActive = selectedCategory === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={(e) => {
+                      if (hasDraggedRef.current) return;
+                      setSelectedCategory(tab.id);
+                      e.currentTarget.scrollIntoView?.({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    style={{
+                      flex: '0 0 auto',
+                      minWidth: 'max-content',
+                      height: '26px',
+                      padding: '0 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: isActive ? '#ffffff' : 'transparent',
+                      color: isActive ? '#170e5e' : '#475569',
+                      fontWeight: 800,
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      transition: 'background-color 0.15s ease, color 0.15s ease',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Scroll Right Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (tabsContainerRef.current) {
+                  tabsContainerRef.current.scrollBy({ left: 140, behavior: 'smooth' });
+                }
+              }}
+              title="تمرير لليمين"
+              aria-label="تمرير لليمين"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
         </div>
 

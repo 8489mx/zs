@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تشخيص جسر Z-Systems للعتاد</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: #f8fafc; color: #0f172a; padding: 24px; direction: rtl; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: #ffffff; padding: 18px 24px; border-radius: 14px; border: 1px solid #e2e8f0; }
+    .brand-title { display: flex; align-items: center; gap: 12px; }
+    .navy-bar { width: 4px; height: 28px; background-color: #170e5e; border-radius: 2px; }
+    h1 { font-size: 19px; font-weight: 800; color: #170e5e; }
+    .subtitle { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .card-title { font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+    input, select { width: 100%; height: 38px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; color: #0f172a; outline: none; }
+    input:focus, select:focus { border-color: #170e5e; ring: 2px solid #e0e7ff; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+    button { flex: 1; height: 38px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background-color: #170e5e; color: #ffffff; }
+    .btn-primary:hover { background-color: #241882; }
+    .btn-secondary { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover { background-color: #e2e8f0; }
+
+    .result-box { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 12px; min-height: 48px; background: #f8fafc; border: 1px dashed #cbd5e1; white-space: pre-wrap; word-break: break-all; font-family: monospace; }
+    .result-box.success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+    .result-box.error { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+
+    .log-box { background: #0f172a; color: #cbd5e1; padding: 14px; border-radius: 12px; font-family: monospace; font-size: 11.5px; height: 160px; overflow-y: auto; line-height: 1.6; }
+    .log-entry { margin-bottom: 4px; }
+    .log-approved { color: #34d399; font-weight: 700; }
+    .log-declined { color: #f87171; font-weight: 700; }
+    .log-info { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand-title">
+        <div class="navy-bar"></div>
+        <div>
+          <h1>لوحة تشخيص جسر Z-Systems للعتاد</h1>
+          <div class="subtitle">فحص واختبار التخاطب مع ماكينات الدفع وطابعات الإيصالات المحلية</div>
+        </div>
+      </div>
+      <div class="status-badge">
+        <div class="pulse-dot"></div>
+        <span id="bridge-status">الجسر نشط (منفذ 18181)</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- POS Terminal Card -->
+      <div class="card">
+        <div class="card-title">اختبار ماكينة الدفع البنكي (Smart POS / ECR)</div>
+        <div class="form-group">
+          <label>عنوان IP الماكينة:</label>
+          <input type="text" id="term-ip" value="192.168.1.3" placeholder="192.168.1.150">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="form-group">
+            <label>المنفذ (Port):</label>
+            <input type="number" id="term-port" value="8080">
+          </div>
+          <div class="form-group">
+            <label>نوع الماكينة:</label>
+            <select id="term-provider">
+              <option value="fawry">فوري / باكس (PAX POSLink)</option>
+              <option value="geidea">جيديا (Geidea mada)</option>
+              <option value="knet_pos">كي نت (K-NET الكويت)</option>
+              <option value="paymob">باي موب (Paymob)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="form-group">
+            <label>المبلغ:</label>
+            <input type="number" id="term-amount" value="50">
+          </div>
+          <div class="form-group">
+            <label>العملة:</label>
+            <select id="term-currency">
+              <option value="EGP">EGP (جنيه)</option>
+              <option value="SAR">SAR (ريال)</option>
+              <option value="KWD">KWD (دينار)</option>
+              <option value="AED">AED (درهم)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="testTerminalPing()">فحص الاتصال والنبض</button>
+          <button class="btn-primary" onclick="sendTerminalCharge()">إرسال عملية دفع تجريبية</button>
+          <button class="btn-secondary" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;" onclick="cancelTerminalCharge()">إلغاء</button>
+        </div>
+        <div class="result-box" id="term-result">في انتظار الاختبار...</div>
+      </div>
+
+      <!-- Thermal Printer Card -->
+      <div class="card">
+        <div class="card-title">اختبار طابعة الفواتير ودرج النقدية (ESC/POS)</div>
+        <div class="form-group">
+          <label>عنوان IP طابعة الشبكة:</label>
+          <input type="text" id="print-ip" value="192.168.1.3" placeholder="192.168.1.200">
+        </div>
+        <div class="form-group">
+          <label>منفذ الطباعة الحرارية ESC/POS (المنفذ القياسي 9100):</label>
+          <input type="number" id="print-port" value="9100" placeholder="9100">
+        </div>
+        <div class="form-group">
+          <label>اسم المتجر في الإيصال:</label>
+          <input type="text" id="store-name" value="متجر Z-Systems النموذجي">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-primary" onclick="testThermalPrint()">طباعة إيصال تجريبي</button>
+          <button class="btn-secondary" onclick="testKickDrawer()">فتح درج النقدية</button>
+        </div>
+        <div class="result-box" id="print-result">في انتظار أمر الطباعة...</div>
+      </div>
+    </div>
+
+    <!-- Live Event Log -->
+    <div class="card">
+      <div class="card-title">سجل النبضات اللحظي (Bridge Live Events SSE)</div>
+      <div class="log-box" id="event-log">
+        <div class="log-entry log-info">[النظام] تم بدء الاتصال بخادم الجسر المحلي 127.0.0.1:18181...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function addLog(msg, type = 'info') {
+      const box = document.getElementById('event-log');
+      const time = new Date().toLocaleTimeString('ar-EG');
+      const div = document.createElement('div');
+      div.className = `log-entry log-${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      box.insertBefore(div, box.firstChild);
+    }
+
+    // Connect to SSE stream
+    const evtSource = new EventSource('/events');
+    evtSource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'connected') {
+          addLog(`متصل بنجاح بالجسر المحلي (الإصدار ${data.version})`, 'info');
+        } else if (data.type === 'ecr_waiting') {
+          addLog(`طلب سداد جديد: ${data.amount} ${data.currency} على ${data.ip}:${data.port}`, 'info');
+        } else if (data.type === 'ecr_approved') {
+          addLog(`تمت الموافقة بنجاح: كود التفويض ${data.authCode} | المرجع ${data.rrn} (${data.cardScheme})`, 'approved');
+        } else if (data.type === 'ecr_declined') {
+          addLog(`تم رفض العملية: ${data.message} (كود ${data.code})`, 'declined');
+        } else if (data.type === 'ecr_cancelled') {
+          addLog(`تم إلغاء العملية: ${data.referenceId}`, 'declined');
+        }
+      } catch {}
+    };
+
+    async function testTerminalPing() {
+      const resultBox = document.getElementById('term-result');
+      resultBox.className = 'result-box';
+      resultBox.textContent = 'جاري فحص الاتصال بالماكينة...';
+
+      const payload = {
+        ip: document.getElementById('term-ip').value.trim(),
+        port: Number(document.getElementById('term-port').value),
+        provider: document.getElementById('term-provider').value,
+      };
+
+      try {
+        const res = await fetch('/api/ecr/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (json.data && json.data.reachable) {
+          resultBox.className = 'result-box success';
+          resultBox.textContent = `نجح الاتصال بالماكينة (${json.data.latencyMs}ms): ${json.data.message}`;
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.textContent = `فشل الاتصال بالماكينة: ${json.data?.message || 'الماكينة غير مستجيبة'}`;
+        }
+      } catch (err) {
+        resultBox.className = 'result-box error';
+        resultBox.textContent = `خطأ: ${err.message}`;
+      }
+    }
+
+    async function sendTerminalCharge() {
+      const resultBox = document.getElementById('term-result');
+      resultBox.className = 'result-box';
+      resultBox.textContent = 'جاري إرسال المبلغ للماكينة... يرجى تمرير البطاقة على شاشة الجهاز';
+
+      const payload = {
+        ip: document.getElementById('term-ip').value.trim(),
+        port: Number(document.getElementById('term-port').value),
+        provider: document.getElementById('term-provider').value,
+        amount: Number(document.getElementById('term-amount').value),
+        currency: document.getElementById('term-currency').value,
+        referenceId: `TEST-${Date.now()}`,
+      };
+
+      try {
+        const res = await fetch('/api/ecr/charge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (json.status === 'approved') {
+          resultBox.className = 'result-box success';
+          resultBox.textContent = `تمت الموافقة بنجاح!\nكود التفويض: ${json.authCode}\nرقم المرجع (RRN): ${json.rrn}\nنوع البطاقة: ${json.cardScheme} (**** ${json.cardLastFour})`;
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.textContent = `تم الرفض أو الإلغاء: ${json.message || json.code}`;
+        }
+      } catch (err) {
+        resultBox.className = 'result-box error';
+        resultBox.textContent = `خطأ: ${err.message}`;
+      }
+    }
+
+    async function cancelTerminalCharge() {
+      const resultBox = document.getElementById('term-result');
+      resultBox.textContent = 'جاري إرسال أمر الإلغاء للماكينة...';
+
+      const payload = {
+        ip: document.getElementById('term-ip').value.trim(),
+        port: Number(document.getElementById('term-port').value),
+        provider: document.getElementById('term-provider').value,
+        referenceId: 'ALL',
+      };
+
+      try {
+        const res = await fetch('/api/ecr/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        resultBox.className = 'result-box error';
+        resultBox.textContent = 'تم إرسال أمر الإلغاء بنجاح وتفريغ شاشة الماكينة.';
+      } catch (err) {
+        resultBox.className = 'result-box error';
+        resultBox.textContent = `خطأ: ${err.message}`;
+      }
+    }
+
+    async function testThermalPrint() {
+      const resultBox = document.getElementById('print-result');
+      resultBox.className = 'result-box';
+      resultBox.textContent = 'جاري إرسال إيصال الطباعة الحرارية...';
+
+      const payload = {
+        ip: document.getElementById('print-ip').value.trim(),
+        port: Number(document.getElementById('print-port').value),
+        storeName: document.getElementById('store-name').value.trim(),
+      };
+
+      try {
+        const res = await fetch('/api/printer/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (json.success) {
+          resultBox.className = 'result-box success';
+          resultBox.textContent = `تمت الطباعة بنجاح! تم إرسال بايتات ESC/POS إلى الطابعة (${json.data?.bytesWritten} بايت).`;
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.textContent = `فشل الطباعة: ${json.error}`;
+        }
+      } catch (err) {
+        resultBox.className = 'result-box error';
+        resultBox.textContent = `خطأ: ${err.message}`;
+      }
+    }
+
+    async function testKickDrawer() {
+      const resultBox = document.getElementById('print-result');
+      resultBox.textContent = 'جاري إرسال نبضة فتح درج النقدية...';
+
+      const payload = {
+        ip: document.getElementById('print-ip').value.trim(),
+        port: Number(document.getElementById('print-port').value),
+      };
+
+      try {
+        const res = await fetch('/api/printer/kick-drawer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (json.success) {
+          resultBox.className = 'result-box success';
+          resultBox.textContent = 'تم إرسال نبضة فتح درج النقدية بنجاح.';
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.textContent = `فشل فتح الدرج: ${json.error}`;
+        }
+      } catch (err) {
+        resultBox.className = 'result-box error';
+        resultBox.textContent = `خطأ: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

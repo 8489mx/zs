@@ -6,7 +6,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
 import { Button } from '@/shared/ui/button';
 import { SearchableCombobox, type ComboboxOption } from '@/shared/ui/searchable-combobox';
-import { UsersIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { SearchIcon, UserIcon, UsersIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
@@ -259,10 +259,17 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                 />
               </div>
             ) : (
-              <button type="button" className="pos-customer-trigger" onClick={openSearchInline}>
-                <span className="pos-customer-trigger-label">اختيار عميل</span>
-                <strong>{selectedCustomer?.name || props.quickCustomerName || 'عميل نقدي'}</strong>
-                <small>{selectedCustomer?.phone || props.quickCustomerPhone || 'ابحث بالاسم أو الهاتف'}</small>
+              <button type="button" className="pos-customer-trigger" onClick={openSearchInline} title="اضغط للبحث واختيار عميل">
+                <div className="pos-customer-trigger-avatar">
+                  <UserIcon size={15} color="#170e5e" />
+                </div>
+                <div className="pos-customer-trigger-info">
+                  <strong>{selectedCustomer?.name || props.quickCustomerName || 'عميل نقدي'}</strong>
+                  <small>{selectedCustomer?.phone || props.quickCustomerPhone || 'ابحث بالاسم أو الهاتف'}</small>
+                </div>
+                <div className="pos-customer-trigger-search-hint">
+                  <SearchIcon size={14} color="#94a3b8" />
+                </div>
               </button>
             )}
           </div>
