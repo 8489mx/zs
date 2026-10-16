@@ -32,7 +32,7 @@ import {
   SendIcon,
 } from '@/shared/components/icons/AppIcons';
 import { openWhatsAppChat, formatRestaurantOrderWhatsAppMessage } from '@/lib/whatsapp';
-import { getGlobalSystemCurrency, getCurrencySymbol, isKuwait, isSaudi } from '@/lib/currencies';
+import { getCurrencySymbol, isKuwait, isSaudi } from '@/lib/currencies';
 
 interface PosPhoneOrderDialogProps {
   open: boolean;

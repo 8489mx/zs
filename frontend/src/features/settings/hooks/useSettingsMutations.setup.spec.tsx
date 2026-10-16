@@ -58,6 +58,7 @@ const baseSettingsMutationValues = {
   autoPartsModuleEnabled: false,
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
+  enableGuestPagers: false,
   posModuleEnabled: true,
   purchasesModuleEnabled: true,
   inventoryModuleEnabled: true,

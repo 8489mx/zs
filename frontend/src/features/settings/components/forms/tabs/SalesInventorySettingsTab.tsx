@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi, HardwareBridgeClient } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';

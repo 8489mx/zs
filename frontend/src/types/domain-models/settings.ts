@@ -69,6 +69,7 @@ export interface AppSettings {
   restaurantTablesCount?: number;
   restaurantServiceChargeEnabled?: boolean;
   restaurantServiceChargePercent?: number;
+  enableGuestPagers?: boolean;
   phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   printDeliveryRepOnReceipt?: boolean;

@@ -1175,7 +1175,7 @@ export function PosCheckoutPaymentSection({
                   onChange={(e) => applyTipChange(Math.max(0, Number(e.target.value || 0)))}
                   placeholder="مخصص"
                   style={{
-                    width: isKwd ? '68px' : '55px',
+                    width: isKwdStore ? '68px' : '55px',
                     height: '24px',
                     borderRadius: '4px',
                     border: '1px solid #cbd5e1',

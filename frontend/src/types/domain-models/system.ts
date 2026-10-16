@@ -212,6 +212,7 @@ export interface AppSettings {
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   restaurantTablesCount?: number;
+  enableGuestPagers?: boolean;
   phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
