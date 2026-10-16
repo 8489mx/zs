@@ -5,63 +5,150 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
 using System.Web.Script.Serialization;
+using Microsoft.Win32;
 
 namespace ZSystems.HardwareBridge
 {
-    class Program
+    static class Program
     {
         private const int Port = 18181;
         private static readonly JavaScriptSerializer Serializer = new JavaScriptSerializer();
         private static readonly DateTime StartTime = DateTime.UtcNow;
         private static readonly List<HttpListenerResponse> SseClients = new List<HttpListenerResponse>();
         private static readonly object SseLock = new object();
+        private static HttpListener _listener;
+        private static NotifyIcon _trayIcon;
 
-        static void Main(string[] args)
+        [STAThread]
+        static void Main()
         {
-            Console.OutputEncoding = Encoding.UTF8;
-            Console.Title = "Z-Systems Hardware Bridge v1.0.0";
-
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("==================================================================");
-            Console.WriteLine("       Z-Systems Hardware Bridge (Native Windows Service)");
-            Console.WriteLine("       Smart POS (ECR), ESC/POS Thermal Printers & Cash Drawers");
-            Console.WriteLine("==================================================================");
-            Console.ResetColor();
-
-            HttpListener listener = new HttpListener();
+            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
             try
             {
-                listener.Prefixes.Add(string.Format("http://127.0.0.1:{0}/", Port));
-                listener.Prefixes.Add(string.Format("http://localhost:{0}/", Port));
-                listener.Start();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] Failed to bind HTTP port {0}: {1}", Port, ex.Message);
-                Console.ResetColor();
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
-                return;
-            }
+                File.AppendAllText(logPath, "--- Main Started " + DateTime.Now + " ---\n");
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("[ONLINE] Hardware Bridge listening on http://127.0.0.1:{0}/", Port);
-            Console.WriteLine("[READY] Diagnostics UI: http://127.0.0.1:{0}/diagnostics", Port);
-            Console.WriteLine("[ACTIVE] Waiting for Cloud Web POS requests...");
-            Console.ResetColor();
+                bool createdNew;
+                using (Mutex mutex = new Mutex(true, "ZSystemsHardwareBridge_SingleInstanceMutex", out createdNew))
+                {
+                    File.AppendAllText(logPath, "Step 1: createdNew=" + createdNew + "\n");
+                    if (!createdNew)
+                    {
+                        File.AppendAllText(logPath, "Exiting because createdNew is false\n");
+                        return;
+                    }
 
-            while (true)
-            {
+                File.AppendAllText(logPath, "Step 2: Startup registry\n");
+                // 2. Automatically register in Windows Startup (Autostart on boot)
                 try
                 {
-                    HttpListenerContext context = listener.GetContext();
-                    ThreadPool.QueueUserWorkItem(ProcessRequest, context);
+                    string exePath = Application.ExecutablePath;
+                    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                    {
+                        if (key != null)
+                        {
+                            key.SetValue("ZSystemsHardwareBridge", "\"" + exePath + "\"");
+                        }
+                    }
+                }
+                catch (Exception regEx) { File.AppendAllText(logPath, "Reg error: " + regEx.Message + "\n"); }
+
+                File.AppendAllText(logPath, "Step 3: Starting listener\n");
+                // 3. Start HTTP bridge server on background thread
+                try
+                {
+                    _listener = new HttpListener();
+                    _listener.Prefixes.Add(string.Format("http://127.0.0.1:{0}/", Port));
+                    _listener.Prefixes.Add(string.Format("http://localhost:{0}/", Port));
+                    _listener.Start();
+
+                    Thread listenerThread = new Thread(ListenLoop);
+                    listenerThread.IsBackground = true;
+                    listenerThread.Start();
+                    File.AppendAllText(logPath, "Listener started successfully on port " + Port + "\n");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("[LISTENER ERROR] {0}", ex.Message);
+                    File.AppendAllText(logPath, "Listener start failed: " + ex.ToString() + "\n");
+                    return;
+                }
+
+                File.AppendAllText(logPath, "Step 4: TrayIcon\n");
+
+                // 4. Create System Tray Icon
+                _trayIcon = new NotifyIcon();
+                _trayIcon.Icon = SystemIcons.Shield;
+                _trayIcon.Text = "جسر Z-Systems للعتاد (نشط - 127.0.0.1:18181)";
+                _trayIcon.Visible = true;
+
+                ContextMenu menu = new ContextMenu();
+                menu.MenuItems.Add(new MenuItem("جسر Z-Systems للعتاد v1.0.0") { Enabled = false });
+                menu.MenuItems.Add(new MenuItem("الحالة: متصل (127.0.0.1:18181)") { Enabled = false });
+                menu.MenuItems.Add("-");
+                menu.MenuItems.Add("فتح لوحة التشخيص والفحص", (s, e) =>
+                {
+                    try { System.Diagnostics.Process.Start("http://127.0.0.1:18181/diagnostics"); } catch {}
+                });
+                menu.MenuItems.Add("إلغاء التشغيل التلقائي مع الويندوز", (s, e) =>
+                {
+                    try
+                    {
+                        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                        {
+                            if (key != null) key.DeleteValue("ZSystemsHardwareBridge", false);
+                        }
+                        MessageBox.Show("تم إلغاء التشغيل التلقائي بنجاح.", "جسر Z-Systems", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch {}
+                });
+                menu.MenuItems.Add("-");
+                menu.MenuItems.Add("إيقاف وخروج", (s, e) =>
+                {
+                    _trayIcon.Visible = false;
+                    try { _listener.Stop(); } catch {}
+                    Application.Exit();
+                });
+
+                _trayIcon.ContextMenu = menu;
+                _trayIcon.DoubleClick += (s, e) =>
+                {
+                    try { System.Diagnostics.Process.Start("http://127.0.0.1:18181/diagnostics"); } catch {}
+                };
+
+                // Notification Balloon
+                _trayIcon.ShowBalloonTip(
+                    3000,
+                    "جسر Z-Systems للعتاد",
+                    "الجسر نشط الآن في الخلفية وجاهز للربط مع نقاط البيع والماكينات.",
+                    ToolTipIcon.Info
+                );
+
+                Application.Run(new ApplicationContext());
+                }
+            }
+            catch (Exception ex)
+            {
+                try { File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bridge-error.log"), ex.ToString()); } catch {}
+                MessageBox.Show(ex.ToString(), "Bridge Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static void ListenLoop()
+        {
+            while (_listener != null && _listener.IsListening)
+            {
+                try
+                {
+                    HttpListenerContext context = _listener.GetContext();
+                    ThreadPool.QueueUserWorkItem(ProcessRequest, context);
+                }
+                catch
+                {
+                    if (_listener == null || !_listener.IsListening) break;
                 }
             }
         }
@@ -103,10 +190,10 @@ namespace ZSystems.HardwareBridge
         private static void SetCorsHeaders(HttpListenerContext context)
         {
             var res = context.Response;
-            res.Headers.Add("Access-Control-Allow-Origin", "*");
-            res.Headers.Add("Access-Control-Allow-Private-Network", "true");
-            res.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-            res.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, x-pairing-key, X-Requested-With");
+            res.Headers["Access-Control-Allow-Origin"] = "*";
+            res.Headers["Access-Control-Allow-Private-Network"] = "true";
+            res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE";
+            res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-pairing-key, X-Requested-With";
         }
 
         private static void SendJson(HttpListenerContext context, int statusCode, object data)
@@ -150,7 +237,7 @@ namespace ZSystems.HardwareBridge
                         { "status", "ONLINE" },
                         { "name", "Z-Systems Hardware Bridge" },
                         { "version", "1.0.0" },
-                        { "runtime", "Windows Native .NET" },
+                        { "runtime", "Windows Native Service" },
                         { "uptimeSec", (int)(DateTime.UtcNow - StartTime).TotalSeconds }
                     });
                     return;
@@ -168,7 +255,7 @@ namespace ZSystems.HardwareBridge
                 {
                     context.Response.StatusCode = 200;
                     context.Response.ContentType = "text/event-stream";
-                    context.Response.Headers.Add("Cache-Control", "no-cache");
+                    context.Response.Headers["Cache-Control"] = "no-cache";
                     byte[] initBytes = Encoding.UTF8.GetBytes("data: {\"type\":\"connected\",\"version\":\"1.0.0\"}\n\n");
                     context.Response.OutputStream.Write(initBytes, 0, initBytes.Length);
                     context.Response.OutputStream.Flush();
@@ -258,18 +345,36 @@ namespace ZSystems.HardwareBridge
         private static void ServeDiagnosticsHtml(HttpListenerContext context)
         {
             string html = "";
-            string[] possiblePaths = new string[]
+            try
             {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "src", "ui", "diagnostics.html"),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "diagnostics.html")
-            };
-
-            foreach (var p in possiblePaths)
-            {
-                if (File.Exists(p))
+                using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("diagnostics.html"))
                 {
-                    html = File.ReadAllText(p, Encoding.UTF8);
-                    break;
+                    if (stream != null)
+                    {
+                        using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            html = reader.ReadToEnd();
+                        }
+                    }
+                }
+            }
+            catch {}
+
+            if (string.IsNullOrEmpty(html))
+            {
+                string[] possiblePaths = new string[]
+                {
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "src", "ui", "diagnostics.html"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "diagnostics.html")
+                };
+
+                foreach (var p in possiblePaths)
+                {
+                    if (File.Exists(p))
+                    {
+                        html = File.ReadAllText(p, Encoding.UTF8);
+                        break;
+                    }
                 }
             }
 
@@ -316,7 +421,6 @@ namespace ZSystems.HardwareBridge
 
             try
             {
-                // Call terminal HTTP / POSLink
                 string targetUrl = string.Format("http://{0}:{1}/poslink", ip, port);
                 if (provider.Contains("geidea"))
                 {
@@ -326,7 +430,7 @@ namespace ZSystems.HardwareBridge
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(targetUrl);
                 req.Method = "POST";
                 req.ContentType = "application/json";
-                req.Timeout = 120000; // 2 minutes for customer card entry
+                req.Timeout = 120000;
 
                 var requestPayload = new Dictionary<string, object>
                 {
@@ -425,7 +529,14 @@ namespace ZSystems.HardwareBridge
                         SendJson(context, 200, new Dictionary<string, object>
                         {
                             { "success", true },
-                            { "data", new Dictionary<string, object> { { "online", true }, { "latencyMs", sw.ElapsedMilliseconds } } }
+                            { "data", new Dictionary<string, object> {
+                                { "online", true },
+                                { "reachable", true },
+                                { "portOpen", true },
+                                { "pingSucceeded", true },
+                                { "message", "الاتصال بماكينة الدفع نشط ومستعد" },
+                                { "latencyMs", sw.ElapsedMilliseconds }
+                            }}
                         });
                         return;
                     }
@@ -473,7 +584,7 @@ namespace ZSystems.HardwareBridge
             try
             {
                 List<byte> buffer = new List<byte>();
-                buffer.AddRange(new byte[] { 0x1B, 0x40 }); // ESC @ (Init)
+                buffer.AddRange(new byte[] { 0x1B, 0x40 });
 
                 if (!string.IsNullOrEmpty(rawBase64))
                 {
@@ -485,7 +596,7 @@ namespace ZSystems.HardwareBridge
                 }
 
                 buffer.AddRange(Encoding.UTF8.GetBytes("\n\n\n\n"));
-                buffer.AddRange(new byte[] { 0x1D, 0x56, 0x42, 0x00 }); // GS V B 0 (Cut)
+                buffer.AddRange(new byte[] { 0x1D, 0x56, 0x42, 0x00 });
 
                 SendRawPrinterBytes(ip, port, buffer.ToArray());
                 SendJson(context, 200, new Dictionary<string, object> { { "success", true }, { "bytesWritten", buffer.Count } });
@@ -511,18 +622,18 @@ namespace ZSystems.HardwareBridge
             try
             {
                 List<byte> buffer = new List<byte>();
-                buffer.AddRange(new byte[] { 0x1B, 0x40 }); // Init
-                buffer.AddRange(new byte[] { 0x1B, 0x61, 0x01 }); // Center
+                buffer.AddRange(new byte[] { 0x1B, 0x40 });
+                buffer.AddRange(new byte[] { 0x1B, 0x61, 0x01 });
                 buffer.AddRange(Encoding.UTF8.GetBytes("\n=== " + storeName + " ===\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("Z-Systems Hardware Bridge\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("Silent ESC/POS Test OK\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("--------------------------------\n"));
-                buffer.AddRange(new byte[] { 0x1B, 0x61, 0x00 }); // Left
+                buffer.AddRange(new byte[] { 0x1B, 0x61, 0x00 });
                 buffer.AddRange(Encoding.UTF8.GetBytes("Status: Online & Ready\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("Port: 9100 Raw Stream\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("Date: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\n"));
                 buffer.AddRange(Encoding.UTF8.GetBytes("--------------------------------\n\n\n\n"));
-                buffer.AddRange(new byte[] { 0x1D, 0x56, 0x42, 0x00 }); // Cut
+                buffer.AddRange(new byte[] { 0x1D, 0x56, 0x42, 0x00 });
 
                 SendRawPrinterBytes(ip, port, buffer.ToArray());
                 SendJson(context, 200, new Dictionary<string, object> { { "success", true } });
