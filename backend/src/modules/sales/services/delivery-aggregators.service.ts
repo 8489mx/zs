@@ -46,22 +46,70 @@ export class DeliveryAggregatorsService {
 
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  private static readonly DEFAULT_GCC_CHANNELS = [
+  private static readonly DEFAULT_EGYPT_CHANNELS = [
+    { code: 'talabat', name: 'طلبات مصر (Talabat Egypt)', name_en: 'Talabat', commission_rate: 18.0 },
+    { code: 'elmenus', name: 'المنيوز (Elmenus)', name_en: 'Elmenus', commission_rate: 15.0 },
+    { code: 'noon_food', name: 'نون فود (Noon Food)', name_en: 'Noon Food', commission_rate: 14.0 },
+    { code: 'mrsool', name: 'مرسول مصر (Mrsool)', name_en: 'Mrsool', commission_rate: 12.0 },
+    { code: 'direct_delivery', name: 'خدمة التوصيل المباشر (دليفري المطعم)', name_en: 'Direct Delivery', commission_rate: 0.0 },
+  ];
+
+  private static readonly DEFAULT_KUWAIT_CHANNELS = [
+    { code: 'talabat', name: 'طلبات الكويت (Talabat Kuwait)', name_en: 'Talabat', commission_rate: 20.0 },
+    { code: 'deliveroo', name: 'دليفرو (Deliveroo)', name_en: 'Deliveroo', commission_rate: 18.5 },
+    { code: 'cari', name: 'كاري (Cari - عمولة 0%)', name_en: 'Cari', commission_rate: 0.0 },
+    { code: 'jahez', name: 'جاهز الكويت (Jahez)', name_en: 'Jahez', commission_rate: 16.0 },
+    { code: 'keeta', name: 'كيتا (Keeta)', name_en: 'Keeta', commission_rate: 15.0 },
+  ];
+
+  private static readonly DEFAULT_SAUDI_CHANNELS = [
     { code: 'jahez', name: 'جاهز (Jahez)', name_en: 'Jahez', commission_rate: 18.0 },
     { code: 'hungerstation', name: 'هنقرستيشن (Hungerstation)', name_en: 'Hungerstation', commission_rate: 19.5 },
-    { code: 'talabat', name: 'طلبات (Talabat)', name_en: 'Talabat', commission_rate: 20.0 },
-    { code: 'deliveroo', name: 'دليفرو (Deliveroo)', name_en: 'Deliveroo', commission_rate: 18.5 },
-    { code: 'cari', name: 'كاري (Cari)', name_en: 'Cari', commission_rate: 0.0 },
-    { code: 'keeta', name: 'كيتا (Keeta)', name_en: 'Keeta', commission_rate: 15.0 },
-    { code: 'careem', name: 'كريم فود (Careem Now)', name_en: 'Careem', commission_rate: 17.0 },
     { code: 'toyou', name: 'تويو (ToYou)', name_en: 'ToYou', commission_rate: 16.0 },
+    { code: 'chefz', name: 'ذا شفز (The Chefz)', name_en: 'The Chefz', commission_rate: 17.5 },
+    { code: 'keeta', name: 'كيتا (Keeta)', name_en: 'Keeta', commission_rate: 15.0 },
+    { code: 'mrsool', name: 'مرسول (Mrsool)', name_en: 'Mrsool', commission_rate: 14.0 },
   ];
 
   /**
-   * List all delivery aggregators for tenant, auto-seeding standard GCC channels if not yet present
+   * List all delivery aggregators for tenant, auto-seeding standard country channels if not yet present
    */
   async listAggregators(auth: AuthContext) {
     const scope = requireTenantScope(auth);
+
+    // Resolve tenant country from settings
+    const settingsRows = await this.db
+      .selectFrom('settings')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+
+    let rawCountry = '';
+    let rawCurrency = '';
+    for (const r of settingsRows) {
+      if (r.key === 'country') {
+        try { rawCountry = JSON.parse(r.value); } catch { rawCountry = String(r.value); }
+      }
+      if (r.key === 'currency') {
+        try { rawCurrency = JSON.parse(r.value); } catch { rawCurrency = String(r.value); }
+      }
+    }
+    const cleanCountry = String(rawCountry || '').trim().toUpperCase();
+    const cleanCurrency = String(rawCurrency || '').trim().toUpperCase();
+    let country = cleanCountry;
+    if (!country) {
+      if (cleanCurrency === 'KWD') country = 'KW';
+      else if (cleanCurrency === 'SAR') country = 'SA';
+      else if (cleanCurrency === 'AED') country = 'AE';
+      else country = 'EG';
+    }
+
+    const defaultChannels = country === 'KW'
+      ? DeliveryAggregatorsService.DEFAULT_KUWAIT_CHANNELS
+      : country === 'SA'
+      ? DeliveryAggregatorsService.DEFAULT_SAUDI_CHANNELS
+      : DeliveryAggregatorsService.DEFAULT_EGYPT_CHANNELS;
+
     let rows = await this.db
       .selectFrom('pos_delivery_aggregators')
       .selectAll()
@@ -70,8 +118,8 @@ export class DeliveryAggregatorsService {
       .execute();
 
     if (rows.length === 0) {
-      // Auto-seed default GCC channels
-      for (const ch of DeliveryAggregatorsService.DEFAULT_GCC_CHANNELS) {
+      // Auto-seed default channels for this country
+      for (const ch of defaultChannels) {
         await this.db
           .insertInto('pos_delivery_aggregators')
           .values({
@@ -94,10 +142,10 @@ export class DeliveryAggregatorsService {
         .orderBy('id', 'asc')
         .execute();
     } else {
-      // Auto-seed any newly added channel (e.g. cari) if missing
+      // Auto-seed any missing channel that belongs to this country
       const existingCodes = new Set(rows.map((r) => r.code));
       let hasAdded = false;
-      for (const ch of DeliveryAggregatorsService.DEFAULT_GCC_CHANNELS) {
+      for (const ch of defaultChannels) {
         if (!existingCodes.has(ch.code)) {
           await this.db
             .insertInto('pos_delivery_aggregators')
@@ -123,6 +171,15 @@ export class DeliveryAggregatorsService {
           .orderBy('id', 'asc')
           .execute();
       }
+    }
+
+    // Strict country isolation: filter out foreign channels
+    if (country === 'EG') {
+      rows = rows.filter((r) => !['cari', 'deliveroo', 'hungerstation', 'toyou', 'chefz'].includes(r.code));
+    } else if (country === 'KW') {
+      rows = rows.filter((r) => !['elmenus', 'noon_food', 'hungerstation', 'toyou', 'chefz'].includes(r.code));
+    } else if (country === 'SA') {
+      rows = rows.filter((r) => !['cari', 'deliveroo', 'elmenus', 'noon_food'].includes(r.code));
     }
 
     return rows;

@@ -166,10 +166,10 @@ export class PosTerminalService {
       return [
         {
           id: 'term-main-01',
-          name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa/KNET)',
+          name: 'جهاز شبكة الكاشير الرئيسي (EDC)',
           type: 'edc_standalone',
           status: 'online',
-          provider: 'Geidea / KNET / NI / Fawry POS',
+          provider: 'POS Network EDC',
           ipAddress: '192.168.1.150:8080',
         },
       ];
@@ -207,12 +207,30 @@ export class PosTerminalService {
 
       let terminalsList: PosTerminalInfo[] = [];
 
+      const rawCountry = String(settingsMap.country || '').trim().toUpperCase();
+      const rawCurrency = String(settingsMap.currency || '').trim().toUpperCase();
+      let country = rawCountry;
+      if (!country) {
+        if (rawCurrency === 'KWD') country = 'KW';
+        else if (rawCurrency === 'SAR') country = 'SA';
+        else if (rawCurrency === 'AED') country = 'AE';
+        else country = 'EG';
+      }
+
       // Check if multi-terminal posTerminals array is configured
       if (Array.isArray(settingsMap.posTerminals) && settingsMap.posTerminals.length > 0) {
         terminalsList = settingsMap.posTerminals
-          .filter((t: any) => t && t.enabled !== false)
+          .filter((t: any) => {
+            if (!t || t.enabled === false) return false;
+            const provKey = String(t.provider || '').toLowerCase();
+            // Strict country isolation
+            if (country === 'EG' && (provKey === 'knet_pos' || provKey === 'knet')) return false;
+            if (country === 'KW' && (provKey === 'fawry' || provKey === 'paymob')) return false;
+            if (country === 'SA' && (provKey === 'knet_pos' || provKey === 'knet' || provKey === 'fawry' || provKey === 'paymob')) return false;
+            return true;
+          })
           .map((t: any, idx: number) => {
-            const providerKey = t.provider || 'fawry';
+            const providerKey = t.provider || (country === 'KW' ? 'knet_pos' : country === 'SA' ? 'geidea' : 'fawry');
             const parsed = parseTerminalHostAndPort(String(t.ip || '192.168.1.150'), Number(t.port || 8080));
             return {
               id: String(t.id || `term-${idx + 1}`),
@@ -264,6 +282,31 @@ export class PosTerminalService {
     }
   }
 
+  private async getTenantBaseCurrency(tenantId: string): Promise<string> {
+    if (!this.db) return 'EGP';
+    try {
+      const rows = await this.db
+        .selectFrom('settings')
+        .select(['key', 'value'])
+        .where('tenant_id', '=', String(tenantId))
+        .where('key', 'in', ['currency', 'baseCurrency', 'globalCurrency'])
+        .execute();
+
+      for (const row of rows) {
+        if (row.value) {
+          try {
+            const parsed = JSON.parse(row.value);
+            if (typeof parsed === 'string' && parsed.trim()) return parsed.trim().toUpperCase();
+          } catch {
+            const raw = String(row.value).replace(/['"]+/g, '').trim().toUpperCase();
+            if (raw) return raw;
+          }
+        }
+      }
+    } catch {}
+    return 'EGP';
+  }
+
   /**
    * Initiate payment request to the EDC card terminal
    */
@@ -297,13 +340,17 @@ export class PosTerminalService {
     // Determine if session should run in simulation / sandbox mode
     const isMock = prov.includes('mock') || prov.includes('sandbox') || cleanIp === '127.0.0.1' || cleanIp === 'localhost';
 
+    const tenantCurrency = request.currency
+      ? String(request.currency).trim().toUpperCase()
+      : await this.getTenantBaseCurrency(tenantId);
+
     const session: TerminalPaymentSession = {
       tenantId,
       transactionId,
       terminalId: selectedTerminal.id,
       terminalName: selectedTerminal.name,
       amount: request.amount,
-      currency: request.currency || 'SAR',
+      currency: tenantCurrency,
       status: isMock ? 'pending' : 'processing',
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -442,15 +489,18 @@ export class PosTerminalService {
       session.message = 'جاري التخاطب مع ماكينة جيديا... يرجى إدخال أو تمرير البطاقة';
       session.updatedAt = Date.now();
 
-      const amountDec = Number(request.amount.toFixed(2));
-      const amountMinor = Math.round(request.amount * 100);
+      const curr = String(session.currency || 'EGP').toUpperCase();
+      const isThreeDecimals = ['KWD', 'BHD', 'OMR'].includes(curr);
+      const minorMultiplier = isThreeDecimals ? 1000 : 100;
+      const amountDec = Number(request.amount.toFixed(isThreeDecimals ? 3 : 2));
+      const amountMinor = Math.round(request.amount * minorMultiplier);
 
       const payload: Record<string, any> = {
         transactionType: 'PURCHASE',
         amount: amountDec,
         amountInCents: amountMinor,
         amountInHalalas: amountMinor,
-        currency: session.currency || 'SAR',
+        currency: curr,
         referenceId: session.transactionId,
         ecrReference: session.transactionId,
         printReceipt: true,
@@ -665,9 +715,12 @@ export class PosTerminalService {
       session.message = 'جاري التخاطب مع ماكينة فوري / باكس... يرجى إدخال أو تمرير البطاقة';
       session.updatedAt = Date.now();
 
-      const amountDec = Number(request.amount.toFixed(2));
-      const amountMinorStr = Math.round(request.amount * 100).toString();
-      const amountMinorNum = Math.round(request.amount * 100);
+      const curr = String(session.currency || 'EGP').toUpperCase();
+      const isThreeDecimals = ['KWD', 'BHD', 'OMR'].includes(curr);
+      const minorMultiplier = isThreeDecimals ? 1000 : 100;
+      const amountDec = Number(request.amount.toFixed(isThreeDecimals ? 3 : 2));
+      const amountMinorStr = Math.round(request.amount * minorMultiplier).toString();
+      const amountMinorNum = Math.round(request.amount * minorMultiplier);
       const payload: Record<string, any> = {
         command: 'DO_TRANSACTION',
         transType: '01', // SALE
@@ -677,7 +730,8 @@ export class PosTerminalService {
         amountDecimal: amountDec,
         ecrRefNum: session.transactionId,
         referenceNum: session.transactionId,
-        currencyCode: session.currency || 'EGP',
+        currencyCode: curr,
+        currency: curr,
         printReceipt: '1',
         printCustomerReceipt: '1',
       };
