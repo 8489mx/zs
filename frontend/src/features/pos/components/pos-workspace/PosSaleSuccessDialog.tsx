@@ -5,6 +5,7 @@ import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { formatSalePaymentText, paymentLabel } from '@/lib/pos-printing/shared';
 import type { AppSettings, Customer, Sale } from '@/types/domain';
+import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
 
 interface PosSaleSuccessDialogProps {
   open: boolean;
@@ -112,15 +113,22 @@ export function PosSaleSuccessDialog({
   useEffect(() => {
     if (!open || !sale) return undefined;
 
-    // Auto-kick cash drawer on cash sale in Electron desktop mode
+    // Auto-kick cash drawer on cash sale in Electron desktop mode or local Hardware Bridge
     const isCashPayment = sale.payments?.length
       ? sale.payments.some((payment) => payment.paymentChannel === 'cash' && Number(payment.amount) > 0)
       : sale.paymentChannel === 'cash' && Number(sale.paidAmount) > 0;
     const saleKey = String(sale.id || sale.docNo || '');
-    if (sale.status === 'posted' && isCashPayment && saleKey && lastKickedSaleId.current !== saleKey &&
-        typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
+    if (sale.status === 'posted' && isCashPayment && saleKey && lastKickedSaleId.current !== saleKey) {
       lastKickedSaleId.current = saleKey;
-      void (window as any).electronPrinter.kickCashDrawer(settings?.posElectronCashierPrinter).catch(() => {});
+      if (typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
+        void (window as any).electronPrinter.kickCashDrawer(settings?.posElectronCashierPrinter).catch(() => {});
+      } else {
+        HardwareBridgeClient.isAvailable().then((avail) => {
+          if (avail) {
+            void HardwareBridgeClient.kickDrawer({ ip: (settings as any)?.posNetworkPrinterIp || '127.0.0.1' }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     }
 
     const previousOverflow = document.body.style.overflow;

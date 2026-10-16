@@ -2974,6 +2974,7 @@
   /* Hide desktop keyboard shortcut buttons, screens menu, and window controls from POS mobile header */
   .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn),
   .pos-page-header .pos-header-actions-row > .pos-header-branch-info,
+  .pos-page-header .pos-header-table-controls,
   .pos-page-header .pos-screens-menu-container,
   .pos-page-header .pos-window-controls {
     display: none !important;
@@ -3040,6 +3041,27 @@
     height: 24px !important;
     border-radius: 5px !important;
     flex: none !important;
+  }
+
+  .pos-shift-actions-group {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pos-shift-dropdown-trigger {
+    height: 24px !important;
+    padding: 0 4px !important;
+    border-radius: 5px 0 0 5px !important;
+  }
+
+  .pos-shift-actions-group .pos-close-shift-btn {
+    border-radius: 0 5px 5px 0 !important;
+  }
+
+  .pos-shift-dropdown-menu {
+    max-width: calc(100vw - 20px) !important;
+    min-width: 250px !important;
   }
 
   /* 2. Inventory Page: Section Tabs (نظرة عامة، أذونات، الجرد، التالف، الحركات) */

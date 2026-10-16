@@ -45,7 +45,11 @@ import {
   MenuIcon,
   PhoneCallIcon,
   PrinterIcon,
+  ChevronDownIcon,
+  SlidersIcon,
+  LockIcon,
 } from '@/shared/components/icons/AppIcons';
+import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
 import { formatCurrency } from '@/lib/format';
 
 interface PosWorkspaceHeaderProps {
@@ -138,6 +142,19 @@ function PosWorkspaceHeaderComponent({
   const [isOpsModalOpen, setIsOpsModalOpen] = useState(false);
   const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
   const [isComboMealModalOpen, setIsComboMealModalOpen] = useState(false);
+  const [isShiftMenuOpen, setIsShiftMenuOpen] = useState(false);
+  const shiftMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isShiftMenuOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (shiftMenuRef.current && !shiftMenuRef.current.contains(e.target as Node)) {
+        setIsShiftMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isShiftMenuOpen]);
 
   useEffect(() => {
     if (isRestaurantActive && posMode !== 'touch') {
@@ -171,7 +188,17 @@ function PosWorkspaceHeaderComponent({
           toast.warning('تم تسجيل الحدث، لكن تعذر الاتصال بدرج النقدية');
         }
       } else {
-        toast.warning('تم تسجيل الحدث، لكن فتح الدرج المباشر متاح من تطبيق سطح المكتب فقط');
+        const bridgeAvailable = await HardwareBridgeClient.isAvailable().catch(() => false);
+        if (bridgeAvailable) {
+          try {
+            await HardwareBridgeClient.kickDrawer({ ip: (settings as any)?.posNetworkPrinterIp || '127.0.0.1' });
+            toast.success('تم تسجيل فتح الدرج وإرسال أمر الفتح عبر جسر العتاد');
+          } catch {
+            toast.warning('تم تسجيل الحدث، لكن تعذر الاتصال بجسر العتاد');
+          }
+        } else {
+          toast.warning('تم تسجيل الحدث، لكن فتح الدرج المباشر متاح من تطبيق سطح المكتب أو جسر العتاد فقط');
+        }
       }
     } catch {
       toast.error('تعذر اعتماد فتح الدرج؛ لم يُرسل أمر الفتح');
@@ -248,7 +275,7 @@ function PosWorkspaceHeaderComponent({
       )}
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
-        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', overflow: 'visible' }}>
+        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {/* 1. Mode Toggle (Retail only - Restaurants use Touch exclusively) */}
           {!isRestaurantActive && (
             <div className="pos-mode-toggle" role="group" aria-label="POS mode">
@@ -327,6 +354,7 @@ function PosWorkspaceHeaderComponent({
           {/* Dining Course Selector for Active Table */}
           {pos.tableNumber && (
             <div
+              className="pos-header-table-controls"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -370,6 +398,7 @@ function PosWorkspaceHeaderComponent({
           {/* Guest Count (Covers) Stepper & Spend per guest - Strict RTL Stepper: [+] (العدد) [-] */}
           {(pos.tableNumber || pos.orderType === 'dine_in') && (
             <div
+              className="pos-header-table-controls"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -579,67 +608,218 @@ function PosWorkspaceHeaderComponent({
             </Button>
           )}
 
-          {/* 8. Shift Buttons: Drawer Kick, X-Report & Close Shift */}
+          {/* 8. Shift Controls: Split-button with dropdown (Close Shift, X-Report, Emergency Drawer Kick) */}
           {pos.ownOpenShift ? (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setIsNoSaleOpen(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  height: '32px',
-                  padding: '0 8px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  color: '#334155',
-                }}
-                title="فتح الدرج بدون بيع بعد اعتماد المشرف"
+            <div
+              ref={shiftMenuRef}
+              className="pos-shift-actions-group"
+              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+            >
+              <Link
+                to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}
+                style={{ textDecoration: 'none', display: 'inline-flex' }}
               >
-                <span>فتح الدرج</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={async () => {
-                  if (!pos.ownOpenShift?.id) return;
-                  try {
-                    const res = await cashDrawerApi.listPage({ page: 1, pageSize: 50, filter: 'open' });
-                    const fresh = res.rows.find((s) => String(s.id) === String(pos.ownOpenShift?.id));
-                    printXReport((fresh || pos.ownOpenShift) as any, settings?.storeName);
-                  } catch {
-                    printXReport(pos.ownOpenShift as any, settings?.storeName);
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  height: '32px',
-                  padding: '0 8px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  color: '#334155',
-                }}
-                title="طباعة تقرير X الاسترشادي لقراءة المبيعات ونقدية الدرج الحالية دون إغلاق الوردية"
-              >
-                <PrinterIcon size={14} color="#170e5e" />
-                <span>تقرير X</span>
-              </Button>
-
-              <Link to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}>
-                <Button type="button" variant="secondary" className="pos-close-shift-btn">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="pos-close-shift-btn"
+                  style={{
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                    fontWeight: 700,
+                  }}
+                  title="تقفيل الوردية الحالية وترحيل النقدية"
+                >
                   <span className="pos-close-shift-text-full">تقفيل الوردية</span>
                   <span className="pos-close-shift-text-short">تقفيل</span>
                 </Button>
               </Link>
+              <button
+                type="button"
+                onClick={() => setIsShiftMenuOpen((prev) => !prev)}
+                className="pos-shift-dropdown-trigger"
+                style={{
+                  height: '32px',
+                  padding: '0 6px',
+                  background: isShiftMenuOpen ? '#e2e8f0' : '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRight: 'none',
+                  borderTopLeftRadius: '6px',
+                  borderBottomLeftRadius: '6px',
+                  borderTopRightRadius: 0,
+                  borderBottomRightRadius: 0,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#475569',
+                  transition: 'background 0.15s',
+                }}
+                title="خيارات الوردية (تقرير X، فتح الدرج، إقفال Z)"
+                aria-label="خيارات الوردية"
+                aria-expanded={isShiftMenuOpen}
+              >
+                <ChevronDownIcon size={14} />
+              </button>
+
+              {isShiftMenuOpen && (
+                <div
+                  className="pos-shift-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    zIndex: 1050,
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    minWidth: '270px',
+                    padding: '6px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    direction: 'rtl',
+                  }}
+                >
+                  {/* Option 1: X-Report */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsShiftMenuOpen(false);
+                      if (!pos.ownOpenShift?.id) return;
+                      try {
+                        const res = await cashDrawerApi.listPage({ page: 1, pageSize: 50, filter: 'open' });
+                        const fresh = res.rows.find((s) => String(s.id) === String(pos.ownOpenShift?.id));
+                        printXReport((fresh || pos.ownOpenShift) as any, settings?.storeName);
+                      } catch {
+                        printXReport(pos.ownOpenShift as any, settings?.storeName);
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 10px',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      color: '#0f172a',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      background: '#eef2ff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <PrinterIcon size={15} color="#170e5e" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>تقرير الوردية اللحظي (X)</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>طباعة مبيعات ونقدية الدرج الحالية دون إغلاق</span>
+                    </div>
+                  </button>
+
+                  {/* Option 2: Emergency / Audit No-Sale Drawer Kick */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsShiftMenuOpen(false);
+                      setIsNoSaleOpen(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 10px',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      color: '#0f172a',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <SlidersIcon size={15} color="#334155" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>فتح الدرج يدوياً (No-Sale)</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>فتح الدرج للجرد أو الصرف بعد اعتماد المشرف</span>
+                    </div>
+                  </button>
+
+                  <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+
+                  {/* Option 3: Close Shift (Z-Report) */}
+                  <Link
+                    to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}
+                    onClick={() => setIsShiftMenuOpen(false)}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        width: '100%',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        textAlign: 'right',
+                        color: '#b91c1c',
+                        background: 'transparent',
+                        transition: 'background 0.12s',
+                        boxSizing: 'border-box',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <div style={{
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '8px',
+                        background: '#fee2e2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <LockIcon size={15} color="#dc2626" />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#991b1b' }}>إغلاق وتصفير الوردية (Z)</span>
+                        <span style={{ fontSize: '10.5px', color: '#b91c1c' }}>جرد العهدة النقدية وإقفال الجلسة</span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <Button type="button" variant="primary" className="pos-close-shift-btn" onClick={onRequestOpenShift}>
