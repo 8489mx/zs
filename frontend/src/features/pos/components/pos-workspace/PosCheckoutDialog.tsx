@@ -45,6 +45,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isDiscountLocked = !pos.canApplyDiscount && !isAdmin;
+  const isRestaurant = pos.settingsQuery?.data?.restaurantModuleEnabled === true;
 
   let deliveryRepsQuery: any = { data: [] };
   try {
@@ -320,7 +321,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
 
           <div className="actions compact-actions pos-checkout-dialog-actions" style={{ marginTop: '8px' }}>
             <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>رجوع للسلة</Button>
-            {onOpenSplitBill && pos.cart.length > 0 && (
+            {isRestaurant && onOpenSplitBill && pos.cart.length > 0 && (
               <Button
                 type="button"
                 variant="secondary"

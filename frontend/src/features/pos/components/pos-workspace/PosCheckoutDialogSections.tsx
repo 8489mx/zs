@@ -7,6 +7,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
@@ -399,6 +400,7 @@ export function PosCheckoutPaymentSection({
   }, [pos.discount, pos.totals.subTotal, isPercentFocused]);
 
   const currentSettings = pos.settings || pos.settingsQuery?.data;
+  const isRestaurant = currentSettings?.restaurantModuleEnabled === true;
   const isKwdStore = isKuwait(currentSettings);
   const isKsaStore = isSaudi(currentSettings);
   const countryCode = getSystemCountryCode(currentSettings);
@@ -503,8 +505,75 @@ export function PosCheckoutPaymentSection({
     if (amount <= 0) return;
 
     const currentCurrency = getGlobalSystemCurrency() || pos.settings?.currency || (pos.settingsQuery?.data as any)?.currency || 'EGP';
+    const targetTerminal = activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0];
 
     setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بجهاز الدفع...' });
+
+    // 1. Direct Local Hardware Bridge dispatch (if bridge is active on 127.0.0.1:18181)
+    try {
+      const isBridge = await HardwareBridgeClient.isAvailable();
+      if (isBridge && targetTerminal?.ip) {
+        const refId = `ECR-${Date.now()}`;
+        setTerminalSession({
+          status: 'waiting',
+          transactionId: refId,
+          message: 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع (عبر جسر Z-Systems)...',
+        });
+
+        const bridgeRes = await HardwareBridgeClient.chargeTerminal({
+          ip: targetTerminal.ip,
+          port: targetTerminal.port,
+          provider: targetTerminal.provider,
+          amount,
+          currency: currentCurrency,
+          referenceId: refId,
+          pairingKey: targetTerminal.pairingKey,
+          terminalTid: targetTerminal.terminalTid,
+        });
+
+        if (bridgeRes.status === 'approved') {
+          const authCode = bridgeRes.authCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+          const rrn = bridgeRes.rrn || refId;
+          const cardScheme = bridgeRes.cardScheme || 'visa';
+          const cardLastFour = bridgeRes.cardLastFour || '';
+
+          setTerminalSession({
+            status: 'approved',
+            transactionId: refId,
+            message: `تمت الموافقة بنجاح (تفويض: ${authCode})`,
+            approvalCode: authCode,
+          });
+          pos.setPaymentChannel('card');
+          pos.setCardAmount(amount);
+          if (!pos.cashAmount || pos.cashAmount <= 0) {
+            pos.setCashAmount(0);
+            pos.setTransferAmount(0);
+          }
+          pos.setTerminalPaymentDetails?.({
+            authCode,
+            rrn,
+            cardScheme,
+            cardLastFour,
+            provider: targetTerminal.provider,
+          });
+
+          if (pos.settingsQuery?.data?.posTerminalAutoFinalize && onConfirmSale) {
+            setTimeout(() => onConfirmSale(), 700);
+          }
+          return;
+        } else {
+          setTerminalSession({
+            status: bridgeRes.status === 'cancelled' ? 'cancelled' : 'declined',
+            message: bridgeRes.message || 'تم رفض العملية من البنك',
+          });
+          return;
+        }
+      }
+    } catch {
+      // Fallback to backend route if bridge errored
+    }
+
+    // 2. Standard Backend Route fallback
     try {
       const res = await posApi.initiateTerminalCharge({
         amount,
@@ -514,7 +583,7 @@ export function PosCheckoutPaymentSection({
       setTerminalSession({
         status: 'waiting',
         transactionId: res.data.transactionId,
-        message: 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع (POS Terminal)...'
+        message: 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع (POS Terminal)...',
       });
     } catch (err: any) {
       setTerminalSession({ status: 'declined', message: err?.message || 'تعذر الاتصال بجهاز نقاط البيع' });
@@ -522,6 +591,16 @@ export function PosCheckoutPaymentSection({
   };
 
   const handleCancelTerminal = async () => {
+    const targetTerminal = activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0];
+    if (targetTerminal?.ip) {
+      HardwareBridgeClient.cancelTerminal({
+        ip: targetTerminal.ip,
+        port: targetTerminal.port,
+        provider: targetTerminal.provider,
+        referenceId: terminalSession.transactionId,
+      }).catch(() => {});
+    }
+
     if (terminalSession.transactionId) {
       try {
         await posApi.cancelTerminalCharge(terminalSession.transactionId);
@@ -1009,15 +1088,15 @@ export function PosCheckoutPaymentSection({
         </div>
       ) : null}
 
-      {Number(pos.totals.serviceCharge || 0) > 0 && (
+      {isRestaurant && Number(pos.totals.serviceCharge || 0) > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
           <span>رسوم خدمة الصالة ({pos.totals.serviceChargePercent}%):</span>
           <strong style={{ color: '#170e5e' }}>{formatCurrency(pos.totals.serviceCharge)}</strong>
         </div>
       )}
 
-      {/* Gratuity / Tip Selector */}
-      {(pos.settingsQuery?.data?.restaurantModuleEnabled === true || pos.orderType === 'dine_in') && (
+      {/* Gratuity / Tip Selector (Restaurants Only) */}
+      {isRestaurant && (
         <div style={{
           display: 'flex',
           alignItems: 'center',

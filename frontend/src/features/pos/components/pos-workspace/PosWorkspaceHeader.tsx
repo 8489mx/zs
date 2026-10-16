@@ -306,8 +306,8 @@ function PosWorkspaceHeaderComponent({
             </Button>
           )}
 
-          {/* 4. Restaurant Tables (Only when Restaurant Module is active or table is assigned) */}
-          {(isRestaurantActive || pos.tableNumber) && (
+          {/* 4. Restaurant Tables (Only when Restaurant Module is active) */}
+          {isRestaurantActive && (
             <Button
               type="button"
               variant="secondary"
@@ -463,8 +463,8 @@ function PosWorkspaceHeaderComponent({
             </div>
           )}
 
-          {/* 1-Click Print Guest Check Button for Active Table/Cart */}
-          {(pos.tableNumber || pos.orderType === 'dine_in') && pos.cart.length > 0 && (
+          {/* 1-Click Print Guest Check Button for Active Table/Cart (Restaurant Mode Only) */}
+          {isRestaurantActive && (pos.tableNumber || pos.orderType === 'dine_in') && pos.cart.length > 0 && (
             <Button
               type="button"
               variant="secondary"

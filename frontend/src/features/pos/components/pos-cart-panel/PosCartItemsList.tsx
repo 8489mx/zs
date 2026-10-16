@@ -113,27 +113,29 @@ const PosCartItemRow = memo(function PosCartItemRow({
                 + إضافات
               </button>
             )}
-            <button
-              type="button"
-              style={{
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: item.seatNumber ? '#1e40af' : '#475569',
-                background: item.seatNumber ? '#dbeafe' : '#f1f5f9',
-                border: '1px solid ' + (item.seatNumber ? '#93c5fd' : '#cbd5e1'),
-                borderRadius: '4px',
-                padding: '1px 6px',
-                cursor: 'pointer',
-              }}
-              title="انقر لتغيير مقعد الضيف على الطاولة"
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextSeat = ((item.seatNumber || 1) % 6) + 1;
-                onItemSeatChange?.(item.lineKey, nextSeat);
-              }}
-            >
-              مقعد {item.seatNumber || 1}
-            </button>
+            {item.seatNumber ? (
+              <button
+                type="button"
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#1e40af',
+                  background: '#dbeafe',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '4px',
+                  padding: '1px 6px',
+                  cursor: 'pointer',
+                }}
+                title="انقر لتغيير مقعد الضيف على الطاولة"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextSeat = ((item.seatNumber || 1) % 6) + 1;
+                  onItemSeatChange?.(item.lineKey, nextSeat);
+                }}
+              >
+                مقعد {item.seatNumber}
+              </button>
+            ) : null}
           </div>
         )}
       </div>

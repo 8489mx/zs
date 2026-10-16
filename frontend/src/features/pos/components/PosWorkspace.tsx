@@ -630,7 +630,7 @@ export function PosWorkspace() {
           setCheckoutDialogOpen(false);
           focusBarcodeEntry();
         }}
-        onOpenSplitBill={() => setSplitBillOpen(true)}
+        onOpenSplitBill={isRestaurantActive ? () => setSplitBillOpen(true) : undefined}
         onConfirmSale={(managerPin) => {
           void pos.handleSubmit({ managerPin }).then(() => {
             setCheckoutDialogOpen(false);
