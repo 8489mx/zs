@@ -1,0 +1,163 @@
+/**
+ * Z-Systems Hardware Bridge Client
+ * Communicates with local background service on 127.0.0.1:18181.
+ * Enables Cloud SaaS Web POS to communicate directly with local ECR terminals,
+ * ESC/POS thermal printers, and cash drawers.
+ */
+
+const BRIDGE_BASE_URL = 'http://127.0.0.1:18181';
+
+export interface BridgeHealth {
+  status: 'ONLINE' | 'OFFLINE';
+  version?: string;
+  name?: string;
+  uptimeSec?: number;
+}
+
+export interface BridgeChargeRequest {
+  ip: string;
+  port?: number;
+  provider?: string;
+  amount: number;
+  currency?: string;
+  referenceId?: string;
+  pairingKey?: string;
+  terminalTid?: string;
+}
+
+export interface BridgeChargeResponse {
+  success: boolean;
+  status: 'approved' | 'declined' | 'cancelled' | 'error';
+  authCode?: string;
+  rrn?: string;
+  cardScheme?: string;
+  cardLastFour?: string;
+  amount?: number;
+  currency?: string;
+  code?: string;
+  message?: string;
+  raw?: any;
+}
+
+export class HardwareBridgeClient {
+  private static cachedOnline: boolean | null = null;
+  private static lastCheckTime = 0;
+  private static readonly CHECK_INTERVAL_MS = 15_000;
+
+  /**
+   * Fast probe to verify if local bridge is running on 127.0.0.1:18181
+   */
+  static async isAvailable(): Promise<boolean> {
+    const now = Date.now();
+    if (this.cachedOnline !== null && now - this.lastCheckTime < this.CHECK_INTERVAL_MS) {
+      return this.cachedOnline;
+    }
+
+    try {
+      const res = await fetch(`${BRIDGE_BASE_URL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(1200),
+      });
+      const data = await res.json();
+      const online = res.ok && data?.status === 'ONLINE';
+      this.cachedOnline = online;
+      this.lastCheckTime = now;
+      return online;
+    } catch {
+      this.cachedOnline = false;
+      this.lastCheckTime = now;
+      return false;
+    }
+  }
+
+  /**
+   * Get health status details
+   */
+  static async getHealth(): Promise<BridgeHealth> {
+    try {
+      const res = await fetch(`${BRIDGE_BASE_URL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(1500),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return { status: 'ONLINE', ...data };
+      }
+      return { status: 'OFFLINE' };
+    } catch {
+      return { status: 'OFFLINE' };
+    }
+  }
+
+  /**
+   * Dispatch payment charge to local ECR terminal via bridge
+   */
+  static async chargeTerminal(request: BridgeChargeRequest): Promise<BridgeChargeResponse> {
+    const res = await fetch(`${BRIDGE_BASE_URL}/api/ecr/charge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+
+    if (!res.ok) {
+      const errorJson = await res.json().catch(() => ({}));
+      throw new Error(errorJson.message || `خطأ استجابة من جسر العتاد (كود ${res.status})`);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * Cancel active terminal charge via bridge
+   */
+  static async cancelTerminal(request: { ip: string; port?: number; provider?: string; referenceId?: string }): Promise<boolean> {
+    try {
+      const res = await fetch(`${BRIDGE_BASE_URL}/api/ecr/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: AbortSignal.timeout(4000),
+      });
+      const data = await res.json();
+      return Boolean(data.success);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Test physical connection to terminal via bridge
+   */
+  static async testTerminal(request: { ip: string; port?: number; provider?: string }) {
+    const res = await fetch(`${BRIDGE_BASE_URL}/api/ecr/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return res.json();
+  }
+
+  /**
+   * Print raw receipt bytes via bridge to network thermal printer
+   */
+  static async printReceipt(request: { ip: string; port?: number; rawText?: string; rawBase64?: string; cut?: boolean; kickDrawer?: boolean }) {
+    const res = await fetch(`${BRIDGE_BASE_URL}/api/printer/print`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return res.json();
+  }
+
+  /**
+   * Kick cash drawer via printer port
+   */
+  static async kickDrawer(request: { ip: string; port?: number }) {
+    const res = await fetch(`${BRIDGE_BASE_URL}/api/printer/kick-drawer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return res.json();
+  }
+}

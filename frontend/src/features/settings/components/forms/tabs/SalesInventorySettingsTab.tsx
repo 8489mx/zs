@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos';
+import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
@@ -948,25 +949,54 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   const handleTestTerminalDevice = async (term: PosTerminalDeviceConfig) => {
     setTestingTerminalId(term.id);
     try {
-      const res = await posApi.testTerminalConnection({
-        ip: term.ip || '192.168.1.150',
-        port: Number(term.port || 8080),
-        provider: term.provider || 'fawry',
-      });
-      if (res.data) {
+      const isBridge = await HardwareBridgeClient.isAvailable();
+      let resData: any = null;
+
+      if (isBridge) {
+        try {
+          const bridgeRes = await HardwareBridgeClient.testTerminal({
+            ip: term.ip || '192.168.1.150',
+            port: Number(term.port || 8080),
+            provider: term.provider || 'fawry',
+          });
+          if (bridgeRes?.data) {
+            resData = {
+              reachable: bridgeRes.data.reachable,
+              portOpen: bridgeRes.data.reachable,
+              pingSucceeded: bridgeRes.data.reachable,
+              latencyMs: bridgeRes.data.latencyMs,
+              message: `${bridgeRes.data.message} (عبر جسر العتاد 127.0.0.1:18181)`,
+              details: `استجابة الماكينة: ${bridgeRes.data.latencyMs}ms عبر جسر Z-Systems المحلي`,
+            };
+          }
+        } catch {
+          // Fallback to posApi
+        }
+      }
+
+      if (!resData) {
+        const res = await posApi.testTerminalConnection({
+          ip: term.ip || '192.168.1.150',
+          port: Number(term.port || 8080),
+          provider: term.provider || 'fawry',
+        });
+        resData = res.data;
+      }
+
+      if (resData) {
         setTerminalTestResults((prev) => ({
           ...prev,
           [term.id]: {
-            ...res.data,
+            ...resData,
             timestamp: Date.now(),
           },
         }));
-        if (res.data.portOpen) {
-          toast.success(res.data.message);
-        } else if (res.data.pingSucceeded) {
-          toast.warning(res.data.message);
+        if (resData.portOpen || resData.reachable) {
+          toast.success(resData.message);
+        } else if (resData.pingSucceeded) {
+          toast.warning(resData.message);
         } else {
-          toast.error(res.data.message);
+          toast.error(resData.message);
         }
       }
     } catch (err: any) {
