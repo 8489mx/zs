@@ -1309,6 +1309,7 @@
 
 .pos-workspace .page-header .page-header-actions .actions.pos-header-actions-row {
   gap: 6px;
+  overflow: visible !important;
 }
 
 .pos-workspace .page-header .page-header-actions .actions.pos-header-actions-row .btn,
@@ -1587,6 +1588,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  direction: rtl;
 }
 
 .pos-workspace .pos-group-card.is-selected {
@@ -1646,6 +1648,7 @@
   align-items: stretch;
   gap: 8px;
   text-align: right;
+  direction: rtl;
   background: transparent;
   border: 0;
   padding: 0;

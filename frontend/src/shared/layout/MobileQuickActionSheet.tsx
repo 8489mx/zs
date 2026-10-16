@@ -247,7 +247,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
         <div className="mobile-quick-action-sheet" dir="rtl">
           <div className="mobile-quick-action-header">
             <div className="mobile-quick-action-handle" />
-            <h3 className="mobile-quick-action-title">إجراءات سريعة</h3>
+            <h3 className="mobile-quick-action-title no-pseudo-bar">إجراءات سريعة</h3>
             <p className="mobile-quick-action-sub">اختر الإجراء الذي تريد تنفيذه فوراً</p>
           </div>
 

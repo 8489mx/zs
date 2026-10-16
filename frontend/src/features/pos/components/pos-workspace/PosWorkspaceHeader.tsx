@@ -243,8 +243,10 @@ function PosWorkspaceHeaderComponent({
       title="نقطة البيع"
       badge={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
-          <ZErpIcon size={26} />
-          <strong style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1 }}>ERP</strong>
+          <span className="pos-header-brand-mark" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <ZErpIcon size={26} />
+            <strong style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1 }}>ERP</strong>
+          </span>
           {offlineQueue.length > 0 && (
             <button
               type="button"
@@ -275,7 +277,7 @@ function PosWorkspaceHeaderComponent({
       )}
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
-        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', overflow: 'visible' }}>
           {/* 1. Mode Toggle (Retail only - Restaurants use Touch exclusively) */}
           {!isRestaurantActive && (
             <div className="pos-mode-toggle" role="group" aria-label="POS mode">

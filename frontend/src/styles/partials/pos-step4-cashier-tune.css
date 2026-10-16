@@ -352,15 +352,15 @@
 
 .pos-sale-success-dialog {
   display: grid;
-  gap: 14px;
+  gap: 8px;
 }
 
 .pos-sale-success-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
+  gap: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -368,14 +368,14 @@
 .pos-sale-success-head p,
 .pos-sale-success-metrics b {
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .pos-sale-success-head h3 {
-  margin: 3px 0;
+  margin: 0;
   color: #0f172a;
-  font-size: 22px;
+  font-size: 17px;
 }
 
 .pos-sale-success-head p {
@@ -385,68 +385,142 @@
 
 .pos-sale-success-head > strong {
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   background: #ecfdf5;
   color: #047857;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .pos-sale-success-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .pos-sale-success-metrics span {
   display: grid;
-  gap: 4px;
-  padding: 10px;
+  gap: 2px;
+  padding: 6px 10px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 8px;
   background: #f8fafc;
   color: #0f172a;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .pos-sale-success-actions-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  width: 100%;
+}
+
+.pos-sale-success-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
   width: 100%;
 }
 
 .pos-sale-success-actions-container .btn {
-  white-space: nowrap;
+  white-space: normal !important;
+  word-break: break-word;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  line-height: 1.25;
+  padding: 5px 6px !important;
+  font-size: 12px !important;
+  min-height: 34px;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .pos-sale-success-whatsapp {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.pos-sale-success-whatsapp .btn {
-  min-height: 36px;
-  text-decoration: none;
-}
-
-.pos-sale-success-whatsapp {
-  padding: 10px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
   border: 1px dashed rgba(23, 12, 92, 0.28);
   border-radius: 8px;
   background: #f1f0fa;
+  box-sizing: border-box;
 }
 
 .pos-sale-success-whatsapp .field {
-  flex: 1 1 220px;
+  width: 100%;
+  margin: 0;
+}
+
+.pos-sale-success-whatsapp .field input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 32px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.pos-sale-success-whatsapp .btn {
+  min-height: 32px;
+  width: 100%;
+  font-size: 12px !important;
+  text-decoration: none;
+}
+
+@media (min-width: 601px) {
+  .pos-sale-success-whatsapp {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+  .pos-sale-success-whatsapp .field {
+    flex: 1 1 auto;
+    width: auto;
+  }
+  .pos-sale-success-whatsapp .btn {
+    width: auto;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .pos-sale-success-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-bottom: 6px;
+  }
+
+  .pos-sale-success-docno-badge {
+    display: none !important;
+  }
+
+  .pos-sale-success-metrics span {
+    padding: 5px 8px !important;
+    font-size: 12.5px !important;
+  }
+
+  .pos-sale-success-metrics b {
+    font-size: 10px !important;
+  }
+
+  .pos-sale-success-buttons-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .pos-sale-success-btn-primary {
+    grid-column: 1 / -1 !important;
+    min-height: 38px !important;
+    font-size: 13px !important;
+  }
+
+  .pos-sale-success-btn-close {
+    grid-column: 1 / -1 !important;
+    min-height: 32px !important;
+  }
 }
 
 .pos-sale-success-error {
@@ -699,7 +773,7 @@
 }
 
 .pos-workspace .pos-cart-empty-state {
-  display: none;
+  display: flex;
 }
 
 .pos-workspace .pos-cart-table {

@@ -310,7 +310,7 @@ export function PosWorkspaceMainContent({
                 }}
               />
             )}
-            <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
+            <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`} dir="rtl">
               {/* Header / Drawer Handle with Toggle Button */}
               <div className="pos-mobile-floating-cart-header">
                 <button
@@ -364,7 +364,17 @@ export function PosWorkspaceMainContent({
                     }}
                   >
                     <span>الدفع (F10)</span>
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ transform: 'rotate(180deg)', flexShrink: 0 }}
+                    >
                       <line x1="5" y1="12" x2="19" y2="12"></line>
                       <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>

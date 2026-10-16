@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, TagIcon, SmartphoneIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 const PosCartItemRow = memo(function PosCartItemRow({
@@ -273,7 +273,9 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   if (!cart.length) {
     return (
       <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label="السلة فارغة">
-        <div className="pos-cart-empty-state-mark" aria-hidden="true">+</div>
+        <div className="pos-cart-empty-state-mark" aria-hidden="true">
+          <ShoppingCartIcon size={24} color="#170e5e" />
+        </div>
         <div className="pos-cart-empty-state-copy">
           <strong>السلة جاهزة لأول صنف</strong>
           <span>اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.</span>

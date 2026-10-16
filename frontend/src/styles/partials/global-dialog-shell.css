@@ -76,7 +76,7 @@ body.dialog-shell-open #root {
 .dialog-shell > form,
 .dialog-shell > .dialog-content,
 .dialog-shell > .dialog-body,
-.dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+.dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack):not(.mobile-quick-action-sheet) {
   padding: 26px 30px;
   box-sizing: border-box;
   width: 100%;
@@ -197,7 +197,7 @@ body.dialog-shell-open #root {
   .dialog-shell > form,
   .dialog-shell > .dialog-content,
   .dialog-shell > .dialog-body,
-  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack):not(.mobile-quick-action-sheet) {
     padding: 14px 18px !important;
   }
   .standard-dialog-header {
@@ -452,7 +452,7 @@ body.dialog-shell-open #root {
   .dialog-shell > form,
   .dialog-shell > .dialog-content,
   .dialog-shell > .dialog-body,
-  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack):not(.mobile-quick-action-sheet) {
     padding: 18px 16px !important;
   }
 }
@@ -643,6 +643,16 @@ body.dialog-shell-open #root {
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+}
+
+/* Mobile Quick Action Dialog Shell */
+.dialog-shell.mobile-quick-action-dialog {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.dialog-shell.mobile-quick-action-dialog > div {
+  padding: 0 !important;
 }
 
 

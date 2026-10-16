@@ -1024,16 +1024,18 @@ function PosProductsPanelComponent({
                       <button
                         ref={(node) => { groupRefs.current[index] = node; }}
                         type="button"
+                        dir="rtl"
                         className="pos-group-card-action"
                         onClick={() => {
                           setSelectedIndex(index);
                           activateGroup(group);
                         }}
                         onFocus={() => setSelectedIndex(index)}
+                        style={{ direction: 'rtl', textAlign: 'right' }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl' }}>
                           {showCardIcon && (
-                            <div style={{
+                            <div className="pos-card-product-icon" style={{
                               width: '28px',
                               height: '28px',
                               borderRadius: '6px',
@@ -1048,7 +1050,7 @@ function PosProductsPanelComponent({
                               <ProductIcon name={rawIcon || 'box-package'} size={16} />
                             </div>
                           )}
-                          <strong style={{ flex: 1 }}>{group.title}</strong>
+                          <strong style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>{group.title}</strong>
                         </div>
                         <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
                         {group.hasVariants ? (
@@ -1057,7 +1059,7 @@ function PosProductsPanelComponent({
                             {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
                           </div>
                         ) : null}
-                        <div className="pick-meta-row pos-pick-meta-row">
+                        <div className="pick-meta-row pos-pick-meta-row" style={{ direction: 'rtl', width: '100%' }}>
                           <span>{priceLabel}</span>
                           <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
                         </div>
@@ -1087,6 +1089,7 @@ function PosProductsPanelComponent({
                     <button
                       ref={(node) => { groupRefs.current[index] = node; }}
                       type="button"
+                      dir="rtl"
                       className="pos-group-card-action"
                       onClick={() => {
                         setSelectedIndex(index);
@@ -1097,6 +1100,7 @@ function PosProductsPanelComponent({
                         border: 'none',
                         background: 'transparent',
                         textAlign: 'right',
+                        direction: 'rtl',
                         padding: 0,
                         width: '100%',
                         cursor: 'pointer',
@@ -1106,10 +1110,10 @@ function PosProductsPanelComponent({
                         justifyContent: 'space-between',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px', direction: 'rtl' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, direction: 'rtl' }}>
                           {showCardIcon && (
-                            <div style={{
+                            <div className="pos-card-product-icon" style={{
                               width: '26px',
                               height: '26px',
                               borderRadius: '5px',

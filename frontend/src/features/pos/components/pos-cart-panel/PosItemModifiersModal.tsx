@@ -207,9 +207,10 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
       onClose={onClose}
       width="min(750px, 96vw)"
       ariaLabel="إضافات وتعديلات الصنف"
+      shellClassName="pos-modifiers-dialog-shell"
     >
       <div
-        className="modal-surface"
+        className="modal-surface full-bleed pos-modifiers-modal-shell"
         style={{
           width: '100%',
           maxHeight: '92vh',
@@ -222,18 +223,21 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
       >
         {/* Header */}
         <header
+          className="pos-modifiers-modal-header"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 24px',
+            padding: '16px 20px',
             borderBottom: '1px solid #e2e8f0',
             background: '#f8fafc',
             flexShrink: 0,
+            gap: '10px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
             <div
+              className="pos-modifiers-header-icon"
               style={{
                 width: 36,
                 height: 36,
@@ -243,22 +247,38 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               <LayersIcon size={20} />
             </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h2
+                className="pos-modifiers-header-title"
+                style={{
+                  margin: 0,
+                  fontSize: '1.05rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  lineHeight: 1.3,
+                  wordBreak: 'break-word',
+                }}
+              >
                 خيارات ومعدلات: {item.name}
               </h2>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>
+              <div
+                className="pos-modifiers-header-sub"
+                style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
                 السعر الأساسي: {item.price} ج | الإضافات المختارة: +{totalExtraPrice.toFixed(2)} ج
               </div>
             </div>
           </div>
           <button
             type="button"
+            className="pos-modifiers-close-btn"
             onClick={onClose}
+            aria-label="إغلاق"
             style={{
               background: 'transparent',
               border: 'none',
@@ -266,6 +286,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
               color: '#64748b',
               padding: 6,
               borderRadius: 6,
+              flexShrink: 0,
             }}
           >
             <XIcon size={20} />
@@ -273,7 +294,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
         </header>
 
         {/* Body */}
-        <div className="modal-body" style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+        <div className="modal-body pos-modifiers-modal-body" style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
           {validationError && (
             <div
               style={{
@@ -530,40 +551,52 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
 
         {/* Footer */}
         <footer
+          className="pos-modifiers-modal-footer"
           style={{
-            padding: '16px 24px',
+            padding: '14px 20px',
             background: '#f8fafc',
             borderTop: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
+            flexShrink: 0,
+            boxSizing: 'border-box',
+            width: '100%',
           }}
         >
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>
-            المجموع الإضافي: <span style={{ color: '#15803d' }}>+{totalExtraPrice.toFixed(2)} ج</span>
+          <div
+            className="pos-modifiers-footer-total"
+            style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap' }}
+          >
+            المجموع الإضافي: <span style={{ color: '#15803d', fontWeight: 800 }}>+{totalExtraPrice.toFixed(2)} ج</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div
+            className="pos-modifiers-footer-actions"
+            style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+          >
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary pos-modifiers-cancel-btn"
               onClick={onClose}
-              style={{ height: '40px', padding: '0 18px', fontSize: '14px' }}
+              style={{ height: '38px', padding: '0 16px', fontSize: '13px', fontWeight: 600, minWidth: 0 }}
             >
               إلغاء
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary pos-modifiers-save-btn"
               onClick={handleSave}
               style={{
-                height: '40px',
-                padding: '0 24px',
-                fontSize: '14px',
+                height: '38px',
+                padding: '0 18px',
+                fontSize: '13px',
                 fontWeight: 700,
                 background: '#170e5e',
                 borderColor: '#170e5e',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
               }}
             >
               تأكيد وحفظ الإضافات

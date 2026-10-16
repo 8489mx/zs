@@ -632,10 +632,15 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   }, [locationList, watchedBranchId]);
 
   return (
-    <DialogShell open={!!props.activeForm} onClose={props.onCloseForm} width={props.activeForm === 'close' ? 'min(940px, 98vw)' : 'min(600px, 100%)'}>
+    <DialogShell
+      open={!!props.activeForm}
+      onClose={props.onCloseForm}
+      width={props.activeForm === 'close' ? 'min(940px, calc(100vw - 16px))' : 'min(600px, calc(100vw - 16px))'}
+      shellClassName="cash-drawer-adaptive-dialog"
+    >
       {props.activeForm === 'open' && (
-        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
+        <div className="cash-drawer-modal-scroll">
+          <h2 className="cash-drawer-form-title">فتح وردية نقطة بيع</h2>
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
           <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع">
@@ -685,8 +690,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
       )}
 
       {props.activeForm === 'movement' && (
-        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>تسجيل حركة درج النقدية</h2>
+        <div className="cash-drawer-modal-scroll">
+          <h2 className="cash-drawer-form-title">تسجيل حركة درج النقدية</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           {props.isManager && props.openOptions.length > 1 ? (
             <Field label="وردية نقطة البيع المفتوحة">
@@ -760,8 +765,35 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
       )}
 
       {props.activeForm === 'close' && (
-        <div style={{ background: '#fff', padding: '24px', borderRadius: '12px' }}>
+        <div className="cash-drawer-modal-scroll">
           <style>{`
+            .cash-drawer-adaptive-dialog {
+              max-height: min(92vh, calc(100dvh - 16px)) !important;
+              display: flex !important;
+              flex-direction: column !important;
+              overflow: hidden !important;
+              width: min(940px, calc(100vw - 16px)) !important;
+              margin: auto !important;
+              border-radius: 14px !important;
+            }
+            .cash-drawer-modal-scroll {
+              overflow-y: auto !important;
+              overscroll-behavior: contain !important;
+              -webkit-overflow-scrolling: touch !important;
+              padding: 24px;
+              box-sizing: border-box !important;
+              width: 100% !important;
+              max-height: min(90vh, calc(100dvh - 20px)) !important;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            }
+            .cash-drawer-form-title {
+              margin: 0 0 16px 0;
+              font-size: 1.25rem;
+              font-weight: 800;
+              color: #0f172a;
+            }
             input.no-spin-arrows::-webkit-outer-spin-button,
             input.no-spin-arrows::-webkit-inner-spin-button {
               -webkit-appearance: none !important;
@@ -777,8 +809,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               align-items: center;
               justify-content: space-between;
               gap: 12px;
-              margin-bottom: 20px;
-              padding-bottom: 14px;
+              margin-bottom: 14px;
+              padding-bottom: 12px;
               border-bottom: 1px solid #f1f5f9;
             }
             .close-shift-modal-title-col {
@@ -877,25 +909,67 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               flex-shrink: 0;
             }
             @media (max-width: 640px) {
+              .cash-drawer-modal-scroll {
+                padding: 12px 14px !important;
+                max-height: calc(100dvh - 16px) !important;
+                gap: 8px !important;
+              }
               .close-shift-modal-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 6px !important;
+                margin-bottom: 10px !important;
+                padding-bottom: 8px !important;
+              }
+              .close-shift-modal-title {
+                font-size: 1.1rem !important;
+              }
+              .close-shift-modal-subtitle {
+                font-size: 0.72rem !important;
+                line-height: 1.35 !important;
               }
               .close-shift-modal-badge-chip {
-                width: 100%;
-                justify-content: space-between;
-                box-sizing: border-box;
+                width: 100% !important;
+                justify-content: space-between !important;
+                box-sizing: border-box !important;
+                padding: 4px 10px !important;
+                font-size: 0.78rem !important;
               }
-              .close-shift-auth-row {
-                flex-direction: column;
-                gap: 10px;
-              }
-              .close-shift-pin-col {
-                width: 100%;
+              .close-shift-financial-card {
+                padding: 8px !important;
+                margin-bottom: 4px !important;
               }
               .close-shift-financial-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+              }
+              .close-shift-fin-item {
+                padding: 4px 6px !important;
+              }
+              .close-shift-fin-label {
+                font-size: 0.68rem !important;
+              }
+              .close-shift-fin-value {
+                font-size: 0.82rem !important;
+              }
+              .close-shift-fin-footnote {
+                font-size: 0.68rem !important;
+                line-height: 1.3 !important;
+                margin-top: 6px !important;
+                padding-top: 4px !important;
+              }
+              .close-shift-auth-row {
+                flex-direction: column !important;
+                gap: 8px !important;
+              }
+              .close-shift-pin-col {
+                width: 100% !important;
+              }
+              .form-grid {
+                gap: 8px !important;
+              }
+              .form-grid .field {
+                margin-bottom: 4px !important;
               }
             }
           `}</style>
@@ -1228,7 +1302,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     </div>
                   </div>
                 ) : null}
-                <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+                <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" className="no-spin-arrows" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
                 
                 <div className="close-shift-auth-row">
                   <div className="close-shift-note-col">
@@ -1300,6 +1374,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
               idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
               pendingText="جارٍ الإغلاق..."
+              style={{ width: '100%', minHeight: '42px', fontSize: '0.95rem', fontWeight: 800, marginTop: '8px' }}
             />
           </form>
         </div>

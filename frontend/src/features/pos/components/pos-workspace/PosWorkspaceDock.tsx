@@ -48,7 +48,7 @@ export function PosWorkspaceDock({
           </div>
           <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد العناصر</span>
-            <strong style={{ fontSize: '20px', lineHeight: '1' }}>{itemsCount.toLocaleString('ar-EG')}</strong>
+            <strong style={{ fontSize: '20px', lineHeight: '1' }}>{itemsCount}</strong>
           </div>
           <div className="pos-workspace-dock-chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 24px' }}>
             <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المطلوب دفعه</span>
@@ -57,22 +57,30 @@ export function PosWorkspaceDock({
         </div>
 
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, padding: '0' }}>
-          <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>
-            {settings?.restaurantModuleEnabled ? 'إرسال للمطبخ F4' : 'تعليق F4'}
+          <Button type="button" variant="secondary" className="pos-dock-btn-hold" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>
+            <span className="pos-dock-btn-desktop-text">{settings?.restaurantModuleEnabled ? 'إرسال للمطبخ F4' : 'تعليق F4'}</span>
+            <span className="pos-dock-btn-mobile-text">{settings?.restaurantModuleEnabled ? 'المطبخ' : 'تعليق'}</span>
           </Button>
-          <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>
-            {settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount}) F3` : `معلقة (${heldDraftsCount}) F3`}
+          <Button type="button" variant="secondary" className="pos-dock-btn-drafts" onClick={onOpenHeldDrafts}>
+            <span className="pos-dock-btn-desktop-text">{settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount}) F3` : `معلقة (${heldDraftsCount}) F3`}</span>
+            <span className="pos-dock-btn-mobile-text">{settings?.restaurantModuleEnabled ? `طاولات (${heldDraftsCount})` : `معلقة (${heldDraftsCount})`}</span>
           </Button>
           <Button
             type="button"
             variant="success"
+            className="pos-dock-btn-submit"
             onClick={onSubmit}
             disabled={isPending || !canOpenCheckout}
             aria-disabled={isPending || !canOpenCheckout}
             title={isPending ? 'جاري تنفيذ البيع' : (checkoutDisabledReason || undefined)}
             style={{ fontSize: '18px', padding: '12px 32px', fontWeight: 'bold', height: 'auto', borderRadius: '8px', minWidth: '150px' }}
           >
-            {isPending ? 'جارٍ الحفظ...' : 'إتمام البيع F2'}
+            {isPending ? 'جارٍ الحفظ...' : (
+              <>
+                <span className="pos-dock-btn-desktop-text">إتمام البيع F2</span>
+                <span className="pos-dock-btn-mobile-text">إتمام البيع</span>
+              </>
+            )}
           </Button>
         </div>
 

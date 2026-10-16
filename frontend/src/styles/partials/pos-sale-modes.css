@@ -438,7 +438,7 @@
 
 @media (max-width: 720px) {
   .pos-workspace .pos-mode-toggle {
-    width: 100%;
+    width: auto;
   }
 
   .pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row {
