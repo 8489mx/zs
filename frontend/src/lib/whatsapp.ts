@@ -1,4 +1,4 @@
-import { getGlobalCurrencySymbol } from './currencies';
+import { getGlobalCurrencySymbol, getCurrencyDecimals, isKuwait, isSaudi } from './currencies';
 
 export function cleanWhatsAppPhone(phone: string): string {
   const digits = String(phone || '').replace(/[^0-9]/g, '');
@@ -36,7 +36,7 @@ export function formatRestaurantOrderWhatsAppMessage({
   deliveryFee,
   paymentLink,
   storeName,
-  currency = 'د.ك',
+  currency,
 }: {
   customerName?: string;
   orderNumber?: string;
@@ -47,6 +47,11 @@ export function formatRestaurantOrderWhatsAppMessage({
   storeName?: string;
   currency?: string;
 }): string {
+  const activeCurrency = currency || getGlobalCurrencySymbol();
+  const decimals = getCurrencyDecimals(activeCurrency);
+  const isKwd = isKuwait({ currency: activeCurrency });
+  const isKsa = isSaudi({ currency: activeCurrency });
+
   const storeHeader = storeName ? `*${storeName}*\n` : '';
   const greeting = customerName ? `مرحباً أستاذ/ة *${customerName}*،\n` : 'مرحباً بك،\n';
   const orderLine = orderNumber ? `تم استلام وتجهيز طلبك رقم: *#${orderNumber}*\n\n` : '';
@@ -56,12 +61,21 @@ export function formatRestaurantOrderWhatsAppMessage({
     itemsList = '📋 *تفاصيل الطلب:*\n' + items.map(it => `• ${it.name} × ${it.qty}`).join('\n') + '\n\n';
   }
 
-  const feeLine = deliveryFee && deliveryFee > 0 ? `(شامل رسوم التوصيل: ${deliveryFee.toFixed(3)} ${currency})\n` : '';
-  const totalLine = `💰 *الإجمالي المطلوب:* *${total.toFixed(3)} ${currency}* ${feeLine}`;
+  const feeLine = deliveryFee && deliveryFee > 0 ? `(شامل رسوم التوصيل: ${deliveryFee.toFixed(decimals)} ${activeCurrency})\n` : '';
+  const totalLine = `💰 *الإجمالي المطلوب:* *${total.toFixed(decimals)} ${activeCurrency}* ${feeLine}`;
   
+  let defaultPaymentText = 'نقدي أو إنستاباي / محفظة عند الاستلام';
+  if (isKwd) {
+    defaultPaymentText = 'كي نت (K-NET) أو نقدي عند الاستلام';
+  } else if (isKsa) {
+    defaultPaymentText = 'شبكة مدى (mada) أو نقدي عند الاستلام';
+  }
+
   const paymentSection = paymentLink
-    ? `\n💳 *رابط السداد الإلكتروني المباشر (كي نت K-NET / بطاقة):*\n${paymentLink}\n`
-    : '\n💳 *طريقة الدفع:* كي نت (K-NET) أو نقدي عند الاستلام\n';
+    ? (isKwd
+        ? `\n💳 *رابط السداد الإلكتروني المباشر (كي نت K-NET / بطاقة):*\n${paymentLink}\n`
+        : `\n💳 *رابط السداد الإلكتروني المباشر:*\n${paymentLink}\n`)
+    : `\n💳 *طريقة الدفع:* ${defaultPaymentText}\n`;
 
   return `${storeHeader}${greeting}${orderLine}${itemsList}${totalLine}${paymentSection}\nيسعدنا خدمتكم دائماً ونتمنى لكم وجبة شهية!`;
 }

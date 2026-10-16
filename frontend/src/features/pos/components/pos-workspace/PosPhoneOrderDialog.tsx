@@ -32,7 +32,7 @@ import {
   SendIcon,
 } from '@/shared/components/icons/AppIcons';
 import { openWhatsAppChat, formatRestaurantOrderWhatsAppMessage } from '@/lib/whatsapp';
-import { getGlobalSystemCurrency, getCurrencySymbol } from '@/lib/currencies';
+import { getGlobalSystemCurrency, getCurrencySymbol, isKuwait, isSaudi } from '@/lib/currencies';
 
 interface PosPhoneOrderDialogProps {
   open: boolean;
@@ -62,6 +62,15 @@ const KWD_DELIVERY_ZONES = [
   { id: 'zone_custom', name: 'تحديد رسوم مخصصة يدويًا', fee: 0, eta: 35 },
 ];
 
+const SAR_DELIVERY_ZONES = [
+  { id: 'zone_standard', name: 'توصيل عادي / داخل الحي', fee: 12, eta: 30 },
+  { id: 'zone_near', name: 'حي مجاور (أقل من 5 كم)', fee: 8, eta: 25 },
+  { id: 'zone_med', name: 'نطاق متوسط (5 - 12 كم)', fee: 18, eta: 40 },
+  { id: 'zone_far', name: 'نطاق بعيد / أطراف المدينة', fee: 28, eta: 50 },
+  { id: 'zone_extra', name: 'ضواحي ومناطق ممتدة', fee: 40, eta: 65 },
+  { id: 'zone_custom', name: 'تحديد رسوم مخصصة يدويًا', fee: 0, eta: 35 },
+];
+
 export function PosPhoneOrderDialog({
   open,
   onClose,
@@ -81,13 +90,14 @@ export function PosPhoneOrderDialog({
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [isForceNewCustomer, setIsForceNewCustomer] = useState(false);
 
-  const isKwd = getGlobalSystemCurrency() === 'KWD';
-  const deliveryZones = isKwd ? KWD_DELIVERY_ZONES : EGP_DELIVERY_ZONES;
+  const isKwd = isKuwait(pos.settingsQuery?.data);
+  const isKsa = isSaudi(pos.settingsQuery?.data);
+  const deliveryZones = isKwd ? KWD_DELIVERY_ZONES : isKsa ? SAR_DELIVERY_ZONES : EGP_DELIVERY_ZONES;
   const currencySym = getCurrencySymbol();
 
   // Delivery & Payment Enhancements
   const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_standard');
-  const [customDeliveryFee, setCustomDeliveryFee] = useState<number>(isKwd ? 1.000 : 15);
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<number>(isKwd ? 1.000 : isKsa ? 12 : 15);
   const [etaMinutes, setEtaMinutes] = useState<number>(30);
   const [paymentMethodAtDoor, setPaymentMethodAtDoor] = useState<DoorstepPaymentMethod>('cash');
   const [customerPaidNote, setCustomerPaidNote] = useState<string>('');
@@ -273,9 +283,21 @@ export function PosPhoneOrderDialog({
         parts.push(`[الدفع: كاش عند الاستلام]`);
       }
     } else if (paymentMethodAtDoor === 'card_pos') {
-      parts.push(isKwd ? `[الدفع: كي نت مع الطيار (K-NET) | اصطحاب ماكينة الدفع المحمولة]` : `[الدفع: فيزا مع الطيار | اصطحاب ماكينة POS المحمولة]`);
+      parts.push(
+        isKwd
+          ? `[الدفع: كي نت مع الطيار (K-NET) | اصطحاب ماكينة الدفع المحمولة]`
+          : isKsa
+          ? `[الدفع: مدى مع الطيار (mada) | اصطحاب ماكينة الدفع المحمولة]`
+          : `[الدفع: فيزا مع الطيار | اصطحاب ماكينة POS المحمولة]`
+      );
     } else if (paymentMethodAtDoor === 'instapay_wallet') {
-      parts.push(isKwd ? `[الدفع: رابط دفع إلكتروني (K-NET Payment Link)]` : `[الدفع: إنستاباي / محفظة إلكترونية]`);
+      parts.push(
+        isKwd
+          ? `[الدفع: رابط دفع إلكتروني (K-NET Payment Link)]`
+          : isKsa
+          ? `[الدفع: تحويل بنكي / STC Pay]`
+          : `[الدفع: إنستاباي / محفظة إلكترونية]`
+      );
     }
 
     if (deliveryNotes.trim()) {
@@ -884,7 +906,13 @@ export function PosPhoneOrderDialog({
                   setIsForceNewCustomer(false);
                   setNewPhone(e.target.value);
                 }}
-                placeholder={isKwd ? "أدخل رقم هاتف العميل بالكويت (8 أرقام مثال: 91234567) أو اسم العميل..." : "أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."}
+                placeholder={
+                  isKwd
+                    ? "أدخل رقم هاتف العميل بالكويت (8 أرقام مثال: 91234567) أو اسم العميل..."
+                    : isKsa
+                    ? "أدخل رقم هاتف العميل بالسعودية (مثال: 0501234567) أو اسم العميل..."
+                    : "أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."
+                }
                 style={{
                   width: '100%',
                   padding: '6px 32px 6px 10px',
@@ -1846,7 +1874,13 @@ export function PosPhoneOrderDialog({
                       type="text"
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="رقم الهاتف..."
+                      placeholder={
+                        isKwd
+                          ? "رقم الهاتف بالكويت (8 أرقام)..."
+                          : isKsa
+                          ? "رقم الهاتف بالسعودية (05xxxxxxxx)..."
+                          : "رقم الهاتف (مثال: 01012345678)..."
+                      }
                       style={{
                         width: '100%',
                         padding: '5px 8px',
@@ -1889,7 +1923,13 @@ export function PosPhoneOrderDialog({
                     type="text"
                     value={newAddress}
                     onChange={(e) => setNewAddress(e.target.value)}
-                    placeholder={isKwd ? "مثال: حولي - ق 4 - ش تونس - جادة 2 - منزل 18 - دور 3 شقة 6" : "مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"}
+                    placeholder={
+                      isKwd
+                        ? "مثال: حولي - ق 4 - ش تونس - جادة 2 - منزل 18 - دور 3 شقة 6"
+                        : isKsa
+                        ? "مثال: الرياض - حي الملقا - شارع وادي حنيفة - عمارة 12 - شقة 4"
+                        : "مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"
+                    }
                     style={{
                       width: '100%',
                       padding: '5px 8px',
@@ -2074,8 +2114,20 @@ export function PosPhoneOrderDialog({
                       }}
                     >
                       <option value="cash">كاش عند الاستلام</option>
-                      <option value="card_pos">{isKwd ? 'كي نت مع المندوب (K-NET)' : 'فيزا مع الطيار (POS)'}</option>
-                      <option value="instapay_wallet">{isKwd ? 'رابط دفع أونلاين (K-NET Link)' : 'إنستاباي / محفظة إلكترونية'}</option>
+                      <option value="card_pos">
+                        {isKwd
+                          ? 'كي نت مع المندوب (K-NET)'
+                          : isKsa
+                          ? 'مدى مع المندوب (mada POS)'
+                          : 'فيزا مع الطيار (POS)'}
+                      </option>
+                      <option value="instapay_wallet">
+                        {isKwd
+                          ? 'رابط دفع أونلاين (K-NET Link)'
+                          : isKsa
+                          ? 'تحويل بنكي / STC Pay'
+                          : 'إنستاباي / محفظة إلكترونية'}
+                      </option>
                     </select>
                   </div>
                 </div>

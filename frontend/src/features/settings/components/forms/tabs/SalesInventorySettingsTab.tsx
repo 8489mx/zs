@@ -10,7 +10,7 @@ import type { PosTerminalDeviceConfig } from '@/types/domain-models/settings';
 import { FormSection } from '@/shared/components/form-section';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, isKuwait, isSaudi } from '@/lib/currencies';
 
 interface SalesInventoryTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -341,6 +341,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
     geidea: { label: 'Geidea POS (جيديا)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
     paymob: { label: 'Paymob Smart POS (باي موب)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
     fawry: { label: 'Fawry POS / PAX (فوري / باكس)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
+    knet_pos: { label: 'K-NET POS (كي-نت الكويت)', badgeBg: '#eef2ff', badgeColor: '#1e3a8a', borderColor: '#c7d2fe' },
     network_international: { label: 'Network International (NI)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
     mock_sandbox: { label: 'محاكي تجريبي (Simulator)', badgeBg: '#f8fafc', badgeColor: '#475569', borderColor: '#e2e8f0' },
   };
@@ -583,10 +584,11 @@ const PosTerminalCard = memo(function PosTerminalCard({
             value={terminal.provider}
             onChange={(val) => onUpdate({ ...terminal, provider: val as any })}
             options={[
-              { value: 'fawry', label: 'Fawry POS / PAX (فوري - أجهزة باكس PAX)' },
-              { value: 'geidea', label: 'Geidea POS (جيديا - السعودية / مصر)' },
-              { value: 'paymob', label: 'Paymob Smart POS (باي موب نقاط البيع)' },
-              { value: 'network_international', label: 'Network International (NI)' },
+              { value: 'fawry', label: 'Fawry POS / PAX (فوري - مصر)' },
+              { value: 'paymob', label: 'Paymob Smart POS (باي موب - مصر)' },
+              { value: 'knet_pos', label: 'K-NET POS (أجهزة كي-نت - الكويت)' },
+              { value: 'geidea', label: 'Geidea POS (جيديا - السعودية ومصر)' },
+              { value: 'network_international', label: 'Network International (NI - الإمارات والخليج)' },
               { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
             ]}
             disabled={isCardDisabled}
@@ -844,11 +846,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
     const fromForm = form.getValues('posTerminals');
     if (Array.isArray(fromForm) && fromForm.length > 0) return fromForm as PosTerminalDeviceConfig[];
     if (Array.isArray(settings?.posTerminals) && settings.posTerminals.length > 0) return settings.posTerminals as PosTerminalDeviceConfig[];
+    const isKw = isKuwait(settings);
+    const isSa = isSaudi(settings);
+    const defaultProv = isKw ? 'knet_pos' : isSa ? 'geidea' : 'fawry';
+    const defaultName = isKw ? 'ماكينة كي-نت الرئيسية (K-NET)' : isSa ? 'ماكينة مدى الرئيسية (mada)' : 'ماكينة فوري / باكس الرئيسية';
     return [
       {
         id: 'term-1',
-        name: form.getValues('posTerminalName') || settings?.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
-        provider: (form.getValues('posTerminalProvider') || settings?.posTerminalProvider || 'geidea') as any,
+        name: form.getValues('posTerminalName') || settings?.posTerminalName || defaultName,
+        provider: (form.getValues('posTerminalProvider') || settings?.posTerminalProvider || defaultProv) as any,
         ip: form.getValues('posTerminalIp') || settings?.posTerminalIp || '192.168.1.150',
         port: Number(form.getValues('posTerminalPort') || settings?.posTerminalPort || 8080),
         enabled: form.getValues('posTerminalEnabled') !== false,
@@ -883,11 +889,27 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   };
 
   const handleAddTerminal = () => {
+    const isKw = isKuwait(settings);
+    const isSa = isSaudi(settings);
     const nextIdx = terminalsList.length + 1;
+    let newProvider = 'fawry';
+    let newName = `ماكينة ${nextIdx}`;
+
+    if (isKw) {
+      newProvider = 'knet_pos';
+      newName = `ماكينة ${nextIdx} (كي-نت)`;
+    } else if (isSa) {
+      newProvider = 'geidea';
+      newName = `ماكينة ${nextIdx} (مدى)`;
+    } else {
+      newProvider = nextIdx % 2 === 0 ? 'paymob' : 'fawry';
+      newName = `ماكينة ${nextIdx} (${nextIdx % 2 === 0 ? 'باي موب' : 'فوري'})`;
+    }
+
     const newTerminal: PosTerminalDeviceConfig = {
       id: `term-${Date.now()}`,
-      name: `ماكينة ${nextIdx}`,
-      provider: nextIdx === 2 ? 'geidea' : nextIdx === 3 ? 'paymob' : 'fawry',
+      name: newName,
+      provider: newProvider as any,
       ip: `192.168.1.${150 + nextIdx - 1}`,
       port: 8080,
       enabled: true,
@@ -2008,6 +2030,33 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       />
                       <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>%</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Card 11: Guest Pagers (Only for Restaurants & Cafes) */}
+              {isRestaurantVertical && (
+                <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={iconBadgeStyle}>
+                      <ClockIcon size={20} />
+                    </div>
+                    <div style={premiumCardTextStyle}>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أجهزة بيجر المناداة للزبائن (Guest Pagers)</strong>
+                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        إظهار خانة إدخال رقم البيجر في شاشة الكاشير لتسليم أجهزة النداء للزبائن في مطاعم الخدمة الذاتية (مفعل تلقائياً للكويت والسعودية)
+                      </small>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-label="تفعيل أجهزة بيجر المناداة"
+                      {...form.register('enableGuestPagers')}
+                      disabled={disabled}
+                      style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                    />
                   </div>
                 </div>
               )}

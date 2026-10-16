@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
 import { storefrontApi } from '@/features/storefront';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getGlobalCurrencySymbol, isKuwait } from '@/lib/currencies';
 import { openWhatsAppChat, formatRestaurantOrderWhatsAppMessage } from '@/lib/whatsapp';
 import {
   TruckIcon,
@@ -29,6 +29,7 @@ export function RestaurantDeliveryDispatcherModal({
 }: RestaurantDeliveryDispatcherModalProps) {
   const queryClient = useQueryClient();
   const currencySymbol = getGlobalCurrencySymbol();
+  const isKwd = isKuwait();
 
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
@@ -324,10 +325,10 @@ export function RestaurantDeliveryDispatcherModal({
                                 padding: '2px 7px',
                                 cursor: 'pointer',
                               }}
-                              title="إرسال رسالة تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب"
+                              title={isKwd ? "إرسال رسالة تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب" : "إرسال تفاصيل الطلب وخيارات السداد للعميل عبر الواتساب"}
                             >
                               <SendIcon size={11} color="#166534" />
-                              <span>واتساب K-NET</span>
+                              <span>{isKwd ? 'واتساب K-NET' : 'إرسال واتساب'}</span>
                             </button>
                           ) : null}
                         </div>

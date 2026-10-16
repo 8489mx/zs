@@ -9,6 +9,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { deliveryAggregatorsApi } from '@/features/pos/api/delivery-aggregators.api';
 import { formatCurrency } from '@/lib/format';
+import { isKuwait, isSaudi } from '@/lib/currencies';
 import { toast } from '@/shared/components/system-alert';
 
 interface PosDeliveryAggregatorsModalProps {
@@ -19,6 +20,8 @@ interface PosDeliveryAggregatorsModalProps {
 
 export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDeliveryAggregatorsModalProps) {
   const queryClient = useQueryClient();
+  const isKw = isKuwait();
+  const isSa = isSaudi();
   const [activeTab, setActiveTab] = useState<'orders' | 'platforms' | 'stock86'>('orders');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchProductId, setSearchProductId] = useState('');
@@ -99,7 +102,13 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
       onClose={onClose}
       onBack={onBack}
       backText="الرجوع لعمليات المطعم"
-      title="منظومة تطبيقات التوصيل الخليجية (طلبات، دليفرو، كاري، جاهز، كيتا)"
+      title={
+        isKw
+          ? 'منظومة تطبيقات التوصيل بالكويت (طلبات، دليفرو، كاري، جاهز، كيتا)'
+          : isSa
+          ? 'منظومة تطبيقات التوصيل بالسعودية (جاهز، هنقرستيشن، تويو، ذا شفز، كيتا، مرسول)'
+          : 'منظومة تطبيقات التوصيل (طلبات، المنيوز، نون فود، مرسول، التوصيل المباشر)'
+      }
       subtitle="إدارة وتوجيه الطلبيات اللحظية، عمولات المنصات، وإيقاف الأصناف التلقائي (86 Out of Stock)"
       footerNote="تكامل واجهات برمجة تطبيقات التوصيل المتعددة مع منصة المطعم المركزية"
     >
