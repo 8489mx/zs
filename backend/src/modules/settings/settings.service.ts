@@ -156,6 +156,11 @@ export class SettingsService {
       if (!settings.country && (tenant as any).country_code) settings.country = (tenant as any).country_code;
       if (!settings.country && settings.currency === 'KWD') settings.country = 'KW';
       if (!settings.country && settings.currency === 'SAR') settings.country = 'SA';
+      if (!settings.country && settings.currency === 'AED') settings.country = 'AE';
+      if (!settings.country && settings.currency === 'QAR') settings.country = 'QA';
+      if (!settings.country && settings.currency === 'BHD') settings.country = 'BH';
+      if (!settings.country && settings.currency === 'OMR') settings.country = 'OM';
+      if (!settings.country) settings.country = 'EG';
       if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
       if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
       if (!settings.phone && tenant.owner_phone) settings.phone = tenant.owner_phone;

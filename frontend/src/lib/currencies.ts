@@ -84,9 +84,46 @@ export function isThreeDecimalCurrency(currencyCode?: string | null): boolean {
 }
 
 /**
+ * Resolves the 2-letter country code ('KW', 'SA', 'EG', etc.) from settings or active currency.
+ */
+export function getSystemCountryCode(settings?: { country?: string; currency?: string } | null): string {
+  if (settings?.country) {
+    const raw = String(settings.country).trim().toUpperCase();
+    if (raw) return raw;
+  }
+  const curr = String(settings?.currency || getGlobalSystemCurrency()).trim().toUpperCase();
+  if (curr === 'KWD') return 'KW';
+  if (curr === 'SAR') return 'SA';
+  if (curr === 'AED') return 'AE';
+  if (curr === 'QAR') return 'QA';
+  if (curr === 'BHD') return 'BH';
+  if (curr === 'OMR') return 'OM';
+  return 'EG';
+}
+
+export function isKuwait(settings?: { country?: string; currency?: string } | null): boolean {
+  const code = getSystemCountryCode(settings);
+  const curr = String(settings?.currency || getGlobalSystemCurrency()).trim().toUpperCase();
+  return code === 'KW' || curr === 'KWD';
+}
+
+export function isSaudi(settings?: { country?: string; currency?: string } | null): boolean {
+  const code = getSystemCountryCode(settings);
+  const curr = String(settings?.currency || getGlobalSystemCurrency()).trim().toUpperCase();
+  return code === 'SA' || curr === 'SAR';
+}
+
+export function isEgypt(settings?: { country?: string; currency?: string } | null): boolean {
+  const code = getSystemCountryCode(settings);
+  const curr = String(settings?.currency || getGlobalSystemCurrency()).trim().toUpperCase();
+  return code === 'EG' && (curr === 'EGP' || !curr);
+}
+
+/**
  * Subscribe to global system currency changes.
  */
 export function subscribeToCurrencyChanges(callback: (currency: string) => void): () => void {
   subscribers.add(callback);
   return () => subscribers.delete(callback);
 }
+
