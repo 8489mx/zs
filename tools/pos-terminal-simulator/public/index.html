@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Z-Systems Virtual ECR Terminal</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      padding: 12px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #170e5e 0%, #1e1b4b 100%);
+      padding: 12px 14px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.8; }
+    }
+
+    .terminal-badge {
+      font-size: 11px;
+      background-color: rgba(255, 255, 255, 0.15);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .main-card {
+      flex: 1;
+      margin-top: 12px;
+      background-color: #131b2e;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .idle-icon-wrap {
+      width: 72px;
+      height: 72px;
+      background-color: #1e293b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      border: 2px dashed #334155;
+    }
+
+    .idle-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+
+    .idle-sub {
+      font-size: 12.5px;
+      color: #64748b;
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    .port-tags {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .port-tag {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    /* Active Transaction Section */
+    .tx-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .tx-header {
+      background-color: #1e293b;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tx-ref {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .tx-proto {
+      font-size: 11px;
+      background-color: #0284c7;
+      color: #ffffff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .amount-box {
+      background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+      border: 2px solid #6366f1;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .amount-label {
+      font-size: 12px;
+      color: #a5b4fc;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .amount-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .amount-currency {
+      font-size: 16px;
+      color: #818cf8;
+      margin-right: 4px;
+    }
+
+    .actions-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: opacity 0.1s, transform 0.1s;
+    }
+
+    .action-btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    .btn-approve-visa {
+      background-color: #10b981;
+      color: #ffffff;
+    }
+
+    .btn-approve-meeza {
+      background-color: #059669;
+      color: #ffffff;
+    }
+
+    .btn-approve-mc {
+      background-color: #047857;
+      color: #ffffff;
+    }
+
+    .decline-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .btn-decline {
+      background-color: #334155;
+      color: #fca5a5;
+      border: 1px solid #475569;
+      padding: 9px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 8px;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .btn-cancel {
+      background-color: #dc2626;
+      color: #ffffff;
+      margin-top: 4px;
+      justify-content: center;
+      padding: 11px;
+    }
+
+    /* Result Overlay */
+    .result-banner {
+      width: 100%;
+      padding: 18px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .result-approved {
+      background-color: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      color: #34d399;
+    }
+
+    .result-declined {
+      background-color: rgba(220, 38, 38, 0.15);
+      border: 2px solid #dc2626;
+      color: #f87171;
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      margin-top: 10px;
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    /* Live Log */
+    .log-box {
+      margin-top: 10px;
+      background-color: #050811;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 90px;
+      overflow-y: auto;
+      font-size: 10.5px;
+      font-family: monospace;
+      color: #94a3b8;
+      text-align: left;
+      direction: ltr;
+    }
+
+    .log-entry {
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .log-entry.approved { color: #34d399; }
+    .log-entry.declined { color: #f87171; }
+    .log-entry.print { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <div class="pulse-dot"></div>
+      <span>طرفية Z-Systems ECR</span>
+    </div>
+    <div class="terminal-badge" id="terminal-badge">SUNMI V2 PRO</div>
+  </header>
+
+  <div class="main-card" id="main-card">
+    <!-- Dynamic content rendered by JS -->
+  </div>
+
+  <div class="controls-bar">
+    <label class="toggle-wrap">
+      <input type="checkbox" id="auto-toggle" onchange="toggleAuto()">
+      <span>موافقة آلية (2 ثانية)</span>
+    </label>
+
+    <label class="toggle-wrap">
+      <input type="checkbox" id="print-toggle" checked onchange="togglePrint()">
+      <span>طباعة على الماكينة</span>
+    </label>
+  </div>
+
+  <div class="log-box" id="log-box">
+    <div class="log-entry">Terminal Simulator Started... Ready on Port 10009 / 8080</div>
+  </div>
+
+  <script>
+    // Synthesize POS beeps via Web Audio API
+    let audioCtx = null;
+    function playBeep(freq = 1200, duration = 0.15) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // AudioContext might require user gesture
+      }
+    }
+
+    let state = {
+      currentTx: null,
+      autoApprove: false,
+      printOnApproval: true,
+      resultBanner: null
+    };
+
+    function render() {
+      const card = document.getElementById('main-card');
+
+      if (state.resultBanner) {
+        const isApp = state.resultBanner.status === 'approved';
+        const isCanc = state.resultBanner.status === 'cancelled';
+        card.innerHTML = `
+          <div class="result-banner ${isApp ? 'result-approved' : 'result-declined'}">
+            <div style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">
+              ${isApp ? 'تمت الموافقة بنجاح' : (isCanc ? 'تم إلغاء العملية' : 'تم رفض العملية')}
+            </div>
+            <div style="font-size: 13px;">
+              ${state.resultBanner.msg || (isApp ? 'تم إرسال كود التأكيد إلى الكاشير' : 'كود الخطأ: ' + (state.resultBanner.code || '99'))}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!state.currentTx) {
+        card.innerHTML = `
+          <div class="idle-icon-wrap">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+          <div class="idle-title">الطرفية جاهزة للعمل</div>
+          <div class="idle-sub">في انتظار إرسال عملية سداد بالبطاقة من شاشة كاشير Z-Systems...</div>
+          <div class="port-tags">
+            <div class="port-tag">PAX TCP: 10009</div>
+            <div class="port-tag">Geidea REST: 8080</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Active Transaction
+      const tx = state.currentTx;
+      card.innerHTML = `
+        <div class="tx-container">
+          <div class="tx-header">
+            <div class="tx-ref">${tx.referenceId || 'ECR-TX'}</div>
+            <div class="tx-proto">${tx.protocol === 'pax-tcp' ? 'PAX TCP 10009' : 'Geidea REST 8080'}</div>
+          </div>
+
+          <div class="amount-box">
+            <div class="amount-label">المبلغ المطلوب سداده</div>
+            <div class="amount-value">${Number(tx.amount).toFixed(['KWD', 'BHD', 'OMR'].includes(String(tx.currency || '').toUpperCase()) ? 3 : 2)} <span class="amount-currency">${tx.currency || 'EGP'}</span></div>
+          </div>
+
+          <div class="actions-grid">
+            ${String(tx.currency || '').toUpperCase() === 'KWD' ? `
+            <button class="action-btn" style="background-color: #0284c7; color: #ffffff;" onclick="sendAction('approve-knet')">
+              <span>موافقة العملية (بطاقة كي نت KNET)</span>
+              <span style="font-size: 11px; opacity: 0.9;">كود 00</span>
+            </button>
+            ` : ''}
+
+            <button class="action-btn btn-approve-visa" onclick="sendAction('approve-visa')">
+              <span>موافقة العملية (بطاقة Visa)</span>
+              <span style="font-size: 11px; opacity: 0.9;">كود 00</span>
+            </button>
+
+            ${String(tx.currency || '').toUpperCase() === 'EGP' ? `
+            <button class="action-btn btn-approve-meeza" onclick="sendAction('approve-meeza')">
+              <span>موافقة العملية (بطاقة ميزة Meeza)</span>
+              <span style="font-size: 11px; opacity: 0.9;">كود 00</span>
+            </button>
+            ` : ''}
+
+            <button class="action-btn btn-approve-mc" onclick="sendAction('approve-mastercard')">
+              <span>موافقة العملية (بطاقة Mastercard)</span>
+              <span style="font-size: 11px; opacity: 0.9;">كود 00</span>
+            </button>
+
+            <div class="decline-row">
+              <button class="action-btn btn-decline" onclick="sendAction('decline-insufficient')">
+                رصيد غير كافٍ (51)
+              </button>
+              <button class="action-btn btn-decline" onclick="sendAction('decline-pin')">
+                PIN خاطئ (55)
+              </button>
+              <button class="action-btn btn-decline" onclick="sendAction('decline-expired')">
+                بطاقة منتهية (54)
+              </button>
+            </div>
+
+            <button class="action-btn btn-cancel" onclick="sendAction('cancel')">
+              إلغاء العملية من العميل
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function sendAction(action) {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      }).catch(console.error);
+    }
+
+    function toggleAuto() {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle-auto' })
+      }).catch(console.error);
+    }
+
+    function togglePrint() {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle-print' })
+      }).catch(console.error);
+    }
+
+    function addLogEntry(entry) {
+      const box = document.getElementById('log-box');
+      const div = document.createElement('div');
+      div.className = `log-entry ${entry.type}`;
+      div.textContent = `[${entry.time}] ${entry.message}`;
+      box.insertBefore(div, box.firstChild);
+    }
+
+    // SSE Connection
+    const evtSource = new EventSource('/api/events');
+    evtSource.onmessage = function(e) {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'init') {
+          state.currentTx = data.currentTx;
+          state.autoApprove = data.autoApprove;
+          state.printOnApproval = data.printOnApproval;
+          document.getElementById('auto-toggle').checked = Boolean(data.autoApprove);
+          document.getElementById('print-toggle').checked = Boolean(data.printOnApproval);
+          if (Array.isArray(data.logs)) {
+            data.logs.forEach(addLogEntry);
+          }
+          render();
+        } else if (data.type === 'new_tx') {
+          state.currentTx = data.tx;
+          state.resultBanner = null;
+          playBeep(1400, 0.2); // Alert beep
+          render();
+        } else if (data.type === 'tx_resolved') {
+          if (data.status === 'approved') {
+            playBeep(1800, 0.3); // High approval chime
+            state.resultBanner = { status: 'approved', msg: `تمت الموافقة بنجاح: ${data.tx.amount} ${data.tx.currency}` };
+          } else if (data.status === 'cancelled') {
+            playBeep(600, 0.15); // Cancel double beep
+            setTimeout(() => playBeep(450, 0.15), 180);
+            state.resultBanner = { status: 'cancelled', code: '99', msg: data.msg || 'تم إلغاء العملية بواسطة الكاشير' };
+          } else {
+            playBeep(400, 0.4); // Low decline buzz
+            state.resultBanner = { status: 'declined', code: data.code, msg: data.msg };
+          }
+          state.currentTx = null;
+          render();
+          setTimeout(() => {
+            state.resultBanner = null;
+            render();
+          }, data.status === 'cancelled' ? 1400 : 3200);
+        } else if (data.type === 'config') {
+          state.autoApprove = data.autoApprove;
+          state.printOnApproval = data.printOnApproval;
+          document.getElementById('auto-toggle').checked = Boolean(data.autoApprove);
+          document.getElementById('print-toggle').checked = Boolean(data.printOnApproval);
+        } else if (data.type === 'log') {
+          addLogEntry(data.entry);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    render();
+  </script>
+</body>
+</html>
