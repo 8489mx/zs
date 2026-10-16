@@ -1,4 +1,4 @@
-import { getCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
+import { getCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency, isKuwait, isSaudi } from '@/lib/currencies';
 import { useState } from 'react';
 import { CreateOnlineOrderResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
@@ -33,6 +33,8 @@ export function StorefrontOnlinePaymentModal({
   const orderToken = orderData.accessToken || '';
   const totalAmount = session.amount || orderData.totalAmount;
   const rawCurrency = session.currency || getGlobalSystemCurrency();
+  const isKwd = isKuwait({ currency: rawCurrency });
+  const isKsa = isSaudi({ currency: rawCurrency });
   const isThreeDec = isThreeDecimalCurrency(rawCurrency);
   const currencyLabel = getCurrencySymbol(rawCurrency);
   const formattedTotal = isThreeDec
@@ -315,46 +317,50 @@ export function StorefrontOnlinePaymentModal({
               {/* Quick Card Presets for Testing */}
               {session.provider === 'tap' && (
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardNumber('4588 5233 4411 9660');
-                      setCardHolder('حامل بطاقة مدى');
-                      setCardExpiry('08/29');
-                    }}
-                    style={{
-                      background: '#f0fdf4',
-                      border: '1px solid #86efac',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#166534',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    مدى (Mada)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardNumber('5210 8822 7733 9650');
-                      setCardHolder('عميل كي نت الكويت');
-                      setCardExpiry('11/28');
-                    }}
-                    style={{
-                      background: '#eff6ff',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#1d4ed8',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    كي نت (KNET)
-                  </button>
+                  {isKsa && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardNumber('4588 5233 4411 9660');
+                        setCardHolder('حامل بطاقة مدى');
+                        setCardExpiry('08/29');
+                      }}
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #86efac',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#166534',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      مدى (Mada)
+                    </button>
+                  )}
+                  {isKwd && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardNumber('5210 8822 7733 9650');
+                        setCardHolder('عميل كي نت الكويت');
+                        setCardExpiry('11/28');
+                      }}
+                      style={{
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#1d4ed8',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      كي نت (KNET)
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {

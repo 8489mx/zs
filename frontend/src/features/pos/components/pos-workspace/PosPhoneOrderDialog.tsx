@@ -677,15 +677,15 @@ export function PosPhoneOrderDialog({
                         total: Number(pos.totals?.total || 0),
                         deliveryFee: currentDeliveryFee,
                         items: pos.cart.map((c) => ({ name: c.name, qty: c.qty, price: c.price })),
-                        storeName: 'المطعم',
-                        currency: 'د.ك',
+                        storeName: pos.settingsQuery?.data?.storeName || pos.settingsQuery?.data?.brandName || 'المتجر',
+                        currency: currencySym,
                       });
                       openWhatsAppChat(currentCustomer.phone, msg);
                     }}
-                    title="إرسال تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب"
+                    title={isKwd ? "إرسال تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب" : isKsa ? "إرسال تفاصيل الطلب وخيارات السداد الإلكتروني عبر الواتساب" : "إرسال تفاصيل الطلب للعميل عبر الواتساب"}
                   >
                     <SendIcon size={13} color="#166534" />
-                    <span>واتساب وسداد K-NET</span>
+                    <span>{isKwd ? 'واتساب وسداد K-NET' : isKsa ? 'واتساب وسداد إلكتروني' : 'إرسال واتساب'}</span>
                   </Button>
                 ) : null}
                 <Button
@@ -1444,7 +1444,7 @@ export function PosPhoneOrderDialog({
                           }}
                         >
                           <CreditCardIcon size={11} />
-                          {isKwd ? 'كي نت مع المندوب' : 'فيزا مع الطيار'}
+                          {isKwd ? 'كي نت مع المندوب' : isKsa ? 'مدى مع المندوب' : 'فيزا مع الطيار'}
                         </button>
                         <button
                           type="button"
@@ -1465,7 +1465,7 @@ export function PosPhoneOrderDialog({
                             gap: '3px',
                           }}
                         >
-                          {isKwd ? 'رابط دفع أونلاين' : 'إنستاباي / محفظة'}
+                          {isKwd ? 'رابط دفع أونلاين' : isKsa ? 'تحويل / STC Pay' : 'إنستاباي / محفظة'}
                         </button>
                       </div>
 
@@ -1476,7 +1476,7 @@ export function PosPhoneOrderDialog({
                             type="text"
                             value={customerPaidNote}
                             onChange={(e) => setCustomerPaidNote(e.target.value)}
-                            placeholder={isKwd ? "مثال: 10 د.ك..." : "مثال: 200 ج..."}
+                            placeholder={isKwd ? "مثال: 10 د.ك..." : isKsa ? "مثال: 100 ر.س..." : "مثال: 200 ج..."}
                             style={{
                               flex: 1,
                               padding: '2px 6px',
@@ -1486,7 +1486,7 @@ export function PosPhoneOrderDialog({
                             }}
                           />
                           <div style={{ display: 'flex', gap: '2px' }}>
-                            {(isKwd ? ['5', '10', '20'] : ['100', '200', '500']).map((val) => (
+                            {(isKwd ? ['5', '10', '20'] : isKsa ? ['50', '100', '200'] : ['100', '200', '500']).map((val) => (
                               <button
                                 key={val}
                                 type="button"
