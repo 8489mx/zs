@@ -220,11 +220,31 @@ namespace ZSystems.HardwareBridge
                 {
                     string jobId = Convert.ToString(job["jobId"]);
                     string ip = Convert.ToString(job["ip"]);
+                    if (string.IsNullOrEmpty(ip)) ip = "192.168.1.3";
                     int port = Convert.ToInt32(job["port"]);
                     string provider = Convert.ToString(job["provider"]);
+                    string refId = Convert.ToString(job["referenceId"]);
+
+                    if (job.ContainsKey("action") && Convert.ToString(job["action"]) == "cancel")
+                    {
+                        try
+                        {
+                            string cancelUrl = string.Format("http://{0}:{1}/cancel", ip, port);
+                            HttpWebRequest cancelReq = (HttpWebRequest)WebRequest.Create(cancelUrl);
+                            cancelReq.Method = "POST";
+                            cancelReq.ContentType = "application/json";
+                            cancelReq.Timeout = 5000;
+                            byte[] cBytes = Encoding.UTF8.GetBytes("{\"referenceId\":\"" + jobId + "\"}");
+                            cancelReq.ContentLength = cBytes.Length;
+                            using (Stream s = cancelReq.GetRequestStream()) s.Write(cBytes, 0, cBytes.Length);
+                            using (HttpWebResponse r = (HttpWebResponse)cancelReq.GetResponse()) {}
+                        }
+                        catch {}
+                        return;
+                    }
+
                     decimal amount = Convert.ToDecimal(job["amount"]);
                     string currency = Convert.ToString(job["currency"]);
-                    string refId = Convert.ToString(job["referenceId"]);
 
                     var result = ExecuteEcrChargeInternal(ip, port, provider, amount, currency, refId);
 
@@ -714,9 +734,11 @@ namespace ZSystems.HardwareBridge
                 var requestPayload = new Dictionary<string, object>
                 {
                     { "transType", "SALE" },
-                    { "amount", Convert.ToInt64(amount * 100) },
+                    { "amount", amount },
+                    { "amountInCents", Convert.ToInt64(amount * 100) },
                     { "currency", currency },
-                    { "ecrReference", refId }
+                    { "ecrReference", refId },
+                    { "referenceId", refId }
                 };
 
                 byte[] postBytes = Encoding.UTF8.GetBytes(Serializer.Serialize(requestPayload));
@@ -809,18 +831,24 @@ namespace ZSystems.HardwareBridge
         private static void HandleEcrCancel(HttpListenerContext context, Dictionary<string, object> body)
         {
             string ip = body.ContainsKey("ip") ? Convert.ToString(body["ip"]) : "";
+            if (string.IsNullOrEmpty(ip)) ip = "192.168.1.3";
             int port = body.ContainsKey("port") ? Convert.ToInt32(body["port"]) : 8080;
             string refId = body.ContainsKey("referenceId") ? Convert.ToString(body["referenceId"]) : "";
+            string prov = body.ContainsKey("provider") ? Convert.ToString(body["provider"]).ToLowerInvariant() : "";
 
             try
             {
                 string targetUrl = string.Format("http://{0}:{1}/cancel", ip, port);
+                if (prov.Contains("geidea"))
+                {
+                    targetUrl = string.Format("http://{0}:{1}/api/v1/transaction/cancel", ip, port);
+                }
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(targetUrl);
                 req.Method = "POST";
                 req.ContentType = "application/json";
-                req.Timeout = 10000;
+                req.Timeout = 6000;
 
-                byte[] postBytes = Encoding.UTF8.GetBytes(Serializer.Serialize(new Dictionary<string, object> { { "referenceId", refId } }));
+                byte[] postBytes = Encoding.UTF8.GetBytes(Serializer.Serialize(new Dictionary<string, object> { { "referenceId", refId }, { "ecrReference", refId } }));
                 req.ContentLength = postBytes.Length;
                 using (Stream stream = req.GetRequestStream())
                 {

@@ -17,10 +17,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class EcrServerService extends Service {
     private static final String TAG = "ZSystemsEcr";
@@ -33,11 +33,66 @@ public class EcrServerService extends Service {
     private Thread httpThread;
     private Thread tcpThread;
 
+    public static class PaymentSession {
+        public static final Object LOCK = new Object();
+        public static volatile PaymentSession current = null;
+
+        public final String referenceId;
+        public final double amount;
+        public final String currency;
+        public final String provider;
+        public final CountDownLatch latch = new CountDownLatch(1);
+
+        public volatile boolean isApproved = false;
+        public volatile boolean isCancelled = false;
+        public volatile String authCode = "";
+        public volatile String rrn = "";
+        public volatile String cardScheme = "Mada/Visa";
+        public volatile String cardLastFour = "4242";
+        public volatile String message = "";
+
+        public PaymentSession(String referenceId, double amount, String currency, String provider) {
+            this.referenceId = referenceId;
+            this.amount = amount;
+            this.currency = currency;
+            this.provider = provider;
+        }
+    }
+
+    public static void completePaymentSession(boolean approved, String message) {
+        synchronized (PaymentSession.LOCK) {
+            if (PaymentSession.current != null) {
+                PaymentSession.current.isApproved = approved;
+                PaymentSession.current.isCancelled = !approved;
+                PaymentSession.current.message = message;
+                if (approved) {
+                    PaymentSession.current.authCode = String.format(Locale.US, "%06d", new Random().nextInt(900000) + 100000);
+                    PaymentSession.current.rrn = String.format(Locale.US, "%012d", Math.abs(new Random().nextLong() % 900000000000L) + 100000000000L);
+                    PaymentSession.current.cardScheme = "Mada/Visa";
+
+                    // Trigger Sunmi paper thermal print
+                    SunmiPrinterHelper.printReceipt(
+                        PaymentSession.current.amount,
+                        PaymentSession.current.currency,
+                        PaymentSession.current.authCode,
+                        PaymentSession.current.rrn,
+                        PaymentSession.current.cardScheme
+                    );
+                }
+                PaymentSession.current.latch.countDown();
+            }
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         startForeground(NOTIF_ID, buildForegroundNotification());
+
+        // Initialize Sunmi Printer Service Helper
+        SunmiPrinterHelper.init(this);
+
         startEcrServers();
     }
 
@@ -158,7 +213,7 @@ public class EcrServerService extends Service {
             @Override
             public void run() {
                 try {
-                    socket.setSoTimeout(30000);
+                    socket.setSoTimeout(70000);
                     InputStream in = socket.getInputStream();
                     OutputStream out = socket.getOutputStream();
 
@@ -216,40 +271,100 @@ public class EcrServerService extends Service {
                     } else if (path.contains("/test")) {
                         responseJson = "{\"success\":true,\"data\":{\"online\":true,\"reachable\":true,\"portOpen\":true,\"pingSucceeded\":true,\"message\":\"الاتصال بماكينة الدفع نشط ومستعد\",\"latencyMs\":1}}";
                     } else if (path.contains("/cancel") || path.contains("/abort")) {
+                        // Cancel any currently active payment session
+                        synchronized (PaymentSession.LOCK) {
+                            if (PaymentSession.current != null) {
+                                completePaymentSession(false, "تم إلغاء المعاملة من نقطة البيع");
+                            }
+                        }
+                        PaymentActivity.cancelFromRemote("تم إلغاء المعاملة من نقطة البيع");
                         responseJson = "{\"success\":true,\"status\":\"CANCELLED\",\"responseCode\":\"000099\",\"message\":\"تم إلغاء العملية\"}";
                     } else {
-                        // Payment Sale Transaction (Geidea / PAX / Fawry)
-                        String authCode = String.format(Locale.US, "%06d", new Random().nextInt(900000) + 100000);
-                        String rrn = String.format(Locale.US, "%012d", Math.abs(new Random().nextLong() % 900000000000L) + 100000000000L);
-                        double amount = 50.0;
+                        // Real Interactive Payment Sale Transaction!
+                        double amount = 0.0;
                         String currency = "EGP";
+                        String refId = "EDC-" + System.currentTimeMillis();
+                        String prov = "EDC";
 
                         String bodyStr = body.toString();
-                        if (bodyStr.contains("\"amount\":")) {
-                            try {
-                                int idx = bodyStr.indexOf("\"amount\":") + 9;
-                                int endIdx = bodyStr.indexOf(",", idx);
-                                if (endIdx == -1) endIdx = bodyStr.indexOf("}", idx);
-                                if (endIdx > idx) {
-                                    amount = Double.parseDouble(bodyStr.substring(idx, endIdx).trim().replace("\"", ""));
-                                }
-                            } catch (Exception ignored) {}
+                        try {
+                            org.json.JSONObject jsonObj = new org.json.JSONObject(bodyStr);
+                            amount = jsonObj.optDouble("amount", 0.0);
+                            if (jsonObj.has("currency")) currency = jsonObj.optString("currency", "EGP");
+                            if (jsonObj.has("referenceId")) refId = jsonObj.optString("referenceId", refId);
+                            if (jsonObj.has("provider")) prov = jsonObj.optString("provider", "EDC");
+                        } catch (Exception ex) {
+                            if (bodyStr.contains("amount")) {
+                                try {
+                                    String cleaned = bodyStr.replaceAll("[^0-9.]", " ").trim();
+                                    String[] tokens = cleaned.split("\\s+");
+                                    if (tokens.length > 0) amount = Double.parseDouble(tokens[0]);
+                                } catch (Exception ignored) {}
+                            }
                         }
 
-                        responseJson = "{\"status\":\"APPROVED\",\"responseCode\":\"000000\"," +
-                            "\"success\":true,\"isSuccess\":true," +
-                            "\"authCode\":\"" + authCode + "\"," +
-                            "\"rrn\":\"" + rrn + "\"," +
-                            "\"referenceNo\":\"" + rrn + "\"," +
-                            "\"approvalCode\":\"" + authCode + "\"," +
-                            "\"cardScheme\":\"Mada/Visa\"," +
-                            "\"cardLastFour\":\"4242\"," +
-                            "\"amount\":" + amount + "," +
-                            "\"currency\":\"" + currency + "\"," +
-                            "\"message\":\"تمت العملية بنجاح\"}";
+                        // Create session & wait for physical customer/cashier action
+                        PaymentSession session = new PaymentSession(refId, amount, currency, prov);
+                        synchronized (PaymentSession.LOCK) {
+                            PaymentSession.current = session;
+                        }
 
-                        // Print EDC Slip on Sunmi internal printer
-                        printReceiptInternal(amount, currency, authCode, rrn);
+                        // Launch Fullscreen Payment Activity on Sunmi screen
+                        Intent actIntent = new Intent(EcrServerService.this, PaymentActivity.class);
+                        actIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        actIntent.putExtra("referenceId", refId);
+                        actIntent.putExtra("amount", amount);
+                        actIntent.putExtra("currency", currency);
+                        actIntent.putExtra("provider", prov);
+                        startActivity(actIntent);
+
+                        // Hold HTTP connection until cashier/customer confirms or cancels
+                        boolean finished = false;
+                        try {
+                            finished = session.latch.await(62, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            session.isCancelled = true;
+                        }
+
+                        if (!finished) {
+                            session.isCancelled = true;
+                            session.message = "انتهت مهلة انتظار الدفع على شاشة الماكينة (Timeout)";
+                            if (PaymentActivity.activeInstance != null) {
+                                try { PaymentActivity.activeInstance.finish(); } catch (Exception ignored) {}
+                            }
+                        }
+
+                        synchronized (PaymentSession.LOCK) {
+                            if (PaymentSession.current == session) {
+                                PaymentSession.current = null;
+                            }
+                        }
+
+                        if (session.isApproved) {
+                            responseJson = "{\"status\":\"APPROVED\",\"responseCode\":\"000000\"," +
+                                "\"success\":true,\"isSuccess\":true," +
+                                "\"authCode\":\"" + session.authCode + "\"," +
+                                "\"rrn\":\"" + session.rrn + "\"," +
+                                "\"referenceNo\":\"" + session.rrn + "\"," +
+                                "\"approvalCode\":\"" + session.authCode + "\"," +
+                                "\"cardScheme\":\"" + session.cardScheme + "\"," +
+                                "\"cardLastFour\":\"" + session.cardLastFour + "\"," +
+                                "\"amount\":" + session.amount + "," +
+                                "\"currency\":\"" + session.currency + "\"," +
+                                "\"message\":\"" + (session.message.isEmpty() ? "تمت العملية بنجاح" : session.message) + "\"}";
+                        } else if (session.isCancelled) {
+                            responseJson = "{\"status\":\"CANCELLED\",\"responseCode\":\"000099\"," +
+                                "\"success\":false,\"isSuccess\":false," +
+                                "\"amount\":" + session.amount + "," +
+                                "\"currency\":\"" + session.currency + "\"," +
+                                "\"message\":\"" + (session.message.isEmpty() ? "تم إلغاء العملية من الماكينة" : session.message) + "\"}";
+                        } else {
+                            responseJson = "{\"status\":\"DECLINED\",\"responseCode\":\"000098\"," +
+                                "\"success\":false,\"isSuccess\":false," +
+                                "\"amount\":" + session.amount + "," +
+                                "\"currency\":\"" + session.currency + "\"," +
+                                "\"message\":\"" + (session.message.isEmpty() ? "تم رفض العملية من الماكينة" : session.message) + "\"}";
+                        }
                     }
 
                     byte[] jsonBytes = responseJson.getBytes("UTF-8");
@@ -297,57 +412,12 @@ public class EcrServerService extends Service {
         }).start();
     }
 
-    private void printReceiptInternal(final double amount, final String currency, final String authCode, final String rrn) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try (Socket printerSocket = new Socket("127.0.0.1", 9100);
-                     OutputStream posOut = printerSocket.getOutputStream()) {
-
-                    String dateStr = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US).format(new Date());
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("\n");
-                    sb.append("===============================\n");
-                    sb.append("      Z-SYSTEMS SMART POS      \n");
-                    sb.append("    ELECTRONIC RECEIPT (EDC)   \n");
-                    sb.append("===============================\n");
-                    sb.append("DATE/TIME: ").append(dateStr).append("\n");
-                    sb.append("TERMINAL : SUNMI-V2PRO-ST\n");
-                    sb.append("CARD     : **** **** **** 4242\n");
-                    sb.append("SCHEME   : MADA / VISA / DEBIT\n");
-                    sb.append("AUTH CODE: ").append(authCode).append("\n");
-                    sb.append("RRN      : ").append(rrn).append("\n");
-                    sb.append("STATUS   : APPROVED (000000)\n");
-                    sb.append("-------------------------------\n");
-                    sb.append(String.format(Locale.US, "TOTAL    : %.2f %s\n", amount, currency));
-                    sb.append("===============================\n");
-                    sb.append("     THANK YOU - MERCI         \n");
-                    sb.append("\n\n\n\n");
-
-                    byte[] escInit = new byte[]{0x1B, 0x40};
-                    byte[] escCut = new byte[]{0x1D, 0x56, 0x42, 0x00};
-
-                    posOut.write(escInit);
-                    posOut.write(sb.toString().getBytes("UTF-8"));
-                    posOut.write(escCut);
-                    posOut.flush();
-                } catch (Exception ignored) {}
-            }
-        }).start();
-    }
-
     private void closeServers() {
         try {
-            if (http8080Server != null && !http8080Server.isClosed()) {
-                http8080Server.close();
-            }
+            if (http8080Server != null) http8080Server.close();
         } catch (Exception ignored) {}
-
         try {
-            if (tcp10009Server != null && !tcp10009Server.isClosed()) {
-                tcp10009Server.close();
-            }
+            if (tcp10009Server != null) tcp10009Server.close();
         } catch (Exception ignored) {}
     }
 }

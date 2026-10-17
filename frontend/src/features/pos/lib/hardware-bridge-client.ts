@@ -143,6 +143,8 @@ export class HardwareBridgeClient {
     try {
       const res = await fetch(`${BRIDGE_BASE_URL}/api/ecr/cancel`, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(4000),

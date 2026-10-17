@@ -602,14 +602,17 @@ export function PosCheckoutPaymentSection({
 
   const handleCancelTerminal = async () => {
     const targetTerminal = activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0];
-    if (targetTerminal?.ip) {
-      HardwareBridgeClient.cancelTerminal({
-        ip: targetTerminal.ip,
-        port: targetTerminal.port,
-        provider: targetTerminal.provider,
-        referenceId: terminalSession.transactionId,
-      }).catch(() => {});
-    }
+    const rawIp = targetTerminal?.ip || targetTerminal?.ipAddress;
+    const cleanIp = rawIp ? (rawIp.includes(':') ? rawIp.split(':')[0] : rawIp) : '192.168.1.3';
+    const cleanPort = targetTerminal?.port || (rawIp && rawIp.includes(':') ? Number(rawIp.split(':')[1]) : 8080);
+    const prov = targetTerminal?.provider || 'fawry';
+
+    HardwareBridgeClient.cancelTerminal({
+      ip: cleanIp,
+      port: cleanPort,
+      provider: prov,
+      referenceId: terminalSession.transactionId,
+    }).catch(() => {});
 
     if (terminalSession.transactionId) {
       try {
