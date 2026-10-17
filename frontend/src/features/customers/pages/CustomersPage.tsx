@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -15,6 +16,7 @@ import { useCustomerProfile } from '@/features/customers/constants/customer-prof
 import type { Customer } from '@/types/domain';
 
 export function CustomersPage() {
+  const { t } = useTranslation();
   const profile = useCustomerProfile();
   const controller = useCustomersPageController();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -22,14 +24,14 @@ export function CustomersPage() {
   const [loyaltyCustomer, setLoyaltyCustomer] = useState<Customer | null>(null);
 
   const stats = [
-    { key: 'customers', label: profile.id === 'maritime' ? 'عدد الشاحنين والمستوردين' : profile.id === 'contracting' ? 'عدد جهات الإسناد والملاك' : 'عدد العملاء', value: controller.summary?.totalCustomers || 0 },
-    { key: 'balance', label: 'إجمالي الأرصدة', value: formatCurrency(controller.totalBalance) },
-    { key: 'credit', label: 'إجمالي حدود الائتمان', value: formatCurrency(controller.totalCredit) },
-    { key: 'vip', label: profile.id === 'maritime' ? 'شاحنون استراتيجيون' : profile.id === 'contracting' ? 'مطورون VIP' : 'عملاء VIP', value: controller.vipCount },
+    { key: 'customers', label: profile.id === 'maritime' ? 'عدد الشاحنين والمستوردين' : profile.id === 'contracting' ? 'عدد جهات الإسناد والملاك' : t('sidebar.customers', 'عدد العملاء'), value: controller.summary?.totalCustomers || 0 },
+    { key: 'balance', label: t('customers.total_balances', 'إجمالي الأرصدة'), value: formatCurrency(controller.totalBalance) },
+    { key: 'credit', label: t('customers.total_credit_limits', 'إجمالي حدود الائتمان'), value: formatCurrency(controller.totalCredit) },
+    { key: 'vip', label: profile.id === 'maritime' ? 'شاحنون استراتيجيون' : profile.id === 'contracting' ? 'مطورون VIP' : t('customers.vip_customers', 'عملاء VIP'), value: controller.vipCount },
   ] as const;
 
   return (
-    <div className="page-stack page-shell customers-page" dir="rtl">
+    <div className="page-stack page-shell customers-page">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title={profile.pageTitle}
@@ -39,12 +41,12 @@ export function CustomersPage() {
             <div className="actions compact-actions">
               <Button variant="primary" onClick={() => setIsCreateOpen(true)}>{profile.addBtnText}</Button>
               {profile.showMarketingCampaign && (
-                <Button variant="secondary" onClick={() => setIsMarketingOpen(true)} style={{ color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 800 }}>حملة واتساب</Button>
+                <Button variant="secondary" onClick={() => setIsMarketingOpen(true)} style={{ color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 800 }}>{t('customers.whatsapp_campaign', 'حملة واتساب')}</Button>
               )}
-              <Button variant="secondary" onClick={controller.resetCustomersView}>إعادة ضبط</Button>
-              <Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير</Button>
-              <Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ</Button>
-              <Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>طباعة</Button>
+              <Button variant="secondary" onClick={controller.resetCustomersView}>{t('common.reset', 'إعادة ضبط')}</Button>
+              <Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>{t('common.export', 'تصدير')}</Button>
+              <Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>{t('common.copy', 'نسخ')}</Button>
+              <Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>{t('common.print', 'طباعة')}</Button>
             </div>
           }
         />
@@ -61,9 +63,7 @@ export function CustomersPage() {
           width="min(680px, 95vw)"
           minHeight="auto"
         >
-          <div dir="rtl">
-            <CustomerForm onSuccess={() => setIsCreateOpen(false)} />
-          </div>
+          <CustomerForm onSuccess={() => setIsCreateOpen(false)} />
         </StandardDialog>
 
         {/* Modal for Editing Customer */}
@@ -75,18 +75,16 @@ export function CustomersPage() {
           width="min(900px, 96vw)"
           minHeight="auto"
         >
-          <div dir="rtl">
-            <CustomerEditorCard
-              customer={controller.selectedCustomer || undefined}
-              onSaved={() => controller.setSelectedCustomer(null)}
-              onDeleteCustomer={
-                controller.canDelete && controller.selectedCustomer
-                  ? () => controller.setCustomerToDelete(controller.selectedCustomer)
-                  : undefined
-              }
-              deleteLabel={profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف هذا العميل'}
-            />
-          </div>
+          <CustomerEditorCard
+            customer={controller.selectedCustomer || undefined}
+            onSaved={() => controller.setSelectedCustomer(null)}
+            onDeleteCustomer={
+              controller.canDelete && controller.selectedCustomer
+                ? () => controller.setCustomerToDelete(controller.selectedCustomer)
+                : undefined
+            }
+            deleteLabel={profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف هذا العميل'}
+          />
         </StandardDialog>
 
         <ActionConfirmDialog

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -16,6 +17,7 @@ import { TreasuryExpensesRegisterCard } from '@/features/treasury/components/Tre
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
 export function ExpensesPage() {
+  const { t } = useTranslation();
   const { printMatchingExpenses, exportExpenses: exportExpenseRows } = useTreasuryPageActions();
   const [expenseSearch, setExpenseSearch] = useState('');
   const [expensePage, setExpensePage] = useState(1);
@@ -55,17 +57,17 @@ export function ExpensesPage() {
   };
 
   return (
-    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact" dir="rtl">
+    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact">
       <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px' }}>
         <PageHeader 
-          title="المصروفات" 
-          description="سجل مصاريف التشغيل اليومية والرواتب والإيجارات وغيرها." 
-          badge={<span className="nav-pill">الخدمات والحسابات</span>}
+          title={t('expenses.title', 'المصروفات')} 
+          description={t('expenses.description', 'سجل مصاريف التشغيل اليومية والرواتب والإيجارات وغيرها.')} 
+          badge={<span className="nav-pill">{t('expenses.services_and_accounts', 'الخدمات والحسابات')}</span>}
           actions={
             <div className="actions compact-actions">
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ مصروف جديد</Button>
-              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>تصدير</Button>
-              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems || isExportingExpenses}>طباعة</Button>
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>{t('expenses.new_expense', '+ مصروف جديد')}</Button>
+              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>{t('common.export', 'تصدير')}</Button>
+              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems || isExportingExpenses}>{t('common.print', 'طباعة')}</Button>
             </div>
           }
         />

@@ -108,6 +108,28 @@ body {
   overflow: hidden;
   line-height: 1.55;
 }
+html[lang="en"] body,
+html[dir="ltr"] body,
+html[lang="en"] button,
+html[lang="en"] input,
+html[lang="en"] select,
+html[lang="en"] textarea {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* ========================================================
+   Bilingual Infrastructure: Universal Dynamic Direction & Reset
+   ======================================================== */
+html[dir="ltr"] [dir="rtl"]:not([data-keep-rtl="true"]) {
+  direction: ltr !important;
+  text-align: start;
+}
+
+html[dir="ltr"] .app-sidebar,
+html[dir="ltr"] .sidebar-fixed {
+  border-inline-end: 1px solid var(--sidebar-border, #e2e8f0);
+}
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 

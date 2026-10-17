@@ -238,11 +238,13 @@ export const dict = {
 };
 
 import { useEffect } from 'react';
+import i18n from '@/lib/i18n';
 
 export type DictKey = keyof typeof dict;
 
 export function useTranslation() {
-  const language = useAuthStore((state) => state.language || 'ar');
+  const authLang = useAuthStore((state) => state.language);
+  const language = authLang || (i18n.language ? (i18n.language.startsWith('en') ? 'en' : 'ar') : 'ar');
   
   useEffect(() => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -254,6 +256,9 @@ export function useTranslation() {
       return dict[key][language as 'ar' | 'en'] || key;
     },
     language,
-    setLanguage: (lang: 'ar' | 'en') => useAuthStore.getState().updateSessionMeta({ language: lang })
+    setLanguage: (lang: 'ar' | 'en') => {
+      useAuthStore.getState().updateSessionMeta({ language: lang });
+      i18n.changeLanguage(lang);
+    }
   };
 }

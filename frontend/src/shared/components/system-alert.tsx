@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import {
@@ -139,6 +140,10 @@ export function systemAlert(
 }
 
 export function SystemAlertProvider({ children }: { children: React.ReactNode }) {
+  const { t, i18n } = useTranslation();
+  const isLtr = i18n.language === 'en';
+  const currentDir = isLtr ? 'ltr' : 'rtl';
+
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [alertState, setAlertState] = useState<AlertState>({
     isOpen: false,
@@ -258,7 +263,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
 
       {/* Floating System Toast Container */}
       {toasts.length > 0 && (
-        <div className="system-toast-container" dir="rtl">
+        <div className="system-toast-container" dir={currentDir}>
           {toasts.map((item) => (
             <div key={item.id} className={`system-toast-card toast-${item.variant}`}>
               <div className={`system-toast-icon-wrapper icon-${item.variant}`}>
@@ -275,7 +280,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                 type="button"
                 className="system-toast-close-btn"
                 onClick={() => removeToast(item.id)}
-                aria-label="إغلاق"
+                aria-label={t('common.close', 'إغلاق')}
               >
                 <XIcon size={14} />
               </button>
@@ -291,7 +296,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
         width="min(440px, 92vw)"
         zIndex={99999}
       >
-        <div style={{ padding: '24px 20px', textAlign: 'center' }} dir="rtl">
+        <div style={{ padding: '24px 20px', textAlign: 'center' }} dir={currentDir}>
           <div
             style={{
               width: '48px',
@@ -352,7 +357,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                 borderRadius: '8px',
               }}
             >
-              حسناً
+              {t('common.ok', 'حسناً')}
             </Button>
           </div>
         </div>
@@ -365,7 +370,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
         width="min(520px, 94vw)"
         zIndex={99999}
       >
-        <div style={{ padding: '28px 24px 24px', textAlign: 'center' }} dir="rtl">
+        <div style={{ padding: '28px 24px 24px', textAlign: 'center' }} dir={currentDir}>
           {/* Executive Icon Container with Dual Ring & Soft Shadow */}
           <div
             style={{
@@ -410,7 +415,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
               letterSpacing: '-0.2px',
             }}
           >
-            {confirmState.options.title || 'تأكيد الإجراء'}
+            {confirmState.options.title || t('common.confirm_action', 'تأكيد الإجراء')}
           </h3>
 
           {/* Optional Code / Reference Pill Badge */}
@@ -469,7 +474,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                   marginBottom: '8px',
                 }}
               >
-                الأثر التشغيلي للإجراء:
+                {t('common.operational_impact', 'الأثر التشغيلي للإجراء:')}
               </div>
               <ul style={{ margin: 0, paddingInlineStart: '18px' }}>
                 {confirmState.options.impactItems.map((item, idx) => (
@@ -512,7 +517,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                 fontSize: '0.88rem',
               }}
             >
-              {confirmState.options.cancelText || 'تراجع'}
+              {confirmState.options.cancelText || t('common.cancel', 'تراجع')}
             </Button>
             <Button
               type="button"
@@ -534,7 +539,7 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                     : '0 2px 8px rgba(23, 14, 94, 0.28)',
               }}
             >
-              {confirmState.options.confirmText || 'تأكيد'}
+              {confirmState.options.confirmText || t('common.confirm', 'تأكيد')}
             </Button>
           </div>
         </div>

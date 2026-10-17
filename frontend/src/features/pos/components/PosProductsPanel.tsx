@@ -1,4 +1,5 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -240,6 +241,7 @@ function PosProductsPanelComponent({
   onOpenNewProduct,
   restaurantModuleEnabled,
 }: PosProductsPanelProps) {
+  const { t } = useTranslation();
   // Scanner buffer: detects rapid barcode scanner input and batches it into a single
   // state update instead of triggering re-renders on every character.
   // Uses refs + direct DOM manipulation — ZERO React renders during scanning.
@@ -520,14 +522,14 @@ function PosProductsPanelComponent({
                   defaultValue={search}
                   onChange={scannerBuffer.handleChange}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="امسح باركود أو اكتب الاسم..."
+                  placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
                   style={{ borderRadius: '8px', width: '100%', padding: '10px 48px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
                 />
                 <button
                   type="button"
                   className="pos-camera-scan-btn"
                   onClick={() => setIsCameraScannerOpen(true)}
-                  title="مسح باركود بكاميرا الموبايل"
+                  title={t('pos.scan_camera', 'مسح باركود بكاميرا الموبايل')}
                   style={{
                     position: 'absolute',
                     left: '8px',
@@ -570,7 +572,7 @@ function PosProductsPanelComponent({
                   }}
                   onClick={() => onPriceTypeChange('retail')}
                 >
-                  سعر القطاعي
+                  {t('pos.retail_price', 'سعر القطاعي')}
                 </button>
                 <button
                   type="button"
@@ -588,7 +590,7 @@ function PosProductsPanelComponent({
                   }}
                   onClick={() => onPriceTypeChange('wholesale')}
                 >
-                  سعر الجملة
+                  {t('pos.wholesale_price', 'سعر الجملة')}
                 </button>
               </div>
             </div>
@@ -671,7 +673,7 @@ function PosProductsPanelComponent({
                 transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
               }}
             >
-              كل الأقسام
+              {t('pos.all_categories', 'كل الأقسام')}
             </button>
             {categories.map(cat => (
               <button
@@ -730,7 +732,7 @@ function PosProductsPanelComponent({
                 fontWeight: shelf === 'all' && productFilter === 'all' ? 'bold' : '500',
               }}
             >
-              الكل
+              {t('common.all', 'الكل')}
             </button>
             <button
               type="button"

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
@@ -50,6 +51,7 @@ export function PosSaleSuccessDialog({
   onPrintKitchen,
   onPrintBoth,
 }: PosSaleSuccessDialogProps) {
+  const { t } = useTranslation();
   const [printError, setPrintError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
   const [manualPhone, setManualPhone] = useState('');
@@ -208,11 +210,11 @@ export function PosSaleSuccessDialog({
                 borderRadius: '9999px',
                 display: 'inline-block'
               }}>
-                عملية مكتملة
+                {t('pos.sale_completed', 'عملية مكتملة')}
               </span>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>تم البيع بنجاح</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{t('pos.sale_completed', 'تم البيع بنجاح')}</h3>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>استخدم الاختصارات لتنفيذ الإجراء بسرعة</p>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>{t('pos.use_shortcuts_hint', 'استخدم الاختصارات لتنفيذ الإجراء بسرعة')}</p>
           </div>
           <div
             className="pos-sale-success-docno-badge"
@@ -232,9 +234,9 @@ export function PosSaleSuccessDialog({
         </div>
 
         <div className="pos-sale-success-metrics">
-          <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
-          <span><b>الإجمالي</b><strong style={{ color: '#0f172a' }}>{formatCurrency(Number(sale.total || 0))}</strong></span>
-          <span><b>طريقة الدفع</b>{paymentMethodLabel}</span>
+          <span><b>{t('pos.invoice_no', 'رقم الفاتورة')}</b>{sale.docNo || sale.id}</span>
+          <span><b>{t('pos.total', 'الإجمالي')}</b><strong style={{ color: '#0f172a' }}>{formatCurrency(Number(sale.total || 0))}</strong></span>
+          <span><b>{t('pos.payment_method', 'طريقة الدفع')}</b>{paymentMethodLabel}</span>
           {isDeliveryOrder ? (
             isDeliveryCod ? (
               <>
@@ -265,15 +267,15 @@ export function PosSaleSuccessDialog({
             )
           ) : isCreditOrPartial ? (
             <>
-              <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>
-              <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
-              <span><b>حالة الفاتورة</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
+              <span><b>{t('pos.paid', 'المدفوع')}</b>{formatCurrency(paidAmount)}</span>
+              <span><b>{t('pos.remaining_debt', 'المتبقي على العميل')}</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
+              <span><b>{t('pos.invoice_status', 'حالة الفاتورة')}</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
             </>
           ) : (
             <>
-              {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
-              {changeAmount > 0.009 && <span><b>الباقي للعميل</b><strong style={{ color: '#16a34a' }}>{formatCurrency(changeAmount)}</strong></span>}
-              <span><b>حالة الفاتورة</b><strong style={{ color: '#16a34a' }}>مدفوعة بالكامل</strong></span>
+              {tenderedAmount > 0 && <span><b>{t('pos.tendered', 'المستلم نقديًا')}</b>{formatCurrency(tenderedAmount)}</span>}
+              {changeAmount > 0.009 && <span><b>{t('pos.change', 'الباقي للعميل')}</b><strong style={{ color: '#16a34a' }}>{formatCurrency(changeAmount)}</strong></span>}
+              <span><b>{t('pos.invoice_status', 'حالة الفاتورة')}</b><strong style={{ color: '#16a34a' }}>{t('pos.paid_full', 'مدفوعة بالكامل')}</strong></span>
               {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code) && (
                 <span style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '8px', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>
@@ -288,7 +290,7 @@ export function PosSaleSuccessDialog({
               )}
             </>
           )}
-          <span><b>العميل</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
+          <span><b>{t('pos.customer', 'العميل')}</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
           {Array.isArray(sale.payments) && sale.payments.length > 1 && (
             <span style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
               <b>تفاصيل المدفوعات:</b>{' '}
@@ -315,7 +317,7 @@ export function PosSaleSuccessDialog({
                 padding: '4px 6px',
               }}
             >
-              بيع جديد F3
+              {t('pos.new_sale_f3', 'بيع جديد F3')}
             </Button>
             <Button
               type="button"
@@ -331,7 +333,7 @@ export function PosSaleSuccessDialog({
                 padding: '4px 6px',
               }}
             >
-              طباعة ريسيت العميل F2
+              {t('pos.print_receipt_f2', 'طباعة ريسيت العميل F2')}
             </Button>
             {(isDeliveryOrder || onPrintDualReceipt) && (
               <Button

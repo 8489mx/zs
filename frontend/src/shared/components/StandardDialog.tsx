@@ -1,4 +1,5 @@
 import { type ReactNode, type CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
@@ -72,6 +73,9 @@ export function StandardDialog({
   bodyStyle,
   autoFocus = true,
 }: StandardDialogProps) {
+  const { t, i18n } = useTranslation();
+  const isLtr = i18n.language === 'en';
+  const currentDir = isLtr ? 'ltr' : 'rtl';
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   if (!isVisible) return null;
 
@@ -110,12 +114,12 @@ export function StandardDialog({
       maxHeight={maxHeight}
       zIndex={zIndex}
       shellClassName={finalShellClass}
-      ariaLabel={ariaLabel || (typeof title === 'string' ? title : 'نافذة منبثقة')}
+      ariaLabel={ariaLabel || (typeof title === 'string' ? title : (isLtr ? 'Dialog' : 'نافذة منبثقة'))}
       autoFocus={autoFocus}
     >
       <div
         className={`standard-dialog-container ${compact ? 'standard-dialog-compact' : ''}`}
-        dir="rtl"
+        dir={currentDir}
         style={{
           width: '100%',
           boxSizing: 'border-box',
@@ -208,16 +212,16 @@ export function StandardDialog({
                   e.currentTarget.style.borderColor = '#cbd5e1';
                 }}
               >
-                <ArrowRightIcon size={13} color="#170e5e" />
-                <span>{backText || 'رجوع لعمليات المطعم'}</span>
+                <ArrowRightIcon size={13} color="#170e5e" style={{ transform: isLtr ? 'scaleX(-1)' : undefined }} />
+                <span>{backText || (isLtr ? 'Back' : 'رجوع')}</span>
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
               className="standard-dialog-close-btn"
-              aria-label="إغلاق النافذة"
-              title="إغلاق"
+              aria-label={t('common.close', 'إغلاق')}
+              title={t('common.close', 'إغلاق')}
               style={{ flexShrink: 0 }}
             >
               <XIcon size={18} />
@@ -267,7 +271,7 @@ export function StandardDialog({
                 }}
               />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                {loadingText || 'جارٍ تحميل البيانات...'}
+                {loadingText || (isLtr ? 'Loading data...' : 'جارٍ تحميل البيانات...')}
               </span>
             </div>
           ) : (

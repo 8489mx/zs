@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { useAuthStore } from '@/stores/auth-store';
 
 import ar from '../locales/ar.json';
 import en from '../locales/en.json';
@@ -25,6 +26,9 @@ i18n.on('languageChanged', (lng) => {
   document.documentElement.lang = lng;
   document.documentElement.dir = lng === 'en' ? 'ltr' : 'rtl';
   localStorage.setItem('zsystems_lang', lng);
+  try {
+    useAuthStore.getState().updateSessionMeta({ language: lng as 'ar' | 'en' });
+  } catch {}
 });
 
 if (typeof document !== 'undefined') {

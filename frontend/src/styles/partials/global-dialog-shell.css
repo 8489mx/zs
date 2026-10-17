@@ -508,8 +508,8 @@ body.dialog-shell-open #root {
   gap: 12px !important;
   animation: systemToastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   transition: opacity 0.2s ease, transform 0.2s ease !important;
-  direction: rtl !important;
-  text-align: right !important;
+  direction: inherit;
+  text-align: start !important;
 }
 
 .system-toast-card.toast-success {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -11,30 +12,31 @@ import { SuppliersRegisterCard } from '@/features/suppliers/pages/suppliers-page
 import { useSuppliersPageController } from '@/features/suppliers/pages/suppliers-page/useSuppliersPageController';
 
 export function SuppliersPage() {
+  const { t } = useTranslation();
   const controller = useSuppliersPageController();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const stats = [
-    { key: 'suppliers', label: 'عدد الموردين', value: controller.summary?.totalSuppliers || 0 },
-    { key: 'balance', label: 'إجمالي الأرصدة', value: formatCurrency(controller.totalBalance) },
-    { key: 'notes', label: 'عليهم ملاحظات', value: controller.withNotes },
-    { key: 'matched', label: 'مطابقون للبحث', value: controller.summary?.totalSuppliers || 0 },
+    { key: 'suppliers', label: t('suppliers.count', 'عدد الموردين'), value: controller.summary?.totalSuppliers || 0 },
+    { key: 'balance', label: t('suppliers.total_balances', 'إجمالي الأرصدة'), value: formatCurrency(controller.totalBalance) },
+    { key: 'notes', label: t('suppliers.with_notes', 'عليهم ملاحظات'), value: controller.withNotes },
+    { key: 'matched', label: t('suppliers.matched', 'مطابقون للبحث'), value: controller.summary?.totalSuppliers || 0 },
   ] as const;
 
   return (
-    <div className="page-stack page-shell suppliers-page" dir="rtl">
+    <div className="page-stack page-shell suppliers-page">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="الموردون"
+          title={t('sidebar.suppliers', 'الموردون')}
           description="إدارة سجل الموردين، كشوف الحسابات والأرصدة مع إمكانية البحث والإضافة السريعة."
           badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>}
           actions={
             <div className="actions compact-actions">
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ مورد جديد</Button>
-              <Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة ضبط</Button>
-              <Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير</Button>
-              <Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ</Button>
-              <Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة</Button>
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>{t('suppliers.new_supplier', '+ مورد جديد')}</Button>
+              <Button variant="secondary" onClick={controller.resetSuppliersView}>{t('common.reset', 'إعادة ضبط')}</Button>
+              <Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>{t('common.export', 'تصدير')}</Button>
+              <Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>{t('common.copy', 'نسخ')}</Button>
+              <Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>{t('common.print', 'طباعة')}</Button>
             </div>
           }
         />
@@ -51,9 +53,7 @@ export function SuppliersPage() {
           width="min(680px, 95vw)"
           minHeight="auto"
         >
-          <div dir="rtl">
-            <SupplierForm onSuccess={() => setIsCreateOpen(false)} />
-          </div>
+          <SupplierForm onSuccess={() => setIsCreateOpen(false)} />
         </StandardDialog>
 
         {/* Modal for Editing Supplier */}
@@ -65,28 +65,26 @@ export function SuppliersPage() {
           width="min(680px, 95vw)"
           minHeight="auto"
         >
-          <div dir="rtl">
-            {controller.selectedSupplier && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-                <Button
-                  variant="danger"
-                  onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)}
-                  disabled={!controller.canDelete}
-                  style={{
-                    fontSize: '0.8rem',
-                    padding: '4px 12px',
-                    fontWeight: 700,
-                  }}
-                >
-                  حذف المورد
-                </Button>
-              </div>
-            )}
-            <SupplierEditorCard
-              supplier={controller.selectedSupplier || undefined}
-              onSaved={() => controller.setSelectedSupplier(null)}
-            />
-          </div>
+          {controller.selectedSupplier && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+              <Button
+                variant="danger"
+                onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)}
+                disabled={!controller.canDelete}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '4px 12px',
+                  fontWeight: 700,
+                }}
+              >
+                حذف المورد
+              </Button>
+            </div>
+          )}
+          <SupplierEditorCard
+            supplier={controller.selectedSupplier || undefined}
+            onSaved={() => controller.setSelectedSupplier(null)}
+          />
         </StandardDialog>
 
         <ActionConfirmDialog

@@ -161,11 +161,11 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
         <thead>
           <tr>
             ${compact ? '' : '<th class="index-th">#</th>'}
-            <th class="name-th">الصنف</th>
-            ${compact ? '' : '<th class="unit-th">الوحدة</th>'}
-            <th class="qty-th">العدد</th>
-            <th class="price-th">السعر</th>
-            <th class="total-th">الإجمالي</th>
+            <th class="name-th">الصنف / Item</th>
+            ${compact ? '' : '<th class="unit-th">الوحدة / Unit</th>'}
+            <th class="qty-th">الكمية / Qty</th>
+            <th class="price-th">السعر / Price</th>
+            <th class="total-th">الإجمالي / Total</th>
           </tr>
         </thead>
         <tbody>${body || `<tr><td colspan="${compact ? 4 : 6}">لا توجد أصناف</td></tr>`}</tbody>

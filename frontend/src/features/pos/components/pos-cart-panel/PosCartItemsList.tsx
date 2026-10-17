@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FileTextIcon, TagIcon, SmartphoneIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
@@ -20,6 +21,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   onChangeLineQtyByDelta,
   onRemoveItem
 }: any) {
+  const { t } = useTranslation();
   const modifiersTotal = (item.modifiers || []).reduce((sum: any, mod: any) => sum + Number(mod.price || 0), 0);
   const lineTotal = item.qty * (item.price + modifiersTotal);
   const itemCode = String(item.itemCode || '').trim();
@@ -46,7 +48,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
           onEditProduct?.(item.productId);
         }}
         style={{ cursor: 'pointer' }}
-        title={itemCode ? `${item.name} - #${itemCode} (انقر مرتين للتعديل)` : `${item.name} (انقر مرتين للتعديل)`}
+        title={itemCode ? `${item.name} - #${itemCode} (${t('pos.double_click_edit', 'انقر مرتين للتعديل')})` : `${item.name} (${t('pos.double_click_edit', 'انقر مرتين للتعديل')})`}
       >
         <div className="pos-cart-product-inline">
           <strong className="pos-cart-product-name">{item.name}</strong>
@@ -55,10 +57,10 @@ const PosCartItemRow = memo(function PosCartItemRow({
             <button
               type="button"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: '#6b7280' }}
-              title="إضافة ملاحظة على الصنف"
+              title={t('pos.add_item_note', 'إضافة ملاحظة على الصنف')}
               onClick={(e) => {
                 e.stopPropagation();
-                const newNotes = window.prompt('ملاحظات الصنف:', '');
+                const newNotes = window.prompt(t('pos.item_notes', 'ملاحظات الصنف:'), '');
                 if (newNotes !== null) {
                   onItemNoteChange(item.lineKey, newNotes);
                 }
@@ -71,7 +73,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
         {item.notes && allowItemNotes && (
           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px', cursor: 'pointer' }} onClick={(e) => {
             e.stopPropagation();
-            const newNotes = window.prompt('ملاحظات الصنف:', item.notes || '');
+            const newNotes = window.prompt(t('pos.item_notes', 'ملاحظات الصنف:'), item.notes || '');
             if (newNotes !== null) {
               onItemNoteChange(item.lineKey, newNotes);
             }
@@ -90,7 +92,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
           <div style={{ fontSize: '0.74rem', color: '#047857', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', marginTop: '2px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <TagIcon size={12} color="#059669" /> {item.offerName}
             {item.offerDiscount && item.offerDiscount > 0 ? (
-              <span style={{ color: '#065f46', fontWeight: 700 }}> (وفرت {formatCurrency(item.offerDiscount * item.qty)})</span>
+              <span style={{ color: '#065f46', fontWeight: 700 }}> ({t('pos.saved', 'وفرت')} {formatCurrency(item.offerDiscount * item.qty)})</span>
             ) : null}
           </div>
         )}
@@ -110,7 +112,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
                   onItemModifiersClick(item.lineKey);
                 }}
               >
-                + إضافات
+                + {t('pos.modifiers', 'إضافات')}
               </button>
             )}
             {item.seatNumber ? (
@@ -133,7 +135,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
                   onItemSeatChange?.(item.lineKey, nextSeat);
                 }}
               >
-                مقعد {item.seatNumber}
+                {t('pos.seat', 'مقعد')} {item.seatNumber}
               </button>
             ) : null}
           </div>
@@ -245,6 +247,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
 });
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+  const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
@@ -272,18 +275,18 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
 
   if (!cart.length) {
     return (
-      <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label="السلة فارغة">
+      <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label={t('pos.cart_empty_title', 'السلة فارغة')}>
         <div className="pos-cart-empty-state-mark" aria-hidden="true">
           <ShoppingCartIcon size={24} color="#170e5e" />
         </div>
         <div className="pos-cart-empty-state-copy">
-          <strong>السلة جاهزة لأول صنف</strong>
-          <span>اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.</span>
+          <strong>{t('pos.cart_empty_title', 'السلة جاهزة لأول صنف')}</strong>
+          <span>{t('pos.cart_empty_desc', 'اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.')}</span>
         </div>
         <div className="pos-cart-empty-hints" aria-label="اختصارات سريعة">
-          <span>Enter لإضافة أول نتيجة</span>
-          <span>F2 لإنهاء البيع</span>
-          <span>F4 لتعليق الفاتورة</span>
+          <span>{t('pos.hint_enter', 'Enter لإضافة أول نتيجة')}</span>
+          <span>{t('pos.hint_f2', 'F2 لإنهاء البيع')}</span>
+          <span>{t('pos.hint_f4', 'F4 لتعليق الفاتورة')}</span>
         </div>
       </section>
     );
@@ -300,12 +303,12 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   return (
     <section ref={containerRef} className={`pos-cart-table ${responsiveClass}`.trim()} aria-label="عناصر السلة">
       <div className="pos-cart-table-head" aria-hidden="true">
-        <div className="pos-cart-col pos-cart-col-index" style={{ textAlign: 'center' }}>م</div>
-        <div className="pos-cart-col pos-cart-col-product">الصنف</div>
-        <div className="pos-cart-col pos-cart-col-qty" style={{ textAlign: 'center' }}>الكمية</div>
-        <div className="pos-cart-col pos-cart-col-price" style={{ textAlign: 'center' }}>السعر</div>
-        <div className="pos-cart-col pos-cart-col-total" style={{ textAlign: 'center' }}>الإجمالي</div>
-        <div className="pos-cart-col pos-cart-col-remove" style={{ textAlign: 'center' }}>حذف</div>
+        <div className="pos-cart-col pos-cart-col-index" style={{ textAlign: 'center' }}>{t('pos.table_index', 'م')}</div>
+        <div className="pos-cart-col pos-cart-col-product">{t('pos.table_item', 'الصنف')}</div>
+        <div className="pos-cart-col pos-cart-col-qty" style={{ textAlign: 'center' }}>{t('pos.table_qty', 'الكمية')}</div>
+        <div className="pos-cart-col pos-cart-col-price" style={{ textAlign: 'center' }}>{t('pos.table_price', 'السعر')}</div>
+        <div className="pos-cart-col pos-cart-col-total" style={{ textAlign: 'center' }}>{t('pos.table_total', 'الإجمالي')}</div>
+        <div className="pos-cart-col pos-cart-col-remove" style={{ textAlign: 'center' }}>{t('pos.table_remove', 'حذف')}</div>
       </div>
 
       <div className="list-stack pos-cart-list pos-cart-list-premium pos-cart-list-upgraded pos-cart-table-body">

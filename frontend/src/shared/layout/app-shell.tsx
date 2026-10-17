@@ -696,122 +696,122 @@ export function AppShell({ children }: PropsWithChildren) {
       dashboard: t('sidebar.dashboard', 'الرئيسية'),
       'cash-drawer': t('sidebar.cash-drawer', 'الوردية والدرج النقدي'),
       pos: t('sidebar.pos', 'نقطة البيع'),
-      crm: 'إدارة علاقات العملاء (CRM)',
-      'sales-orders': 'أوامر البيع وحجز المخزون',
-      'price-lists': 'قوائم الأسعار والشرائح',
-      sales: 'سجل الفواتير',
-      quotations: 'عروض الأسعار',
-      'online-orders': 'طلبات الأونلاين',
-      returns: 'مرتجعات المبيعات',
+      crm: t('sidebar.crm', 'إدارة علاقات العملاء (CRM)'),
+      'sales-orders': t('sidebar.sales-orders', 'أوامر البيع وحجز المخزون'),
+      'price-lists': t('sidebar.price-lists', 'قوائم الأسعار والشرائح'),
+      sales: t('sidebar.sales', 'سجل الفواتير'),
+      quotations: t('sidebar.quotations', 'عروض الأسعار'),
+      'online-orders': t('sidebar.online-orders', 'طلبات الأونلاين'),
+      returns: t('sidebar.returns', 'مرتجعات المبيعات'),
       customers: t('sidebar.customers', 'العملاء'),
-      'delivery-reps': 'إدارة المناديب',
-      'van-sales-admin': 'سيارات التوزيع (الفان)',
-      'tax-dispatcher': 'الفاتورة الإلكترونية',
-      installments: 'مبيعات التقسيط',
-      'vat-declaration': 'الإقرار الضريبي',
-      kds: 'شاشات المطبخ',
-      signage: 'شاشات العروض',
-      'purchases-orders': 'أوامر الشراء',
-      'purchases-rfqs': 'عروض الأسعار (RFQ)',
-      'purchases-reorder': 'مقترح إعادة الطلب',
-      purchases: 'فواتير المشتريات',
-      'purchases-new': 'إنشاء فاتورة شراء',
-      'purchase-returns': 'مرتجعات المشتريات',
+      'delivery-reps': t('sidebar.delivery-reps', 'إدارة المناديب'),
+      'van-sales-admin': t('sidebar.van-sales-admin', 'سيارات التوزيع (الفان)'),
+      'tax-dispatcher': t('sidebar.tax-dispatcher', 'الفاتورة الإلكترونية'),
+      installments: t('sidebar.installments', 'مبيعات التقسيط'),
+      'vat-declaration': t('sidebar.vat-declaration', 'الإقرار الضريبي'),
+      kds: t('sidebar.kds', 'شاشات المطبخ'),
+      signage: t('sidebar.signage', 'شاشات العروض'),
+      'purchases-orders': t('sidebar.purchases-orders', 'أوامر الشراء'),
+      'purchases-rfqs': t('sidebar.purchases-rfqs', 'عروض الأسعار (RFQ)'),
+      'purchases-reorder': t('sidebar.purchases-reorder', 'مقترح إعادة الطلب'),
+      purchases: t('sidebar.purchases', 'فواتير المشتريات'),
+      'purchases-new': t('sidebar.purchases-new', 'إنشاء فاتورة شراء'),
+      'purchase-returns': t('sidebar.purchase-returns', 'مرتجعات المشتريات'),
       suppliers: t('sidebar.suppliers', 'الموردين'),
-      products: 'دليل الأصناف',
-      'product-new': 'إضافة صنف جديد',
-      'product-categories': 'أقسام الأصناف',
-      'product-modifiers': 'خيارات الأصناف',
-      'pricing-center': 'مركز التسعير',
-      'inventory-warehouses': 'المستودعات والمخازن',
-      'inventory-bins': 'الأرفف والتخزين',
-      'inventory-tree': 'شجرة المخازن',
-      inventory: 'جرد المخزون',
-      'inventory-issue-orders': 'أذونات الصرف والتحويل',
-      'inventory-issue-order-new': 'إذن صرف جديد',
-      services: 'الخدمات',
-      treasury: 'الخزينة والبنوك',
-      expenses: 'المصروفات',
-      accounts: 'أرصدة الحسابات',
-      'accounting-accounts': 'شجرة الحسابات',
-      'accounting-cost-centers': 'مراكز التكلفة',
-      'accounting-journal-entries': 'القيود اليومية',
-      'accounting-payment-allocation': 'تسوية المدفوعات',
-      'accounting-bank-reconciliation': 'التسويات البنكية',
-      'accounting-cheques': 'حافظة الشيكات',
-      'accounting-withholding-tax': 'الخصم والإضافة',
-      'accounting-balance-sheet': 'الميزانية العمومية',
-      'accounting-cash-flow': 'التدفقات النقدية',
-      'accounting-aged-debts': 'أعمار الديون',
-      'accounting-fixed-assets': 'الأصول والإهلاك',
-      'accounting-settings': 'إعدادات الحسابات',
-      maintenance: 'تذاكر الصيانة',
-      'trade-in': 'شراء واستبدال الأجهزة',
-      'imei-history': maintenanceProfile.sidebarSerialLabel,
-      'pharmacy-dashboard': 'لوحة تحكم الصيدلية',
-      'pharmacy-drugs': 'دليل الأدوية والبدائل',
-      'pharmacy-prescriptions': 'الروشتات والتأمين',
-      'pharmacy-shortages': 'كشكول النواقص',
-      'pharmacy-batches': 'الصلاحيات والمرتجعات',
-      'pharmacy-clinical': 'الفحوصات والخدمات',
-      'import-shipments': 'إدارة الشحنات',
-      'import-supplier-credit': 'مديونية الموردين',
-      'import-profit-pool': 'أرباح الشركاء',
-      'manufacturing-components': 'مكونات التصنيع',
-      'manufacturing-work-orders': 'أوامر الإنتاج',
-      'manufacturing-boms': 'قوائم المكونات',
-      'manufacturing-work-centers': 'مراكز العمل والماكينات',
-      'manufacturing-settings': 'إعدادات التصنيع',
-      'maritime-inquiries': 'استفسارات الشحن',
-      'maritime-rfqs': 'عروض تسعير الخطوط',
-      'maritime-matrix': 'مقارنة عروض الخطوط',
-      'maritime-quotations': 'عروض أسعار العملاء',
-      'maritime-jobs': 'أوامر تشغيل الشحنات',
-      'maritime-radar': 'رادار الغرامات وفترات السماح',
-      'maritime-audit': 'تدقيق فواتير النواقل',
-      'maritime-agents': 'مقاصة الوكلاء (SOA)',
-      'maritime-trucking': 'النقل البري والترحيل',
-      'maritime-containers': 'تتبع الحاويات والطرود',
-      'maritime-lines': 'دليل النواقل والموانئ والمطارات',
-      'maritime-portal': 'بوابة عملاء الشحن (B2B)',
-      'maritime-settings': 'إعدادات وسياسات الشحن',
-      'contracting-projects': 'سجل المشاريع',
-      'contracting-boq': 'جداول الكميات',
-      'contracting-change-orders': 'الأوامر التغييرية',
-      'contracting-invoices': 'المستخلصات',
-      'contracting-financials': 'المالية والمستخلصات',
-      'contracting-procurement': 'مقاولو الباطن والتوريد',
-      'contracting-field': 'الميدان والجدول الزمني',
-      'contracting-master-boq': 'بنك بنود المقاولات',
-      'contracting-subcontracts': 'عقود مقاولي الباطن',
-      'contracting-daily-logs': 'اليوميات الميدانية',
-      'contracting-rfis': 'استفسارات الموقع',
-      'reports-overview': 'ملخص الأداء',
-      'reports-sales': 'تقارير المبيعات',
-      'reports-purchases': 'تقارير المشتريات',
-      'reports-inventory': 'تقارير المخزون',
-      'reports-treasury': 'الخزينة والمصروفات',
-      'reports-balances': 'أرصدة الحسابات',
-      'reports-employees': 'تقارير الموظفين',
-      hr: 'الموارد البشرية',
-      'hr-settlements': 'مخالصات نهاية الخدمة',
-      audit: 'سجل النشاط',
-      apps: 'متجر التطبيقات',
-      settings: 'الإعدادات العامة',
-      'saas-admin-tenants': 'إدارة المشتركين',
-      'saas-admin-plans': 'باقات الاشتراكات',
+      products: t('sidebar.products', 'دليل الأصناف'),
+      'product-new': t('sidebar.product-new', 'إضافة صنف جديد'),
+      'product-categories': t('sidebar.product-categories', 'أقسام الأصناف'),
+      'product-modifiers': t('sidebar.product-modifiers', 'خيارات الأصناف'),
+      'pricing-center': t('sidebar.pricing-center', 'مركز التسعير'),
+      'inventory-warehouses': t('sidebar.inventory-warehouses', 'المستودعات والمخازن'),
+      'inventory-bins': t('sidebar.inventory-bins', 'الأرفف والتخزين'),
+      'inventory-tree': t('sidebar.inventory-tree', 'شجرة المخازن'),
+      inventory: t('sidebar.inventory', 'جرد المخزون'),
+      'inventory-issue-orders': t('sidebar.inventory-issue-orders', 'أذونات الصرف والتحويل'),
+      'inventory-issue-order-new': t('sidebar.inventory-issue-order-new', 'إذن صرف جديد'),
+      services: t('sidebar.services', 'الخدمات'),
+      treasury: t('sidebar.treasury', 'الخزينة والبنوك'),
+      expenses: t('sidebar.expenses', 'المصروفات'),
+      accounts: t('sidebar.accounts', 'أرصدة الحسابات'),
+      'accounting-accounts': t('sidebar.accounting-accounts', 'شجرة الحسابات'),
+      'accounting-cost-centers': t('sidebar.accounting-cost-centers', 'مراكز التكلفة'),
+      'accounting-journal-entries': t('sidebar.accounting-journal-entries', 'القيود اليومية'),
+      'accounting-payment-allocation': t('sidebar.accounting-payment-allocation', 'تسوية المدفوعات'),
+      'accounting-bank-reconciliation': t('sidebar.accounting-bank-reconciliation', 'التسويات البنكية'),
+      'accounting-cheques': t('sidebar.accounting-cheques', 'حافظة الشيكات'),
+      'accounting-withholding-tax': t('sidebar.accounting-withholding-tax', 'الخصم والإضافة'),
+      'accounting-balance-sheet': t('sidebar.accounting-balance-sheet', 'الميزانية العمومية'),
+      'accounting-cash-flow': t('sidebar.accounting-cash-flow', 'التدفقات النقدية'),
+      'accounting-aged-debts': t('sidebar.accounting-aged-debts', 'أعمار الديون'),
+      'accounting-fixed-assets': t('sidebar.accounting-fixed-assets', 'الأصول والإهلاك'),
+      'accounting-settings': t('sidebar.accounting-settings', 'إعدادات الحسابات'),
+      maintenance: t('sidebar.maintenance', 'تذاكر الصيانة'),
+      'trade-in': t('sidebar.trade-in', 'شراء واستبدال الأجهزة'),
+      'imei-history': t('sidebar.imei-history', maintenanceProfile.sidebarSerialLabel),
+      'pharmacy-dashboard': t('sidebar.pharmacy-dashboard', 'لوحة تحكم الصيدلية'),
+      'pharmacy-drugs': t('sidebar.pharmacy-drugs', 'دليل الأدوية والبدائل'),
+      'pharmacy-prescriptions': t('sidebar.pharmacy-prescriptions', 'الروشتات والتأمين'),
+      'pharmacy-shortages': t('sidebar.pharmacy-shortages', 'كشكول النواقص'),
+      'pharmacy-batches': t('sidebar.pharmacy-batches', 'الصلاحيات والمرتجعات'),
+      'pharmacy-clinical': t('sidebar.pharmacy-clinical', 'الفحوصات والخدمات'),
+      'import-shipments': t('sidebar.import-shipments', 'إدارة الشحنات'),
+      'import-supplier-credit': t('sidebar.import-supplier-credit', 'مديونية الموردين'),
+      'import-profit-pool': t('sidebar.import-profit-pool', 'أرباح الشركاء'),
+      'manufacturing-components': t('sidebar.manufacturing-components', 'مكونات التصنيع'),
+      'manufacturing-work-orders': t('sidebar.manufacturing-work-orders', 'أوامر الإنتاج'),
+      'manufacturing-boms': t('sidebar.manufacturing-boms', 'قوائم المكونات'),
+      'manufacturing-work-centers': t('sidebar.manufacturing-work-centers', 'مراكز العمل والماكينات'),
+      'manufacturing-settings': t('sidebar.manufacturing-settings', 'إعدادات التصنيع'),
+      'maritime-inquiries': t('sidebar.maritime-inquiries', 'استفسارات الشحن'),
+      'maritime-rfqs': t('sidebar.maritime-rfqs', 'عروض تسعير الخطوط'),
+      'maritime-matrix': t('sidebar.maritime-matrix', 'مقارنة عروض الخطوط'),
+      'maritime-quotations': t('sidebar.maritime-quotations', 'عروض أسعار العملاء'),
+      'maritime-jobs': t('sidebar.maritime-jobs', 'أوامر تشغيل الشحنات'),
+      'maritime-radar': t('sidebar.maritime-radar', 'رادار الغرامات وفترات السماح'),
+      'maritime-audit': t('sidebar.maritime-audit', 'تدقيق فواتير النواقل'),
+      'maritime-agents': t('sidebar.maritime-agents', 'مقاصة الوكلاء (SOA)'),
+      'maritime-trucking': t('sidebar.maritime-trucking', 'النقل البري والترحيل'),
+      'maritime-containers': t('sidebar.maritime-containers', 'تتبع الحاويات والطرود'),
+      'maritime-lines': t('sidebar.maritime-lines', 'دليل النواقل والموانئ والمطارات'),
+      'maritime-portal': t('sidebar.maritime-portal', 'بوابة عملاء الشحن (B2B)'),
+      'maritime-settings': t('sidebar.maritime-settings', 'إعدادات وسياسات الشحن'),
+      'contracting-projects': t('sidebar.contracting-projects', 'سجل المشاريع'),
+      'contracting-boq': t('sidebar.contracting-boq', 'جداول الكميات'),
+      'contracting-change-orders': t('sidebar.contracting-change-orders', 'الأوامر التغييرية'),
+      'contracting-invoices': t('sidebar.contracting-invoices', 'المستخلصات'),
+      'contracting-financials': t('sidebar.contracting-financials', 'المالية والمستخلصات'),
+      'contracting-procurement': t('sidebar.contracting-procurement', 'مقاولو الباطن والتوريد'),
+      'contracting-field': t('sidebar.contracting-field', 'الميدان والجدول الزمني'),
+      'contracting-master-boq': t('sidebar.contracting-master-boq', 'بنك بنود المقاولات'),
+      'contracting-subcontracts': t('sidebar.contracting-subcontracts', 'عقود مقاولي الباطن'),
+      'contracting-daily-logs': t('sidebar.contracting-daily-logs', 'اليوميات الميدانية'),
+      'contracting-rfis': t('sidebar.contracting-rfis', 'استفسارات الموقع'),
+      'reports-overview': t('sidebar.reports-overview', 'ملخص الأداء'),
+      'reports-sales': t('sidebar.reports-sales', 'تقارير المبيعات'),
+      'reports-purchases': t('sidebar.reports-purchases', 'تقارير المشتريات'),
+      'reports-inventory': t('sidebar.reports-inventory', 'تقارير المخزون'),
+      'reports-treasury': t('sidebar.reports-treasury', 'الخزينة والمصروفات'),
+      'reports-balances': t('sidebar.reports-balances', 'أرصدة الحسابات'),
+      'reports-employees': t('sidebar.reports-employees', 'تقارير الموظفين'),
+      hr: t('sidebar.hr', 'الموارد البشرية'),
+      'hr-settlements': t('sidebar.hr-settlements', 'مخالصات نهاية الخدمة'),
+      audit: t('sidebar.audit', 'سجل النشاط'),
+      apps: t('sidebar.apps', 'متجر التطبيقات'),
+      settings: t('sidebar.settings', 'الإعدادات العامة'),
+      'saas-admin-tenants': t('sidebar.saas-admin-tenants', 'إدارة المشتركين'),
+      'saas-admin-plans': t('sidebar.saas-admin-plans', 'باقات الاشتراكات'),
     };
     if (isMaritimeVertical) {
-      labelOverrides['customers'] = 'الشاحنون والمستوردون';
-      labelOverrides['suppliers'] = 'النواقل ومقدمو الخدمات';
+      labelOverrides['customers'] = t('sidebar.maritime-customers', 'الشاحنون والمستوردون');
+      labelOverrides['suppliers'] = t('sidebar.maritime-suppliers', 'النواقل ومقدمو الخدمات');
     }
     if (isWholesaleVanVertical) {
-      labelOverrides['delivery-reps'] = 'مناديب التوزيع والسيارات';
-      labelOverrides['van-sales-admin'] = 'إدارة أسطول الفان';
-      labelOverrides['sales'] = 'فواتير المبيعات والتوزيع';
-      labelOverrides['returns'] = 'مرتجعات التوزيع';
-      labelOverrides['inventory-warehouses'] = 'المستودعات وسيارات الفان';
-      labelOverrides['inventory-issue-orders'] = 'تحويل وصرف سيارات الفان';
+      labelOverrides['delivery-reps'] = t('sidebar.van-reps', 'مناديب التوزيع والسيارات');
+      labelOverrides['van-sales-admin'] = t('sidebar.van-fleet', 'إدارة أسطول الفان');
+      labelOverrides['sales'] = t('sidebar.van-sales', 'فواتير المبيعات والتوزيع');
+      labelOverrides['returns'] = t('sidebar.van-returns', 'مرتجعات التوزيع');
+      labelOverrides['inventory-warehouses'] = t('sidebar.van-warehouses', 'المستودعات وسيارات الفان');
+      labelOverrides['inventory-issue-orders'] = t('sidebar.van-issue', 'تحويل وصرف سيارات الفان');
     }
     const isPlatformAdminUser = isPlatformAdmin(user);
     const isEnterpriseCommerceActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || settings?.enableEnterpriseFeatures === true;
@@ -982,7 +982,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
         return true;
       })
-      .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
+      .map((item) => ({ ...item, label: labelOverrides[item.key] || t(`sidebar.${item.key}`, item.label) }))
       .sort((a, b) => {
         const aIndex = preferredOrder.indexOf(a.key);
         const bIndex = preferredOrder.indexOf(b.key);
@@ -1977,12 +1977,13 @@ export function AppShell({ children }: PropsWithChildren) {
               const groupIconItemKey = group.iconKey || groupItems[0]?.key || 'settings';
               const tone = (isActive || isOpen) ? activeIconTone : defaultIconTone;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
+              const groupTitle = t(`sidebar.${group.key}`, group.label);
               return (
                 <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
                   <div 
                     className="sidebar-group-trigger" 
                     style={toneStyle}
-                    data-tooltip={effectiveSidebarCollapsed ? group.label : undefined}
+                    data-tooltip={effectiveSidebarCollapsed ? groupTitle : undefined}
                     onClick={() => {
                       if (effectiveSidebarCollapsed) toggleSidebar();
                     }}
@@ -1990,7 +1991,7 @@ export function AppShell({ children }: PropsWithChildren) {
                     tabIndex={effectiveSidebarCollapsed ? 0 : undefined}
                   >
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
-                    <span className="sidebar-label">{group.label}</span>
+                    <span className="sidebar-label">{groupTitle}</span>
                   </div>
                   {isOpen ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
                 </div>

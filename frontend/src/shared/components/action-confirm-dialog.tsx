@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -35,28 +36,34 @@ export function ActionConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = 'تأكيد',
-  cancelLabel = 'إلغاء',
+  confirmLabel,
+  cancelLabel,
   confirmVariant = 'danger',
   isBusy = false,
   confirmationKeyword = '',
-  confirmationLabel = 'اكتب كلمة التأكيد للمتابعة',
+  confirmationLabel,
   confirmationHint,
   managerPinRequired = false,
-  managerPinLabel = 'رمز اعتماد المدير',
+  managerPinLabel,
   managerPinHint,
   managerPinPlaceholder,
   managerPinInputType,
   reasonRequired = false,
-  reasonLabel = 'سبب التنفيذ',
+  reasonLabel,
   reasonHint,
-  reasonPlaceholder = 'اكتب السبب باختصار',
+  reasonPlaceholder,
   minReasonLength = 8,
   overlayClassName = '',
   shellClassName = '',
   onConfirm,
   onCancel
 }: ActionConfirmDialogProps) {
+  const { t, i18n } = useTranslation();
+  const isLtr = i18n.language === 'en';
+  const currentDir = isLtr ? 'ltr' : 'rtl';
+
+  const resolvedConfirmLabel = confirmLabel || t('common.confirm', 'تأكيد');
+  const resolvedCancelLabel = cancelLabel || t('common.cancel', 'إلغاء');
   const [confirmationValue, setConfirmationValue] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [reason, setReason] = useState('');
@@ -216,7 +223,7 @@ export function ActionConfirmDialog({
 
         <div className="actions" style={{ marginTop: 20, justifyContent: 'flex-end' }}>
           <Button variant="secondary" onClick={onCancel} disabled={isBusy}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             variant={confirmVariant}
@@ -224,7 +231,7 @@ export function ActionConfirmDialog({
             disabled={!canSubmit}
             data-autofocus={!requiresKeyword && !managerPinRequired && !reasonRequired ? true : undefined}
           >
-            {isBusy ? 'جارٍ التنفيذ...' : confirmLabel}
+            {isBusy ? t('common.loading', 'جارٍ التنفيذ...') : resolvedConfirmLabel}
           </Button>
         </div>
       </Card>

@@ -1,4 +1,5 @@
-﻿import { printPostedSaleReceipt } from '@/lib/pos-printing';
+import i18n from '@/lib/i18n';
+import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import { formatCurrency } from '@/lib/format';
 import type { AppSettings, Sale } from '@/types/domain';
 
@@ -7,32 +8,32 @@ export type SalesViewFilter = 'all' | 'cash' | 'card' | 'credit' | 'wallet' | 'i
 export function getSalesViewFilterLabel(filter: SalesViewFilter) {
   switch (filter) {
     case 'cash':
-      return 'فواتير نقدي';
+      return i18n.t('sales.9d7a25', 'فواتير نقدي');
     case 'card':
-      return 'فواتير فيزا';
+      return i18n.t('sales.b86e13', 'فواتير فيزا');
     case 'credit':
-      return 'فواتير آجل';
+      return i18n.t('sales.e090ca', 'فواتير آجل');
     case 'wallet':
-      return 'فواتير محفظة إلكترونية';
+      return i18n.t('sales.03ce01', 'فواتير محفظة إلكترونية');
     case 'instapay':
-      return 'فواتير InstaPay';
+      return i18n.t('sales.32d24b', 'فواتير InstaPay');
     case 'mixed':
-      return 'فواتير مختلطة';
+      return i18n.t('sales.e52ef9', 'فواتير مختلطة');
     case 'cancelled':
-      return 'فواتير ملغاة';
+      return i18n.t('sales.746044', 'فواتير ملغاة');
     default:
-      return 'كل الفواتير';
+      return i18n.t('sales.6d83a1', 'كل الفواتير');
   }
 }
 
 export function getSalePaymentLabel(sale?: Sale | null) {
   if (!sale) return '—';
-  if (sale.paymentType === 'credit') return 'آجل';
-  if (sale.paymentChannel === 'mixed') return 'مختلط';
-  if (sale.paymentChannel === 'card') return 'فيزا';
-  if (sale.paymentChannel === 'wallet') return 'محفظة إلكترونية';
-  if (sale.paymentChannel === 'instapay') return 'InstaPay';
-  return 'نقدي';
+  if (sale.paymentType === 'credit') return i18n.t('pos.credit_label', 'آجل');
+  if (sale.paymentChannel === 'mixed') return i18n.t('sales.e52ef9', 'مختلط');
+  if (sale.paymentChannel === 'card') return i18n.t('pos.card', 'فيزا');
+  if (sale.paymentChannel === 'wallet') return i18n.t('pos.wallet', 'محفظة إلكترونية');
+  if (sale.paymentChannel === 'instapay') return i18n.t('pos.instapay', 'InstaPay');
+  return i18n.t('pos.cash', 'نقدي');
 }
 
 export function printSaleDocument(
@@ -50,14 +51,14 @@ export function getSalesNextStep(params: {
 }) {
   const { selectedSale, canEditInvoices, totalItems } = params;
   if (selectedSale) {
-    if (selectedSale.status === 'cancelled') return 'الفاتورة ملغاة. استخدم الطباعة أو راجع السجل فقط.';
+    if (selectedSale.status === 'cancelled') return i18n.t('sales.122027', 'الفاتورة ملغاة. استخدم الطباعة أو راجع السجل فقط.');
     return canEditInvoices
-      ? 'يمكنك الآن إلغاء الفاتورة أو طباعتها من اللوحة اليمنى.'
-      : 'الفاتورة محددة. راجع التفاصيل أو اطبعها من اللوحة اليمنى.';
+      ? i18n.t('sales.223fce', 'يمكنك الآن إلغاء الفاتورة أو طباعتها من اللوحة اليمنى.')
+      : i18n.t('sales.f2a80f', 'الفاتورة محددة. راجع التفاصيل أو اطبعها من اللوحة اليمنى.');
   }
   return totalItems
-    ? 'اختر فاتورة من الجدول حتى تظهر التفاصيل والإجراءات.'
-    : 'ابدأ بتخفيف الفلاتر أو افتح الكاشير لإنشاء فاتورة جديدة.';
+    ? i18n.t('sales.a79af3', 'اختر فاتورة من الجدول حتى تظهر التفاصيل والإجراءات.')
+    : i18n.t('sales.875fb0', 'ابدأ بتخفيف الفلاتر أو افتح الكاشير لإنشاء فاتورة جديدة.');
 }
 
 export function buildSalesScopeRows(params: {

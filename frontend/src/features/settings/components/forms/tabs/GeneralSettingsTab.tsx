@@ -1070,10 +1070,17 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لغة النظام</label>
             <CustomSelect
               value={form.watch('uiLanguage') || 'ar'}
-              onChange={(val) => form.setValue('uiLanguage', val as any, { shouldDirty: true, shouldValidate: true })}
+              onChange={(val) => {
+                form.setValue('uiLanguage', val as any, { shouldDirty: true, shouldValidate: true });
+                if (val === 'en' || val === 'ar') {
+                  import('@/lib/i18n').then(({ default: i18n }) => {
+                    i18n.changeLanguage(val);
+                  });
+                }
+              }}
               options={[
                 { value: 'ar', label: 'العربية' },
-                { value: 'en', label: 'English (قريباً)' },
+                { value: 'en', label: 'English' },
               ]}
               disabled={disabled}
             />

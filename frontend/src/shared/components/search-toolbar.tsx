@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { normalizeArabicSearchText } from '@/lib/arabic-normalization';
@@ -23,8 +24,8 @@ interface SearchToolbarProps {
 export function SearchToolbar({
   search,
   onSearchChange,
-  searchPlaceholder = 'ابحث...',
-  searchLabel = 'بحث سريع',
+  searchPlaceholder,
+  searchLabel,
   children,
   title,
   description,
@@ -32,10 +33,15 @@ export function SearchToolbar({
   meta,
   className = '',
   onReset = null,
-  resetLabel = 'تصفير',
+  resetLabel,
   inputRef,
   inputAriaLabel,
 }: SearchToolbarProps) {
+  const { t } = useTranslation();
+  const resolvedSearchPlaceholder = searchPlaceholder || t('toolbar.search', 'ابحث...');
+  const resolvedSearchLabel = searchLabel || t('toolbar.quick_search', 'بحث سريع');
+  const resolvedResetLabel = resetLabel || t('toolbar.reset', 'تصفير');
+
   const hasHeading = Boolean(title || description || actions);
 
   return (

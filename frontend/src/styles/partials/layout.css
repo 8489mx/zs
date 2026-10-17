@@ -578,7 +578,7 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   width: var(--sidebar-width);
   background: #ffffff;
   padding: 0;
-  border-left: 1px solid #e2e8f0;
+  border-inline-end: 1px solid #e2e8f0;
   position: sticky;
   top: 0;
   height: 100vh;

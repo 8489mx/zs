@@ -1,6 +1,7 @@
 // regression marker: طباعة النتائج
 // regression marker: المصروفات المطابقة
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/shared/components/page-header';
 import { formatCurrency } from '@/lib/format';
 import { useTreasuryPage } from '@/features/treasury/hooks/useTreasuryPage';
@@ -12,6 +13,7 @@ import {
 import { TreasuryTransactionsCard } from '@/features/treasury/components/TreasuryTransactionsCard';
 
 export function TreasuryPage() {
+  const { t } = useTranslation();
   const { printMatchingTransactions, exportTransactions: exportTransactionRows } = useTreasuryPageActions();
   const [search, setSearch] = useState('');
   const [txnFilter, setTxnFilter] = useState<TreasuryTransactionFilter>('all');
@@ -36,14 +38,18 @@ export function TreasuryPage() {
   };
 
   return (
-    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact" dir="rtl">
+    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
-      <PageHeader title="الخزينة" description="حركات وأرصدة الخزينة." badge={<span className="nav-pill">الحركات المالية</span>} />
+      <PageHeader
+        title={t('treasury.title', 'الخزينة')}
+        description={t('treasury.description', 'حركات وأرصدة الخزينة.')}
+        badge={<span className="nav-pill">{t('treasury.financial_transactions', 'الحركات المالية')}</span>}
+      />
       <div className="stats-grid compact-grid treasury-stats-grid">
-        <div className="stat-card"><span>عدد الحركات المطابقة</span><strong>{transactionPagination?.totalItems || 0}</strong></div>
-        <div className="stat-card"><span>داخل الخزينة</span><strong>{formatCurrency(transactionSummary.cashIn)}</strong></div>
-        <div className="stat-card"><span>خارج الخزينة</span><strong>{formatCurrency(transactionSummary.cashOut)}</strong></div>
-        <div className="stat-card"><span>صافي الخزينة</span><strong>{formatCurrency(transactionSummary.net)}</strong></div>
+        <div className="stat-card"><span>{t('treasury.matching_transactions', 'عدد الحركات المطابقة')}</span><strong>{transactionPagination?.totalItems || 0}</strong></div>
+        <div className="stat-card"><span>{t('treasury.cash_in', 'داخل الخزينة')}</span><strong>{formatCurrency(transactionSummary.cashIn)}</strong></div>
+        <div className="stat-card"><span>{t('treasury.cash_out', 'خارج الخزينة')}</span><strong>{formatCurrency(transactionSummary.cashOut)}</strong></div>
+        <div className="stat-card"><span>{t('treasury.net_treasury', 'صافي الخزينة')}</span><strong>{formatCurrency(transactionSummary.net)}</strong></div>
       </div>
 
         <TreasuryTransactionsCard

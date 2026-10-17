@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -28,6 +29,7 @@ interface PosCheckoutDialogProps {
 }
 
 function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, onConfirmSale, onOpenSplitBill }: PosCheckoutDialogProps) {
+  const { t } = useTranslation();
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [isManualCustomerOpen, setIsManualCustomerOpen] = useState(false);
@@ -196,11 +198,11 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
       onClose={handleDialogClose}
       width="min(1080px, calc(100vw - 32px))"
       zIndex={86}
-      ariaLabel="مراجعة وإتمام البيع"
+      ariaLabel={t('pos.review_and_checkout', 'مراجعة وإتمام البيع')}
       shellClassName="pos-checkout-dialog-shell"
     >
       <Card
-        title="مراجعة وإتمام البيع"
+        title={t('pos.review_and_checkout', 'مراجعة وإتمام البيع')}
         className="dialog-card pos-checkout-dialog-card"
         style={{
           height: 'auto',
@@ -226,15 +228,15 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
               lineHeight: 1
             }}>
               <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>العناصر:</span>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>{t('pos.items_count', 'العناصر:')}</span>
                 <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{itemsCount}</strong>
               </div>
               <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>الكميات:</span>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>{t('pos.quantities_count', 'الكميات:')}</span>
                 <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{cartQtySummaries.length ? cartQtySummaries.join(' + ') : '0'}</strong>
               </div>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ color: '#64748b', fontWeight: 700 }}>المطلوب:</span>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>{t('pos.due_amount', 'المطلوب:')}</span>
                 <strong className="is-primary" style={{ fontSize: '15px', fontWeight: 900, color: '#170c5c' }}>{formatCurrency(pos.totals.total)}</strong>
               </div>
             </div>
@@ -275,11 +277,11 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
 
               <section className="pos-checkout-dialog-section" style={{ padding: 0, marginTop: '2px' }}>
                 {!isNotesOpen && !pos.note ? (
-                  <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%', minHeight: '32px', fontSize: '12px' }}>+ إضافة ملاحظة للفاتورة</Button>
+                  <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%', minHeight: '32px', fontSize: '12px' }}>+ {t('pos.add_order_note', 'إضافة ملاحظة للفاتورة')}</Button>
                 ) : (
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
-                    <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية على الفاتورة..." disabled={pos.createSale.isPending} style={{ flex: 1, padding: '4px 8px', fontSize: '12px', height: '32px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-                    <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ flexShrink: 0, height: '32px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>مسح</Button>
+                    <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder={t('pos.optional_order_notes', 'ملاحظات اختيارية على الفاتورة...')} disabled={pos.createSale.isPending} style={{ flex: 1, padding: '4px 8px', fontSize: '12px', height: '32px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                    <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ flexShrink: 0, height: '32px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>{t('common.clear', 'مسح')}</Button>
                   </div>
                 )}
               </section>
@@ -320,7 +322,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
           </div>
 
           <div className="actions compact-actions pos-checkout-dialog-actions" style={{ marginTop: '8px' }}>
-            <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>رجوع للسلة</Button>
+            <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>{t('pos.back_to_cart', 'رجوع للسلة')}</Button>
             {isRestaurant && onOpenSplitBill && pos.cart.length > 0 && (
               <Button
                 type="button"
@@ -332,11 +334,11 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 disabled={pos.createSale.isPending}
                 style={{ borderColor: '#170e5e', color: '#170e5e', fontWeight: 800 }}
               >
-                تجزئة / تقسيم الشيك
+                {t('pos.split_bill', 'تجزئة / تقسيم الشيك')}
               </Button>
             )}
             <Button type="button" variant="success" onClick={handleConfirmSale} disabled={pos.createSale.isPending || !pos.canSubmitSale}>
-              {pos.createSale.isPending ? 'جاري الحفظ...' : 'تأكيد البيع (F2)'}
+              {pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع (F2)')}
             </Button>
           </div>
         </div>
