@@ -103,10 +103,25 @@ export function useSelfOrderingKiosk(storeSlug: string = 'almhnds') {
     return await storefrontApi.createOrder(slugToUse, payload as any);
   };
 
+  const listTerminals = async () => {
+    try {
+      const res = await posApi.listTerminals();
+      return res?.data || [];
+    } catch {
+      return [];
+    }
+  };
+
+  const initiateTerminalCharge = async (payload: { terminalId?: string; amount: number; invoiceReference?: string }) => {
+    return await posApi.initiateTerminalCharge(payload);
+  };
+
   return {
     catalogData,
     isCatalogLoading,
     checkUpsell,
     createOrder,
+    listTerminals,
+    initiateTerminalCharge,
   };
 }

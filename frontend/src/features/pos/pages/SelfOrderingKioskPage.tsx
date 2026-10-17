@@ -27,7 +27,6 @@ import { PosSmartUpsellModal } from '@/features/pos/components/pos-workspace/Pos
 import { useSelfOrderingKiosk } from '@/features/pos/hooks/useSelfOrderingKiosk';
 import { getStoreHostSlug } from '@/lib/store-public-url';
 import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
-import { posApi } from '@/features/pos/api/pos.api';
 
 interface KioskCartItem {
   productId: number;
@@ -225,7 +224,8 @@ export function SelfOrderingKioskPage() {
   }, [orderConfirmedData, resetCountdown]);
 
   // Load catalog & actions via feature hook
-  const { catalogData, isCatalogLoading, checkUpsell, createOrder } = useSelfOrderingKiosk(currentSlug);
+  const { catalogData, isCatalogLoading, checkUpsell, createOrder, listTerminals, initiateTerminalCharge } =
+    useSelfOrderingKiosk(currentSlug);
 
   const products = useMemo(() => catalogData?.products || [], [catalogData]);
   const categories = useMemo(() => catalogData?.categories || [], [catalogData]);
@@ -437,8 +437,8 @@ export function SelfOrderingKioskPage() {
         const isBridge = await HardwareBridgeClient.isAvailable().catch(() => false);
         let terminalsList: any[] = [];
         try {
-          const tRes = await posApi.listTerminals();
-          terminalsList = tRes?.data || [];
+          const tRes: any = await listTerminals();
+          terminalsList = Array.isArray(tRes) ? tRes : tRes?.data || [];
         } catch {
           // ignore
         }
@@ -482,21 +482,23 @@ export function SelfOrderingKioskPage() {
             return;
           }
         } else if (activeTerminal?.id) {
-          const chargeRes = await posApi.initiateTerminalCharge({
+          const chargeRes: any = await initiateTerminalCharge({
             terminalId: activeTerminal.id,
             amount: totalCartAmount,
             invoiceReference: refId,
           });
-          if (chargeRes?.data?.status === 'approved') {
+          if (chargeRes?.data?.status === 'approved' || chargeRes?.status === 'approved') {
+            const auth = chargeRes?.data?.authCode || chargeRes?.authCode || 'AUTH-OK';
+            const rrnVal = chargeRes?.data?.rrn || chargeRes?.rrn || refId;
             setTerminalStep('approved');
-            setTerminalMessage(`تمت الموافقة بنجاح - تفويض: ${chargeRes.data.authCode || '00'}`);
+            setTerminalMessage(`تمت الموافقة بنجاح - تفويض: ${auth}`);
             setTimeout(() => {
               void handleFinalizeOrder({
                 paymentMethod: 'card',
                 paymentStatus: 'paid',
                 paymentLabel: 'مدفوع بالبطاقة (ماكينة الكشك)',
-                authCode: chargeRes.data.authCode,
-                rrn: chargeRes.data.rrn || refId,
+                authCode: auth,
+                rrn: rrnVal,
               });
             }, 1200);
             return;
