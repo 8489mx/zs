@@ -262,7 +262,22 @@ const createMainWindow = (customLoadHandler) => {
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    return { action: 'allow' };
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        width: 1280,
+        height: 800,
+        backgroundColor: '#ffffff',
+        icon: path.join(__dirname, '../public/logo_cropped.png'),
+        autoHideMenuBar: true,
+        webPreferences: {
+          preload: path.join(__dirname, 'preload.cjs'),
+          nodeIntegration: false,
+          contextIsolation: true,
+          additionalArguments: [`--electron-runtime-config=${JSON.stringify(currentConfig)}`]
+        }
+      }
+    };
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
@@ -648,6 +663,36 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('get-runtime-config', () => currentConfig);
+
+  ipcMain.handle('open-new-window', (event, routePath) => {
+    try {
+      const { width, height } = getDisplayDimensions();
+      const subWin = new BrowserWindow({
+        width: Math.min(width, 1366),
+        height: Math.min(height, 820),
+        backgroundColor: '#ffffff',
+        icon: path.join(__dirname, '../public/logo_cropped.png'),
+        autoHideMenuBar: true,
+        webPreferences: {
+          preload: path.join(__dirname, 'preload.cjs'),
+          nodeIntegration: false,
+          contextIsolation: true,
+          additionalArguments: [`--electron-runtime-config=${JSON.stringify(currentConfig)}`]
+        }
+      });
+      subWin.setMenuBarVisibility(false);
+      const cleanHash = routePath ? (routePath.startsWith('#') ? routePath : `#${routePath.replace(/^\//, '')}`) : '#/';
+      if (app.isPackaged) {
+        subWin.loadFile(path.join(__dirname, '../dist/index.html'), { hash: cleanHash.replace(/^#/, '') });
+      } else {
+        subWin.loadURL(`http://127.0.0.1:5173/${cleanHash}`);
+      }
+      return { ok: true };
+    } catch (err) {
+      console.error('[ELECTRON] Failed to open new window:', err);
+      return { ok: false, error: err.message };
+    }
+  });
 
   // Show loading window with progress immediately
   createLoadingWindow();

@@ -68,126 +68,11 @@ const activeIconTone: IconTone = {
 };
 
 
-const iconPathMap: Record<string, string> = {
-  pharmacy: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7ZM12 5v6M9 8h6',
-  'pharmacy-dashboard': 'M4 11h16M6 9l6-5 6 5v10H6V9z',
-  'pharmacy-drugs': 'M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7zm-2-2l7-7',
-  'pharmacy-prescriptions': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M9 13h6M9 17h6',
-  'pharmacy-shortages': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'pharmacy-batches': 'M12 8v4l3 3M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
-  'pharmacy-clinical': 'M22 12h-4l-3 9L9 3l-3 9H2',
-  dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
-  pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
-  kds: 'M18 2v8a3 3 0 0 1-3 3h-1v9h-2v-9H7a3 3 0 0 1-3-3V2h2v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2h2z',
-  signage: 'M2 3h20v14H2V3zm6 18h8m-4-4v4',
-  displays: 'M2 3h20v14H2V3zm6 18h8m-4-4v4',
-  'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
-  'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
-  sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
-  crm: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  quotations: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
-  'sales-orders': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'price-lists': 'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01',
-  purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
-  'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
-  inventory: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
-  products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
-  'product-new': 'M12 5v14M5 12h14',
-  'product-categories': 'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01',
-  'pricing-center': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  'inventory-warehouses': 'M3 21h18M3 7v14M21 7v14M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4M3 7l9-4 9 4',
-  'inventory-tree': 'M6 3v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V3M12 12v9',
-  'inventory-issue-order-new': 'M12 5v14M5 12h14M3 21h18',
-  'inventory-issue-orders': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
-  treasury: 'M2 6h20v12H2V6zm4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm12 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-6 2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  expenses: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-cost-centers': 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A6.002 6.002 0 0 1 5.07 13H5a1 1 0 0 1 0-2h.07A6.002 6.002 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A6.002 6.002 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A6.002 6.002 0 0 1 13 16.93zM12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4z',
-  'accounting-journal-entries': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15zM9 7h6M9 11h6',
-  'accounting-cheques': 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z',
-  'accounting-withholding-tax': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-  'accounting-balance-sheet': 'M3 3h18v18H3V3zm3 14h12M6 7h4v6H6V7zm8 4h4v2h-4v-2z',
-  'accounting-cash-flow': 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6M3 12h18',
-  'accounting-aged-debts': 'M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
-  'accounting-fixed-assets': 'M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4',
-  'accounting-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
-  mobile: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 17h2',
-  maintenance: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
-  'trade-in': 'M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4',
-  'imei-history': 'M12 18h.01M8 21h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z',
-  import: 'M2 19h20l-2-6H4l-2 6zm2-6V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4m3 0V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7',
-  'import-shipments': 'M2 19h20l-2-6H4l-2 6zm2-6V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4m3 0V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7',
-  'import-supplier-credit': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  'import-profit-pool': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  manufacturing: 'M2 20h20V8l-6 4V8l-6 4V4H2v16zm4-8h2v2H6v-2zm0 4h2v2H6v-2zm6-4h2v2h-2v-2zm0 4h2v2h-2v-2z',
-  'manufacturing-components': 'M4 6h16M4 12h16M4 18h16',
-  'manufacturing-boms': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'manufacturing-work-orders': 'M2 12h4l2-2h4l2 2h8M6 14v6M18 14v6M10 6L8 10h8l-2-4h-4z',
-  'manufacturing-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
-  'manufacturing-work-centers': 'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
-  reports: 'M18 20V10M12 20V4M6 20v-6M3 20h18',
-  'reports-overview': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
-  'reports-sales': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
-  'reports-treasury': 'M2 6h20v12H2V6zm4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm12 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  'reports-inventory': 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
-  'reports-purchases': 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6',
-  'reports-balances': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'reports-employees': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  hr: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  audit: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zm0 9l2 2 4-4',
-  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
-  'delivery-reps': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  'van-sales-admin': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
-  'purchase-returns': 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
-  customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
-  suppliers: 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
-  'tax-dispatcher': 'M12 2l8 4v6c0 5.5-3.6 10.7-8 12-4.4-1.3-8-6.5-8-12V6l8-4zM12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 11c-2.7 0-5 1.8-5 4v1h10v-1c0-2.2-2.3-4-5-4z',
-  installments: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-  'vat-declaration': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-  'saas-admin-tenants': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  'saas-admin-plans': 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
-  'accounting-financial-summary': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
-  'accounting-receivables-payables': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-inventory-value': 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
-  ship: 'M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6M12 2v8M12 4h4',
-  'maritime-inquiries': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'maritime-rfqs': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
-  'maritime-matrix': 'M3 3h18v18H3V3zm3 14h12M6 7h4v6H6V7zm8 4h4v2h-4v-2z',
-  'maritime-quotations': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
-  'maritime-jobs': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'maritime-radar': 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 4a6 6 0 1 1-6 6 6 6 0 0 1 6-6zm0 4a2 2 0 1 1-2 2 2 2 0 0 1 2-2z',
-  'maritime-audit': 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
-  'maritime-agents': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  'maritime-trucking': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  'maritime-portal': 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 0c2.5 3 4 6.5 4 10s-1.5 7-4 10m0-20c-2.5 3-4 6.5-4 10s1.5 7 4 10M2 12h20',
-  'maritime-containers': 'M2 5h20v14H2V5zM6 5v14M10 5v14M14 5v14M18 5v14M2 12h20',
-  'maritime-lines': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  'maritime-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
-  contracting: 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
-  'contracting-projects': 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h6M9 13h6M9 17h6',
-  'contracting-boq': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
-  'contracting-financials': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  'contracting-procurement': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  'contracting-field': 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-  'contracting-master-boq': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z',
-  'contracting-change-orders': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
-  'contracting-invoices': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
-  'contracting-subcontracts': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  'contracting-daily-logs': 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-  'contracting-rfis': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
-  apps: 'M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z',
-};
-
-function AppNavIcon({ itemKey }: { itemKey: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d={iconPathMap[itemKey] || iconPathMap.settings} />
-    </svg>
-  );
-}
+import { AppNavIcon } from '@/shared/layout/nav-icons';
+import { openExternalWindow } from '@/shared/layout/AppBrowserTabBar';
+import { SidebarContextMenu, type ContextMenuTarget } from '@/shared/layout/SidebarContextMenu';
+import { useTabsStore } from '@/stores/tabs-store';
+import { toast } from '@/shared/components/system-alert';
 
 function formatWorkspaceName(name: string) {
   const match = name.match(/^(.*?) (ل\S+.*)$/);
@@ -239,6 +124,17 @@ export function AppShell({ children }: PropsWithChildren) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
     return false;
+  });
+
+  const tabsStore = useTabsStore();
+  const [sidebarContextMenu, setSidebarContextMenu] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    target: ContextMenuTarget | null;
+  }>({
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    target: null,
   });
 
   const isPlatformUser = isPlatformAdmin(user);
@@ -1909,13 +1805,36 @@ export function AppShell({ children }: PropsWithChildren) {
         onMouseEnter={() => prefetchRouteData(item.to)}
         onFocus={() => prefetchRouteData(item.to)}
         onTouchStart={() => prefetchRouteData(item.to)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setSidebarContextMenu({
+            isOpen: true,
+            position: { x: e.clientX, y: e.clientY },
+            target: {
+              path: item.to,
+              label: item.label,
+              iconKey: item.key,
+            },
+          });
+        }}
         onAuxClick={(e) => {
-          if (e.button === 1) e.preventDefault();
+          if (e.button === 1) {
+            e.preventDefault();
+            const { id } = tabsStore.openTab({
+              path: item.to,
+              title: item.label,
+              iconKey: item.key,
+              makeActive: true,
+            });
+            tabsStore.setActiveTabId(id);
+            navigate(item.to);
+          }
         }}
         onMouseDown={(e) => {
           if (e.button === 1) e.preventDefault();
         }} 
         onClick={() => {
+          tabsStore.syncCurrentRoute(item.to, item.label, item.key);
           if (isSidebarSearchOpen) {
             setTimeout(() => {
               handleCloseSidebarSearch();
@@ -2262,6 +2181,39 @@ export function AppShell({ children }: PropsWithChildren) {
           </div>
         </DialogShell>
       )}
+      <SidebarContextMenu
+        isOpen={sidebarContextMenu.isOpen}
+        position={sidebarContextMenu.position}
+        target={sidebarContextMenu.target}
+        mode="sidebar"
+        onClose={() => setSidebarContextMenu({ isOpen: false, position: { x: 0, y: 0 }, target: null })}
+        onOpenInNewTab={(target) => {
+          const { id } = tabsStore.openTab({
+            path: target.path,
+            title: target.label,
+            iconKey: target.iconKey,
+            makeActive: true,
+          });
+          tabsStore.setActiveTabId(id);
+          navigate(target.path);
+        }}
+        onOpenInNewWindow={(target) => {
+          openExternalWindow(target.path);
+          toast.info('تم فتح الصفحة في نافذة مستقلة');
+        }}
+        onCopyLink={(target) => {
+          try {
+            const isElectron = typeof window !== 'undefined' && (Boolean((window as any).electronAPI) || window.navigator.userAgent.toLowerCase().includes('electron'));
+            const fullUrl = isElectron 
+              ? `${window.location.origin}${window.location.pathname}#${target.path.replace(/^#?\/?/, '/')}`
+              : `${window.location.origin}${target.path}`;
+            navigator.clipboard.writeText(fullUrl);
+            toast.success('تم نسخ رابط الصفحة إلى الحافظة');
+          } catch (_) {
+            toast.error('تعذر نسخ الرابط');
+          }
+        }}
+      />
     </div>
   );
 }

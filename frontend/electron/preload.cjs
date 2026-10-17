@@ -19,10 +19,12 @@ for (const arg of process.argv) {
 contextBridge.exposeInMainWorld('electronAPI', {
   getHardwareId: () => ipcRenderer.invoke('get-hardware-id'),
   getSavedLicense: () => ipcRenderer.invoke('get-saved-license'),
-  saveLicenseKey: (key) => ipcRenderer.invoke('save-license-key', key)
+  saveLicenseKey: (key) => ipcRenderer.invoke('save-license-key', key),
+  openNewWindow: (routePath) => ipcRenderer.invoke('open-new-window', routePath)
 });
 
 contextBridge.exposeInMainWorld('electronRuntime', {
+  openNewWindow: (routePath) => ipcRenderer.invoke('open-new-window', routePath),
   config: runtimeConfig,
   getRuntimeConfig: () => ipcRenderer.invoke('get-runtime-config'),
   clearAppCache: () => ipcRenderer.invoke('clear-app-cache'),

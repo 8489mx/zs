@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { useToolbarStore } from '@/stores/toolbar-store';
@@ -9,6 +9,8 @@ import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButt
 import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
 import { ArrowRightIcon } from '@/shared/components/icons/AppIcons';
+import { useTabsStore } from '@/stores/tabs-store';
+import { AppBrowserTabBar, resolveRouteMetadata } from '@/shared/layout/AppBrowserTabBar';
 
 export function isRootLandingRoute(pathname: string): boolean {
   const clean = pathname.replace(/\/+$/, '') || '/';
@@ -51,10 +53,33 @@ export function GlobalAppToolbar() {
   const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
+  const { tabs, syncCurrentRoute } = useTabsStore();
+
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth <= 900;
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 900);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Sync route changes with active tab
+  useEffect(() => {
+    const fullPath = location.pathname + location.search;
+    const meta = resolveRouteMetadata(location.pathname);
+    syncCurrentRoute(fullPath, meta.title, meta.iconKey);
+  }, [location.pathname, location.search, syncCurrentRoute]);
+
   const activeBreadcrumbs = resolveAutoBreadcrumbs(location.pathname, breadcrumbs);
   const isRootPage = isRootLandingRoute(location.pathname);
   const canGoBack = typeof window !== 'undefined' && window.history.length > 1 && (window.history.state?.idx ?? 0) > 0;
   const showBackButton = !isRootPage && canGoBack;
+  const showTabs = tabs.length > 1 && !isMobileScreen;
 
   const handleGoBack = () => {
     if (canGoBack) {
@@ -117,70 +142,74 @@ export function GlobalAppToolbar() {
           </button>
         )}
 
-        <div 
-          className="purchase-prototype-breadcrumb"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            flexWrap: 'nowrap',
-            minWidth: 0,
-            flex: '1 1 auto',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {activeBreadcrumbs.map((crumb, index) => {
-            const isLast = index === activeBreadcrumbs.length - 1;
-            if (isLast) {
-              const labelText = crumb.label || '';
-              const charCount = labelText.length;
-              // Responsive dynamic font sizing: shrinks when text is long or space is tight ("او يصغر الكلام")
-              const dynamicFontSize = charCount > 40 ? '0.78rem' : charCount > 25 ? '0.84rem' : '0.94rem';
+        {showTabs ? (
+          <AppBrowserTabBar />
+        ) : (
+          <div 
+            className="purchase-prototype-breadcrumb"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'nowrap',
+              minWidth: 0,
+              flex: '1 1 auto',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {activeBreadcrumbs.map((crumb, index) => {
+              const isLast = index === activeBreadcrumbs.length - 1;
+              if (isLast) {
+                const labelText = crumb.label || '';
+                const charCount = labelText.length;
+                // Responsive dynamic font sizing: shrinks when text is long or space is tight ("او يصغر الكلام")
+                const dynamicFontSize = charCount > 40 ? '0.78rem' : charCount > 25 ? '0.84rem' : '0.94rem';
+
+                return (
+                  <strong
+                    key={index}
+                    title={labelText}
+                    style={{
+                      fontSize: dynamicFontSize,
+                      color: '#0f172a',
+                      fontWeight: 800,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                      maxWidth: 'min(480px, 45vw)',
+                      display: 'inline-block',
+                      verticalAlign: 'middle',
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {labelText}
+                  </strong>
+                );
+              }
 
               return (
-                <strong
-                  key={index}
-                  title={labelText}
-                  style={{
-                    fontSize: dynamicFontSize,
-                    color: '#0f172a',
-                    fontWeight: 800,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minWidth: 0,
-                    maxWidth: 'min(480px, 45vw)',
-                    display: 'inline-block',
-                    verticalAlign: 'middle',
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {labelText}
-                </strong>
+                <Fragment key={index}>
+                  <span 
+                    style={{ 
+                      cursor: crumb.to ? 'pointer' : 'default', 
+                      color: crumb.to ? '#64748b' : 'inherit',
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                    }} 
+                    onClick={() => crumb.to && navigate(crumb.to)}
+                  >
+                    {crumb.label}
+                  </span>
+                  <span style={{ color: '#cbd5e1', flexShrink: 0, userSelect: 'none', marginInline: '1px' }}>›</span>
+                </Fragment>
               );
-            }
-
-            return (
-              <Fragment key={index}>
-                <span 
-                  style={{ 
-                    cursor: crumb.to ? 'pointer' : 'default', 
-                    color: crumb.to ? '#64748b' : 'inherit',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                  }} 
-                  onClick={() => crumb.to && navigate(crumb.to)}
-                >
-                  {crumb.label}
-                </span>
-                <span style={{ color: '#cbd5e1', flexShrink: 0, userSelect: 'none', marginInline: '1px' }}>›</span>
-              </Fragment>
-            );
-          })}
-        </div>
+            })}
+          </div>
+        )}
 
         <div className="purchase-prototype-toolbar-actions">
           {updateInfo?.updateAvailable && updateInfo.latestVersion && (
