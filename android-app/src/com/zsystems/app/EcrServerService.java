@@ -266,7 +266,7 @@ public class EcrServerService extends Service {
                     String responseJson;
                     int statusCode = 200;
 
-                    if (path.contains("/ping") || path.contains("/health") || path.contains("/status")) {
+                    if ("GET".equals(method) && (path.equals("/") || path.contains("/ping") || path.contains("/health") || path.contains("/status"))) {
                         responseJson = "{\"status\":\"ONLINE\",\"terminal\":\"SUNMI-V2PRO\",\"online\":true,\"ready\":true,\"message\":\"ماكينة الدفع نشطة ومستعدة\"}";
                     } else if (path.contains("/test")) {
                         responseJson = "{\"success\":true,\"data\":{\"online\":true,\"reachable\":true,\"portOpen\":true,\"pingSucceeded\":true,\"message\":\"الاتصال بماكينة الدفع نشط ومستعد\",\"latencyMs\":1}}";
@@ -279,7 +279,7 @@ public class EcrServerService extends Service {
                         }
                         PaymentActivity.cancelFromRemote("تم إلغاء المعاملة من نقطة البيع");
                         responseJson = "{\"success\":true,\"status\":\"CANCELLED\",\"responseCode\":\"000099\",\"message\":\"تم إلغاء العملية\"}";
-                    } else {
+                    } else if ("POST".equals(method) || path.contains("/charge") || path.contains("/pay") || path.contains("/sale")) {
                         // Real Interactive Payment Sale Transaction!
                         double amount = 0.0;
                         String currency = "EGP";
@@ -303,69 +303,58 @@ public class EcrServerService extends Service {
                             }
                         }
 
-                        // Create session & wait for physical customer/cashier action
-                        PaymentSession session = new PaymentSession(refId, amount, currency, prov);
-                        synchronized (PaymentSession.LOCK) {
-                            PaymentSession.current = session;
-                        }
-
-                        // Launch Fullscreen Payment Activity on Sunmi screen
-                        Intent actIntent = new Intent(EcrServerService.this, PaymentActivity.class);
-                        actIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        actIntent.putExtra("referenceId", refId);
-                        actIntent.putExtra("amount", amount);
-                        actIntent.putExtra("currency", currency);
-                        actIntent.putExtra("provider", prov);
-                        startActivity(actIntent);
-
-                        // Hold HTTP connection until cashier/customer confirms or cancels
-                        boolean finished = false;
-                        try {
-                            finished = session.latch.await(62, TimeUnit.SECONDS);
-                        } catch (InterruptedException e) {
-                            session.isCancelled = true;
-                        }
-
-                        if (!finished) {
-                            session.isCancelled = true;
-                            session.message = "انتهت مهلة انتظار الدفع على شاشة الماكينة (Timeout)";
-                            if (PaymentActivity.activeInstance != null) {
-                                try { PaymentActivity.activeInstance.finish(); } catch (Exception ignored) {}
-                            }
-                        }
-
-                        synchronized (PaymentSession.LOCK) {
-                            if (PaymentSession.current == session) {
-                                PaymentSession.current = null;
-                            }
-                        }
-
-                        if (session.isApproved) {
-                            responseJson = "{\"status\":\"APPROVED\",\"responseCode\":\"000000\"," +
-                                "\"success\":true,\"isSuccess\":true," +
-                                "\"authCode\":\"" + session.authCode + "\"," +
-                                "\"rrn\":\"" + session.rrn + "\"," +
-                                "\"referenceNo\":\"" + session.rrn + "\"," +
-                                "\"approvalCode\":\"" + session.authCode + "\"," +
-                                "\"cardScheme\":\"" + session.cardScheme + "\"," +
-                                "\"cardLastFour\":\"" + session.cardLastFour + "\"," +
-                                "\"amount\":" + session.amount + "," +
-                                "\"currency\":\"" + session.currency + "\"," +
-                                "\"message\":\"" + (session.message.isEmpty() ? "تمت العملية بنجاح" : session.message) + "\"}";
-                        } else if (session.isCancelled) {
-                            responseJson = "{\"status\":\"CANCELLED\",\"responseCode\":\"000099\"," +
-                                "\"success\":false,\"isSuccess\":false," +
-                                "\"amount\":" + session.amount + "," +
-                                "\"currency\":\"" + session.currency + "\"," +
-                                "\"message\":\"" + (session.message.isEmpty() ? "تم إلغاء العملية من الماكينة" : session.message) + "\"}";
+                        if (amount <= 0.0) {
+                            responseJson = "{\"status\":\"ERROR\",\"message\":\"المبلغ يجب أن يكون أكبر من الصفر\",\"success\":false,\"online\":true}";
                         } else {
-                            responseJson = "{\"status\":\"DECLINED\",\"responseCode\":\"000098\"," +
-                                "\"success\":false,\"isSuccess\":false," +
-                                "\"amount\":" + session.amount + "," +
-                                "\"currency\":\"" + session.currency + "\"," +
-                                "\"message\":\"" + (session.message.isEmpty() ? "تم رفض العملية من الماكينة" : session.message) + "\"}";
+                            // Create session & wait for physical customer/cashier action
+                            PaymentSession session = new PaymentSession(refId, amount, currency, prov);
+                            synchronized (PaymentSession.LOCK) {
+                                PaymentSession.current = session;
+                            }
+
+                            // Launch Fullscreen Payment Activity on Sunmi screen
+                            Intent actIntent = new Intent(EcrServerService.this, PaymentActivity.class);
+                            actIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            actIntent.putExtra("referenceId", refId);
+                            actIntent.putExtra("amount", amount);
+                            actIntent.putExtra("currency", currency);
+                            actIntent.putExtra("provider", prov);
+                            startActivity(actIntent);
+
+                            // Hold HTTP connection until cashier/customer confirms or cancels
+                            boolean finished = false;
+                            try {
+                                finished = session.latch.await(62, TimeUnit.SECONDS);
+                            } catch (InterruptedException e) {
+                                session.isCancelled = true;
+                            }
+
+                            if (!finished) {
+                                session.isCancelled = true;
+                            }
+
+                            if (session.isApproved) {
+                                responseJson = String.format(Locale.US,
+                                    "{\"status\":\"APPROVED\",\"responseCode\":\"000000\",\"success\":true,\"isSuccess\":true,\"approvalCode\":\"%s\",\"authCode\":\"%s\",\"rrn\":\"%s\",\"cardScheme\":\"%s\",\"amount\":%.2f,\"currency\":\"%s\",\"message\":\"تمت العملية بنجاح\"}",
+                                    session.authCode, session.authCode, session.rrn, session.cardScheme, session.amount, session.currency);
+                            } else {
+                                String userMsg = session.message != null ? session.message : (session.isCancelled ? "تم إلغاء المعاملة من الماكينة" : "تم رفض المعاملة");
+                                if (!finished) userMsg = "انتهت مهلة الانتظار على شاشة الماكينة";
+                                responseJson = String.format(Locale.US,
+                                    "{\"status\":\"CANCELLED\",\"responseCode\":\"000099\",\"success\":false,\"isSuccess\":false,\"amount\":%.2f,\"currency\":\"%s\",\"message\":\"%s\"}",
+                                    session.amount, session.currency, userMsg);
+                            }
+
+                            synchronized (PaymentSession.LOCK) {
+                                if (PaymentSession.current == session) {
+                                    PaymentSession.current = null;
+                                }
+                            }
                         }
+                    } else {
+                        responseJson = "{\"status\":\"ONLINE\",\"terminal\":\"SUNMI-V2PRO\",\"message\":\"Z-Systems ECR Service\",\"online\":true}";
                     }
+
 
                     byte[] jsonBytes = responseJson.getBytes("UTF-8");
                     String headers = "HTTP/1.1 " + statusCode + " OK\r\n" +
