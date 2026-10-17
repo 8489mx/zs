@@ -601,8 +601,8 @@ export function PosCheckoutPaymentSection({
   };
 
   const handleCancelTerminal = async () => {
-    const targetTerminal = activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0];
-    const rawIp = targetTerminal?.ip || targetTerminal?.ipAddress;
+    const targetTerminal = (activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0]) as any;
+    const rawIp = String(targetTerminal?.ip || targetTerminal?.ipAddress || '').trim();
     const cleanIp = rawIp ? (rawIp.includes(':') ? rawIp.split(':')[0] : rawIp) : '192.168.1.3';
     const cleanPort = targetTerminal?.port || (rawIp && rawIp.includes(':') ? Number(rawIp.split(':')[1]) : 8080);
     const prov = targetTerminal?.provider || 'fawry';
