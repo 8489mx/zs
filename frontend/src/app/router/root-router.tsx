@@ -397,8 +397,16 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
     element: createLazyRoute(() => import('@/features/pos/pages/SelfOrderingKioskPage').then((module) => ({ default: module.SelfOrderingKioskPage }))),
   },
   {
+    path: '/pos/kiosk/:slug',
+    element: createLazyRoute(() => import('@/features/pos/pages/SelfOrderingKioskPage').then((module) => ({ default: module.SelfOrderingKioskPage }))),
+  },
+  {
     path: '/kiosk',
     element: <Navigate to="/pos/kiosk" replace />,
+  },
+  {
+    path: '/kiosk/:slug',
+    element: createLazyRoute(() => import('@/features/pos/pages/SelfOrderingKioskPage').then((module) => ({ default: module.SelfOrderingKioskPage }))),
   },
   {
     path: '/punch',

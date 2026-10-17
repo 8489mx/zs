@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
@@ -9,12 +10,24 @@ import {
   ArrowRightIcon,
   PlusCircleIcon,
   CreditCardIcon,
+  PrinterIcon,
   XIcon,
+  SearchIcon,
+  Trash2Icon,
+  ReceiptIcon,
+  RefreshCwIcon,
+  QrCodeIcon,
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  ClockIcon,
 } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { PosSmartUpsellModal } from '@/features/pos/components/pos-workspace/PosSmartUpsellModal';
 import { useSelfOrderingKiosk } from '@/features/pos/hooks/useSelfOrderingKiosk';
+import { getStoreHostSlug } from '@/lib/store-public-url';
+import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
+import { posApi } from '@/features/pos/api/pos.api';
 
 interface KioskCartItem {
   productId: number;
@@ -23,31 +36,178 @@ interface KioskCartItem {
   qty: number;
   notes?: string;
   imageUrl?: string;
+  categoryName?: string;
+}
+
+/**
+ * محرك صور الوجبات الذكي:
+ * يربط كل تصنيف ووجبة بصورة فوتوغرافية احترافية عالية الدقة والشهية،
+ * بحيث تكون الصورة هي البطل الرئيسي للكارت (تشغل 70% من المساحة).
+ */
+function getSmartProductImage(product: any): string {
+  if (
+    product.imageUrl &&
+    typeof product.imageUrl === 'string' &&
+    (product.imageUrl.startsWith('http://') || product.imageUrl.startsWith('https://') || product.imageUrl.startsWith('/'))
+  ) {
+    return product.imageUrl;
+  }
+
+  const name = String(product.name || '').toLowerCase();
+  const cat = String(product.categoryName || '').toLowerCase();
+
+  // مشويات وكفتة
+  if (name.includes('كفت') || name.includes('مشو') || cat.includes('فحم') || cat.includes('مشو') || name.includes('كباب')) {
+    return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80';
+  }
+  // حواوشي وفطائر
+  if (name.includes('حواوش') || name.includes('فطير')) {
+    return 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80';
+  }
+  // شاورما وصواريخ ومارين
+  if (name.includes('صاروخ') || name.includes('شاورما') || name.includes('رول') || name.includes('مارين')) {
+    return 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=500&q=80';
+  }
+  // مكرونات وباستا
+  if (name.includes('مكرون') || name.includes('باستا') || cat.includes('مكرون')) {
+    return 'https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=500&q=80';
+  }
+  // شيش ودجاج وبانيه وزنجر واستربس
+  if (name.includes('شيش') || name.includes('فراخ') || name.includes('دجاج') || name.includes('بانية') || name.includes('زنجر') || name.includes('استربس')) {
+    return 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&q=80';
+  }
+  // فرايز وبطاطس
+  if (name.includes('فرايز') || name.includes('بطاطس') || cat.includes('فرايز')) {
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+  }
+  // برجر
+  if (name.includes('برجر') || name.includes('burger')) {
+    return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80';
+  }
+  // بيتزا
+  if (name.includes('بيتزا') || name.includes('pizza')) {
+    return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80';
+  }
+  // مشروبات ومياه
+  if (name.includes('بيبسي') || name.includes('كولا') || name.includes('عصير') || name.includes('مشروب') || name.includes('ماء') || cat.includes('مشروب')) {
+    return 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&q=80';
+  }
+  // حلويات
+  if (name.includes('حلو') || name.includes('كيك') || name.includes('شوكولات') || name.includes('ايس كريم') || name.includes('سودا')) {
+    return 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=500&q=80';
+  }
+  // هواتف وآيفون (لمتجر الأجهزة)
+  if (name.includes('آيفون') || name.includes('iphone')) {
+    return 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500&q=80';
+  }
+  if (name.includes('هاتف') || name.includes('سامسونج') || name.includes('أوبو') || name.includes('انفينيكس') || name.includes('ريلمي') || cat.includes('هواتف')) {
+    return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80';
+  }
+  if (name.includes('شاحن') || name.includes('باور بانك') || name.includes('كابل') || name.includes('سماعة') || cat.includes('إكسسوار')) {
+    return 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500&q=80';
+  }
+
+  // وجبة رئيسية فاخرة افتراضية
+  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80';
 }
 
 export function SelfOrderingKioskPage() {
-  const storeName = useAuthStore((s: any) => s.storeName) || 'main';
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const [searchParams] = useSearchParams();
+  const querySlug = searchParams.get('store') || searchParams.get('slug');
+  const tenant = useAuthStore((s: any) => s.tenant);
+  const hostSlug = getStoreHostSlug();
+  const localSlug = typeof localStorage !== 'undefined' ? localStorage.getItem('zs_last_company_code') : null;
+
+  // توجيه تلقائي لكتالوج مطعم المهندس (75 وجبة)
+  const initialSlug = routeSlug || querySlug || (tenant?.slug === 'zs' ? 'almhnds' : (tenant?.slug || hostSlug || localSlug || 'almhnds'));
+  const [currentSlug, setCurrentSlug] = useState<string>(initialSlug);
+
+  const isRestaurant = currentSlug === 'almhnds';
+  const storeDisplayName = isRestaurant
+    ? 'مطعم المهندس للمشويات والسندوتشات'
+    : (tenant?.businessName || 'المتجر الذكي');
+
   const [diningMode, setDiningMode] = useState<'dine_in' | 'takeaway' | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<KioskCartItem[]>([]);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestNotes, setGuestNotes] = useState('');
-  const [paymentChoice, setPaymentChoice] = useState<'card_kiosk' | 'cash_counter'>('card_kiosk');
+  const [paymentChoice, setPaymentChoice] = useState<'card_terminal' | 'qr_mobile' | 'cash_counter'>('card_terminal');
+  const [currentTime, setCurrentTime] = useState<string>('');
   const [orderConfirmedData, setOrderConfirmedData] = useState<{
     orderNumber: string;
     total: number;
     diningMode: string;
     tableNumber?: string;
+    items?: KioskCartItem[];
+    placedAt?: string;
+    paymentStatus: 'paid' | 'unpaid';
+    paymentMethodLabel: string;
+    authCode?: string;
+    rrn?: string;
   } | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number>(15);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // حالة ماكينة الدفع بالكشك (Terminal State)
+  const [isTerminalModalOpen, setIsTerminalModalOpen] = useState(false);
+  const [terminalStep, setTerminalStep] = useState<'connecting' | 'waiting_card' | 'approved' | 'declined' | 'offline_error'>('connecting');
+  const [terminalMessage, setTerminalMessage] = useState('');
+  const [terminalCountdown, setTerminalCountdown] = useState(60);
+  const [activeTransactionId, setActiveTransactionId] = useState('');
+
+  // حالة الدفع برمز QR بالهاتف (Dynamic QR State)
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(120);
+  const [qrRef, setQrRef] = useState('');
 
   // Smart Upsell state
   const [upsellModalOpen, setUpsellModalOpen] = useState(false);
   const [upsellTriggerItem, setUpsellTriggerItem] = useState<{ id: number; name: string } | null>(null);
   const [upsellRules, setUpsellRules] = useState<any[]>([]);
+
+  // عداد مهلة ماكينة الدفع
+  useEffect(() => {
+    let timer: any = null;
+    if (isTerminalModalOpen && terminalStep === 'waiting_card' && terminalCountdown > 0) {
+      timer = setInterval(() => setTerminalCountdown((c) => c - 1), 1000);
+    } else if (isTerminalModalOpen && terminalStep === 'waiting_card' && terminalCountdown <= 0) {
+      setTerminalStep('declined');
+      setTerminalMessage('انتهت مهلة إدخال أو تمرير البطاقة في الجهاز');
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isTerminalModalOpen, terminalStep, terminalCountdown]);
+
+  // عداد مهلة رمز QR للدفع
+  useEffect(() => {
+    let timer: any = null;
+    if (isQrModalOpen && qrCountdown > 0) {
+      timer = setInterval(() => setQrCountdown((c) => c - 1), 1000);
+    } else if (isQrModalOpen && qrCountdown <= 0) {
+      setIsQrModalOpen(false);
+      toast.warning('انتهت مهلة سداد رمز QR، يرجى المحاولة مرة أخرى أو اختيار الدفع عند الكاونتر');
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isQrModalOpen, qrCountdown]);
+
+  // الساعة الحية للكشك
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-reset timer when order is confirmed
   useEffect(() => {
@@ -65,15 +225,23 @@ export function SelfOrderingKioskPage() {
   }, [orderConfirmedData, resetCountdown]);
 
   // Load catalog & actions via feature hook
-  const { catalogData, isCatalogLoading, checkUpsell, createOrder } = useSelfOrderingKiosk(storeName);
+  const { catalogData, isCatalogLoading, checkUpsell, createOrder } = useSelfOrderingKiosk(currentSlug);
 
-  const products = catalogData?.products || [];
-  const categories = catalogData?.categories || [];
+  const products = useMemo(() => catalogData?.products || [], [catalogData]);
+  const categories = useMemo(() => catalogData?.categories || [], [catalogData]);
 
-  const filteredProducts = products.filter((p: any) => {
-    if (selectedCategory === 'all') return true;
-    return p.categoryId === selectedCategory;
-  });
+  // فلترة الأصناف حسب القسم وبحث النص
+  const filteredProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      const matchesCategory =
+        selectedCategory === 'all' || Number(p.categoryId) === Number(selectedCategory);
+      const matchesSearch =
+        !searchQuery.trim() ||
+        String(p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, selectedCategory, searchQuery]);
 
   const checkUpsellForProduct = async (product: any) => {
     try {
@@ -89,6 +257,7 @@ export function SelfOrderingKioskPage() {
   };
 
   const handleAddToCart = (product: any, skipUpsell = false) => {
+    const smartImg = getSmartProductImage(product);
     setCart((prev) => {
       const existingIdx = prev.findIndex((i) => i.productId === product.id);
       if (existingIdx !== -1) {
@@ -106,11 +275,11 @@ export function SelfOrderingKioskPage() {
           name: product.name,
           price: Number(product.price || 0),
           qty: 1,
-          imageUrl: product.imageUrl,
+          imageUrl: smartImg,
+          categoryName: product.categoryName,
         },
       ];
     });
-    toast.success(`تمت إضافة ${product.name} إلى السلة`);
 
     if (!skipUpsell) {
       void checkUpsellForProduct(product);
@@ -131,6 +300,10 @@ export function SelfOrderingKioskPage() {
     });
   };
 
+  const handleRemoveFromCart = (productId: number) => {
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  };
+
   const totalItemsCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const totalCartAmount = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
 
@@ -138,24 +311,25 @@ export function SelfOrderingKioskPage() {
     setDiningMode(null);
     setCart([]);
     setIsReviewOpen(false);
+    setIsTerminalModalOpen(false);
+    setIsQrModalOpen(false);
     setTableNumber('');
     setGuestPhone('');
     setGuestNotes('');
     setOrderConfirmedData(null);
     setResetCountdown(15);
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setPaymentChoice('card_terminal');
   };
 
-  const handleSubmitOrder = async () => {
-    if (cart.length === 0) {
-      toast.warning('السلة فارغة، يرجى اختيار وجباتك أولاً');
-      return;
-    }
-
-    if (diningMode === 'dine_in' && !tableNumber.trim()) {
-      toast.warning('يرجى إدخال رقم الطاولة أو بطاقة الانتظار');
-      return;
-    }
-
+  const handleFinalizeOrder = async (opts: {
+    paymentMethod: 'card' | 'qr_mobile' | 'cash';
+    paymentStatus: 'paid' | 'unpaid';
+    paymentLabel: string;
+    authCode?: string;
+    rrn?: string;
+  }) => {
     setIsSubmitting(true);
     try {
       const orderPayload = {
@@ -168,7 +342,10 @@ export function SelfOrderingKioskPage() {
           qty: i.qty,
           unitPrice: i.price,
         })),
-        paymentMethod: paymentChoice === 'card_kiosk' ? 'card' : 'cash',
+        paymentMethod: opts.paymentMethod,
+        paymentStatus: opts.paymentStatus,
+        authCode: opts.authCode,
+        rrn: opts.rrn,
       };
 
       const res = await createOrder(orderPayload as any);
@@ -179,24 +356,166 @@ export function SelfOrderingKioskPage() {
         total: totalCartAmount,
         diningMode: diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري',
         tableNumber: tableNumber.trim() || undefined,
+        items: [...cart],
+        placedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        paymentStatus: opts.paymentStatus,
+        paymentMethodLabel: opts.paymentLabel,
+        authCode: opts.authCode,
+        rrn: opts.rrn,
       });
+
       setIsReviewOpen(false);
+      setIsTerminalModalOpen(false);
+      setIsQrModalOpen(false);
+      setResetCountdown(opts.paymentStatus === 'unpaid' ? 25 : 15);
     } catch {
-      // In standalone kiosk fallback, mock successful ticket
       const fallbackNo = `K-${Math.floor(1000 + Math.random() * 9000)}`;
       setOrderConfirmedData({
         orderNumber: fallbackNo,
         total: totalCartAmount,
         diningMode: diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري',
         tableNumber: tableNumber.trim() || undefined,
+        items: [...cart],
+        placedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        paymentStatus: opts.paymentStatus,
+        paymentMethodLabel: opts.paymentLabel,
+        authCode: opts.authCode,
+        rrn: opts.rrn,
       });
       setIsReviewOpen(false);
+      setIsTerminalModalOpen(false);
+      setIsQrModalOpen(false);
+      setResetCountdown(opts.paymentStatus === 'unpaid' ? 25 : 15);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Screen 1: Welcome & Dining Mode Selection
+  const handleCheckoutSubmit = async () => {
+    if (cart.length === 0) {
+      toast.warning('السلة فارغة، يرجى اختيار وجباتك أولاً');
+      return;
+    }
+
+    if (diningMode === 'dine_in' && !tableNumber.trim()) {
+      toast.warning('يرجى تحديد رقم الطاولة للمتابعة');
+      return;
+    }
+
+    if (paymentChoice === 'cash_counter') {
+      // 1. الدفع عند الكاونتر (كاش أو كارت): إصدار إيصال تذكرة غير مدفوعة فوراً
+      await handleFinalizeOrder({
+        paymentMethod: 'cash',
+        paymentStatus: 'unpaid',
+        paymentLabel: 'غير مدفوع - سداد عند الكاونتر',
+      });
+      return;
+    }
+
+    if (paymentChoice === 'qr_mobile') {
+      // 2. الدفع بمسح رمز QR بالهاتف: فتح نافذة الرمز والمؤقت
+      const ref = `QR-${Date.now().toString().slice(-6)}`;
+      setQrRef(ref);
+      setQrCountdown(120);
+      setIsReviewOpen(false);
+      setIsQrModalOpen(true);
+      return;
+    }
+
+    if (paymentChoice === 'card_terminal') {
+      // 3. الدفع بماكينة الدفع بالكشك (ECR Terminal)
+      setIsReviewOpen(false);
+      setIsTerminalModalOpen(true);
+      setTerminalStep('connecting');
+      setTerminalMessage('جاري فحص الاتصال بجهاز الدفع بالبطاقات...');
+      setTerminalCountdown(60);
+
+      const refId = `ECR-${Date.now().toString().slice(-6)}`;
+      setActiveTransactionId(refId);
+
+      try {
+        const isBridge = await HardwareBridgeClient.isAvailable().catch(() => false);
+        let terminalsList: any[] = [];
+        try {
+          const tRes = await posApi.listTerminals();
+          terminalsList = tRes?.data || [];
+        } catch {
+          // ignore
+        }
+
+        const activeTerminal = terminalsList.find((t: any) => t.status === 'online') || terminalsList[0];
+
+        if (!isBridge && !activeTerminal?.ipAddress) {
+          // لا توجد ماكينة دفع متصلة حقيقية
+          setTerminalStep('offline_error');
+          setTerminalMessage('جهاز الدفع بالبطاقات (PIN Pad) غير متصل حالياً بهذا الكشك، أو لم يتم إعداد عنوان الماكينة في النظام.');
+          return;
+        }
+
+        setTerminalStep('waiting_card');
+        setTerminalMessage('يرجى تمرير أو إدخال البطاقة البنكية في جهاز الدفع بالأسفل...');
+
+        if (isBridge) {
+          const bridgeRes = await HardwareBridgeClient.chargeTerminal({
+            ip: activeTerminal?.ipAddress || '127.0.0.1',
+            port: activeTerminal?.port || 8080,
+            amount: totalCartAmount,
+            referenceId: refId,
+          });
+
+          if (bridgeRes.status === 'approved') {
+            setTerminalStep('approved');
+            setTerminalMessage(`تمت الموافقة بنجاح - تفويض: ${bridgeRes.authCode || '00'}`);
+            setTimeout(() => {
+              void handleFinalizeOrder({
+                paymentMethod: 'card',
+                paymentStatus: 'paid',
+                paymentLabel: 'مدفوع بالبطاقة (ماكينة الكشك)',
+                authCode: bridgeRes.authCode || 'AUTH-OK',
+                rrn: bridgeRes.rrn || refId,
+              });
+            }, 1200);
+            return;
+          } else {
+            setTerminalStep('declined');
+            setTerminalMessage(bridgeRes.message || 'تم رفض العملية من البنك');
+            return;
+          }
+        } else if (activeTerminal?.id) {
+          const chargeRes = await posApi.initiateTerminalCharge({
+            terminalId: activeTerminal.id,
+            amount: totalCartAmount,
+            invoiceReference: refId,
+          });
+          if (chargeRes?.data?.status === 'approved') {
+            setTerminalStep('approved');
+            setTerminalMessage(`تمت الموافقة بنجاح - تفويض: ${chargeRes.data.authCode || '00'}`);
+            setTimeout(() => {
+              void handleFinalizeOrder({
+                paymentMethod: 'card',
+                paymentStatus: 'paid',
+                paymentLabel: 'مدفوع بالبطاقة (ماكينة الكشك)',
+                authCode: chargeRes.data.authCode,
+                rrn: chargeRes.data.rrn || refId,
+              });
+            }, 1200);
+            return;
+          } else {
+            setTerminalStep('declined');
+            setTerminalMessage(chargeRes?.data?.message || 'تم رفض العملية من البنك');
+            return;
+          }
+        }
+      } catch (err: any) {
+        setTerminalStep('offline_error');
+        setTerminalMessage(err?.message || 'تعذر إتمام الاتصال بجهاز الدفع بالبطاقات');
+      }
+    }
+  };
+
+  // ==========================================
+  // الشاشة 1: الترحيب واختيار نوع الطلب
+  // ==========================================
   if (!diningMode) {
     return (
       <div
@@ -213,77 +532,116 @@ export function SelfOrderingKioskPage() {
           userSelect: 'none',
         }}
       >
-        <div style={{ maxWidth: '640px', width: '100%', textAlign: 'center' }}>
+        <div style={{ maxWidth: '680px', width: '100%', textAlign: 'center' }}>
           {/* Logo / Badge */}
           <div
             style={{
-              width: '84px',
-              height: '84px',
-              margin: '0 auto 20px',
+              width: '92px',
+              height: '92px',
+              margin: '0 auto 24px',
               backgroundColor: '#170e5e',
-              borderRadius: '24px',
+              borderRadius: '28px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(23, 14, 94, 0.2)',
+              boxShadow: '0 12px 30px rgba(23, 14, 94, 0.25)',
             }}
           >
-            <UtensilsIcon size={42} color="#ffffff" />
+            <UtensilsIcon size={46} color="#ffffff" />
           </div>
 
-          <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: '0 0 10px' }}>
-            أهلاً بك! خدمة الطلب الذاتي
+          {/* تبديل الكتالوج التجريبي */}
+          <div
+            style={{
+              display: 'inline-flex',
+              backgroundColor: '#e2e8f0',
+              borderRadius: '24px',
+              padding: '4px',
+              marginBottom: '26px',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setCurrentSlug('almhnds')}
+              style={{
+                border: 'none',
+                backgroundColor: currentSlug === 'almhnds' ? '#170e5e' : 'transparent',
+                color: currentSlug === 'almhnds' ? '#ffffff' : '#475569',
+                padding: '8px 20px',
+                borderRadius: '20px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              مطعم المشويات والسندوتشات (75 وجبة)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentSlug('zs')}
+              style={{
+                border: 'none',
+                backgroundColor: currentSlug === 'zs' ? '#170e5e' : 'transparent',
+                color: currentSlug === 'zs' ? '#ffffff' : '#475569',
+                padding: '8px 20px',
+                borderRadius: '20px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              متجر الأجهزة والهواتف
+            </button>
+          </div>
+
+          <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a', margin: '0 0 12px' }}>
+            {storeDisplayName}
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', margin: '0 0 36px', lineHeight: 1.6 }}>
-            اطلب وجباتك المفضلة وخصص إضافاتك بكل سرعة وسهولة من الشاشة مباشرة
+          <p style={{ fontSize: '16px', color: '#64748b', margin: '0 0 42px', lineHeight: 1.6 }}>
+            شاشة الخدمة الذاتية • تفضل باختيار طريقة استلام وجبتك
           </p>
 
-          {/* 2 Big Choice Tiles */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {/* بطاقتي الاختيار للمس المريح */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <button
               type="button"
               onClick={() => setDiningMode('dine_in')}
               style={{
                 backgroundColor: '#ffffff',
-                border: '2px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '36px 20px',
+                border: '2.5px solid #e2e8f0',
+                borderRadius: '24px',
+                padding: '42px 24px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '16px',
+                gap: '18px',
                 cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
+                textAlign: 'center',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#170e5e';
-                e.currentTarget.style.transform = 'translateY(-4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <div
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
+                  width: '78px',
+                  height: '78px',
+                  borderRadius: '22px',
                   backgroundColor: '#eef2ff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <UtensilsIcon size={32} color="#170e5e" />
+                <UtensilsIcon size={40} color="#170e5e" />
               </div>
               <div>
-                <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>
+                <div style={{ fontSize: '23px', fontWeight: 900, color: '#0f172a' }}>
                   تناول بالصالة
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  Dine In • استمتع بوجبتك على الطاولة
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
+                  Dine In • استمتع بوجبتك ساخنة على الطاولة
                 </div>
               </div>
             </button>
@@ -293,45 +651,38 @@ export function SelfOrderingKioskPage() {
               onClick={() => setDiningMode('takeaway')}
               style={{
                 backgroundColor: '#ffffff',
-                border: '2px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '36px 20px',
+                border: '2.5px solid #e2e8f0',
+                borderRadius: '24px',
+                padding: '42px 24px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '16px',
+                gap: '18px',
                 cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
+                textAlign: 'center',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#170e5e';
-                e.currentTarget.style.transform = 'translateY(-4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <div
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
+                  width: '78px',
+                  height: '78px',
+                  borderRadius: '22px',
                   backgroundColor: '#f0fdf4',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <ShoppingBagIcon size={32} color="#16a34a" />
+                <ShoppingBagIcon size={40} color="#16a34a" />
               </div>
               <div>
-                <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>
+                <div style={{ fontSize: '23px', fontWeight: 900, color: '#0f172a' }}>
                   استلام سفري
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  Takeaway • استلم طلبك من الكاونتر
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
+                  Takeaway • استلم وجبتك مغلفة من الكاونتر
                 </div>
               </div>
             </button>
@@ -341,7 +692,9 @@ export function SelfOrderingKioskPage() {
     );
   }
 
-  // Screen 5: Order Confirmation Celebration
+  // ==========================================
+  // الشاشة 4: تأكيد الطلب والطباعة الحرارية
+  // ==========================================
   if (orderConfirmedData) {
     return (
       <div
@@ -359,575 +712,1980 @@ export function SelfOrderingKioskPage() {
       >
         <div
           style={{
-            maxWidth: '520px',
+            maxWidth: '540px',
             width: '100%',
             backgroundColor: '#ffffff',
-            borderRadius: '24px',
+            borderRadius: '28px',
             border: '1px solid #e2e8f0',
-            padding: '36px 28px',
+            padding: '40px 32px',
             textAlign: 'center',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.06)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.07)',
           }}
         >
-          <div
-            style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '50%',
-              backgroundColor: '#dcfce7',
-              margin: '0 auto 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CheckCircleIcon size={40} color="#16a34a" />
-          </div>
+          {orderConfirmedData.paymentStatus === 'unpaid' ? (
+            <>
+              <div
+                style={{
+                  width: '84px',
+                  height: '84px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fef3c7',
+                  margin: '0 auto 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ClockIcon size={46} color="#d97706" />
+              </div>
 
-          <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
-            تم استلام طلبك بنجاح!
-          </h2>
-          <p style={{ fontSize: '13.5px', color: '#64748b', margin: '0 0 24px' }}>
-            طلبك قيد التحضير في المطبخ الآن وسيتم ندائك فور جاهزيته
-          </p>
+              <h2 style={{ fontSize: '25px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
+                تم تسجيل طلبك بنجاح!
+              </h2>
+              <div
+                style={{
+                  backgroundColor: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '14px',
+                  padding: '12px 16px',
+                  margin: '0 auto 22px',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  color: '#92400e',
+                  lineHeight: 1.5,
+                }}
+              >
+                تذكرتك غير مدفوعة حالياً • يرجى أخذ التذكرة والتوجه لكاونتر الكاشير لسداد {formatCurrency(orderConfirmedData.total)} (نقداً أو بالفيزا) لتأكيد الطلب وبدء تحضيره فوراً
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  width: '84px',
+                  height: '84px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dcfce7',
+                  margin: '0 auto 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CheckCircleIcon size={48} color="#16a34a" />
+              </div>
+
+              <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
+                تم استلام ودفع طلبك بنجاح!
+              </h2>
+              <p style={{ fontSize: '14.5px', color: '#64748b', margin: '0 0 24px' }}>
+                طلبك أُرسل لشاشات المطبخ ويتم تجهيزه الآن بكل عناية
+              </p>
+            </>
+          )}
 
           <div
             style={{
               backgroundColor: '#f1f5f9',
-              borderRadius: '16px',
-              padding: '20px',
+              borderRadius: '22px',
+              padding: '24px',
               marginBottom: '24px',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-              رقم تذكرتك في الطابور:
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
+              رقم تذكرتك في شاشة المناداة:
             </div>
-            <div style={{ fontSize: '38px', fontWeight: 900, color: '#170e5e', letterSpacing: '1px' }}>
+            <div style={{ fontSize: '48px', fontWeight: 900, color: '#170e5e', letterSpacing: '2px' }}>
               #{orderConfirmedData.orderNumber}
             </div>
+
+            <div style={{ marginTop: '8px' }}>
+              {orderConfirmedData.paymentStatus === 'unpaid' ? (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#fee2e2',
+                    color: '#b91c1c',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
+                    fontSize: '12.5px',
+                    fontWeight: 900,
+                  }}
+                >
+                  تذكرة غير مدفوعة • يلزم السداد لدى الكاشير
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
+                    fontSize: '12.5px',
+                    fontWeight: 900,
+                  }}
+                >
+                  مدفوع بالكامل • {orderConfirmedData.paymentMethodLabel}
+                </span>
+              )}
+            </div>
+
             {orderConfirmedData.tableNumber && (
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>
                 طاولة رقم: {orderConfirmedData.tableNumber}
               </div>
             )}
-            <div style={{ fontSize: '12.5px', color: '#475569', marginTop: '8px' }}>
+            <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '10px' }}>
               المبلغ الإجمالي: <strong>{formatCurrency(orderConfirmedData.total)}</strong> ({orderConfirmedData.diningMode})
             </div>
           </div>
 
-          <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>
+          <p style={{ fontSize: '12.5px', color: '#94a3b8', marginBottom: '20px' }}>
             ستعود الشاشة للرئيسية تلقائياً خلال {resetCountdown} ثانية...
           </p>
+
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              style={{
+                width: '100%',
+                height: '48px',
+                fontSize: '14px',
+                fontWeight: 800,
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                backgroundColor: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                color: '#0f172a',
+                cursor: 'pointer',
+              }}
+            >
+              <PrinterIcon size={20} color="#170e5e" />
+              <span>
+                {orderConfirmedData.paymentStatus === 'unpaid'
+                  ? 'طباعة تذكرة السداد لدى الكاشير'
+                  : 'طباعة إيصال الطلب والنداء'}
+              </span>
+            </Button>
+          </div>
 
           <Button
             variant="primary"
             onClick={handleFullReset}
             style={{
               width: '100%',
-              height: '46px',
+              height: '48px',
               backgroundColor: '#170e5e',
-              fontSize: '14px',
+              fontSize: '14.5px',
               fontWeight: 800,
-              borderRadius: '12px',
+              borderRadius: '14px',
             }}
           >
             طلب جديد الآن
           </Button>
+
+          {/* Hidden Thermal Printable Receipt */}
+          <div className="kiosk-print-receipt" style={{ display: 'none' }}>
+            <style>{`
+              @media print {
+                body * { visibility: hidden !important; }
+                .kiosk-print-receipt, .kiosk-print-receipt * { visibility: visible !important; }
+                .kiosk-print-receipt {
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 80mm !important;
+                  padding: 8px !important;
+                  display: block !important;
+                  font-family: monospace, sans-serif !important;
+                  direction: rtl !important;
+                  color: #000 !important;
+                }
+              }
+            `}</style>
+            <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '8px', marginBottom: '8px' }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 900 }}>{storeDisplayName}</h3>
+              <div style={{ fontSize: '12px' }}>طلب خدمة ذاتية - كشك ذكي</div>
+              <div style={{ fontSize: '11px', marginTop: '2px' }}>{orderConfirmedData.placedAt || ''}</div>
+            </div>
+
+            <div style={{ textAlign: 'center', margin: '12px 0', borderBottom: '1px dashed #000', paddingBottom: '10px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700 }}>رقم التذكرة والاستلام:</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, margin: '4px 0' }}>#{orderConfirmedData.orderNumber}</div>
+              <div style={{ fontSize: '13px', fontWeight: 800 }}>{orderConfirmedData.diningMode}</div>
+              {orderConfirmedData.tableNumber && (
+                <div style={{ fontSize: '14px', fontWeight: 900, marginTop: '4px' }}>طاولة: {orderConfirmedData.tableNumber}</div>
+              )}
+
+              {/* تحذير صريح على الورقة المطبوعة إذا كان غير مدفوع */}
+              {orderConfirmedData.paymentStatus === 'unpaid' ? (
+                <div
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 900,
+                    margin: '8px 0 4px',
+                    border: '2px solid #000',
+                    padding: '6px',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  *** تذكرة غير مدفوعة - UNPAID ***
+                  <br />
+                  يرجى التوجه للكاشير لسداد {formatCurrency(orderConfirmedData.total)}
+                  <br />
+                  (نقداً أو بالبطاقة البنكية)
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', fontWeight: 800, marginTop: '6px' }}>
+                  *** طلب مدفوع بالكامل - PAID ***
+                  <div>طريقة الدفع: {orderConfirmedData.paymentMethodLabel}</div>
+                  {orderConfirmedData.authCode && <div>رقم التفويض: {orderConfirmedData.authCode}</div>}
+                  {orderConfirmedData.rrn && <div>رقم المرجع: {orderConfirmedData.rrn}</div>}
+                </div>
+              )}
+            </div>
+
+            {orderConfirmedData.items && orderConfirmedData.items.length > 0 && (
+              <div style={{ borderBottom: '1px dashed #000', paddingBottom: '8px', marginBottom: '8px' }}>
+                {orderConfirmedData.items.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', margin: '3px 0' }}>
+                    <span>{item.qty}x {item.name}</span>
+                    <span>{formatCurrency(item.qty * item.price)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 900, marginBottom: '12px' }}>
+              <span>الإجمالي:</span>
+              <span>{formatCurrency(orderConfirmedData.total)}</span>
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '11px' }}>
+              {orderConfirmedData.paymentStatus === 'unpaid'
+                ? 'يرجى سداد هذه التذكرة لدى الكاشير لتأكيد طلبك وبدء تحضيره في المطبخ.'
+                : 'شكراً لزيارتكم! يرجى الانتظار حتى مناداة رقمك على الشاشة.'}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Screen 2 & 3: Touch Catalog & Sticky Cart Bar
+  // ==========================================
+  // الشاشة الرئيسية للطلب:
+  // معيار 1280px العالمي:
+  // اليمين: الأقسام (185px)
+  // الوسط: شبكة الوجبات (صورة الوجبة بطلة 70%)
+  // اليسار: صينية الطلب المباشرة (325px)
+  // ==========================================
   return (
     <div
       dir="rtl"
       style={{
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        backgroundColor: '#f1f5f9',
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         userSelect: 'none',
         fontFamily: 'inherit',
       }}
     >
-      {/* Kiosk Top Bar */}
-      <header
+      {/* الحاوية المركزية لمعيار الـ 1280 بكسل */}
+      <div
         style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '14px 24px',
+          width: 'min(100%, 1280px)',
+          maxWidth: '1280px',
+          height: '100%',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
+          flexDirection: 'column',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 0 35px rgba(0,0,0,0.06)',
+          borderLeft: '1px solid #e2e8f0',
+          borderRight: '1px solid #e2e8f0',
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            type="button"
-            onClick={handleFullReset}
-            style={{
-              backgroundColor: '#f1f5f9',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 800,
-              color: '#475569',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <ArrowRightIcon size={14} />
-            <span>البدء من جديد</span>
-          </button>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              قائمة الطعام والمشروبات
-            </h2>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: diningMode === 'dine_in' ? '#1e40af' : '#15803d',
-              }}
-            >
-              الوضع: {diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري'}
-            </span>
-          </div>
-        </div>
-
-        {totalItemsCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsReviewOpen(true)}
-            style={{
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 12px rgba(23, 14, 94, 0.2)',
-            }}
-          >
-            <ShoppingBagIcon size={16} />
-            <span>عرض السلة ({totalItemsCount})</span>
-            <span style={{ marginRight: '6px', opacity: 0.9 }}>• {formatCurrency(totalCartAmount)}</span>
-          </button>
-        )}
-      </header>
-
-      {/* Category Navigation Pills */}
-      {categories.length > 0 && (
-        <div
+        {/* 1. Header: الهيدر المؤسسي المتناسق (66px) */}
+        <header
           style={{
+            height: '66px',
+            minHeight: '66px',
             backgroundColor: '#ffffff',
-            borderBottom: '1px solid #e2e8f0',
-            padding: '10px 24px',
+            borderBottom: '1.5px solid #e2e8f0',
+            padding: '0 20px',
             display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxSizing: 'border-box',
+            zIndex: 40,
           }}
         >
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('all')}
+          {/* بيانات المطعم والوضع */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                backgroundColor: '#170e5e',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <UtensilsIcon size={20} color="#ffffff" />
+            </div>
+
+            <div>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
+                {storeDisplayName}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: diningMode === 'dine_in' ? '#1e40af' : '#15803d',
+                  }}
+                >
+                  الوضع: {diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDiningMode(diningMode === 'dine_in' ? 'takeaway' : 'dine_in')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  (تغيير)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* خانة البحث السريع باللمس */}
+          <div style={{ flex: 1, maxWidth: '340px', margin: '0 16px', position: 'relative' }}>
+            <div
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <SearchIcon size={16} />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ابحث عن وجبة أو مشروب..."
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '12px',
+                border: '1.5px solid #e2e8f0',
+                padding: '0 36px 0 32px',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                backgroundColor: '#f8fafc',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* الساعة وأزرار التبديل والبدء من جديد */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {currentTime && (
+              <div
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  color: '#475569',
+                  backgroundColor: '#f1f5f9',
+                  padding: '6px 10px',
+                  borderRadius: '10px',
+                }}
+              >
+                {currentTime}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'inline-flex',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '10px',
+                padding: '2px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentSlug('almhnds');
+                  setSelectedCategory('all');
+                }}
+                style={{
+                  border: 'none',
+                  backgroundColor: currentSlug === 'almhnds' ? '#170e5e' : 'transparent',
+                  color: currentSlug === 'almhnds' ? '#ffffff' : '#64748b',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                المطعم
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentSlug('zs');
+                  setSelectedCategory('all');
+                }}
+                style={{
+                  border: 'none',
+                  backgroundColor: currentSlug === 'zs' ? '#170e5e' : 'transparent',
+                  color: currentSlug === 'zs' ? '#ffffff' : '#64748b',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                الأجهزة
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleFullReset}
+              style={{
+                backgroundColor: '#f1f5f9',
+                border: 'none',
+                borderRadius: '10px',
+                padding: '7px 12px',
+                fontSize: '12px',
+                fontWeight: 800,
+                color: '#475569',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <ArrowRightIcon size={14} />
+              <span>البدء من جديد</span>
+            </button>
+          </div>
+        </header>
+
+        {/* 2. Middle Body: التوزيع الثلاثي المتناسق */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            overflow: 'hidden',
+            width: '100%',
+          }}
+        >
+          {/* ========================================================= */}
+          {/* 1. اليمين: شريط الأقسام الرأسي (185px)                     */}
+          {/* ========================================================= */}
+          <aside
             style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              border: selectedCategory === 'all' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-              backgroundColor: selectedCategory === 'all' ? '#170e5e' : '#ffffff',
-              color: selectedCategory === 'all' ? '#ffffff' : '#334155',
-              fontSize: '12.5px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
+              width: '185px',
+              minWidth: '185px',
+              backgroundColor: '#ffffff',
+              borderLeft: '1.5px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              overflowY: 'auto',
+              padding: '14px 8px',
+              gap: '6px',
+              boxSizing: 'border-box',
             }}
           >
-            كافة الأصناف
-          </button>
-          {categories.map((c: any) => (
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', padding: '0 8px 4px' }}>
+              أقسام القائمة
+            </div>
+
+            {/* كافة الأصناف */}
             <button
-              key={c.id}
               type="button"
-              onClick={() => setSelectedCategory(c.id)}
+              onClick={() => setSelectedCategory('all')}
               style={{
-                padding: '8px 16px',
-                borderRadius: '20px',
-                border: selectedCategory === c.id ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                backgroundColor: selectedCategory === c.id ? '#170e5e' : '#ffffff',
-                color: selectedCategory === c.id ? '#ffffff' : '#334155',
+                padding: '11px 12px',
+                borderRadius: '12px',
+                border: selectedCategory === 'all' ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                backgroundColor: selectedCategory === 'all' ? '#170e5e' : '#f8fafc',
+                color: selectedCategory === 'all' ? '#ffffff' : '#1e293b',
                 fontSize: '12.5px',
                 fontWeight: 800,
                 cursor: 'pointer',
-                whiteSpace: 'nowrap',
+                textAlign: 'right',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                transition: 'all 0.15s ease',
               }}
             >
-              {c.name}
+              <span>كافة الأصناف</span>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  color: selectedCategory === 'all' ? '#cbd5e1' : '#64748b',
+                  fontWeight: 600,
+                }}
+              >
+                {products.length} وجبة
+              </span>
             </button>
-          ))}
-        </div>
-      )}
 
-      {/* Products Grid */}
-      <main style={{ flex: 1, padding: '24px', maxWidth: '1280px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        {isCatalogLoading ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-            جارٍ تحميل قائمة الوجبات...
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-            لا توجد أصناف في هذا القسم حالياً
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            {filteredProducts.map((p: any) => {
-              const inCartQty = cart.find((i) => i.productId === p.id)?.qty || 0;
+            {/* قائمة الأقسام */}
+            {categories.map((c: any) => {
+              const isCatActive = selectedCategory !== 'all' && Number(selectedCategory) === Number(c.id);
+              const countInCat = products.filter((p: any) => Number(p.categoryId) === Number(c.id)).length;
 
               return (
-                <div
-                  key={p.id}
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(Number(c.id))}
                   style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '16px',
-                    border: '1px solid #e2e8f0',
-                    overflow: 'hidden',
+                    padding: '11px 12px',
+                    borderRadius: '12px',
+                    border: isCatActive ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                    backgroundColor: isCatActive ? '#170e5e' : '#f8fafc',
+                    color: isCatActive ? '#ffffff' : '#1e293b',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textAlign: 'right',
                     display: 'flex',
                     flexDirection: 'column',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                    transition: 'transform 0.15s ease',
+                    gap: '2px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  {/* Photo or placeholder */}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      color: isCatActive ? '#cbd5e1' : '#64748b',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {countInCat} وجبة
+                  </span>
+                </button>
+              );
+            })}
+          </aside>
+
+          {/* ========================================================= */}
+          {/* 2. الوسط: شبكة الوجبات (صورة الوجبة بطلة تأخذ 70% من الكارت) */}
+          {/* ========================================================= */}
+          <main
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '16px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {isCatalogLoading ? (
+              <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
+                <div style={{ display: 'inline-block', marginBottom: '12px' }}>
+                  <RefreshCwIcon size={28} color="#170e5e" />
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 800 }}>جارٍ تحميل قائمة الوجبات...</div>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '60px 20px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '18px',
+                  border: '1px solid #e2e8f0',
+                  maxWidth: '400px',
+                  margin: '40px auto',
+                }}
+              >
+                <UtensilsIcon size={36} color="#cbd5e1" />
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>
+                  لا توجد وجبات في هذا القسم
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                  جرب اختيار قسم آخر أو إلغاء كلمة البحث
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '14px',
+                  paddingBottom: '20px',
+                }}
+              >
+                {filteredProducts.map((p: any) => {
+                  const inCartItem = cart.find((i) => i.productId === p.id);
+                  const inCartQty = inCartItem?.qty || 0;
+                  const smartImg = getSmartProductImage(p);
+
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '16px',
+                        border: inCartQty > 0 ? '2px solid #170e5e' : '1.5px solid #e2e8f0',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: inCartQty > 0 ? '0 6px 18px rgba(23, 14, 94, 0.08)' : '0 2px 6px rgba(0,0,0,0.03)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {/* صورة الوجبة البطلة: تشغل النسبة الأكبر (حوالي 70% من الكارت) */}
+                      <div
+                        style={{
+                          height: '165px',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          backgroundColor: '#f1f5f9',
+                        }}
+                      >
+                        <img
+                          src={smartImg}
+                          alt={p.name}
+                          loading="lazy"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                        {inCartQty > 0 && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              backgroundColor: '#170e5e',
+                              color: '#ffffff',
+                              borderRadius: '8px',
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              fontWeight: 900,
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                            }}
+                          >
+                            {inCartQty} بالسلة
+                          </span>
+                        )}
+                      </div>
+
+                      {/* الجزء السفلي المدمج: اسم الوجبة والسعر وزر الإضافة */}
+                      <div
+                        style={{
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '14.5px',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {p.name}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontSize: '16.5px', fontWeight: 900, color: '#170e5e' }}>
+                            {formatCurrency(p.price)}
+                          </div>
+
+                          {inCartQty === 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAddToCart(p)}
+                              style={{
+                                height: '34px',
+                                padding: '0 14px',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                backgroundColor: '#170e5e',
+                                color: '#ffffff',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <PlusCircleIcon size={14} />
+                              <span>إضافة</span>
+                            </button>
+                          ) : (
+                            /* عداد تفاعلي مباشر داخل الكارت: [+] (الكمية) [-] */
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                backgroundColor: '#f8fafc',
+                                border: '1.5px solid #170e5e',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateQty(p.id, 1)}
+                                style={{
+                                  width: '30px',
+                                  height: '30px',
+                                  border: 'none',
+                                  backgroundColor: '#170e5e',
+                                  color: '#ffffff',
+                                  fontSize: '14px',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                +
+                              </button>
+                              <span
+                                style={{
+                                  minWidth: '26px',
+                                  textAlign: 'center',
+                                  fontWeight: 900,
+                                  fontSize: '12.5px',
+                                  color: '#0f172a',
+                                }}
+                              >
+                                {inCartQty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateQty(p.id, -1)}
+                                style={{
+                                  width: '30px',
+                                  height: '30px',
+                                  border: 'none',
+                                  backgroundColor: '#e2e8f0',
+                                  color: '#0f172a',
+                                  fontSize: '14px',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                -
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+
+          {/* ========================================================= */}
+          {/* 3. اليسار: صينية الطلب المباشرة (Live Order Tray - 330px) */}
+          {/* ========================================================= */}
+          <aside
+            style={{
+              width: '330px',
+              minWidth: '330px',
+              backgroundColor: '#ffffff',
+              borderRight: '1.5px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* هيدر الصينية */}
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
+                  صينية طلبك
+                </h3>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  {diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري'} • {totalItemsCount} وجبة
+                </div>
+              </div>
+
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCart([])}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  إفراغ الصينية
+                </button>
+              )}
+            </div>
+
+            {/* قائمة الوجبات في الصينية */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              {cart.length === 0 ? (
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#94a3b8',
+                    textAlign: 'center',
+                    padding: '30px 10px',
+                  }}
+                >
                   <div
                     style={{
-                      height: '140px',
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '16px',
                       backgroundColor: '#f1f5f9',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      overflow: 'hidden',
-                      position: 'relative',
+                      marginBottom: '10px',
                     }}
                   >
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <UtensilsIcon size={36} color="#94a3b8" />
-                    )}
-                    {inCartQty > 0 && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          backgroundColor: '#170e5e',
-                          color: '#ffffff',
-                          borderRadius: '999px',
-                          padding: '2px 8px',
-                          fontSize: '11px',
-                          fontWeight: 900,
-                        }}
-                      >
-                        {inCartQty} بالسلة
-                      </span>
-                    )}
+                    <ShoppingBagIcon size={26} color="#94a3b8" />
                   </div>
-
-                  {/* Body */}
-                  <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <h4 style={{ margin: '0 0 6px', fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
-                        {p.name}
-                      </h4>
-                      {p.description && (
-                        <p style={{ margin: '0 0 10px', fontSize: '11.5px', color: '#64748b', lineHeight: 1.4 }}>
-                          {p.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>
-                        {formatCurrency(p.price)}
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={() => handleAddToCart(p)}
-                        style={{
-                          minHeight: '34px',
-                          height: '34px',
-                          padding: '0 12px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: 800,
-                          backgroundColor: '#170e5e',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <PlusCircleIcon size={14} />
-                        <span>إضافة</span>
-                      </Button>
-                    </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#475569' }}>
+                    صينيتك فارغة حالياً
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                    اختر وجباتك المفضلة من القائمة لتظهر هنا فوراً
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+              ) : (
+                cart.map((item) => (
+                  <div
+                    key={item.productId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 10px',
+                      borderRadius: '12px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#170e5e', fontWeight: 800, marginTop: '2px' }}>
+                          {formatCurrency(item.price * item.qty)}
+                        </div>
+                      </div>
+                    </div>
 
-      {/* Floating Bottom Drawer Trigger */}
-      {totalItemsCount > 0 && (
-        <div
-          style={{
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: '#ffffff',
-            borderTop: '2px solid #170e5e',
-            padding: '14px 24px',
-            boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            zIndex: 40,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>إجمالي طلبك:</div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-              {formatCurrency(totalCartAmount)} ({totalItemsCount} قطعة)
+                    {/* العداد الصارم RTL: [+] (الكمية) [-] وحذف */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '7px',
+                          overflow: 'hidden',
+                          backgroundColor: '#ffffff',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.productId, 1)}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            border: 'none',
+                            backgroundColor: '#170e5e',
+                            color: '#ffffff',
+                            fontWeight: 900,
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          +
+                        </button>
+                        <span
+                          style={{
+                            minWidth: '24px',
+                            textAlign: 'center',
+                            fontWeight: 900,
+                            fontSize: '11.5px',
+                          }}
+                        >
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.productId, -1)}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            border: 'none',
+                            backgroundColor: '#f1f5f9',
+                            color: '#334155',
+                            fontWeight: 900,
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          -
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFromCart(item.productId)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          padding: '3px',
+                        }}
+                      >
+                        <Trash2Icon size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          </div>
 
-          <Button
-            variant="primary"
-            onClick={() => setIsReviewOpen(true)}
-            style={{
-              height: '44px',
-              padding: '0 28px',
-              borderRadius: '10px',
-              backgroundColor: '#170e5e',
-              fontSize: '14px',
-              fontWeight: 800,
-            }}
-          >
-            إتمام الطلب والدفع
-          </Button>
+            {/* فوتر الصينية وزر الدفع المباشر */}
+            <div
+              style={{
+                padding: '14px 18px',
+                borderTop: '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>عدد الوجبات:</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{totalItemsCount} وجبة</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                }}
+              >
+                <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>المجموع الإجمالي:</span>
+                <span style={{ fontSize: '19px', fontWeight: 900, color: '#170e5e' }}>
+                  {formatCurrency(totalCartAmount)}
+                </span>
+              </div>
+
+              <Button
+                variant="primary"
+                onClick={() => setIsReviewOpen(true)}
+                disabled={cart.length === 0}
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: cart.length > 0 ? '#170e5e' : '#cbd5e1',
+                  fontSize: '14px',
+                  fontWeight: 900,
+                  boxShadow: cart.length > 0 ? '0 4px 14px rgba(23, 14, 94, 0.25)' : 'none',
+                }}
+              >
+                إتمام الطلب والدفع
+              </Button>
+            </div>
+          </aside>
         </div>
-      )}
+      </div>
 
-      {/* Checkout Review Dialog */}
+      {/* ========================================================= */}
+      {/* نافذة المراجعة والدفع المنبثقة (Checkout Dialog)         */}
+      {/* ========================================================= */}
+      {/* ========================================================= */}
+      {/* نافذة المراجعة والدفع المنبثقة السريعة (3-Second Kiosk Checkout) */}
+      {/* ========================================================= */}
       <DialogShell
         open={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
-        ariaLabel="مراجعة الطلب والدفع بالكشك"
-        width="min(560px, 96vw)"
+        ariaLabel="تأكيد ودفع الطلب بالكشك"
+        width="min(520px, 95vw)"
         zIndex={90}
       >
-        <div style={{ padding: '20px 22px', direction: 'rtl', fontFamily: 'inherit' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-              مراجعة الطلب وبيانات الاستلام
-            </h3>
+        <div style={{ padding: '22px 24px', direction: 'rtl', fontFamily: 'inherit' }}>
+          {/* 1. Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1.5px solid #f1f5f9',
+              paddingBottom: '14px',
+              marginBottom: '16px',
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
+                تأكيد الطلب وطريقة الدفع
+              </h3>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
+                {storeDisplayName} • خطوة أخيرة لاستلام إيصالك
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setIsReviewOpen(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#64748b' }}
+              style={{
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                padding: '6px',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               <XIcon size={18} />
             </button>
           </div>
 
-          {/* Cart Items List */}
-          <div style={{ maxHeight: '220px', overflowY: 'auto', margin: '14px 0', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
-            {cart.map((item) => (
+          {/* 2. ملخص فوري مدمج بدون تكرار قائمة الوجبات (Executive Order Summary) */}
+          <div
+            style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '18px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
-                key={item.productId}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  backgroundColor: diningMode === 'dine_in' ? '#eff6ff' : '#f0fdf4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {diningMode === 'dine_in' ? (
+                  <UtensilsIcon size={18} color="#2563eb" />
+                ) : (
+                  <ShoppingBagIcon size={18} color="#16a34a" />
+                )}
+              </div>
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>
+                  {diningMode === 'dine_in' ? 'تناول بالصالة (Dine In)' : 'استلام سفري (Takeaway)'}
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '1px' }}>
+                  إجمالي {totalItemsCount} وجبة في الصينية
+                </div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>المبلغ الإجمالي</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e' }}>
+                {formatCurrency(totalCartAmount)}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. في حالة الصالة فقط: اختيار رقم الطاولة أو جهاز النداء بلمسة سريعة */}
+          {diningMode === 'dine_in' && (
+            <div style={{ marginBottom: '18px' }}>
+              <div
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '10px 12px',
-                  borderBottom: '1px solid #f1f5f9',
+                  marginBottom: '8px',
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: '#0f172a' }}>{item.name}</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748b' }}>{formatCurrency(item.price)} للقطعة</div>
-                </div>
-
-                {/* Strict RTL Stepper Standard: [+] (الكمية) [-] */}
-                <div
+                <label
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    overflow: 'hidden',
+                    fontSize: '13px',
+                    fontWeight: 900,
+                    color: '#0f172a',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateQty(item.productId, 1)}
+                  رقم الطاولة أو جهاز النداء:
+                </label>
+                {tableNumber && (
+                  <span
                     style={{
-                      width: '28px',
-                      height: '28px',
-                      border: 'none',
-                      backgroundColor: '#170e5e',
-                      color: '#ffffff',
-                      fontWeight: 900,
-                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      color: '#16a34a',
+                      backgroundColor: '#dcfce7',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
                     }}
                   >
-                    +
-                  </button>
-                  <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: 900, fontSize: '13px' }}>
-                    {item.qty}
+                    طاولة {tableNumber} مختارة
                   </span>
+                )}
+              </div>
+
+              {/* شبكة أزرار طاولات لمسية كبيرة وسريعة (1-10) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: '8px',
+                  marginBottom: '10px',
+                }}
+              >
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((num) => (
                   <button
+                    key={num}
                     type="button"
-                    onClick={() => handleUpdateQty(item.productId, -1)}
+                    onClick={() => setTableNumber(num)}
                     style={{
-                      width: '28px',
-                      height: '28px',
-                      border: 'none',
-                      backgroundColor: '#f1f5f9',
-                      color: '#334155',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: tableNumber === num ? '2px solid #170e5e' : '1.5px solid #e2e8f0',
+                      backgroundColor: tableNumber === num ? '#170e5e' : '#ffffff',
+                      color: tableNumber === num ? '#ffffff' : '#1e293b',
                       fontWeight: 900,
+                      fontSize: '15px',
                       cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: tableNumber === num ? '0 3px 10px rgba(23, 14, 94, 0.2)' : 'none',
                     }}
                   >
-                    -
+                    {num}
                   </button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Dine In / Takeaway Details */}
-          {diningMode === 'dine_in' && (
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-                رقم الطاولة أو جهاز النداء (Puck / Table Number) *
-              </label>
+              {/* خانة كتابة رقم طاولة أخرى أو رقم جهاز النداء */}
               <input
                 type="text"
                 value={tableNumber}
                 onChange={(e) => setTableNumber(e.target.value)}
-                placeholder="أدخل رقم طاولتك المسجل على الستاند"
+                placeholder="أو اكتب رقم طاولة أخرى يدوياً..."
                 style={{
                   width: '100%',
                   height: '38px',
-                  borderRadius: '8px',
-                  border: '1.5px solid #170e5e',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
                   padding: '0 12px',
-                  fontSize: '13px',
-                  fontWeight: 800,
+                  fontSize: '12.5px',
+                  fontWeight: 700,
                   boxSizing: 'border-box',
+                  outline: 'none',
+                  backgroundColor: '#ffffff',
                 }}
               />
             </div>
           )}
 
-          {/* Payment Method Choice */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-              طريقة الدفع:
+          {/* 4. اختيار وسيلة الدفع: 3 خيارات مؤسسية ملموسة */}
+          <div style={{ marginBottom: '22px' }}>
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 900,
+                color: '#0f172a',
+                display: 'block',
+                marginBottom: '8px',
+              }}
+            >
+              اختر طريقة الدفع:
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              {/* خيار 1: ماكينة الفيزا بالكشك */}
               <button
                 type="button"
-                onClick={() => setPaymentChoice('card_kiosk')}
+                onClick={() => setPaymentChoice('card_terminal')}
                 style={{
-                  padding: '10px',
-                  borderRadius: '8px',
-                  border: paymentChoice === 'card_kiosk' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  backgroundColor: paymentChoice === 'card_kiosk' ? '#eef2ff' : '#ffffff',
-                  color: paymentChoice === 'card_kiosk' ? '#170e5e' : '#334155',
-                  fontWeight: 800,
-                  fontSize: '12px',
+                  padding: '14px 10px',
+                  borderRadius: '14px',
+                  border: paymentChoice === 'card_terminal' ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+                  backgroundColor: paymentChoice === 'card_terminal' ? '#f5f3ff' : '#ffffff',
                   cursor: 'pointer',
+                  textAlign: 'right',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  flexDirection: 'column',
                   gap: '6px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: paymentChoice === 'card_terminal' ? '0 4px 12px rgba(23, 14, 94, 0.08)' : 'none',
                 }}
               >
-                <CreditCardIcon size={14} />
-                <span>دفع بالبطاقة / الشبكة</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      backgroundColor: paymentChoice === 'card_terminal' ? '#170e5e' : '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CreditCardIcon size={17} color={paymentChoice === 'card_terminal' ? '#ffffff' : '#64748b'} />
+                  </div>
+                  {paymentChoice === 'card_terminal' && (
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 900,
+                        color: '#170e5e',
+                        backgroundColor: '#ede9fe',
+                        padding: '1px 6px',
+                        borderRadius: '5px',
+                      }}
+                    >
+                      محدد
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
+                  ماكينة الكشك
+                </div>
+                <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
+                  تمرير البطاقة أو مدى
+                </div>
               </button>
+
+              {/* خيار 2: مسح رمز QR بالهاتف */}
+              <button
+                type="button"
+                onClick={() => setPaymentChoice('qr_mobile')}
+                style={{
+                  padding: '14px 10px',
+                  borderRadius: '14px',
+                  border: paymentChoice === 'qr_mobile' ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+                  backgroundColor: paymentChoice === 'qr_mobile' ? '#f5f3ff' : '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'right',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: paymentChoice === 'qr_mobile' ? '0 4px 12px rgba(23, 14, 94, 0.08)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      backgroundColor: paymentChoice === 'qr_mobile' ? '#170e5e' : '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <QrCodeIcon size={17} color={paymentChoice === 'qr_mobile' ? '#ffffff' : '#64748b'} />
+                  </div>
+                  {paymentChoice === 'qr_mobile' && (
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 900,
+                        color: '#170e5e',
+                        backgroundColor: '#ede9fe',
+                        padding: '1px 6px',
+                        borderRadius: '5px',
+                      }}
+                    >
+                      محدد
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
+                  رمز QR بالهاتف
+                </div>
+                <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
+                  إنستاباي أو المحافظ
+                </div>
+              </button>
+
+              {/* خيار 3: دفع عند الكاونتر */}
               <button
                 type="button"
                 onClick={() => setPaymentChoice('cash_counter')}
                 style={{
-                  padding: '10px',
-                  borderRadius: '8px',
-                  border: paymentChoice === 'cash_counter' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  backgroundColor: paymentChoice === 'cash_counter' ? '#eef2ff' : '#ffffff',
-                  color: paymentChoice === 'cash_counter' ? '#170e5e' : '#334155',
-                  fontWeight: 800,
-                  fontSize: '12px',
+                  padding: '14px 10px',
+                  borderRadius: '14px',
+                  border: paymentChoice === 'cash_counter' ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+                  backgroundColor: paymentChoice === 'cash_counter' ? '#f5f3ff' : '#ffffff',
                   cursor: 'pointer',
+                  textAlign: 'right',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  flexDirection: 'column',
                   gap: '6px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: paymentChoice === 'cash_counter' ? '0 4px 12px rgba(23, 14, 94, 0.08)' : 'none',
                 }}
               >
-                <span>دفع نقداً عند الكاشير</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      backgroundColor: paymentChoice === 'cash_counter' ? '#170e5e' : '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ReceiptIcon size={17} color={paymentChoice === 'cash_counter' ? '#ffffff' : '#64748b'} />
+                  </div>
+                  {paymentChoice === 'cash_counter' && (
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 900,
+                        color: '#170e5e',
+                        backgroundColor: '#ede9fe',
+                        padding: '1px 6px',
+                        borderRadius: '5px',
+                      }}
+                    >
+                      محدد
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
+                  دفع بالكاونتر
+                </div>
+                <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
+                  تذكرة للكاشير (كاش/فيزا)
+                </div>
               </button>
             </div>
           </div>
 
-          {/* Total & Submit */}
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>الإجمالي المطلوب:</div>
-              <div style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>
-                {formatCurrency(totalCartAmount)}
+          {/* 5. زر التأكيد النهائي وإصدار التذكرة: Full-width tactile button */}
+          <Button
+            variant="primary"
+            onClick={handleCheckoutSubmit}
+            disabled={isSubmitting || (diningMode === 'dine_in' && !tableNumber.trim())}
+            style={{
+              width: '100%',
+              height: '52px',
+              backgroundColor:
+                diningMode === 'dine_in' && !tableNumber.trim()
+                  ? '#cbd5e1'
+                  : '#15803d',
+              fontSize: '15px',
+              fontWeight: 900,
+              borderRadius: '14px',
+              cursor: diningMode === 'dine_in' && !tableNumber.trim() ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow:
+                diningMode === 'dine_in' && !tableNumber.trim()
+                  ? 'none'
+                  : '0 6px 18px rgba(22, 128, 61, 0.25)',
+              border: 'none',
+              color: '#ffffff',
+            }}
+          >
+            {isSubmitting ? (
+              'جارٍ معالجة الطلب...'
+            ) : diningMode === 'dine_in' && !tableNumber.trim() ? (
+              'يرجى تحديد رقم طاولتك بالأعلى أولاً'
+            ) : paymentChoice === 'card_terminal' ? (
+              <span>المتابعة للدفع بجهاز الكشك • {formatCurrency(totalCartAmount)}</span>
+            ) : paymentChoice === 'qr_mobile' ? (
+              <span>عرض رمز QR وسداد الفاتورة • {formatCurrency(totalCartAmount)}</span>
+            ) : (
+              <span>طباعة تذكرة وسدادها عند الكاونتر • {formatCurrency(totalCartAmount)}</span>
+            )}
+          </Button>
+        </div>
+      </DialogShell>
+
+      {/* ========================================================= */}
+      {/* نافذة ماكينة الدفع بالبطاقة بالكشك (Terminal Modal)         */}
+      {/* ========================================================= */}
+      <DialogShell
+        open={isTerminalModalOpen}
+        onClose={() => {
+          if (terminalStep !== 'approved') setIsTerminalModalOpen(false);
+        }}
+        ariaLabel="جهاز الدفع بالبطاقة بالكشك"
+        width="min(460px, 94vw)"
+        zIndex={95}
+      >
+        <div style={{ padding: '28px 24px', textAlign: 'center', direction: 'rtl', fontFamily: 'inherit' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
+              معاملة #{activeTransactionId || 'ECR-001'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsTerminalModalOpen(false)}
+              style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '6px', color: '#64748b' }}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          {/* الخطوة 1: جاري الاتصال بالماكينة */}
+          {terminalStep === 'connecting' && (
+            <div style={{ padding: '16px 0' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '20px',
+                  backgroundColor: '#eef2ff',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <RefreshCwIcon size={28} color="#170e5e" className="animate-spin" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
+                جاري الاتصال بماكينة الدفع
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                {terminalMessage || 'جاري إرسال قيمة الفاتورة للماكينة...'}
+              </p>
+            </div>
+          )}
+
+          {/* الخطوة 2: في انتظار تمرير البطاقة */}
+          {terminalStep === 'waiting_card' && (
+            <div style={{ padding: '10px 0' }}>
+              <div
+                style={{
+                  width: '74px',
+                  height: '74px',
+                  borderRadius: '22px',
+                  backgroundColor: '#f5f3ff',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #ddd6fe',
+                }}
+              >
+                <CreditCardIcon size={36} color="#170e5e" />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
+                مرر أو أدخل البطاقة البنكية
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px' }}>
+                في جهاز الدفع بالأسفل (يدعم فيزا، ماستركارد، ميزا، ومدى، وApple Pay)
+              </p>
+
+              {/* Amount Box */}
+              <div
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '14px',
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: '#64748b' }}>المبلغ المطلوب سحبه:</div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
+                  {formatCurrency(totalCartAmount)}
+                </div>
+              </div>
+
+              {/* Countdown badge */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#f1f5f9',
+                  padding: '5px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: '#475569',
+                  marginBottom: '18px',
+                }}
+              >
+                <ClockIcon size={14} color="#64748b" />
+                <span>متبقي {terminalCountdown} ثانية</span>
+              </div>
+
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsTerminalModalOpen(false)}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                  }}
+                >
+                  إلغاء والعودة
+                </Button>
               </div>
             </div>
+          )}
 
+          {/* الخطوة 3: تمت الموافقة بنجاح */}
+          {terminalStep === 'approved' && (
+            <div style={{ padding: '16px 0' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dcfce7',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CheckCircleIcon size={36} color="#16a34a" />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#15803d', margin: '0 0 6px' }}>
+                تمت الموافقة وخصم المبلغ بنجاح!
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                {terminalMessage || 'تم تأكيد التفويض البنكي، جاري إصدار تذكرتك...'}
+              </p>
+            </div>
+          )}
+
+          {/* الخطوة 4: تم رفض العملية */}
+          {terminalStep === 'declined' && (
+            <div style={{ padding: '16px 0' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AlertCircleIcon size={36} color="#dc2626" />
+              </div>
+              <h3 style={{ fontSize: '19px', fontWeight: 900, color: '#b91c1c', margin: '0 0 6px' }}>
+                تعذر إتمام الدفع بالبطاقة
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px' }}>
+                {terminalMessage || 'تم رفض العملية من البنك أو تم إلغاؤها.'}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    void handleCheckoutSubmit();
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    borderRadius: '10px',
+                    backgroundColor: '#170e5e',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                  }}
+                >
+                  إعادة المحاولة ببطاقة أخرى
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsTerminalModalOpen(false);
+                    setPaymentChoice('cash_counter');
+                    void handleFinalizeOrder({
+                      paymentMethod: 'cash',
+                      paymentStatus: 'unpaid',
+                      paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                    });
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                  }}
+                >
+                  التحويل للدفع نقداً عند الكاشير
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* الخطوة 5: الجهاز غير متصل (تنبيه حقيقي دون تخطي وهمي) */}
+          {terminalStep === 'offline_error' && (
+            <div style={{ padding: '16px 0' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '20px',
+                  backgroundColor: '#fef3c7',
+                  margin: '0 auto 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AlertTriangleIcon size={32} color="#d97706" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
+                ماكينة الدفع غير متصلة بهذا الكشك
+              </h3>
+              <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.5, margin: '0 0 20px' }}>
+                {terminalMessage}
+                <br />
+                يمكنك مسح رمز QR والدفع بهاتفك فوراً، أو طباعة تذكرة والتوجه لكاونتر الكاشير للمحاسبة بالفيزا أو نقداً.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    setIsTerminalModalOpen(false);
+                    setPaymentChoice('qr_mobile');
+                    const ref = `QR-${Date.now().toString().slice(-6)}`;
+                    setQrRef(ref);
+                    setQrCountdown(120);
+                    setIsQrModalOpen(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    borderRadius: '10px',
+                    backgroundColor: '#170e5e',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <QrCodeIcon size={16} color="#ffffff" />
+                  <span>الدفع بمسح رمز QR بالهاتف</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsTerminalModalOpen(false);
+                    setPaymentChoice('cash_counter');
+                    void handleFinalizeOrder({
+                      paymentMethod: 'cash',
+                      paymentStatus: 'unpaid',
+                      paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                    });
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                  }}
+                >
+                  طباعة تذكرة والسداد لدى الكاشير
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogShell>
+
+      {/* ========================================================= */}
+      {/* نافذة الدفع السريع برمز QR بالهاتف (Dynamic QR Modal)       */}
+      {/* ========================================================= */}
+      <DialogShell
+        open={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        ariaLabel="الدفع الإلكتروني برمز QR"
+        width="min(460px, 94vw)"
+        zIndex={95}
+      >
+        <div style={{ padding: '24px 22px', textAlign: 'center', direction: 'rtl', fontFamily: 'inherit' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
+              معاملة #{qrRef || 'QR-100'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '6px', color: '#64748b' }}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          <h3 style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>
+            امسح الرمز بهاتفك لإتمام الدفع
+          </h3>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>
+            يدعم تطبيق إنستاباي، المحافظ الإلكترونية الذكية (فودافون/أورانج/اتصالات كاش)، أو تطبيق بنكك
+          </p>
+
+          {/* Dynamic QR Code Box */}
+          <div
+            style={{
+              width: '210px',
+              height: '210px',
+              margin: '0 auto 16px',
+              padding: '10px',
+              backgroundColor: '#ffffff',
+              borderRadius: '18px',
+              border: '2px solid #e2e8f0',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                `instapay://pay?to=${currentSlug}&amount=${totalCartAmount}&ref=${qrRef}&name=${encodeURIComponent(
+                  storeDisplayName
+                )}`
+              )}`}
+              alt="رمز QR للدفع"
+              style={{ width: '190px', height: '190px', borderRadius: '10px', display: 'block' }}
+            />
+          </div>
+
+          {/* Amount Box */}
+          <div
+            style={{
+              backgroundColor: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '12px',
+              marginBottom: '16px',
+            }}
+          >
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>إجمالي الفاتورة المطلوب سداده:</div>
+            <div style={{ fontSize: '24px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
+              {formatCurrency(totalCartAmount)}
+            </div>
+          </div>
+
+          {/* Timer */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#f1f5f9',
+              padding: '4px 14px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 800,
+              color: '#475569',
+              marginBottom: '18px',
+            }}
+          >
+            <ClockIcon size={14} color="#64748b" />
+            <span>
+              متبقي {Math.floor(qrCountdown / 60)}:{(qrCountdown % 60).toString().padStart(2, '0')} دقيقة
+            </span>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <Button
+              type="button"
               variant="primary"
-              onClick={handleSubmitOrder}
-              disabled={isSubmitting || (diningMode === 'dine_in' && !tableNumber.trim())}
+              onClick={() => {
+                void handleFinalizeOrder({
+                  paymentMethod: 'qr_mobile',
+                  paymentStatus: 'paid',
+                  paymentLabel: 'مدفوع إلكترونياً (رمز QR بالهاتف)',
+                  rrn: qrRef,
+                });
+              }}
               style={{
-                height: '42px',
-                padding: '0 24px',
+                width: '100%',
+                height: '48px',
                 backgroundColor: '#15803d',
-                fontSize: '13px',
+                borderRadius: '12px',
+                fontSize: '14px',
                 fontWeight: 900,
+                color: '#ffffff',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(22, 128, 61, 0.25)',
               }}
             >
-              {isSubmitting ? 'جارٍ إرسال الطلب...' : 'تأكيد ودفع الطلب'}
+              تم التحويل بنجاح • استلام التذكرة
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsQrModalOpen(false);
+                setPaymentChoice('cash_counter');
+                void handleFinalizeOrder({
+                  paymentMethod: 'cash',
+                  paymentStatus: 'unpaid',
+                  paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                });
+              }}
+              style={{
+                width: '100%',
+                height: '40px',
+                borderRadius: '10px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+              }}
+            >
+              تعذر التحويل؟ سداد نقداً عند الكاشير
             </Button>
           </div>
         </div>
@@ -941,12 +2699,15 @@ export function SelfOrderingKioskPage() {
         recommendations={upsellRules}
         allProducts={products as any}
         onAddUpsellItem={(prod, discount) => {
-          handleAddToCart({
-            id: prod.id,
-            name: prod.name,
-            price: Math.max(0, Number(prod.retailPrice || 0) - (discount || 0)),
-            imageUrl: (prod as any).imageUrl || '',
-          }, true);
+          handleAddToCart(
+            {
+              id: prod.id,
+              name: prod.name,
+              price: Math.max(0, Number(prod.retailPrice || 0) - (discount || 0)),
+              imageUrl: (prod as any).imageUrl || '',
+            },
+            true
+          );
         }}
       />
     </div>
