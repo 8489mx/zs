@@ -851,7 +851,7 @@ export function SelfOrderingKioskPage() {
           <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={() => window.print()}
               style={{
                 width: '100%',
@@ -2349,7 +2349,7 @@ export function SelfOrderingKioskPage() {
               <div>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => setIsTerminalModalOpen(false)}
                   style={{
                     width: '100%',
@@ -2435,7 +2435,7 @@ export function SelfOrderingKioskPage() {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => {
                     setIsTerminalModalOpen(false);
                     setPaymentChoice('cash_counter');
@@ -2516,7 +2516,7 @@ export function SelfOrderingKioskPage() {
 
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => {
                     setIsTerminalModalOpen(false);
                     setPaymentChoice('cash_counter');
@@ -2669,7 +2669,7 @@ export function SelfOrderingKioskPage() {
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={() => {
                 setIsQrModalOpen(false);
                 setPaymentChoice('cash_counter');
