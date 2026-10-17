@@ -960,20 +960,35 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
           });
           if (bridgeRes?.data) {
             resData = {
-              reachable: bridgeRes.data.reachable,
-              portOpen: bridgeRes.data.reachable,
-              pingSucceeded: bridgeRes.data.reachable,
+              reachable: Boolean(bridgeRes.data.reachable),
+              portOpen: Boolean(bridgeRes.data.portOpen ?? bridgeRes.data.reachable),
+              pingSucceeded: Boolean(bridgeRes.data.pingSucceeded ?? bridgeRes.data.reachable),
               latencyMs: bridgeRes.data.latencyMs,
               message: `${bridgeRes.data.message} (عبر جسر العتاد 127.0.0.1:18181)`,
               details: `استجابة الماكينة: ${bridgeRes.data.latencyMs}ms عبر جسر Z-Systems المحلي`,
             };
+          } else {
+            const errMsg = bridgeRes?.error || 'المنفذ مغلق أو الماكينة لا تستجيب على الشبكة المحلية';
+            resData = {
+              reachable: false,
+              portOpen: false,
+              pingSucceeded: false,
+              latencyMs: 0,
+              message: `${errMsg} (عبر جسر العتاد 127.0.0.1:18181)`,
+              details: `قام الجسر المحلي بفحص ${term.ip}:${term.port} ولكن الجهاز رفض الاتصال أو أن التطبيق غير مفتوح على الماكينة.`,
+            };
           }
-        } catch {
-          // Fallback to posApi
+        } catch (bridgeErr: any) {
+          resData = {
+            reachable: false,
+            portOpen: false,
+            pingSucceeded: false,
+            latencyMs: 0,
+            message: `تعذر الاتصال بالماكينة عبر جسر العتاد: ${bridgeErr?.message || 'خطأ اتصال'}`,
+            details: 'تأكد من تشغيل الماكينة واتصالها بنفس الراوتر المحلي.',
+          };
         }
-      }
-
-      if (!resData) {
+      } else {
         const res = await posApi.testTerminalConnection({
           ip: term.ip || '192.168.1.150',
           port: Number(term.port || 8080),

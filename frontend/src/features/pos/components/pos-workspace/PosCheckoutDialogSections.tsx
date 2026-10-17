@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
+import { useAuthStore } from '@/stores/auth-store';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
@@ -432,6 +433,15 @@ export function PosCheckoutPaymentSection({
       if (defaultTerm) setSelectedTerminalId(defaultTerm.id);
     }
   }, [activeTerminals, selectedTerminalId]);
+
+  useEffect(() => {
+    try {
+      const activeTenantId = String(useAuthStore.getState().user?.tenantId || useAuthStore.getState().tenant?.id || '').trim();
+      if (activeTenantId) {
+        HardwareBridgeClient.syncTenant(activeTenantId).catch(() => {});
+      }
+    } catch {}
+  }, []);
 
   const [terminalSession, setTerminalSession] = useState<{
     status: 'idle' | 'initiating' | 'waiting' | 'approved' | 'declined' | 'cancelled';

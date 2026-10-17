@@ -28,7 +28,7 @@ Write-Host "2. Linking resources with aapt2..."
 
 Write-Host "3. Compiling Java sources..."
 $javaFiles = Get-ChildItem -Path "$APP_DIR\src", "$APP_DIR\bin\gen" -Filter "*.java" -Recurse | Select-Object -ExpandProperty FullName
-& "$JAVA_HOME\bin\javac.exe" -source 1.8 -target 1.8 -cp "$ANDROID_JAR" -d "$APP_DIR\bin\classes" $javaFiles
+& "$JAVA_HOME\bin\javac.exe" -encoding UTF-8 -source 1.8 -target 1.8 -cp "$ANDROID_JAR" -d "$APP_DIR\bin\classes" $javaFiles
 
 Write-Host "4. Dexing classes with d8..."
 $classFiles = Get-ChildItem -Path "$APP_DIR\bin\classes" -Filter "*.class" -Recurse | Select-Object -ExpandProperty FullName

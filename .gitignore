@@ -78,4 +78,5 @@ android-app/*.keystore
 screen*.png
 tools/z-systems-bridge/dist/
 tools/z-systems-bridge/*.exe
+tools/z-systems-bridge/bridge-config.json
 

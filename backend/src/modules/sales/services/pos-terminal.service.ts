@@ -143,11 +143,33 @@ export interface TerminalConnectionTestResult {
   provider?: string;
 }
 
+export interface BridgeJob {
+  jobId: string;
+  tenantId: string;
+  ip: string;
+  port: number;
+  provider: string;
+  amount: number;
+  currency: string;
+  referenceId: string;
+  terminalTid?: string;
+  pairingKey?: string;
+}
+
+export interface BridgePoller {
+  resolve: (data: { hasJob: boolean; job?: BridgeJob }) => void;
+  timeout: NodeJS.Timeout;
+}
+
 @Injectable()
 export class PosTerminalService {
   private readonly logger = new Logger(PosTerminalService.name);
   private activeSessions = new Map<string, TerminalPaymentSession>();
   private readonly sessionTtlMs = 15 * 60 * 1000;
+
+  private bridgePollers = new Map<string, BridgePoller[]>();
+  private pendingBridgeJobs = new Map<string, BridgeJob[]>();
+  private bridgeLastSeen = new Map<string, number>();
 
   private pruneExpiredSessions(): void {
     const cutoff = Date.now() - this.sessionTtlMs;
@@ -157,6 +179,100 @@ export class PosTerminalService {
   }
 
   constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
+
+  /**
+   * Hardware Bridge long-poll endpoint.
+   * Holds request up to 25s waiting for a payment job for the given tenant.
+   */
+  async pollBridge(tenantId: string): Promise<{ hasJob: boolean; job?: BridgeJob }> {
+    const cleanTenant = String(tenantId).trim();
+    this.bridgeLastSeen.set(cleanTenant, Date.now());
+
+    // 1. Return pending job if any
+    const pendingList = this.pendingBridgeJobs.get(cleanTenant);
+    if (pendingList && pendingList.length > 0) {
+      const job = pendingList.shift()!;
+      this.logger.log(`Dispatching pending bridge job ${job.jobId} to poller for tenant ${cleanTenant}`);
+      return { hasJob: true, job };
+    }
+
+    // 2. Long-poll wait up to 25 seconds
+    return new Promise((resolve) => {
+      let timeoutId: NodeJS.Timeout;
+      const resolveWrapper = (data: { hasJob: boolean; job?: BridgeJob }) => {
+        clearTimeout(timeoutId);
+        resolve(data);
+      };
+
+      timeoutId = setTimeout(() => {
+        const list = this.bridgePollers.get(cleanTenant) || [];
+        this.bridgePollers.set(cleanTenant, list.filter((p: any) => p.resolve !== resolveWrapper));
+        resolve({ hasJob: false });
+      }, 25000);
+
+      if (!this.bridgePollers.has(cleanTenant)) {
+        this.bridgePollers.set(cleanTenant, []);
+      }
+      this.bridgePollers.get(cleanTenant)!.push({ resolve: resolveWrapper, timeout: timeoutId });
+    });
+  }
+
+  /**
+   * Handle result callback from hardware bridge
+   */
+  async handleBridgeCallback(tenantId: string, payload: {
+    jobId: string;
+    status: string;
+    authCode?: string;
+    rrn?: string;
+    cardScheme?: string;
+    cardLastFour?: string;
+    message?: string;
+  }): Promise<boolean> {
+    const cleanTenant = String(tenantId).trim();
+    this.bridgeLastSeen.set(cleanTenant, Date.now());
+    this.pruneExpiredSessions();
+
+    const session = this.activeSessions.get(payload.jobId);
+    if (!session) {
+      this.logger.warn(`Bridge callback for unknown or expired session ${payload.jobId}`);
+      return false;
+    }
+
+    const isApproved = payload.status === 'approved' || payload.status === 'APPROVED';
+    session.status = isApproved ? 'approved' : (payload.status === 'cancelled' ? 'cancelled' : 'declined');
+    session.approvalCode = payload.authCode || (isApproved ? `AUTH-${Math.floor(100000 + Math.random() * 900000)}` : undefined);
+    session.rrn = payload.rrn || session.transactionId;
+    session.cardScheme = payload.cardScheme || 'Visa';
+    session.cardLastFour = payload.cardLastFour || '';
+    session.message = payload.message || (isApproved ? 'تمت الموافقة بنجاح من ماكينة الدفع' : 'تم رفض العملية من البنك أو الماكينة');
+    session.updatedAt = Date.now();
+
+    this.logger.log(`Bridge callback resolved session ${payload.jobId} => ${session.status} (Auth: ${session.approvalCode})`);
+    return true;
+  }
+
+  /**
+   * Dispatch a terminal charge job to an active bridge poller or queue
+   */
+  private dispatchToBridgeRelay(tenantId: string, job: BridgeJob): boolean {
+    const cleanTenant = String(tenantId).trim();
+    const pollers = this.bridgePollers.get(cleanTenant);
+    if (pollers && pollers.length > 0) {
+      const poller = pollers.shift()!;
+      clearTimeout(poller.timeout);
+      poller.resolve({ hasJob: true, job });
+      this.logger.log(`Dispatched terminal charge job ${job.jobId} to active bridge poller for tenant ${cleanTenant}`);
+      return true;
+    }
+
+    // Queue for next poll
+    if (!this.pendingBridgeJobs.has(cleanTenant)) {
+      this.pendingBridgeJobs.set(cleanTenant, []);
+    }
+    this.pendingBridgeJobs.get(cleanTenant)!.push(job);
+    return false;
+  }
 
   /**
    * Get configured POS Terminals for the tenant from settings
@@ -249,8 +365,8 @@ export class PosTerminalService {
       // Fallback to legacy single terminal
       if (terminalsList.length === 0) {
         const name = settingsMap.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)';
-        const provider = settingsMap.posTerminalProvider || 'mock_sandbox';
-        const parsed = parseTerminalHostAndPort(settingsMap.posTerminalIp || '192.168.1.150', Number(settingsMap.posTerminalPort || 8080));
+        const provider = settingsMap.posTerminalProvider || (country === 'KW' ? 'knet_pos' : country === 'SA' ? 'geidea' : 'fawry');
+        const parsed = parseTerminalHostAndPort(settingsMap.posTerminalIp || '192.168.1.3', Number(settingsMap.posTerminalPort || 8080));
 
         terminalsList = [
           {
@@ -261,6 +377,8 @@ export class PosTerminalService {
             provider: providerDisplayNames[provider] || provider,
             ipAddress: `${parsed.host}:${parsed.port}`,
             isDefault: true,
+            pairingKey: settingsMap.posTerminalPairingKey,
+            terminalTid: settingsMap.posTerminalTid,
           },
         ];
       }
@@ -338,11 +456,13 @@ export class PosTerminalService {
     const prov = (selectedTerminal.provider || '').toLowerCase();
 
     // Determine if session should run in simulation / sandbox mode
-    const isMock = prov.includes('mock') || prov.includes('sandbox') || cleanIp === '127.0.0.1' || cleanIp === 'localhost';
+    const isMock = prov.includes('mock') || prov.includes('sandbox');
 
     const tenantCurrency = request.currency
       ? String(request.currency).trim().toUpperCase()
       : await this.getTenantBaseCurrency(tenantId);
+
+    const isLocalLan = cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.') || cleanIp.startsWith('172.') || cleanIp === '127.0.0.1' || cleanIp === 'localhost';
 
     const session: TerminalPaymentSession = {
       tenantId,
@@ -356,19 +476,55 @@ export class PosTerminalService {
       updatedAt: Date.now(),
       message: isMock
         ? 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع...'
-        : `جاري الاتصال بماكينة الدفع (${cleanIp}:${port})... يرجى تمرير البطاقة`,
+        : `في انتظار تمرير أو إدخال البطاقة على ماكينة الدفع (${selectedTerminal.name})...`,
       provider: selectedTerminal.provider,
       isSimulated: isMock,
     };
 
     this.activeSessions.set(transactionId, session);
-    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount} on ${selectedTerminal.name} (Simulated: ${isMock})`);
+    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount} on ${selectedTerminal.name} (Simulated: ${isMock}, LocalLan: ${isLocalLan})`);
 
-    // If real device, launch background protocol transaction
+    // If real device, dispatch via Bridge Relay (for local LAN) or direct cloud call
     if (!isMock) {
-      this.executeTerminalCharge(session, cleanIp, port, prov, selectedTerminal, request).catch((err) => {
-        this.logger.error(`Terminal charge background error for ${transactionId}:`, err);
-      });
+      if (isLocalLan) {
+        const job: BridgeJob = {
+          jobId: transactionId,
+          tenantId,
+          ip: cleanIp,
+          port,
+          provider: prov,
+          amount: request.amount,
+          currency: tenantCurrency,
+          referenceId: transactionId,
+          terminalTid: selectedTerminal.terminalTid,
+          pairingKey: selectedTerminal.pairingKey,
+        };
+
+        const dispatched = this.dispatchToBridgeRelay(tenantId, job);
+        if (dispatched) {
+          session.message = `في انتظار تمرير أو إدخال البطاقة على ماكينة الدفع (${selectedTerminal.name})...`;
+        } else {
+          // Allow up to 4.5 seconds for a polling bridge to pick it up before declining
+          setTimeout(() => {
+            const current = this.activeSessions.get(transactionId);
+            if (current && current.status === 'processing' && !current.approvalCode) {
+              const pending = this.pendingBridgeJobs.get(tenantId) || [];
+              const stillQueued = pending.some(j => j.jobId === transactionId);
+              if (stillQueued) {
+                this.pendingBridgeJobs.set(tenantId, pending.filter(j => j.jobId !== transactionId));
+                current.status = 'declined';
+                current.message = `ماكينة الدفع (${selectedTerminal.name} - ${cleanIp}) على شبكة محلية، ولم يتم اكتشاف اتصال مع جسر Z-Systems Bridge على جهاز الكاشير. يرجى تشغيل الجسر.`;
+                current.updatedAt = Date.now();
+                this.logger.warn(`Terminal session ${transactionId} declined: No active bridge poller for tenant ${tenantId}`);
+              }
+            }
+          }, 4500);
+        }
+      } else {
+        this.executeTerminalCharge(session, cleanIp, port, prov, selectedTerminal, request).catch((err) => {
+          this.logger.error(`Terminal charge background error for ${transactionId}:`, err);
+        });
+      }
     }
 
     return session;

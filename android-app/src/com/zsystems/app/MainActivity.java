@@ -24,6 +24,16 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Start Persistent ECR Server Service on Ports 8080 & 10009
+        try {
+            android.content.Intent serviceIntent = new android.content.Intent(this, EcrServerService.class);
+            if (Build.VERSION.SDK_INT >= 26) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception ignored) {}
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         // 1. Force Hardware Acceleration on Window level for smooth 60fps

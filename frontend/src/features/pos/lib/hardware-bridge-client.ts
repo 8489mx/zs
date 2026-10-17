@@ -56,7 +56,9 @@ export class HardwareBridgeClient {
     try {
       const res = await fetch(`${BRIDGE_BASE_URL}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(1200),
+        mode: 'cors',
+        credentials: 'omit',
+        signal: AbortSignal.timeout(3500),
       });
       const data = await res.json();
       const online = res.ok && data?.status === 'ONLINE';
@@ -71,13 +73,38 @@ export class HardwareBridgeClient {
   }
 
   /**
+   * Sync current tenant & server URL to local bridge so cloud relay automatically connects
+   */
+  static async syncTenant(tenantId: string, serverUrl?: string): Promise<boolean> {
+    if (!tenantId) return false;
+    try {
+      const res = await fetch(`${BRIDGE_BASE_URL}/api/tenant/sync`, {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: String(tenantId).trim(),
+          serverUrl: serverUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://app.zsystemai.com'),
+        }),
+        signal: AbortSignal.timeout(2500),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get health status details
    */
   static async getHealth(): Promise<BridgeHealth> {
     try {
       const res = await fetch(`${BRIDGE_BASE_URL}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(1500),
+        mode: 'cors',
+        credentials: 'omit',
+        signal: AbortSignal.timeout(3000),
       });
       if (res.ok) {
         const data = await res.json();
@@ -95,6 +122,8 @@ export class HardwareBridgeClient {
   static async chargeTerminal(request: BridgeChargeRequest): Promise<BridgeChargeResponse> {
     const res = await fetch(`${BRIDGE_BASE_URL}/api/ecr/charge`, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });

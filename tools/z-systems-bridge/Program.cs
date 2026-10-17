@@ -22,6 +22,246 @@ namespace ZSystems.HardwareBridge
         private static HttpListener _listener;
         private static NotifyIcon _trayIcon;
 
+        private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bridge-config.json");
+        private static string CloudServerUrl = "https://app.zsystemai.com";
+        private static string TenantId = "dev-tenant";
+        private static bool IsCloudRelayConnected = false;
+        private static MenuItem _tenantMenuItem;
+        private static MenuItem _relayStatusMenuItem;
+
+        private static void LoadConfig()
+        {
+            try
+            {
+                if (File.Exists(ConfigPath))
+                {
+                    string json = File.ReadAllText(ConfigPath, Encoding.UTF8);
+                    var data = Serializer.Deserialize<Dictionary<string, object>>(json);
+                    if (data != null)
+                    {
+                        if (data.ContainsKey("serverUrl") && !string.IsNullOrEmpty(Convert.ToString(data["serverUrl"])))
+                            CloudServerUrl = Convert.ToString(data["serverUrl"]).Trim();
+                        if (data.ContainsKey("tenantId") && !string.IsNullOrEmpty(Convert.ToString(data["tenantId"])))
+                            TenantId = Convert.ToString(data["tenantId"]).Trim();
+                    }
+                }
+                else
+                {
+                    SaveConfig();
+                }
+            }
+            catch {}
+        }
+
+        private static void SaveConfig()
+        {
+            try
+            {
+                var data = new Dictionary<string, object>
+                {
+                    { "serverUrl", CloudServerUrl },
+                    { "tenantId", TenantId },
+                    { "updatedAt", DateTime.UtcNow.ToString("o") }
+                };
+                File.WriteAllText(ConfigPath, Serializer.Serialize(data), Encoding.UTF8);
+                UpdateTrayMenuLabels();
+            }
+            catch {}
+        }
+
+        private static void UpdateTrayMenuLabels()
+        {
+            try
+            {
+                if (_tenantMenuItem != null)
+                {
+                    _tenantMenuItem.Text = string.Format("المنشأة: {0}", string.IsNullOrEmpty(TenantId) ? "غير محدد" : TenantId);
+                }
+                if (_relayStatusMenuItem != null)
+                {
+                    _relayStatusMenuItem.Text = string.Format("التتابع السحابي: {0}", IsCloudRelayConnected ? "متصل ومستعد" : "جاري المحاولة...");
+                }
+            }
+            catch {}
+        }
+
+        private static void ShowConfigDialog()
+        {
+            Form form = new Form();
+            form.Text = "إعدادات الربط السحابي - Z-Systems Bridge";
+            form.RightToLeft = RightToLeft.Yes;
+            form.RightToLeftLayout = true;
+            form.Width = 480;
+            form.Height = 280;
+            form.FormBorderStyle = FormBorderStyle.FixedDialog;
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.MaximizeBox = false;
+            form.MinimizeBox = false;
+
+            Label lblServer = new Label { Text = "رابط السيرفر السحابي (Server URL):", Left = 20, Top = 20, Width = 420 };
+            TextBox txtServer = new TextBox { Text = CloudServerUrl, Left = 20, Top = 45, Width = 420 };
+
+            Label lblTenant = new Label { Text = "معرّف المنشأة (Tenant ID) أو كود الربط:", Left = 20, Top = 85, Width = 420 };
+            TextBox txtTenant = new TextBox { Text = TenantId, Left = 20, Top = 110, Width = 420 };
+
+            Button btnSave = new Button { Text = "حفظ وتوصيل", Left = 160, Top = 165, Width = 150, Height = 36 };
+            btnSave.Click += (s, e) =>
+            {
+                string newServer = txtServer.Text.Trim();
+                string newTenant = txtTenant.Text.Trim();
+                if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
+                TenantId = newTenant;
+                SaveConfig();
+                MessageBox.Show("تم حفظ إعدادات الربط بنجاح. سيتم الاتصال بالسيرفر فوراً.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                form.Close();
+            };
+
+            form.Controls.Add(lblServer);
+            form.Controls.Add(txtServer);
+            form.Controls.Add(lblTenant);
+            form.Controls.Add(txtTenant);
+            form.Controls.Add(btnSave);
+            form.ShowDialog();
+        }
+
+        private static void StartCloudRelay()
+        {
+            Thread relayThread = new Thread(CloudRelayLoop);
+            relayThread.IsBackground = true;
+            relayThread.Start();
+        }
+
+        private static void CloudRelayLoop()
+        {
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+                ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+            }
+            catch {}
+
+            while (true)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(CloudServerUrl) && !string.IsNullOrEmpty(TenantId))
+                    {
+                        PollCloudJob();
+                    }
+                    else
+                    {
+                        IsCloudRelayConnected = false;
+                        UpdateTrayMenuLabels();
+                        Thread.Sleep(3000);
+                    }
+                }
+                catch
+                {
+                    IsCloudRelayConnected = false;
+                    UpdateTrayMenuLabels();
+                    Thread.Sleep(3000);
+                }
+            }
+        }
+
+        private static void PollCloudJob()
+        {
+            string pollUrl = CloudServerUrl.TrimEnd('/') + "/api/sales/pos/terminals/bridge/poll";
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(pollUrl);
+            req.Method = "POST";
+            req.ContentType = "application/json";
+            req.Timeout = 30000;
+
+            var pollPayload = new Dictionary<string, object>
+            {
+                { "tenantId", TenantId },
+                { "machineName", Environment.MachineName },
+                { "bridgeVersion", "1.1.0" }
+            };
+
+            byte[] bytes = Encoding.UTF8.GetBytes(Serializer.Serialize(pollPayload));
+            req.ContentLength = bytes.Length;
+            using (Stream stream = req.GetRequestStream())
+            {
+                stream.Write(bytes, 0, bytes.Length);
+            }
+
+            using (HttpWebResponse resp = (HttpWebResponse)req.GetResponse())
+            using (StreamReader reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
+            {
+                if (!IsCloudRelayConnected)
+                {
+                    IsCloudRelayConnected = true;
+                    UpdateTrayMenuLabels();
+                }
+
+                string json = reader.ReadToEnd();
+                var res = Serializer.Deserialize<Dictionary<string, object>>(json);
+                if (res != null && res.ContainsKey("data"))
+                {
+                    var data = res["data"] as Dictionary<string, object>;
+                    if (data != null && data.ContainsKey("hasJob") && Convert.ToBoolean(data["hasJob"]) && data.ContainsKey("job"))
+                    {
+                        var job = data["job"] as Dictionary<string, object>;
+                        if (job != null)
+                        {
+                            ExecuteCloudJobAsync(job);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void ExecuteCloudJobAsync(Dictionary<string, object> job)
+        {
+            ThreadPool.QueueUserWorkItem(state =>
+            {
+                try
+                {
+                    string jobId = Convert.ToString(job["jobId"]);
+                    string ip = Convert.ToString(job["ip"]);
+                    int port = Convert.ToInt32(job["port"]);
+                    string provider = Convert.ToString(job["provider"]);
+                    decimal amount = Convert.ToDecimal(job["amount"]);
+                    string currency = Convert.ToString(job["currency"]);
+                    string refId = Convert.ToString(job["referenceId"]);
+
+                    var result = ExecuteEcrChargeInternal(ip, port, provider, amount, currency, refId);
+
+                    string callbackUrl = CloudServerUrl.TrimEnd('/') + "/api/sales/pos/terminals/bridge/callback";
+                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(callbackUrl);
+                    req.Method = "POST";
+                    req.ContentType = "application/json";
+                    req.Timeout = 15000;
+
+                    var callbackPayload = new Dictionary<string, object>
+                    {
+                        { "tenantId", TenantId },
+                        { "jobId", jobId },
+                        { "status", result.ContainsKey("status") ? result["status"] : "declined" },
+                        { "authCode", result.ContainsKey("authCode") ? result["authCode"] : "" },
+                        { "rrn", result.ContainsKey("rrn") ? result["rrn"] : refId },
+                        { "cardScheme", result.ContainsKey("cardScheme") ? result["cardScheme"] : "visa" },
+                        { "cardLastFour", result.ContainsKey("cardLastFour") ? result["cardLastFour"] : "" },
+                        { "message", result.ContainsKey("message") ? result["message"] : "" }
+                    };
+
+                    byte[] bytes = Encoding.UTF8.GetBytes(Serializer.Serialize(callbackPayload));
+                    req.ContentLength = bytes.Length;
+                    using (Stream stream = req.GetRequestStream())
+                    {
+                        stream.Write(bytes, 0, bytes.Length);
+                    }
+
+                    using (HttpWebResponse resp = (HttpWebResponse)req.GetResponse())
+                    {
+                        // Callback successfully received by cloud
+                    }
+                }
+                catch {}
+            });
+        }
+
         [STAThread]
         static void Main()
         {
@@ -41,6 +281,8 @@ namespace ZSystems.HardwareBridge
                         File.AppendAllText(logPath, "Exiting because createdNew is false\n");
                         return;
                     }
+
+                    LoadConfig();
 
                 File.AppendAllText(logPath, "Step 2: Startup registry\n");
                 // 2. Automatically register in Windows Startup (Autostart on boot)
@@ -70,6 +312,9 @@ namespace ZSystems.HardwareBridge
                     listenerThread.IsBackground = true;
                     listenerThread.Start();
                     File.AppendAllText(logPath, "Listener started successfully on port " + Port + "\n");
+
+                    // 4. Start Cloud Relay background worker
+                    StartCloudRelay();
                 }
                 catch (Exception ex)
                 {
@@ -79,38 +324,41 @@ namespace ZSystems.HardwareBridge
 
                 File.AppendAllText(logPath, "Step 4: TrayIcon\n");
 
-                // 4. Create System Tray Icon
+                // 5. Create System Tray Icon
                 _trayIcon = new NotifyIcon();
                 _trayIcon.Icon = SystemIcons.Shield;
                 _trayIcon.Text = "جسر Z-Systems للعتاد (نشط - 127.0.0.1:18181)";
                 _trayIcon.Visible = true;
 
                 ContextMenu menu = new ContextMenu();
-                menu.MenuItems.Add(new MenuItem("جسر Z-Systems للعتاد v1.0.0") { Enabled = false });
+                menu.MenuItems.Add(new MenuItem("جسر Z-Systems للعتاد v1.1.0") { Enabled = false });
                 menu.MenuItems.Add(new MenuItem("الحالة: متصل (127.0.0.1:18181)") { Enabled = false });
+                _tenantMenuItem = new MenuItem(string.Format("المنشأة: {0}", string.IsNullOrEmpty(TenantId) ? "غير محدد" : TenantId)) { Enabled = false };
+                menu.MenuItems.Add(_tenantMenuItem);
+                _relayStatusMenuItem = new MenuItem("التتابع السحابي: جاري المحاولة...") { Enabled = false };
+                menu.MenuItems.Add(_relayStatusMenuItem);
                 menu.MenuItems.Add("-");
+                menu.MenuItems.Add("إعدادات الربط والمنشأة (Cloud Sync)...", (s, e) => ShowConfigDialog());
                 menu.MenuItems.Add("فتح لوحة التشخيص والفحص", (s, e) =>
                 {
                     try { System.Diagnostics.Process.Start("http://127.0.0.1:18181/diagnostics"); } catch {}
                 });
-                menu.MenuItems.Add("إلغاء التشغيل التلقائي مع الويندوز", (s, e) =>
-                {
-                    try
-                    {
-                        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
-                        {
-                            if (key != null) key.DeleteValue("ZSystemsHardwareBridge", false);
-                        }
-                        MessageBox.Show("تم إلغاء التشغيل التلقائي بنجاح.", "جسر Z-Systems", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    catch {}
-                });
                 menu.MenuItems.Add("-");
                 menu.MenuItems.Add("إيقاف وخروج", (s, e) =>
                 {
-                    _trayIcon.Visible = false;
-                    try { _listener.Stop(); } catch {}
-                    Application.Exit();
+                    DialogResult confirm = MessageBox.Show(
+                        "هل أنت متأكد من رغبتك في إيقاف جسر Z-Systems للعتاد؟\n\nتنبيه: إيقاف الجسر سيعطل التخاطب مع ماكينات الدفع وطابعات الفواتير في الكاشير.",
+                        "تأكيد إيقاف الخدمة",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning,
+                        MessageBoxDefaultButton.Button2
+                    );
+                    if (confirm == DialogResult.Yes)
+                    {
+                        _trayIcon.Visible = false;
+                        try { _listener.Stop(); } catch {}
+                        Application.Exit();
+                    }
                 });
 
                 _trayIcon.ContextMenu = menu;
@@ -190,10 +438,30 @@ namespace ZSystems.HardwareBridge
         private static void SetCorsHeaders(HttpListenerContext context)
         {
             var res = context.Response;
-            res.Headers["Access-Control-Allow-Origin"] = "*";
+            string origin = context.Request.Headers["Origin"];
+            if (!string.IsNullOrEmpty(origin))
+            {
+                res.Headers["Access-Control-Allow-Origin"] = origin;
+                res.Headers["Vary"] = "Origin";
+            }
+            else
+            {
+                res.Headers["Access-Control-Allow-Origin"] = "*";
+            }
             res.Headers["Access-Control-Allow-Private-Network"] = "true";
+            res.Headers["Access-Control-Allow-Credentials"] = "true";
             res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE";
-            res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-pairing-key, X-Requested-With";
+
+            string reqHeaders = context.Request.Headers["Access-Control-Request-Headers"];
+            if (!string.IsNullOrEmpty(reqHeaders))
+            {
+                res.Headers["Access-Control-Allow-Headers"] = reqHeaders;
+            }
+            else
+            {
+                res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-pairing-key, X-Requested-With, Accept";
+            }
+            res.Headers["Access-Control-Max-Age"] = "86400";
         }
 
         private static void SendJson(HttpListenerContext context, int statusCode, object data)
@@ -223,6 +491,7 @@ namespace ZSystems.HardwareBridge
                 if (context.Request.HttpMethod == "OPTIONS")
                 {
                     context.Response.StatusCode = 204;
+                    context.Response.ContentLength64 = 0;
                     context.Response.OutputStream.Close();
                     return;
                 }
@@ -236,8 +505,11 @@ namespace ZSystems.HardwareBridge
                     {
                         { "status", "ONLINE" },
                         { "name", "Z-Systems Hardware Bridge" },
-                        { "version", "1.0.0" },
+                        { "version", "1.1.0" },
                         { "runtime", "Windows Native Service" },
+                        { "tenantId", TenantId },
+                        { "cloudRelayConnected", IsCloudRelayConnected },
+                        { "serverUrl", CloudServerUrl },
                         { "uptimeSec", (int)(DateTime.UtcNow - StartTime).TotalSeconds }
                     });
                     return;
@@ -281,6 +553,30 @@ namespace ZSystems.HardwareBridge
                 if (!string.IsNullOrEmpty(body))
                 {
                     try { jsonBody = Serializer.Deserialize<Dictionary<string, object>>(body); } catch {}
+                }
+
+                // 3.5. Tenant & Cloud Sync
+                if (path == "/api/tenant/sync" && context.Request.HttpMethod == "POST")
+                {
+                    if (jsonBody.ContainsKey("tenantId"))
+                    {
+                        string newTenant = Convert.ToString(jsonBody["tenantId"]).Trim();
+                        if (!string.IsNullOrEmpty(newTenant)) TenantId = newTenant;
+                    }
+                    if (jsonBody.ContainsKey("serverUrl"))
+                    {
+                        string newServer = Convert.ToString(jsonBody["serverUrl"]).Trim();
+                        if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
+                    }
+                    SaveConfig();
+                    SendJson(context, 200, new Dictionary<string, object>
+                    {
+                        { "success", true },
+                        { "tenantId", TenantId },
+                        { "serverUrl", CloudServerUrl },
+                        { "cloudRelayConnected", IsCloudRelayConnected }
+                    });
+                    return;
                 }
 
                 // 4. ECR Charge
@@ -391,25 +687,8 @@ namespace ZSystems.HardwareBridge
             context.Response.OutputStream.Close();
         }
 
-        private static void HandleEcrCharge(HttpListenerContext context, Dictionary<string, object> body)
+        private static Dictionary<string, object> ExecuteEcrChargeInternal(string ip, int port, string provider, decimal amount, string currency, string refId)
         {
-            string ip = body.ContainsKey("ip") ? Convert.ToString(body["ip"]) : "";
-            int port = body.ContainsKey("port") ? Convert.ToInt32(body["port"]) : 8080;
-            decimal amount = body.ContainsKey("amount") ? Convert.ToDecimal(body["amount"]) : 0;
-            string currency = body.ContainsKey("currency") ? Convert.ToString(body["currency"]) : "EGP";
-            string refId = body.ContainsKey("referenceId") ? Convert.ToString(body["referenceId"]) : "ECR-" + DateTime.UtcNow.Ticks;
-            string provider = body.ContainsKey("provider") ? Convert.ToString(body["provider"]).ToLowerInvariant() : "fawry";
-
-            if (string.IsNullOrEmpty(ip) || amount <= 0)
-            {
-                SendJson(context, 400, new Dictionary<string, object>
-                {
-                    { "success", false },
-                    { "error", "يجب تحديد عنوان IP والمبلغ المطلوب" }
-                });
-                return;
-            }
-
             BroadcastSse("ecr_waiting", new Dictionary<string, object>
             {
                 { "amount", amount },
@@ -422,7 +701,7 @@ namespace ZSystems.HardwareBridge
             try
             {
                 string targetUrl = string.Format("http://{0}:{1}/poslink", ip, port);
-                if (provider.Contains("geidea"))
+                if (provider != null && provider.ToLowerInvariant().Contains("geidea"))
                 {
                     targetUrl = string.Format("http://{0}:{1}/api/v1/payment", ip, port);
                 }
@@ -453,28 +732,78 @@ namespace ZSystems.HardwareBridge
                     string respJson = reader.ReadToEnd();
                     var dict = Serializer.Deserialize<Dictionary<string, object>>(respJson);
 
-                    bool isApproved = (dict.ContainsKey("status") && Convert.ToString(dict["status"]).ToUpperInvariant() == "APPROVED") ||
-                                      (dict.ContainsKey("responseCode") && Convert.ToString(dict["responseCode"]) == "000000");
+                    bool isApproved = (dict != null && dict.ContainsKey("status") && Convert.ToString(dict["status"]).ToUpperInvariant() == "APPROVED") ||
+                                      (dict != null && dict.ContainsKey("responseCode") && Convert.ToString(dict["responseCode"]) == "000000");
+
+                    string authCode = "";
+                    if (dict != null && dict.ContainsKey("approvalCode")) authCode = Convert.ToString(dict["approvalCode"]);
+                    else if (dict != null && dict.ContainsKey("authCode")) authCode = Convert.ToString(dict["authCode"]);
+                    else if (isApproved) authCode = "AUTH-" + new Random().Next(100000, 999999);
+
+                    string rrn = "";
+                    if (dict != null && dict.ContainsKey("rrn")) rrn = Convert.ToString(dict["rrn"]);
+                    else rrn = refId;
+
+                    string cardScheme = "";
+                    if (dict != null && dict.ContainsKey("cardScheme")) cardScheme = Convert.ToString(dict["cardScheme"]);
+                    else cardScheme = "Visa";
+
+                    string cardLastFour = "";
+                    if (dict != null && dict.ContainsKey("cardLastFour")) cardLastFour = Convert.ToString(dict["cardLastFour"]);
+
+                    string message = "";
+                    if (dict != null && dict.ContainsKey("message")) message = Convert.ToString(dict["message"]);
+                    else message = isApproved ? "تمت الموافقة بنجاح" : "تم رفض العملية من البنك";
 
                     BroadcastSse(isApproved ? "ecr_approved" : "ecr_declined", dict);
 
-                    SendJson(context, 200, new Dictionary<string, object>
+                    return new Dictionary<string, object>
                     {
                         { "success", isApproved },
                         { "status", isApproved ? "approved" : "declined" },
+                        { "authCode", authCode },
+                        { "rrn", rrn },
+                        { "cardScheme", cardScheme },
+                        { "cardLastFour", cardLastFour },
+                        { "message", message },
                         { "data", dict }
-                    });
+                    };
                 }
             }
             catch (Exception ex)
             {
                 BroadcastSse("ecr_error", new Dictionary<string, object> { { "error", ex.Message } });
-                SendJson(context, 500, new Dictionary<string, object>
+                return new Dictionary<string, object>
                 {
                     { "success", false },
-                    { "error", "فشل التخاطب مع ماكينة الدفع: " + ex.Message }
-                });
+                    { "status", "error" },
+                    { "message", "تعذر الاتصال بماكينة الدفع: " + ex.Message }
+                };
             }
+        }
+
+        private static void HandleEcrCharge(HttpListenerContext context, Dictionary<string, object> body)
+        {
+            string ip = body.ContainsKey("ip") ? Convert.ToString(body["ip"]) : "";
+            int port = body.ContainsKey("port") ? Convert.ToInt32(body["port"]) : 8080;
+            decimal amount = body.ContainsKey("amount") ? Convert.ToDecimal(body["amount"]) : 0;
+            string currency = body.ContainsKey("currency") ? Convert.ToString(body["currency"]) : "EGP";
+            string refId = body.ContainsKey("referenceId") ? Convert.ToString(body["referenceId"]) : "ECR-" + DateTime.UtcNow.Ticks;
+            string provider = body.ContainsKey("provider") ? Convert.ToString(body["provider"]).ToLowerInvariant() : "fawry";
+
+            if (string.IsNullOrEmpty(ip) || amount <= 0)
+            {
+                SendJson(context, 400, new Dictionary<string, object>
+                {
+                    { "success", false },
+                    { "error", "يجب تحديد عنوان IP والمبلغ المطلوب" }
+                });
+                return;
+            }
+
+            var result = ExecuteEcrChargeInternal(ip, port, provider, amount, currency, refId);
+            int statusCode = (result.ContainsKey("status") && Convert.ToString(result["status"]) == "error") ? 500 : 200;
+            SendJson(context, statusCode, result);
         }
 
         private static void HandleEcrCancel(HttpListenerContext context, Dictionary<string, object> body)
@@ -540,12 +869,37 @@ namespace ZSystems.HardwareBridge
                         });
                         return;
                     }
+                    try { tcp.Close(); } catch {}
                 }
-                SendJson(context, 500, new Dictionary<string, object> { { "success", false }, { "error", "انتهت مهلة الاتصال بالماكينة" } });
+                SendJson(context, 200, new Dictionary<string, object>
+                {
+                    { "success", false },
+                    { "data", new Dictionary<string, object> {
+                        { "online", false },
+                        { "reachable", false },
+                        { "portOpen", false },
+                        { "pingSucceeded", false },
+                        { "message", "انتهت مهلة الاتصال بالماكينة على " + ip + ":" + port },
+                        { "latencyMs", 0 }
+                    }},
+                    { "error", "انتهت مهلة الاتصال بالماكينة" }
+                });
             }
             catch (Exception ex)
             {
-                SendJson(context, 500, new Dictionary<string, object> { { "success", false }, { "error", ex.Message } });
+                SendJson(context, 200, new Dictionary<string, object>
+                {
+                    { "success", false },
+                    { "data", new Dictionary<string, object> {
+                        { "online", false },
+                        { "reachable", false },
+                        { "portOpen", false },
+                        { "pingSucceeded", false },
+                        { "message", "تعذر الاتصال بالماكينة: " + ex.Message },
+                        { "latencyMs", 0 }
+                    }},
+                    { "error", ex.Message }
+                });
             }
         }
 
