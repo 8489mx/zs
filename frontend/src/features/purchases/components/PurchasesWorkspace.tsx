@@ -10,34 +10,36 @@ import { PurchasesRegisterCard } from '@/features/purchases/components/purchases
 import { MarginProtectionModal } from '@/features/purchases/components/MarginProtectionModal';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
+import { useTranslation } from 'react-i18next';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function PurchasesWorkspace() {
+  const { t } = useTranslation();
   const controller = usePurchasesWorkspaceController();
   const settingsQuery = useSettingsQuery();
   const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
 
   return (
-    <div className="page-stack page-shell purchases-workspace" dir="rtl">
+    <div className="page-stack page-shell purchases-workspace">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="المشتريات"
-          description="إدارة فواتير الشراء، متابعة التوريدات وحسابات الموردين."
-          badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
+          title={t('purchases_workspace.title', 'المشتريات')}
+          description={t('purchases_workspace.description', 'إدارة فواتير الشراء، متابعة التوريدات وحسابات الموردين.')}
+          badge={<span className="nav-pill">{controller.totalItems} {t('purchases_workspace.invoices_unit', 'فاتورة')}</span>}
           actions={
             <div className="actions compact-actions">
               <Link to="/purchases/new">
                 <Button variant="primary" style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', fontWeight: 700 }}>
-                  + إنشاء فاتورة شراء
+                  {t('purchases_workspace.new_purchase_invoice', '+ إنشاء فاتورة شراء')}
                 </Button>
               </Link>
-              <Link to="/purchases/reorder"><Button variant="secondary">مقترح إعادة الطلب الذكي</Button></Link>
-              <Link to="/purchases/rfqs"><Button variant="secondary">عروض أسعار الموردين (RFQ)</Button></Link>
-              <Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة ضبط</Button>
-              <Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ</Button>
-              <Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير</Button>
-              <Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة</Button>
+              <Link to="/purchases/reorder"><Button variant="secondary">{t('purchases_workspace.smart_reorder', 'مقترح إعادة الطلب الذكي')}</Button></Link>
+              <Link to="/purchases/rfqs"><Button variant="secondary">{t('purchases_workspace.rfqs', 'عروض أسعار الموردين (RFQ)')}</Button></Link>
+              <Button variant="secondary" onClick={controller.resetPurchasesView}>{t('common.reset', 'إعادة ضبط')}</Button>
+              <Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>{t('common.copy', 'نسخ')}</Button>
+              <Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>{t('common.export', 'تصدير')}</Button>
+              <Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>{t('common.print', 'طباعة')}</Button>
             </div>
           }
         />
@@ -50,13 +52,13 @@ export function PurchasesWorkspace() {
         <StandardDialog
           open={Boolean(selectedPurchase)}
           onClose={() => controller.setSelectedPurchaseId('')}
-          title={`تفاصيل فاتورة الشراء ${selectedPurchase?.docNo || ''}`}
-          subtitle="عرض كامل لبنود وأطراف ومصاريف الفاتورة"
+          title={`${t('purchases_workspace.invoice_details', 'تفاصيل فاتورة الشراء')} ${selectedPurchase?.docNo || ''}`}
+          subtitle={t('purchases_workspace.invoice_details_sub', 'عرض كامل لبنود وأطراف ومصاريف الفاتورة')}
           maxWidth="960px"
           footerActions={
             <StandardDialogFooter
               onCancel={() => controller.setSelectedPurchaseId('')}
-              cancelLabel="إغلاق"
+              cancelLabel={t('common.close', 'إغلاق')}
             />
           }
         >

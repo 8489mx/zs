@@ -1,4 +1,5 @@
 import { Fragment, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -95,6 +96,7 @@ function groupProducts(products: Product[]): ProductGroup[] {
 }
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const iconSettings = useProductIconSettings();
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
@@ -209,7 +211,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   return (
     <section className="document-prototype-section workspace-panel">
       <div className="section-header-compact-row">
-        <h3 className="document-prototype-section-title">قائمة الأصناف الحالية</h3>
+        <h3 className="document-prototype-section-title">{t('products.current_items_list', 'قائمة الأصناف الحالية')}</h3>
         <div className="section-header-actions-group">
           <Button
             variant="secondary"
@@ -217,7 +219,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             className="section-header-action-btn"
             title="تخصيص ألوان الأيقونات لكل المنظومة أو إلغاء وتفريغ الأيقونات"
           >
-            الأيقونات
+            {t('products.icons_btn', 'الأيقونات')}
           </Button>
           <Button
             variant="secondary"
@@ -227,12 +229,12 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             style={{ marginInlineStart: '6px' }}
             title="فحص أسماء الأصناف وتعيين الأيقونات المناسبة لها تلقائياً"
           >
-            {isAutoAssigning ? 'جارٍ الضبط...' : 'ضبط ذكي'}
+            {isAutoAssigning ? 'جارٍ الضبط...' : t('products.smart_assign_btn', 'ضبط ذكي')}
           </Button>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        إدارة وتسعير ومتابعة مخزون المنتجات والأصناف.
+        {t('products.items_list_desc', 'إدارة وتسعير ومتابعة مخزون المنتجات والأصناف.')}
       </p>
       {autoAssignMsg && (
         <div
@@ -367,19 +369,19 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             paddingBottom: '4px',
           }}
         >
-          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>الكل</Button>
-          <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>منخفضة</Button>
-          <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>نافدة</Button>
-          <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>بعروض</Button>
-          <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>أسعار خاصة</Button>
-          <Button variant={props.viewFilter === 'archived' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('archived')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>المؤرشفة</Button>
+          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('common.all', 'الكل')}</Button>
+          <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.low_stock', 'منخفضة')}</Button>
+          <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.out_of_stock', 'نافدة')}</Button>
+          <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.with_offers', 'بعروض')}</Button>
+          <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.special_prices', 'أسعار خاصة')}</Button>
+          <Button variant={props.viewFilter === 'archived' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('archived')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.archived', 'المؤرشفة')}</Button>
         </div>
       </div>
       {props.selectedIds.length ? (
         <div className="bulk-toolbar">
           <div className="bulk-toolbar-meta">
-            <strong>تحديد نشط: {props.selectedIds.length}</strong>
-            <span className="muted small">يمكنك حذف الأصناف المحددة دفعة واحدة أو مسح التحديد الحالي.</span>
+            <strong>{t('products.selected_active', 'تحديد نشط:')} {props.selectedIds.length}</strong>
+            <span className="muted small">{t('products.selected_hint', 'يمكنك حذف الأصناف المحددة دفعة واحدة أو مسح التحديد الحالي.')}</span>
           </div>
           <div className="actions compact-actions">
             {props.onBulkPrintBarcodes && (
@@ -390,11 +392,11 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 title="طباعة ملصقات الباركود واستيكرات الرفوف التموينية للأصناف المحددة"
               >
                 <PrinterIcon size={14} />
-                <span>طباعة الباركود والرف ({props.selectedIds.length})</span>
+                <span>{t('products.print_barcodes_shelf', 'طباعة الباركود والرف')} ({props.selectedIds.length})</span>
               </Button>
             )}
-            <Button variant="secondary" onClick={props.onClearSelection}>مسح التحديد</Button>
-            <Button variant="danger" onClick={props.onBulkDelete} disabled={!props.canDelete}>حذف المحدد</Button>
+            <Button variant="secondary" onClick={props.onClearSelection}>{t('products.clear_selection', 'مسح التحديد')}</Button>
+            <Button variant="danger" onClick={props.onBulkDelete} disabled={!props.canDelete}>{t('products.delete_selected', 'حذف المحدد')}</Button>
           </div>
         </div>
       ) : null}
@@ -404,9 +406,9 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
         isError={props.isError}
         error={props.error}
         isEmpty={!props.visibleProducts.length}
-        loadingText="جاري تحميل الأصناف..."
-        emptyTitle="لا توجد أصناف مطابقة"
-        emptyHint="غيّر كلمة البحث أو أضف صنفًا جديدًا من النموذج."
+        loadingText={t('products.loading_products', 'جاري تحميل الأصناف...')}
+        emptyTitle={t('products.no_matching_products', 'لا توجد أصناف مطابقة')}
+        emptyHint={t('products.no_matching_hint', 'غيّر كلمة البحث أو أضف صنفًا جديدًا من النموذج.')}
       >
         <div className="table-wrap table-wrap-sticky table-wrap-compact">
           <table aria-label="قائمة الأصناف">
@@ -426,14 +428,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                     }}
                   />
                 </th>
-                <th>الصنف</th>
-                <th>الباركود</th>
-                <th>المتغيرات</th>
-                <th>القسم / المورد / المخزن</th>
-                <th>الأسعار</th>
-                <th>المخزون</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>ملاحظات</th>
-                <th style={{ textAlign: 'center' }}>إجراءات</th>
+                <th>{t('products.product_col', 'الصنف')}</th>
+                <th>{t('products.barcode_col', 'الباركود')}</th>
+                <th>{t('products.variants_col', 'المتغيرات')}</th>
+                <th>{t('products.category_supplier_store_col', 'القسم / المورد / المخزن')}</th>
+                <th>{t('products.prices_col', 'الأسعار')}</th>
+                <th>{t('products.stock_col', 'المخزون')}</th>
+                <th style={{ width: '80px', textAlign: 'center' }}>{t('products.notes_col', 'ملاحظات')}</th>
+                <th style={{ textAlign: 'center' }}>{t('products.actions_col', 'إجراءات')}</th>
               </tr>
             </thead>
             <tbody>

@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatCurrency } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { useCustomerProfile } from '@/features/customers/constants/customer-profiles';
 import type { Customer } from '@/types/domain';
 
@@ -34,12 +35,13 @@ interface CustomersRegisterCardProps {
 }
 
 export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
+  const { t, i18n } = useTranslation();
   const profile = useCustomerProfile();
 
   const columns = [
     {
       key: 'name',
-      header: profile.id === 'maritime' ? 'الشاحن / المستورد' : profile.id === 'contracting' ? 'جهة الإسناد / المالك' : profile.id === 'distribution' ? 'المحل / منفذ التوزيع' : 'العميل',
+      header: profile.id === 'maritime' ? 'الشاحن / المستورد' : profile.id === 'contracting' ? 'جهة الإسناد / المالك' : profile.id === 'distribution' ? 'المحل / منفذ التوزيع' : profile.nameLabel.replace(' *', ''),
       cell: (customer: Customer) => {
         const meta = customer.metadata || {};
         const code = meta.customer_code || meta.code;
@@ -72,14 +74,14 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
                 </a>
               )}
             </div>
-            <div className="muted small">{customer.phone || 'بدون هاتف'} · {customer.address || 'بدون عنوان'}</div>
+            <div className="muted small">{customer.phone || (i18n.language === 'en' ? 'No phone' : 'بدون هاتف')} · {customer.address || (i18n.language === 'en' ? 'No address' : 'بدون عنوان')}</div>
           </div>
         );
       }
     },
     {
       key: 'type',
-      header: 'التصنيف',
+      header: profile.typeLabel,
       cell: (customer: Customer) => {
         const option = profile.types.find((t) => t.value === customer.type) || profile.types[0];
         return (
@@ -99,7 +101,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     },
     {
       key: 'balance',
-      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : profile.id === 'distribution' ? 'مديونية المحل (إجمالي وتفصيل المناديب)' : 'الرصيد',
+      header: profile.id === 'maritime' ? 'رصيد النولون' : profile.id === 'contracting' ? 'رصيد التعاقدات' : profile.id === 'distribution' ? 'مديونية المحل (إجمالي وتفصيل المناديب)' : profile.balanceLabel,
       cell: (customer: Customer) => {
         const totalBal = Number(customer.balance || 0);
         const repBals = customer.repBalances || [];
@@ -152,21 +154,21 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     },
     {
       key: 'creditLimit',
-      header: profile.id === 'maritime' ? 'سقف الائتمان' : profile.id === 'contracting' ? 'سقف التمويل' : profile.id === 'distribution' ? 'سقف المديونية' : 'حد الائتمان',
+      header: profile.id === 'maritime' ? 'سقف الائتمان' : profile.id === 'contracting' ? 'سقف التمويل' : profile.id === 'distribution' ? 'سقف المديونية' : profile.creditLimitLabel,
       cell: (customer: Customer) => formatCurrency(customer.creditLimit || 0)
     },
     ...(profile.showLoyalty ? [{
       key: 'loyaltyPoints',
-      header: 'نقاط الولاء',
+      header: i18n.language === 'en' ? 'Loyalty Points' : 'نقاط الولاء',
       cell: (customer: Customer) => (
         <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', fontSize: '12px' }}>
-          {Number((customer as any).loyaltyPoints || 0)} نقطة
+          {Number((customer as any).loyaltyPoints || 0)} {i18n.language === 'en' ? 'pts' : 'نقطة'}
         </span>
       )
     }] : []),
     {
       key: 'actions',
-      header: 'إجراءات',
+      header: i18n.language === 'en' ? 'Actions' : 'إجراءات',
       cell: (customer: Customer) => (
         <div className="actions" style={{ flexWrap: 'nowrap' }}>
           {profile.showLoyalty && (
@@ -175,14 +177,14 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
               onClick={(event) => { event.stopPropagation(); props.onOpenLoyalty?.(customer); }}
               style={{ color: '#be185d', borderColor: '#fbcfe8', background: '#fdf2f8' }}
             >
-              نقاط الولاء
+              {i18n.language === 'en' ? 'Loyalty' : 'نقاط الولاء'}
             </Button>
           )}
           <Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.setSelectedCustomer(customer); }}>
-            تعديل
+            {t('common.edit', 'تعديل')}
           </Button>
           <Button variant="danger" onClick={(event) => { event.stopPropagation(); props.setCustomerToDelete(customer); }} disabled={!props.canDelete}>
-            حذف
+            {t('common.delete', 'حذف')}
           </Button>
         </div>
       )
@@ -193,22 +195,22 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     <section className="document-prototype-section">
       <div className="section-header-compact-row">
         <h3 className="document-prototype-section-title">
-          {profile.id === 'maritime' ? 'الشاحنون والمستوردون الحاليون' : profile.id === 'contracting' ? 'جهات الإسناد والملاك الحاليون' : 'العملاء الحاليون'}
+          {profile.id === 'maritime' ? 'الشاحنون والمستوردون الحاليون' : profile.id === 'contracting' ? 'جهات الإسناد والملاك الحاليون' : (i18n.language === 'en' ? 'Current Customers' : 'العملاء الحاليون')}
         </h3>
         <div className="section-header-actions-group">
           {props.onOpenCreate && <Button variant="primary" onClick={props.onOpenCreate} className="section-header-action-btn">{profile.addBtnText}</Button>}
-          <Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>إلغاء الفلاتر</Button>
+          <Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>{t('common.clear_filters', 'إلغاء الفلاتر')}</Button>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة.
+        {i18n.language === 'en' ? 'Quick filtering with summaries and direct editing/adding.' : 'فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة.'}
       </p>
       <SearchToolbar
         search={props.search}
         onSearchChange={(value) => { props.setSearch(value); props.setPage(1); }}
-        searchPlaceholder="ابحث بالاسم أو كود المحل (مثل 0002) أو الهاتف أو العنوان"
-        title="بحث وتصفية"
-        description="ابدأ بالفلتر المناسب ثم اختر السجل المطلوب لتظهر لوحة التعديل فورًا."
+        searchPlaceholder={i18n.language === 'en' ? 'Search by name, phone, code, or address...' : 'ابحث بالاسم أو كود المحل (مثل 0002) أو الهاتف أو العنوان'}
+        title={t('common.search_and_filter', 'بحث وتصفية')}
+        description={i18n.language === 'en' ? 'Select a customer to view or edit account details.' : 'ابدأ بالفلتر المناسب ثم اختر السجل المطلوب لتظهر لوحة التعديل فورًا.'}
         actions={<span className="nav-pill">{props.filterMode === 'all' ? (profile.id === 'maritime' ? 'كل الشاحنين' : profile.id === 'contracting' ? 'كل جهات الإسناد' : 'كل العملاء') : props.filterMode === 'vip' ? (profile.id === 'maritime' ? 'شاحن VIP' : 'VIP') : props.filterMode === 'debt' ? 'عليهم رصيد' : 'نقدي'}</span>}
         meta={(
           <>

@@ -9,7 +9,8 @@ import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButt
 import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
 import { useTranslation } from 'react-i18next';
-import { ArrowRightIcon, GlobeIcon } from '@/shared/components/icons/AppIcons';
+import { ArrowRightIcon } from '@/shared/components/icons/AppIcons';
+import { LanguageSwitcherMenu } from '@/shared/layout/LanguageSwitcherMenu';
 import { useTabsStore } from '@/stores/tabs-store';
 import { AppBrowserTabBar, resolveRouteMetadata } from '@/shared/layout/AppBrowserTabBar';
 
@@ -51,24 +52,12 @@ export function GlobalAppToolbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
-  const isEn = i18n.language === 'en';
+  const isLtr = i18n.dir() === 'ltr';
   const [isAiCopilotOpen, setIsAiCopilotOpen] = useState(false);
   const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
   const { tabs, syncCurrentRoute } = useTabsStore();
-
-  const handleToggleLanguage = () => {
-    const nextLang = isEn ? 'ar' : 'en';
-    i18n.changeLanguage(nextLang);
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = nextLang;
-      document.documentElement.dir = nextLang === 'en' ? 'ltr' : 'rtl';
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('zsystems_lang', nextLang);
-    }
-  };
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => {
     if (typeof window !== 'undefined') return window.innerWidth <= 900;
@@ -100,6 +89,37 @@ export function GlobalAppToolbar() {
     if (canGoBack) {
       navigate(-1);
     }
+  };
+
+  const formatBreadcrumbLabel = (rawLabel: string) => {
+    if (!rawLabel || i18n.language === 'ar') return rawLabel;
+    const commonCrumbs: Record<string, string> = {
+      'الرئيسية': 'sidebar.dashboard',
+      'المبيعات': 'sidebar.sales',
+      'العملاء': 'sidebar.customers',
+      'المشتريات': 'sidebar.purchases',
+      'المشتريات والموردين': 'sidebar.purchases_suppliers',
+      'الموردين': 'sidebar.suppliers',
+      'المخزون والأصناف': 'sidebar.inventory',
+      'قائمة الأصناف': 'sidebar.products',
+      'المالية والمحاسبة': 'sidebar.finance',
+      'الخزينة والبنوك': 'sidebar.treasury',
+      'المصروفات': 'sidebar.expenses',
+      'الحسابات': 'sidebar.accounts',
+      'سجل الفواتير': 'sidebar.invoices',
+      'سجل فواتير المشتريات': 'sidebar.bills',
+      'إنشاء فاتورة شراء': 'sidebar.new_bill',
+      'تذاكر الصيانة': 'sidebar.maintenance_tickets',
+      'قسم الصيانة': 'sidebar.maintenance',
+      'عروض الأسعار': 'sidebar.quotations',
+      'أوامر البيع وحجز المخزون': 'sidebar.sales_orders',
+    };
+    const key = commonCrumbs[rawLabel.trim()];
+    if (key) {
+      const translated = t(key);
+      if (translated && translated !== key) return translated;
+    }
+    return rawLabel;
   };
 
   return (
@@ -150,10 +170,10 @@ export function GlobalAppToolbar() {
               e.currentTarget.style.borderColor = '#94a3b8';
               e.currentTarget.style.color = '#170e5e';
             }}
-            title={isEn ? "Go back (Alt + Backspace)" : "رجوع للصفحة السابقة (Alt + Backspace)"}
-            aria-label={isEn ? "Go back" : "رجوع للصفحة السابقة"}
+            title={isLtr ? "Go back (Alt + Backspace)" : "رجوع للصفحة السابقة (Alt + Backspace)"}
+            aria-label={isLtr ? "Go back" : "رجوع للصفحة السابقة"}
           >
-            <ArrowRightIcon size={20} strokeWidth={2.8} color="currentColor" style={{ transform: isEn ? 'scaleX(-1)' : 'none' }} />
+            <ArrowRightIcon size={20} strokeWidth={2.8} color="currentColor" style={{ transform: isLtr ? 'scaleX(-1)' : 'none' }} />
           </button>
         )}
 
@@ -175,16 +195,16 @@ export function GlobalAppToolbar() {
           >
             {activeBreadcrumbs.map((crumb, index) => {
               const isLast = index === activeBreadcrumbs.length - 1;
+              const formattedLabel = formatBreadcrumbLabel(crumb.label || '');
               if (isLast) {
-                const labelText = crumb.label || '';
-                const charCount = labelText.length;
-                // Responsive dynamic font sizing: shrinks when text is long or space is tight ("او يصغر الكلام")
+                const charCount = formattedLabel.length;
+                // Responsive dynamic font sizing: shrinks when text is long or space is tight
                 const dynamicFontSize = charCount > 40 ? '0.78rem' : charCount > 25 ? '0.84rem' : '0.94rem';
 
                 return (
                   <strong
                     key={index}
-                    title={labelText}
+                    title={formattedLabel}
                     style={{
                       fontSize: dynamicFontSize,
                       color: '#0f172a',
@@ -199,7 +219,7 @@ export function GlobalAppToolbar() {
                       lineHeight: 1.25,
                     }}
                   >
-                    {labelText}
+                    {formattedLabel}
                   </strong>
                 );
               }
@@ -217,9 +237,9 @@ export function GlobalAppToolbar() {
                     }} 
                     onClick={() => crumb.to && navigate(crumb.to)}
                   >
-                    {crumb.label}
+                    {formattedLabel}
                   </span>
-                  <span style={{ color: '#cbd5e1', flexShrink: 0, userSelect: 'none', marginInline: '1px' }}>{isEn ? '›' : '‹'}</span>
+                  <span style={{ color: '#cbd5e1', flexShrink: 0, userSelect: 'none', marginInline: '1px' }}>{isLtr ? '›' : '‹'}</span>
                 </Fragment>
               );
             })}
@@ -267,7 +287,7 @@ export function GlobalAppToolbar() {
               }}
             >
               <span aria-hidden="true">⌕</span>
-              <span style={{ flex: 1, textAlign: isEn ? 'left' : 'right', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 1, textAlign: isLtr ? 'left' : 'right', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {t('common.search_placeholder', 'ابحث في أي مكان...')}
               </span>
               <div className="purchase-prototype-search-shortcut" dir="ltr">
@@ -315,34 +335,8 @@ export function GlobalAppToolbar() {
             <span className="desktop-only-toolbar-item">زاد AI</span>
           </button>
 
-          {/* Language Switcher Globe Button */}
-          <button
-            type="button"
-            onClick={handleToggleLanguage}
-            title={isEn ? 'التحويل إلى العربية (Switch to Arabic)' : 'Switch to English (التحويل إلى الإنجليزية)'}
-            style={{
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '0 9px',
-              backgroundColor: isEn ? '#eff6ff' : 'var(--surface-sunken)',
-              border: isEn ? '1px solid #bfdbfe' : '1px solid var(--border-color)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              flexShrink: 0,
-              fontSize: '11.5px',
-              fontWeight: 800,
-              color: isEn ? '#1e40af' : '#334155',
-              transition: 'all 0.15s ease',
-            }}
-            aria-label={isEn ? 'التحويل إلى العربية' : 'Switch to English'}
-          >
-            <GlobeIcon size={16} color={isEn ? '#2563eb' : '#475569'} />
-            <span style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {isEn ? 'عربي' : 'EN'}
-            </span>
-          </button>
+          {/* Multi-language Switcher Menu */}
+          <LanguageSwitcherMenu />
 
           <ManagerNotificationsBell />
           <AppAccountMenu />

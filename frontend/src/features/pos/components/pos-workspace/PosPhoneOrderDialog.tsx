@@ -295,7 +295,7 @@ export function PosPhoneOrderDialog({
         isKwd
           ? `[الدفع: رابط دفع إلكتروني (K-NET Payment Link)]`
           : isKsa
-          ? `[الدفع: تحويل بنكي / STC Pay]`
+          ? `[الدفع: STC Pay / محفظة رقمية]`
           : `[الدفع: إنستاباي / محفظة إلكترونية]`
       );
     }
@@ -2125,7 +2125,7 @@ export function PosPhoneOrderDialog({
                         {isKwd
                           ? 'رابط دفع أونلاين (K-NET Link)'
                           : isKsa
-                          ? 'تحويل بنكي / STC Pay'
+                          ? 'STC Pay / محفظة رقمية'
                           : 'إنستاباي / محفظة إلكترونية'}
                       </option>
                     </select>

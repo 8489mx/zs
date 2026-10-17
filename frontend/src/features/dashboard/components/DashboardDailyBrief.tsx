@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import type { ManagerActionInsight } from '@/features/dashboard/api/dashboard.types';
 import {
@@ -17,14 +18,15 @@ export function DashboardDailyBrief({
   insights,
   isLoading,
 }: DashboardDailyBriefProps) {
+  const { t } = useTranslation();
   const importantActions = importantManagerActions(insights);
   const briefActions = (importantActions.length ? importantActions : sortManagerActionsByImportance(insights)).slice(0, 3);
 
   return (
     <FormSection
-      title="تنبيهات عاجلة وموجز تنفيذي"
-      description="أهم ما يتطلب تدخلاً سريعاً من إدارة المخزون أو الحسابات."
-      actions={<span className="nav-pill">تنبيهات</span>}
+      title={t('dashboard.urgent_brief', 'تنبيهات عاجلة وموجز تنفيذي')}
+      description={t('dashboard.brief_subtitle', 'أهم ما يتطلب تدخلاً سريعاً من إدارة المخزون أو الحسابات.')}
+      actions={<span className="nav-pill">{t('dashboard.alerts_badge', 'تنبيهات')}</span>}
       className="dashboard-premium-card"
     >
       <div
@@ -38,7 +40,9 @@ export function DashboardDailyBrief({
         }}
       >
         {isLoading ? (
-          <div style={{ gridColumn: '1 / -1', padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>جاري تجهيز موجز التنبيهات...</div>
+          <div style={{ gridColumn: '1 / -1', padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+            {t('dashboard.preparing_brief', 'جاري تجهيز موجز التنبيهات...')}
+          </div>
         ) : briefActions.length ? (
           briefActions.map((action, index) => (
             <Link
@@ -76,7 +80,7 @@ export function DashboardDailyBrief({
           ))
         ) : (
           <div style={{ gridColumn: '1 / -1', padding: '12px', textAlign: 'center', color: '#166534', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.82rem', fontWeight: 600 }}>
-            لا توجد تنبيهات عاجلة تتطلب تدخلاً الآن
+            {t('dashboard.no_urgent_alerts', 'لا توجد تنبيهات عاجلة تتطلب تدخلاً الآن')}
           </div>
         )}
       </div>

@@ -93,8 +93,8 @@ export function SalesRegisterCard(props: Props) {
       <div className="section-header-compact-row">
         <h3 className="document-prototype-section-title">{t('sales.2a9511')}</h3>
         <div className="section-header-actions-group">
-          <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems} className="section-header-action-btn">تصدير</Button>
-          <Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>طباعة</Button>
+          <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems} className="section-header-action-btn">{t('common.export', 'تصدير')}</Button>
+          <Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>{t('common.print', 'طباعة')}</Button>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
@@ -108,10 +108,10 @@ export function SalesRegisterCard(props: Props) {
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
           <>
-            <span className="toolbar-meta-pill">الفواتير: {totalItems}</span>
-            <span className="toolbar-meta-pill">المعروض: {rangeStart}-{rangeEnd}</span>
-            <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(totalSales)}</span>
-            {selectedSale ? <span className="toolbar-meta-pill">المحدد: {selectedSale.docNo || selectedSale.id}</span> : null}
+            <span className="toolbar-meta-pill">{t('sales.invoicesCount', 'الفواتير: ')}{totalItems}</span>
+            <span className="toolbar-meta-pill">{t('sales.showingRange', 'المعروض: ')}{rangeStart}-{rangeEnd}</span>
+            <span className="toolbar-meta-pill">{t('sales.totalSales', 'الإجمالي: ')}{formatCurrency(totalSales)}</span>
+            {selectedSale ? <span className="toolbar-meta-pill">{t('sales.selectedInvoice', 'المحدد: ')}{selectedSale.docNo || selectedSale.id}</span> : null}
           </>
         )}
         onReset={onReset}

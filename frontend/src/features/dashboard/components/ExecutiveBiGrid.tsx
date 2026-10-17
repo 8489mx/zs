@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   PieChart,
   Pie,
@@ -23,6 +24,8 @@ const PAYMENT_COLORS = {
 };
 
 export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }: ExecutiveBiGridProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language !== 'ar';
 
   // تفعيل أنيميشن الرسم الدائري الانسيابي فور فتح الصفحة
   const [isChartMounted, setIsChartMounted] = useState(false);
@@ -51,15 +54,22 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
     const cashIn = Number(summary?.treasury?.cashIn || 0);
     const gross = Number(summary?.sales?.total || 0);
 
+    const labels = {
+      cash: t('dashboard.cash', 'نقدي (كاش)'),
+      card: t('dashboard.pos_cards', 'بطاقات وماكينات POS'),
+      online: t('dashboard.online_gateways', 'متجر وبوابات إلكترونية'),
+      credit: t('dashboard.credit_sales', 'مبيعات آجلة (ذمم)'),
+    };
+
     if (gross <= 0 && cashIn <= 0) {
       return {
         hasData: false,
         total: 0,
         items: [
-          { name: 'نقدي (كاش)', value: 0, color: PAYMENT_COLORS.cash, percentage: 0 },
-          { name: 'بطاقات وماكينات POS', value: 0, color: PAYMENT_COLORS.card, percentage: 0 },
-          { name: 'متجر وبوابات إلكترونية', value: 0, color: PAYMENT_COLORS.online, percentage: 0 },
-          { name: 'مبيعات آجلة (ذمم)', value: 0, color: PAYMENT_COLORS.credit, percentage: 0 },
+          { name: labels.cash, value: 0, color: PAYMENT_COLORS.cash, percentage: 0 },
+          { name: labels.card, value: 0, color: PAYMENT_COLORS.card, percentage: 0 },
+          { name: labels.online, value: 0, color: PAYMENT_COLORS.online, percentage: 0 },
+          { name: labels.credit, value: 0, color: PAYMENT_COLORS.credit, percentage: 0 },
         ],
       };
     }
@@ -71,10 +81,10 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
     const creditVal = remaining > 0 ? remaining * 0.15 : 0;
 
     const data = [
-      { name: 'نقدي (كاش)', value: cashVal, color: PAYMENT_COLORS.cash },
-      { name: 'بطاقات وماكينات POS', value: cardVal, color: PAYMENT_COLORS.card },
-      { name: 'متجر وبوابات إلكترونية', value: onlineVal, color: PAYMENT_COLORS.online },
-      { name: 'مبيعات آجلة (ذمم)', value: creditVal, color: PAYMENT_COLORS.credit },
+      { name: labels.cash, value: cashVal, color: PAYMENT_COLORS.cash },
+      { name: labels.card, value: cardVal, color: PAYMENT_COLORS.card },
+      { name: labels.online, value: onlineVal, color: PAYMENT_COLORS.online },
+      { name: labels.credit, value: creditVal, color: PAYMENT_COLORS.credit },
     ];
 
     const sumValues = data.reduce((acc, item) => acc + item.value, 0);
@@ -86,7 +96,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
         percentage: sumValues > 0 ? Math.round((item.value / sumValues) * 100) : 0,
       })),
     };
-  }, [summary]);
+  }, [summary, t]);
 
   // 4. تجهيز بيانات مساهمة أعلى الفئات / الأصناف في الربحية
   const profitDrivers = useMemo(() => {
@@ -122,7 +132,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   if (isLoading) {
     return (
       <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>
-        جاري تحميل التحليلات البيانية الذكية...
+        {t('dashboard.loading_bi_analytics', 'جاري تحميل التحليلات البيانية الذكية...')}
       </div>
     );
   }
@@ -178,9 +188,9 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             {formatCurrency(averageBasket)}
           </strong>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>متوسط السلة</span>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{t('dashboard.avg_basket', 'متوسط السلة')}</span>
             <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 700 }}>
-              لكل فاتورة
+              {t('dashboard.per_invoice', 'لكل فاتورة')}
             </span>
           </div>
         </div>
@@ -218,7 +228,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             {formatCurrency(grossProfit)}
           </strong>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>مجمل الربح</span>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{t('dashboard.gross_profit', 'مجمل الربح')}</span>
             <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
               {grossMarginPercent}%
             </span>
@@ -257,9 +267,9 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             {formatCurrency(netOperatingProfit)}
           </strong>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '2px', whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>صافي الربح</span>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{t('dashboard.net_profit', 'صافي الربح')}</span>
             <span style={{ padding: '1px 6px', fontSize: '0.62rem', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
-              تشغيلي
+              {t('dashboard.operating', 'تشغيلي')}
             </span>
           </div>
         </div>
@@ -289,10 +299,10 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-              توزيع قنوات وطرق التحصيل
+              {t('dashboard.payment_distribution', 'توزيع قنوات وطرق التحصيل')}
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-              نسب مساهمة الكاش، الفيزا وماكينات الـ POS، المتجر، والآجل
+              {t('dashboard.payment_distribution_desc', 'نسب مساهمة الكاش، الفيزا وماكينات الـ POS، المتجر، والآجل')}
             </p>
           </div>
 
@@ -313,10 +323,10 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
               }}
             >
               <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#475569' }}>
-                لا توجد عمليات بيع أو تحصيل مسجلة بعد
+                {t('dashboard.no_sales_recorded_yet', 'لا توجد عمليات بيع أو تحصيل مسجلة بعد')}
               </span>
               <span style={{ fontSize: '0.74rem', color: '#94a3b8', maxWidth: '300px', lineHeight: 1.5 }}>
-                ستظهر نسب مساهمة طرق الدفع والتحصيل (نقدي، بطاقات، متجر، آجل) هنا فور إتمام المبيعات.
+                {t('dashboard.no_sales_recorded_hint', 'ستظهر نسب مساهمة طرق الدفع والتحصيل (نقدي، بطاقات، متجر، آجل) هنا فور إتمام المبيعات.')}
               </span>
             </div>
           ) : (
@@ -361,7 +371,7 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
                       const item = payload[0].payload;
                       return (
                         <div
-                          dir="rtl"
+                          dir={isEn ? 'ltr' : 'rtl'}
                           style={{
                             background: '#ffffff',
                             border: '1px solid #e2e8f0',
@@ -431,14 +441,14 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                أعلى القطاعات مساهمة في الإيرادات والربحية
+                {t('dashboard.top_sectors', 'أعلى القطاعات مساهمة في الإيرادات والربحية')}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                حجم العائد ومجمل الربح التقديري لكل قطاع تجاري
+                {t('dashboard.top_sectors_desc', 'حجم العائد ومجمل الربح التقديري لكل قطاع تجاري')}
               </p>
             </div>
             <span style={{ fontSize: '0.72rem', color: '#170e5e', background: '#e0e7ff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
-              تحليلات النشاط
+              {t('dashboard.activity_analytics', 'تحليلات النشاط')}
             </span>
           </div>
 
@@ -518,13 +528,13 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
                   {/* السطر الثاني: إجمالي العائد ومجمل الربح بوضوح تام */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                      <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>إجمالي العائد</span>
+                      <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>{t('dashboard.total_revenue', 'إجمالي العائد')}</span>
                       <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {formatCurrency(driver.revenue)}
                       </span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
-                      <span style={{ fontSize: '0.62rem', color: '#047857', fontWeight: 600 }}>مجمل الربح</span>
+                      <span style={{ fontSize: '0.62rem', color: '#047857', fontWeight: 600 }}>{t('dashboard.gross_profit', 'مجمل الربح')}</span>
                       <strong style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
                         {formatCurrency(driver.grossProfit)}
                       </strong>
@@ -563,10 +573,10 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             >
               <BarChartIcon size={24} color="#94a3b8" />
               <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
-                لا توجد مبيعات مسجلة للقطاعات بعد
+                {t('dashboard.no_sector_sales', 'لا توجد مبيعات مسجلة للقطاعات بعد')}
               </p>
               <span style={{ fontSize: '0.74rem', color: '#64748b', maxWidth: '340px', lineHeight: 1.4 }}>
-                ستظهر القطاعات والمنتجات الأكثر ربحية هنا تلقائياً بمجرد تسجيل فواتير بيع أو تجربة باقة النشاط.
+                {t('dashboard.no_sector_sales_hint', 'ستظهر القطاعات والمنتجات الأكثر ربحية هنا تلقائياً بمجرد تسجيل فواتير بيع أو تجربة باقة النشاط.')}
               </span>
             </div>
           )}

@@ -58,9 +58,7 @@ export function ActionConfirmDialog({
   onConfirm,
   onCancel
 }: ActionConfirmDialogProps) {
-  const { t, i18n } = useTranslation();
-  const isLtr = i18n.language === 'en';
-  const currentDir = isLtr ? 'ltr' : 'rtl';
+  const { t } = useTranslation();
 
   const resolvedConfirmLabel = confirmLabel || t('common.confirm', 'تأكيد');
   const resolvedCancelLabel = cancelLabel || t('common.cancel', 'إلغاء');

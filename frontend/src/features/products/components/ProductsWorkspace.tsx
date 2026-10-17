@@ -14,6 +14,7 @@ import { useProductsWorkspaceController } from '@/features/products/hooks/usePro
 import { useInventoryActionCatalog } from '@/shared/hooks/use-inventory-action-catalog';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { useTranslation } from 'react-i18next';
 import type { Product } from '@/types/domain';
 
 const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
@@ -42,49 +43,51 @@ export function ProductsWorkspace() {
   const [serialsProduct, setSerialsProduct] = useState<Product | null>(null);
   const [scalePluOpen, setScalePluOpen] = useState(false);
 
-  useAppToolbar([{ label: 'المنتجات' }]);
+  const { t } = useTranslation();
+
+  useAppToolbar([{ label: t('products.title', 'المنتجات') }]);
 
   return (
-    <div className="page-stack page-shell products-workspace-page" dir="rtl">
+    <div className="page-stack page-shell products-workspace-page">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader
-          title="المنتجات"
-          description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه، مع دعم خصائص الملابس من نفس شاشة المنتجات.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
-          badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} منتج</span>}
+          title={t('products.title', 'المنتجات')}
+          description={clothingEnabled ? t('products.clothing_description', 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه، مع دعم خصائص الملابس من نفس شاشة المنتجات.') : t('products.description', 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.')}
+          badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} {t('products.items_count', 'منتج')}</span>}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button onClick={() => navigate('/products/new')}>
-                {defaultProductKind === 'fashion' ? '+ موديل جديد' : '+ صنف جديد'}
+                {defaultProductKind === 'fashion' ? t('products.new_model', '+ موديل جديد') : t('products.new_product', '+ صنف جديد')}
               </Button>
               {settingsQuery.data?.enableMobileStoreFeatures === true && (
                 <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
-                  سيريال / IMEI
+                  {t('products.serial_imei', 'سيريال / IMEI')}
                 </Button>
               )}
               {settingsQuery.data?.restaurantModuleEnabled === true && (
                 <Button onClick={() => setAddonsDialogOpen(true)}>
-                  الإضافات
+                  {t('products.addons', 'الإضافات')}
                 </Button>
               )}
               <Button variant="secondary" onClick={() => setScalePluOpen(true)}>
-                موازين الباركود (PLU)
+                {t('products.barcode_scales', 'موازين الباركود (PLU)')}
               </Button>
-              <Button variant="secondary" onClick={controller.resetProductsView}>إعادة ضبط</Button>
-              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير</Button>
-              <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
+              <Button variant="secondary" onClick={controller.resetProductsView}>{t('common.reset', 'إعادة ضبط')}</Button>
+              <Button variant="secondary" onClick={controller.exportProductsCsv}>{t('common.export', 'تصدير')}</Button>
+              <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>{t('common.print', 'طباعة')}</Button>
             </div>
           )}
         />
 
         {!hasProducts ? (
-          <FormSection title="ابدأ بإضافة أول صنف" actions={<span className="nav-pill">خطوة البداية</span>}>
+          <FormSection title={t('products.empty_title', 'ابدأ بإضافة أول صنف')} actions={<span className="nav-pill">{t('products.empty_step', 'خطوة البداية')}</span>}>
             <div className="page-stack">
               <div className="muted">
-                لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
+                {t('products.empty_desc', 'لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.')}
               </div>
               <div className="actions compact-actions">
-                <Button onClick={() => navigate('/products/new')}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
-                <Button variant="secondary" onClick={() => navigate('/products/categories')}>إضافة قسم أو مورد</Button>
+                <Button onClick={() => navigate('/products/new')}>{defaultProductKind === 'fashion' ? t('products.add_first_model', 'إضافة أول موديل الآن') : t('products.add_first_product', 'إضافة أول صنف الآن')}</Button>
+                <Button variant="secondary" onClick={() => navigate('/products/categories')}>{t('products.add_category_supplier', 'إضافة قسم أو مورد')}</Button>
               </div>
             </div>
           </FormSection>

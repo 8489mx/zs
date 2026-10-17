@@ -54,7 +54,7 @@ export function SearchToolbar({
           </div>
           <div className="toolbar-heading-actions">
             {actions}
-            {onReset ? <Button type="button" variant="secondary" onClick={onReset}>{resetLabel}</Button> : null}
+            {onReset ? <Button type="button" variant="secondary" onClick={onReset}>{resolvedResetLabel}</Button> : null}
           </div>
         </div>
       ) : null}
@@ -63,13 +63,13 @@ export function SearchToolbar({
 
       <div className="toolbar-grid compact-toolbar">
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Field label={searchLabel}>
+          <Field label={resolvedSearchLabel}>
             <input
               ref={inputRef}
               value={search}
               onChange={(event) => onSearchChange(normalizeArabicSearchText(event.target.value))}
-              placeholder={searchPlaceholder}
-              aria-label={inputAriaLabel || searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
+              aria-label={inputAriaLabel || resolvedSearchPlaceholder}
             />
           </Field>
         </div>
@@ -77,7 +77,7 @@ export function SearchToolbar({
         {!hasHeading && onReset ? (
           <div className="toolbar-reset-action">
             <Button type="button" variant="secondary" onClick={onReset}>
-              {resetLabel}
+              {resolvedResetLabel}
             </Button>
           </div>
         ) : null}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Navigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -26,13 +27,14 @@ import {
 } from '@/features/dashboard/lib/dashboard-page.utils';
 
 function DashboardSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
+    <div className="page-stack page-shell dashboard-premium-shell">
       <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
         <PageHeader
-          title="لوحة التحكم اليومية"
-          description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
-          badge={<span className="nav-pill">ملخص اليوم</span>}
+          title={t('dashboard.title', 'لوحة التحكم اليومية')}
+          description={t('dashboard.description', 'مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية.')}
+          badge={<span className="nav-pill">{t('dashboard.today_summary', 'ملخص اليوم')}</span>}
         />
         {/* Skeleton Executive Hero */}
         <div
@@ -127,6 +129,7 @@ function DashboardSkeleton() {
 }
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const isPlatformAdminUser = isPlatformAdmin(user);
@@ -173,8 +176,8 @@ export function DashboardPage() {
 
   if (overview.isError && !overview.data) {
     return (
-      <div className="page-stack page-shell" dir="rtl">
-        <ErrorState title="تعذر تحميل ملخص اليوم" error={overview.error} hint="تحقق من اتصال النظام ثم أعد المحاولة." className="status-surface-block" />
+      <div className="page-stack page-shell">
+        <ErrorState title={t('feedback.error_title', 'تعذر تحميل ملخص اليوم')} error={overview.error} hint={t('common.check_connection', 'تحقق من اتصال النظام ثم أعد المحاولة.')} className="status-surface-block" />
       </div>
     );
   }
@@ -188,27 +191,27 @@ export function DashboardPage() {
   const totalStockAlerts = Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0);
 
   return (
-    <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
+    <div className="page-stack page-shell dashboard-premium-shell">
       <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
         <PageHeader
-          title="لوحة التحكم اليومية"
-          description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
-          badge={<span className="nav-pill">ملخص اليوم</span>}
+          title={t('dashboard.title', 'لوحة التحكم اليومية')}
+          description={t('dashboard.description', 'مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية.')}
+          badge={<span className="nav-pill">{t('dashboard.today_summary', 'ملخص اليوم')}</span>}
           actions={(
-            <div className="actions compact-actions dashboard-header-actions" aria-label="إجراءات سريعة">
+            <div className="actions compact-actions dashboard-header-actions" aria-label={t('common.actions', 'إجراءات سريعة')}>
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={handleManualRefresh}
                 disabled={isRefreshing || overview.isFetching}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                title="تحديث بيانات ومؤشرات اليوم"
+                title={t('common.refresh', 'تحديث')}
               >
                 <RefreshCwIcon size={14} className={isRefreshing || overview.isFetching ? 'spin-animation' : ''} />
-                <span>تحديث</span>
+                <span>{t('common.refresh', 'تحديث')}</span>
               </button>
-              <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير Excel</button>
-              <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
+              <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>{t('common.export', 'تصدير Excel')}</button>
+              <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>{t('dashboard.print_summary', 'طباعة الملخص')}</button>
             </div>
           )}
         />
@@ -250,7 +253,7 @@ export function DashboardPage() {
             />
 
             {/* أعلى الأصناف مبيعاً اليوم */}
-            <FormSection title="أعلى أصناف اليوم مبيعاً" description="الأصناف الأكثر طلباً وحركة خلال فواتير اليوم." actions={<span className="nav-pill">اليوم</span>} className="dashboard-premium-card">
+            <FormSection title={t('dashboard.top_selling_today', 'أعلى أصناف اليوم مبيعاً')} description={t('dashboard.top_selling_subtitle', 'الأصناف الأكثر طلباً وحركة خلال فواتير اليوم.')} actions={<span className="nav-pill">{t('dashboard.today', 'اليوم')}</span>} className="dashboard-premium-card">
               {topToday.length ? (
                 <div
                   className="top-selling-grid"
@@ -313,7 +316,7 @@ export function DashboardPage() {
                             {row.name}
                           </strong>
                           <div className="muted small" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                            مباع اليوم: <span style={{ fontWeight: 700, color: '#334155' }}>{row.qty}</span>
+                            {t('dashboard.sold_today', 'مباع اليوم: {{qty}}', { qty: row.qty })}
                           </div>
                         </div>
                       </div>
@@ -329,7 +332,7 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.84rem' }}>
-                  لا توجد مبيعات مسجلة اليوم بعد
+                  {t('dashboard.no_sales_today', 'لا توجد مبيعات مسجلة اليوم بعد')}
                 </div>
               )}
             </FormSection>
@@ -344,20 +347,20 @@ export function DashboardPage() {
             />
 
             {/* الحسابات المستحقة والمخزون - شبكة ثنائية 2x2 */}
-            <FormSection title="الحسابات والمخزون" description="مؤشرات مديونيات العملاء والموردين وقيمة المخزون." className="dashboard-premium-card">
+            <FormSection title={t('dashboard.accounts_and_inventory', 'الحسابات والمخزون')} description={t('dashboard.accounts_and_inventory_desc', 'مؤشرات مديونيات العملاء والموردين وقيمة المخزون.')} className="dashboard-premium-card">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
                 {/* الصف الأول */}
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
                   <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>قيمة المخزون (بيع)</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.inventory_sale_value', 'قيمة المخزون (بيع)')}</span>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {formatCurrency(Number(stats.inventorySaleValue || 0))}
                     </strong>
                   </div>
                   <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>إجمالي الأصناف</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.total_products', 'إجمالي الأصناف')}</span>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                      {stats.productsCount || 0} صنف
+                      {stats.productsCount || 0} {t('dashboard.items_unit', 'صنف')}
                     </strong>
                   </div>
                 </div>
@@ -365,13 +368,13 @@ export function DashboardPage() {
                 {/* الصف الثاني */}
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
                   <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مستحقات العملاء</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.customer_receivables', 'مستحقات العملاء')}</span>
                     <strong style={{ fontSize: '0.88rem', color: '#b91c1c', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {formatCurrency(Number(stats.customerDebt || 0))}
                     </strong>
                   </div>
                   <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مستحقات الموردين</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.supplier_payables', 'مستحقات الموردين')}</span>
                     <strong style={{ fontSize: '0.88rem', color: '#b91c1c', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {formatCurrency(Number(stats.supplierDebt || 0))}
                     </strong>
@@ -381,7 +384,7 @@ export function DashboardPage() {
             </FormSection>
 
             {/* حركة العمليات اليومية - 3 في سطر واحد دائماً */}
-            <FormSection title="حركة اليوم المالية" description="المصروفات والمشتريات والمرتجعات المسجلة." className="dashboard-premium-card">
+            <FormSection title={t('dashboard.financial_movement_today', 'حركة اليوم المالية')} description={t('dashboard.financial_movement_desc', 'المصروفات والمشتريات والمرتجعات المسجلة.')} className="dashboard-premium-card">
               <div
                 className="daily-movement-strip keep-grid-row"
                 style={{
@@ -394,15 +397,15 @@ export function DashboardPage() {
                 }}
               >
                 <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>فواتير الشراء</span>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.purchase_bills', 'فواتير الشراء')}</span>
                   <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>{stats.todayPurchasesCount || 0}</strong>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مصروفات اليوم</span>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.today_expenses', 'مصروفات اليوم')}</span>
                   <strong style={{ fontSize: '0.98rem', color: '#d97706', fontWeight: 800, whiteSpace: 'nowrap' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>المرتجعات</span>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('dashboard.returns', 'المرتجعات')}</span>
                   <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
                 </div>
               </div>

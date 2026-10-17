@@ -28,8 +28,8 @@ export function SuppliersPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title={t('sidebar.suppliers', 'الموردون')}
-          description="إدارة سجل الموردين، كشوف الحسابات والأرصدة مع إمكانية البحث والإضافة السريعة."
-          badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>}
+          description={t('suppliers_page.description', 'إدارة سجل الموردين، كشوف الحسابات والأرصدة مع إمكانية البحث والإضافة السريعة.')}
+          badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} {t('suppliers_page.supplier_unit', 'مورد')}</span>}
           actions={
             <div className="actions compact-actions">
               <Button variant="primary" onClick={() => setIsCreateOpen(true)}>{t('suppliers.new_supplier', '+ مورد جديد')}</Button>
@@ -48,8 +48,8 @@ export function SuppliersPage() {
         <StandardDialog
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
-          title="إضافة مورد جديد"
-          subtitle="تسجيل بيانات المورد وتفاصيل الحساب والرصيد الافتتاحي في النظام"
+          title={t('suppliers_page.add_new_title', 'إضافة مورد جديد')}
+          subtitle={t('suppliers_page.add_new_sub', 'تسجيل بيانات المورد وتفاصيل الحساب والرصيد الافتتاحي في النظام')}
           width="min(680px, 95vw)"
           minHeight="auto"
         >

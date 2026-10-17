@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import i18n from '@/lib/i18n';
 
 export interface CustomerTypeOption {
   value: 'cash' | 'vip' | 'credit' | 'wholesale';
@@ -166,6 +167,38 @@ export const GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
   showMarketingCampaign: true,
 };
 
+export const EN_GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
+  id: 'general',
+  pageTitle: 'Customers',
+  pageDescription: 'Manage customers directory, statements, balances, and credit limits.',
+  badgeUnit: 'Customers',
+  addBtnText: '+ New Customer',
+  modalAddTitle: 'Add New Customer',
+  modalAddSubtitle: 'Register customer account, contact information, and credit limit.',
+  modalEditSubtitle: 'Update customer details, balance, or credit limit.',
+  nameLabel: 'Customer Name *',
+  namePlaceholder: 'e.g. Acme Corp / John Doe',
+  phoneLabel: 'Phone Number',
+  phonePlaceholder: 'e.g. +1234567890',
+  addressLabel: 'Address / Area',
+  addressPlaceholder: 'City, District, Street...',
+  typeLabel: 'Customer Type',
+  types: [
+    { value: 'cash', label: 'Retail / Regular (Default)', badgeLabel: 'Retail', badgeStyle: { bg: '#f1f5f9', color: '#475569' } },
+    { value: 'vip', label: 'VIP Customer - Special Discounts', badgeLabel: 'VIP', badgeStyle: { bg: '#fef3c7', color: '#92400e' } },
+    { value: 'credit', label: 'Credit Account (On Account)', badgeLabel: 'Credit', badgeStyle: { bg: '#e0f2fe', color: '#0369a1' } },
+    { value: 'wholesale', label: 'Wholesale Customer', badgeLabel: 'Wholesale', badgeStyle: { bg: '#dcfce7', color: '#166534' } },
+  ],
+  balanceLabel: 'Opening Balance',
+  balanceHint: 'Outstanding debt at the start of registration (if any)',
+  creditLimitLabel: 'Credit Limit',
+  creditLimitHint: 'Maximum allowable credit balance (0 = cash only)',
+  submitCreateText: 'Save Customer',
+  submitEditText: 'Save Changes',
+  showLoyalty: true,
+  showMarketingCampaign: true,
+};
+
 export function getCustomerProfileByRaw(rawActivity: string, pathname: string): CustomerProfile {
   const normActivity = (rawActivity || '').toLowerCase();
   const normPath = (pathname || '').toLowerCase();
@@ -229,5 +262,9 @@ export function useCustomerProfile(): CustomerProfile {
     pathname = '';
   }
 
-  return getCustomerProfileByRaw(rawActivity, pathname);
+  const base = getCustomerProfileByRaw(rawActivity, pathname);
+  if (base.id === 'general' && i18n.language !== 'ar') {
+    return EN_GENERAL_CUSTOMER_PROFILE;
+  }
+  return base;
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
 
@@ -13,29 +14,31 @@ interface ProductsStatsGridProps {
 }
 
 export function ProductsStatsGrid(props: ProductsStatsGridProps) {
+  const { t } = useTranslation();
+
   const alertText = props.lowStockCount || props.outOfStockCount 
-    ? `${props.lowStockCount} منخفض • ${props.outOfStockCount} نفد`
-    : 'المخزون كافي';
+    ? `${props.lowStockCount} ${t('products.low_stock', 'منخفض')} • ${props.outOfStockCount} ${t('products.out_of_stock', 'نفد')}`
+    : t('products.stock_sufficient', 'المخزون كافي');
 
   const items: StatsGridItem[] = [
     {
       key: 'total',
-      label: 'إجمالي الأصناف',
-      value: `${props.total} صنف`,
+      label: t('products.total_products', 'إجمالي الأصناف'),
+      value: `${props.total} ${t('products.items_count', 'صنف')}`,
     },
     {
       key: 'alerts',
-      label: 'تنبيهات النواقص',
+      label: t('products.shortage_alerts', 'تنبيهات النواقص'),
       value: alertText,
     },
     {
       key: 'cost-value',
-      label: 'قيمة المخزون (تكلفة)',
+      label: t('products.inventory_cost', 'قيمة المخزون (تكلفة)'),
       value: formatCurrency(props.inventoryCost),
     },
     {
       key: 'sale-value',
-      label: 'القيمة البيعية التقديرية',
+      label: t('products.inventory_sale_value', 'القيمة البيعية التقديرية'),
       value: formatCurrency(props.inventorySaleValue),
     },
   ];

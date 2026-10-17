@@ -1,6 +1,7 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AreaChart,
   Area,
@@ -43,6 +44,9 @@ export function DashboardExecutiveHero({
   treasuryNet,
   totalStockAlerts,
 }: DashboardExecutiveHeroProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language !== 'ar';
+
   const [activeMetric, setActiveMetric] = useState<'sales' | 'both'>('both');
   const [timeframe, setTimeframe] = useState<'7d' | '30d'>('7d');
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(getInitialTheme);
@@ -66,57 +70,59 @@ export function DashboardExecutiveHero({
     });
   };
   
-  // Format username gracefully: replace system placeholders like Bootstrap Administrator with Arabic title
+  // Format username gracefully: replace system placeholders like Bootstrap Administrator with localized title
   const formattedUserName = useMemo(() => {
     const raw = user?.displayName?.trim() || user?.username?.trim() || '';
-    if (!raw) return 'مدير النظام';
+    if (!raw) return isEn ? 'System Administrator' : 'مدير النظام';
     const lower = raw.toLowerCase();
     if (lower.includes('bootstrap') || lower === 'admin' || lower === 'administrator' || lower === 'root') {
-      return 'مدير النظام';
+      return isEn ? 'System Administrator' : 'مدير النظام';
     }
     return raw;
-  }, [user]);
+  }, [user, isEn]);
 
-  const userGreetingPart = formattedUserName ? ` يا ${formattedUserName}` : '';
+  const userGreetingPart = formattedUserName ? (isEn ? `, ${formattedUserName}` : ` يا ${formattedUserName}`) : '';
 
-  // Compute time-based greeting (طابع البركة والرزق للتجار)
+  // Compute time-based greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) {
       return {
-        text: `صباح الرزق والبركة${userGreetingPart}`,
-        sub: 'يوم موفق وتجارة رابحة',
+        text: isEn ? `${t('dashboard.greeting_morning', 'Good morning')}${userGreetingPart}` : `صباح الرزق والبركة${userGreetingPart}`,
+        sub: isEn ? t('dashboard.sub_morning', 'Wishing you a productive and profitable day') : 'يوم موفق وتجارة رابحة',
       };
     }
     if (hour >= 12 && hour < 17) {
       return {
-        text: `طاب يومك ورزقك${userGreetingPart}`,
-        sub: 'متابعة حية للمبيعات',
+        text: isEn ? `${t('dashboard.greeting_afternoon', 'Good afternoon')}${userGreetingPart}` : `طاب يومك ورزقك${userGreetingPart}`,
+        sub: isEn ? t('dashboard.sub_afternoon', 'Live sales & activity tracking') : 'متابعة حية للمبيعات',
       };
     }
     return {
-      text: `مساء الخير والخيرات${userGreetingPart}`,
-      sub: 'ملخص أرباح ونشاط اليوم',
+      text: isEn ? `${t('dashboard.greeting_evening', 'Good evening')}${userGreetingPart}` : `مساء الخير والخيرات${userGreetingPart}`,
+      sub: isEn ? t('dashboard.sub_evening', "Today's profit and business activity summary") : 'ملخص أرباح ونشاط اليوم',
     };
-  }, [userGreetingPart]);
+  }, [userGreetingPart, isEn, t]);
 
   // Formatted date (concise: day & month)
   const todayFormatted = useMemo(() => {
     try {
-      return new Intl.DateTimeFormat('ar-EG', {
+      return new Intl.DateTimeFormat(isEn ? 'en-US' : 'ar-EG', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
       }).format(new Date());
     } catch {
-      return new Date().toLocaleDateString('ar-EG');
+      return new Date().toLocaleDateString(isEn ? 'en-US' : 'ar-EG');
     }
-  }, []);
+  }, [isEn]);
 
   // Prepare chart data (7 points or 30 points)
   const chartData = useMemo(() => {
     const pointsCount = Math.max(salesTrend.length, purchasesTrend.length);
-    const shortDays = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+    const shortDays = isEn
+      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      : ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
     if (!pointsCount) {
       const dummyCount = timeframe === '7d' ? 7 : 30;
@@ -124,7 +130,7 @@ export function DashboardExecutiveHero({
       for (let i = 0; i < dummyCount; i++) {
         dummy.push({
           label: timeframe === '7d' ? shortDays[i % 7] : `${i + 1}`,
-          fullDate: `يوم ${i + 1}`,
+          fullDate: isEn ? `Day ${i + 1}` : `يوم ${i + 1}`,
           sales: i === dummyCount - 1 ? (todaySalesAmount || 0) : 0,
           purchases: 0,
         });
@@ -136,7 +142,7 @@ export function DashboardExecutiveHero({
     for (let i = 0; i < pointsCount; i++) {
       const s = salesTrend[i];
       const p = purchasesTrend[i];
-      const rawKey = s?.key || p?.key || `يوم ${i + 1}`;
+      const rawKey = s?.key || p?.key || (isEn ? `Day ${i + 1}` : `يوم ${i + 1}`);
       
       let label = rawKey;
       let fullDate = rawKey;
@@ -148,7 +154,7 @@ export function DashboardExecutiveHero({
           } else {
             label = `${d.getDate()}`;
           }
-          fullDate = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+          fullDate = new Intl.DateTimeFormat(isEn ? 'en-US' : 'ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
         }
       } catch {
         label = rawKey;
@@ -279,8 +285,8 @@ export function DashboardExecutiveHero({
               type="button"
               className="dashboard-hero-theme-toggle"
               onClick={handleToggleTheme}
-              title={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
-              aria-label={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
+              title={isDark ? (isEn ? 'Switch to Light Mode' : 'التبديل إلى المظهر الفاتح') : (isEn ? 'Switch to Dark Mode' : 'التبديل إلى المظهر الليلي')}
+              aria-label={isDark ? (isEn ? 'Switch to Light Mode' : 'التبديل إلى المظهر الفاتح') : (isEn ? 'Switch to Dark Mode' : 'التبديل إلى المظهر الليلي')}
               style={{
                 background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1',
@@ -350,7 +356,7 @@ export function DashboardExecutiveHero({
             onClick={() => toggleKpi('sales')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('sales'); }}
             className={`dashboard-hero-kpi-card ${activeKpi === 'sales' ? 'is-expanded' : ''}`.trim()}
-            title="انقر للتكبير والتفاصيل"
+            title={t('dashboard.click_to_expand', 'انقر للتكبير والتفاصيل')}
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -366,7 +372,7 @@ export function DashboardExecutiveHero({
             }}
           >
             <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
-              مبيعات اليوم
+              {t('dashboard.today_sales', 'مبيعات اليوم')}
             </div>
             <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
               <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
@@ -383,7 +389,7 @@ export function DashboardExecutiveHero({
             onClick={() => toggleKpi('invoices')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('invoices'); }}
             className={`dashboard-hero-kpi-card ${activeKpi === 'invoices' ? 'is-expanded' : ''}`.trim()}
-            title="انقر للتكبير والتفاصيل"
+            title={t('dashboard.click_to_expand', 'انقر للتكبير والتفاصيل')}
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -399,13 +405,13 @@ export function DashboardExecutiveHero({
             }}
           >
             <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
-              فواتير اليوم
+              {t('dashboard.today_invoices', 'فواتير اليوم')}
             </div>
             <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
               <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
                 {todaySalesCount}
               </strong>
-              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>فاتورة</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>{t('dashboard.invoices_unit', 'فاتورة')}</span>
             </div>
           </div>
 
@@ -416,7 +422,7 @@ export function DashboardExecutiveHero({
             onClick={() => toggleKpi('treasury')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('treasury'); }}
             className={`dashboard-hero-kpi-card ${activeKpi === 'treasury' ? 'is-expanded' : ''}`.trim()}
-            title="انقر للتكبير والتفاصيل"
+            title={t('dashboard.click_to_expand', 'انقر للتكبير والتفاصيل')}
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -432,7 +438,7 @@ export function DashboardExecutiveHero({
             }}
           >
             <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
-              صافي الخزينة
+              {t('dashboard.net_treasury', 'صافي الخزينة')}
             </div>
             <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '2px', justifyContent: 'center' }}>
               <strong
@@ -459,7 +465,7 @@ export function DashboardExecutiveHero({
             onClick={() => toggleKpi('alerts')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('alerts'); }}
             className={`dashboard-hero-kpi-card ${activeKpi === 'alerts' ? 'is-expanded' : ''}`.trim()}
-            title="انقر للتكبير والتفاصيل"
+            title={t('dashboard.click_to_expand', 'انقر للتكبير والتفاصيل')}
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -475,18 +481,18 @@ export function DashboardExecutiveHero({
             }}
           >
             <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
-              تنبيهات المخزون
+              {t('dashboard.stock_alerts', 'تنبيهات المخزون')}
             </div>
             {totalStockAlerts > 0 ? (
               <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
                 <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#fb7185' : '#e11d48', fontWeight: 800 }}>
                   {totalStockAlerts}
                 </strong>
-                <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>صنف</span>
+                <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>{t('dashboard.items_unit', 'صنف')}</span>
               </div>
             ) : (
               <strong className="dashboard-hero-kpi-value" style={{ fontSize: '0.92rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 700 }}>
-                مستقر
+                {t('dashboard.stable', 'مستقر')}
               </strong>
             )}
           </div>
@@ -513,7 +519,7 @@ export function DashboardExecutiveHero({
           className="dashboard-hero-chart-title"
           style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}
         >
-          حركة المبيعات وتدفق النشاط
+          {t('dashboard.sales_trend_title', 'حركة المبيعات وتدفق النشاط')}
         </span>
 
         <div className="dashboard-hero-chart-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -555,7 +561,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              ٧ أيام
+              {t('dashboard.timeframe_7d', '٧ أيام')}
             </button>
             <button
               type="button"
@@ -583,7 +589,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              ٣٠ يوم
+              {t('dashboard.timeframe_30d', '٣٠ يوم')}
             </button>
           </div>
 
@@ -625,7 +631,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              المبيعات
+              {t('dashboard.sales', 'المبيعات')}
             </button>
             <button
               type="button"
@@ -653,7 +659,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              مقارنة
+              {t('dashboard.comparison', 'مقارنة')}
             </button>
           </div>
         </div>
@@ -703,7 +709,7 @@ export function DashboardExecutiveHero({
                         borderRadius: '10px',
                         color: isDark ? '#fff' : '#0f172a',
                         boxShadow: isDark ? '0 10px 25px rgba(0,0,0,0.5)' : '0 6px 16px rgba(0,0,0,0.08)',
-                        direction: 'rtl',
+                        direction: isEn ? 'ltr' : 'rtl',
                         minWidth: '150px',
                       }}
                     >
@@ -723,7 +729,7 @@ export function DashboardExecutiveHero({
                             marginBottom: '2px',
                           }}
                         >
-                          <span>{entry.name === 'sales' ? 'المبيعات:' : 'المشتريات:'}</span>
+                          <span>{entry.name === 'sales' ? (isEn ? `${t('dashboard.sales', 'المبيعات')}:` : 'المبيعات:') : (isEn ? `${t('dashboard.purchases', 'المشتريات')}:` : 'المشتريات:')}</span>
                           <span dir="ltr">{formatCurrency(Number(entry.value || 0))} {getGlobalCurrencySymbol()}</span>
                         </div>
                       ))}

@@ -163,11 +163,11 @@ export function SalesWorkspace() {
         <StandardDialog
           isOpen={isDetailOpen && Boolean(selectedSaleId)}
           onClose={() => { setIsDetailOpen(false); }}
-          title={`تفاصيل الفاتورة: ${selectedSale?.docNo || selectedSale?.id || ''}`}
-          subtitle="معاينة بنود الفاتورة والمدفوعات والمستندات المرتبطة"
+          title={`${t('sales.invoiceDetails', 'تفاصيل الفاتورة')}: ${selectedSale?.docNo || selectedSale?.id || ''}`}
+          subtitle={t('sales.previewInvoiceItems', 'معاينة بنود الفاتورة والمدفوعات والمستندات المرتبطة')}
           maxWidth="960px"
           loading={saleDetailQuery.isLoading}
-          loadingText="جاري تحميل تفاصيل الفاتورة..."
+          loadingText={t('sales.loadingDetails', 'جاري تحميل تفاصيل الفاتورة...')}
         >
           <SaleDetailCard
             sale={selectedSale || undefined}
