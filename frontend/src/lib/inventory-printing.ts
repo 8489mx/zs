@@ -141,6 +141,7 @@ export interface PrintTransferOptions {
   settings?: Partial<AppSettings> | null;
   sortBy?: InventoryPrintSortMode;
   categoryNames?: Record<string, string>;
+  locationName?: string;
 }
 
 export function buildTransferDocument(transfer: StockTransfer, options: PrintTransferOptions) {
@@ -291,6 +292,7 @@ export function buildInventoryStatusReport(rows: any[], options: PrintTransferOp
 
   const metaHtml = compact ? renderMetaPanel([
     { label: 'وثيقة', value: 'تقرير جرد وقيمة المخزون' },
+    ...(options.locationName ? [{ label: 'المخزن', value: options.locationName }] : []),
     { label: 'الترتيب', value: sortLabel },
     { label: 'التاريخ', value: formatDateTime(new Date().toISOString()) },
   ], compact, options.settings) : '';
@@ -362,7 +364,7 @@ export function printInventoryStatusReport(rows: any[], options: PrintTransferOp
       : 'مرتب من الأقل مخزوناً للأعلى';
 
   printHtmlDocument('تقرير جرد وقيمة المخزون', document.html, {
-    subtitle: `إجمالي الأصناف: ${rows.length} صنف · ${sortLabel}`,
+    subtitle: `${options.locationName ? `المخزن: ${options.locationName} · ` : ''}إجمالي الأصناف: ${rows.length} صنف · ${sortLabel}`,
     footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
     orientation: 'portrait',

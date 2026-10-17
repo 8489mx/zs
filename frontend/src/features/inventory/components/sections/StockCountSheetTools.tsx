@@ -150,7 +150,7 @@ export function StockCountSheetTools({
           type="button"
           variant="secondary"
           disabled={disabled}
-          onClick={() => exportStockCountSheetExcel(sheetRows, { includeExpectedQty })}
+          onClick={() => exportStockCountSheetExcel(sheetRows, { includeExpectedQty, locationName })}
         >
           تصدير Excel
         </Button>

@@ -30,6 +30,8 @@ interface InventoryWorkspaceSectionActionsParams {
   setCopyFeedback: (value: { kind: 'success' | 'error'; text: string } | null) => void;
   canViewSensitivePricing: boolean;
   settings?: AppSettings | null;
+  locationFilter?: string;
+  locations?: Array<{ id: number | string; name: string }>;
 }
 
 export function createInventoryWorkspaceSectionActions({
@@ -49,7 +51,12 @@ export function createInventoryWorkspaceSectionActions({
   setCopyFeedback,
   canViewSensitivePricing,
   settings,
+  locationFilter,
+  locations,
 }: InventoryWorkspaceSectionActionsParams) {
+  const selectedLocation = locations?.find((l) => String(l.id) === String(locationFilter));
+  const locationLabel = selectedLocation ? selectedLocation.name : undefined;
+
   async function copyInventorySummary() {
     await copyLines([
       'ملخص المخزون',
@@ -73,13 +80,13 @@ export function createInventoryWorkspaceSectionActions({
       costPrice: canViewSensitivePricing ? row.costPrice : undefined,
       retailPrice: row.retailPrice,
       wholesalePrice: canViewSensitivePricing ? row.wholesalePrice : undefined,
-    })));
+    })), { locationName: locationLabel });
   };
 
   const exportTransfersExcel = async () => exportTransfersExcelDocument(await inventoryApi.listAllTransfers({ filter: transferFilter }));
-  const printInventoryListHandler = (sortBy: 'least_stock' | 'category' | 'highest_value' = 'least_stock') => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy });
-  const printInventoryByCategoryHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'category' });
-  const printInventoryByHighestValueHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'highest_value' });
+  const printInventoryListHandler = (sortBy: 'least_stock' | 'category' | 'highest_value' = 'least_stock') => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy, locationName: locationLabel });
+  const printInventoryByCategoryHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'category', locationName: locationLabel });
+  const printInventoryByHighestValueHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'highest_value', locationName: locationLabel });
   const printDamagedRecordsHandler = async () => printDamagedRecords(await inventoryApi.listAllDamagedStock());
   const exportDamagedExcelHandler = async () => exportDamagedExcelDocument(await inventoryApi.listAllDamagedStock());
   const exportMovementsExcelHandler = async () => {

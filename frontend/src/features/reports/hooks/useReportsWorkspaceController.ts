@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/app/query-keys';
+import { referenceDataApi } from '@/services/reference-data.api';
 import { accountingReportsApi } from '@/shared/api/accounting-reports';
 import { useReportsOverview } from '@/features/reports/hooks/useReportsOverview';
 import { useReportInventoryPage } from '@/features/reports/hooks/useReportInventoryPage';
@@ -12,6 +14,7 @@ import { formatPercent } from '@/features/reports/lib/reports-format';
 
 export function useReportsWorkspaceController(currentSection: ReportsSectionKey) {
   const state = useReportsWorkspaceState();
+  const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
   const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to, {
     enabled: ['overview', 'sales', 'purchases'].includes(currentSection),
     locationId: state.submittedLocationId !== 'all' ? state.submittedLocationId : undefined,
@@ -87,6 +90,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     deadStockDays: state.deadStockDays,
     balancesSearch: state.balancesSearch,
     balancesFilter: state.balancesFilter,
+    locationId: state.locationId,
+    locations: locationsQuery.data,
   });
 
   return {
@@ -130,7 +135,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     onInventoryPageChange: state.setInventoryPage,
     onInventoryPageSizeChange: (value: number) => { state.setInventoryPageSize(value); state.setInventoryPage(1); },
 
-    onInventoryFiltersReset: () => { state.setInventorySearch(''); state.setInventoryFilter('attention'); state.setInventoryPage(1); },
+    onInventoryFiltersReset: () => { state.setInventorySearch(''); state.setInventoryFilter('all'); state.setInventoryPage(1); },
     onBalancesFiltersReset: () => { state.setBalancesSearch(''); state.setBalancesFilter('all'); state.setBalancesPage(1); },
     onEmployeesFiltersReset: () => {
       state.setEmployeeSearch('');

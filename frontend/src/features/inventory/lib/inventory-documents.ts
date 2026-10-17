@@ -62,13 +62,14 @@ export function printStockCountSheet(rows: StockCountSheetRow[], options: { titl
   `);
 }
 
-export function exportStockCountSheetExcel(rows: StockCountSheetRow[], options: { includeExpectedQty?: boolean }) {
+export function exportStockCountSheetExcel(rows: StockCountSheetRow[], options: { includeExpectedQty?: boolean; locationName?: string }) {
   if (!rows.length) return;
   const includeExpected = Boolean(options.includeExpectedQty);
   const headers = includeExpected
-    ? ['كود', 'باركود', 'الصنف', 'القسم', 'كمية النظام', 'الكمية الفعلية', 'ملاحظات']
+    ? ['كود', 'باركود', 'الصنف', 'القسم', 'كمية النظام بالمخزن', 'الكمية الفعلية', 'ملاحظات']
     : ['كود', 'باركود', 'الصنف', 'القسم', 'الكمية الفعلية', 'ملاحظات'];
-  downloadExcelFile('stock-count-sheet.xlsx', headers, rows.map((row) => includeExpected
+  const fileName = options.locationName ? `شيت جرد - ${options.locationName}.xlsx` : 'stock-count-sheet.xlsx';
+  downloadExcelFile(fileName, headers, rows.map((row) => includeExpected
     ? [row.code || '', row.barcode || '', row.name, row.category || '', row.expectedQty ?? '', row.countedQty ?? '', row.note || '']
     : [row.code || '', row.barcode || '', row.name, row.category || '', row.countedQty ?? '', row.note || '']));
 }
@@ -109,8 +110,12 @@ export function printStockCountDocument(session: StockCountSession) {
   `);
 }
 
-export function exportInventoryExcel(rows: Array<{ name: string; stock: number; minStock?: number; status?: string; costPrice?: number; retailPrice?: number; wholesalePrice?: number }>) {
-  downloadExcelFile('inventory-register.xlsx', ['الصنف', 'الرصيد', 'الحد الأدنى', 'الحالة', 'سعر التكلفة', 'سعر القطاعي', 'سعر الجملة'], rows.map((row) => [row.name, row.stock, row.minStock, row.status, row.costPrice, row.retailPrice, row.wholesalePrice]));
+export function exportInventoryExcel(
+  rows: Array<{ name: string; stock: number; minStock?: number; status?: string; costPrice?: number; retailPrice?: number; wholesalePrice?: number }>,
+  options?: { locationName?: string }
+) {
+  const fileName = options?.locationName ? `أرصدة المخزون - ${options.locationName}.xlsx` : 'inventory-register.xlsx';
+  downloadExcelFile(fileName, ['الصنف', 'الرصيد بالمخزن', 'الحد الأدنى', 'الحالة', 'سعر التكلفة', 'سعر القطاعي', 'سعر الجملة'], rows.map((row) => [row.name, row.stock, row.minStock, row.status, row.costPrice, row.retailPrice, row.wholesalePrice]));
 }
 
 export function exportTransfersExcel(transfers: StockTransfer[]) {

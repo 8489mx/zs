@@ -734,20 +734,27 @@ export class ReportsService {
 
     const productIds = rows.map((row: any) => Number(row.id || 0)).filter((value: number) => value > 0);
 
+    let locationBreakdownQuery = this.db
+      .selectFrom('product_location_stock as pls')
+      .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 'pls.location_id').onRef('l.tenant_id', '=', 'pls.tenant_id'))
+      .leftJoin('branches', (join) => join.onRef('branches.id', '=', 'pls.branch_id').onRef('branches.tenant_id', '=', 'pls.tenant_id'))
+      .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'l.name as location_name', 'branches.name as branch_name'])
+      .where('pls.product_id', 'in', productIds)
+      .where(this.tenantPredicate(auth, 'pls'));
+
+    if (query.locationId) {
+      locationBreakdownQuery = locationBreakdownQuery.where('pls.location_id', '=', query.locationId);
+    }
+
     const locationBreakdownRows = productIds.length
-      ? await this.db
-          .selectFrom('product_location_stock as pls')
-          .leftJoin('stock_locations as l', (join) => join.onRef('l.id', '=', 'pls.location_id').onRef('l.tenant_id', '=', 'pls.tenant_id'))
-          .leftJoin('branches', (join) => join.onRef('branches.id', '=', 'pls.branch_id').onRef('branches.tenant_id', '=', 'pls.tenant_id'))
-          .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'l.name as location_name', 'branches.name as branch_name'])
-          .where('pls.product_id', 'in', productIds)
-          .where(this.tenantPredicate(auth, 'pls'))
+      ? await locationBreakdownQuery
           .orderBy('pls.product_id', 'asc')
           .orderBy('pls.qty', 'desc')
           .execute()
       : [];
 
     const tenantId = this.scope(auth).tenantId;
+    const locationCondition = query.locationId ? sql`and pls.location_id = ${query.locationId}` : sql``;
     const locationHighlightsResult = await sql<{
       location_id: number; location_name: string | null; branch_id: number | null; branch_name: string | null;
       total_qty: number; tracked_products: number; attention_items: number;
@@ -764,6 +771,7 @@ export class ReportsService {
       left join stock_locations l on l.id = pls.location_id and l.tenant_id = pls.tenant_id
       left join branches b on b.id = pls.branch_id and b.tenant_id = pls.tenant_id
       where pls.tenant_id = ${tenantId} and pls.location_id is not null and p.is_active = true
+      ${locationCondition}
       group by pls.location_id, l.name, pls.branch_id, b.name
       order by attention_items desc, total_qty desc, location_name asc
       limit 5
@@ -802,12 +810,18 @@ export class ReportsService {
     }
     const lowStockRow = await lowStockQuery.executeTakeFirst();
 
-    const totalActiveRow = await this.db
+    let totalActiveQuery: any = this.db
       .selectFrom('products as p')
       .select(sql<number>`count(*)`.as('count'))
       .where('p.is_active', '=', true)
-      .where(this.tenantPredicate(auth, 'p'))
-      .executeTakeFirst();
+      .where(this.tenantPredicate(auth, 'p'));
+
+    if (query.locationId) {
+      totalActiveQuery = totalActiveQuery
+        .innerJoin('product_location_stock as pls', (join: any) => join.onRef('pls.product_id', '=', 'p.id').onRef('pls.tenant_id', '=', 'p.tenant_id'))
+        .where('pls.location_id', '=', query.locationId);
+    }
+    const totalActiveRow = await totalActiveQuery.executeTakeFirst();
 
     const trackedLocations = Number(locationHighlightsResult.rows[0]?.tracked_locations || 0);
     const locationHighlights = locationHighlightsResult.rows.map((row) => ({

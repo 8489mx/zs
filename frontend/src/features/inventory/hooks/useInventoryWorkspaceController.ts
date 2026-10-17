@@ -145,6 +145,8 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     setCopyFeedback: state.setCopyFeedback,
     canViewSensitivePricing,
     settings,
+    locationFilter: state.locationFilter,
+    locations,
   });
 
   const sectionDescription = getInventorySectionDescription(currentSection);

@@ -128,6 +128,7 @@ interface StockCountComposerCardProps {
   branches: Branch[];
   warehouses?: Location[];
   locations?: Location[];
+  locationStocks?: Array<{ productId: number | string; locationId: number | string; qty: number }>;
   form: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   items: StockCountItem[];
   canReviewStock: boolean;
@@ -149,6 +150,7 @@ export function StockCountComposerCard({
   branches,
   warehouses,
   locations,
+  locationStocks,
   form,
   items,
   canReviewStock,
@@ -309,30 +311,52 @@ export function StockCountComposerCard({
     }
   }, [isSuccess]);
 
+  const getProductLocationStock = (productId: string | number) => {
+    if (!form.locationId || !locationStocks) return null;
+    const match = locationStocks.find(
+      (s) => String(s.productId) === String(productId) && String(s.locationId) === String(form.locationId)
+    );
+    return match ? Number(match.qty) : 0;
+  };
+
   const scopeProducts = useMemo(() => {
-    if (countType === 'full') return products;
+    let baseProducts = products;
+    if (form.locationId && locationStocks) {
+      baseProducts = products.filter((product) =>
+        locationStocks.some(
+          (s) => String(s.productId) === String(product.id) && String(s.locationId) === String(form.locationId)
+        )
+      );
+    }
+
+    if (countType === 'full') return baseProducts;
     if (countType === 'category') {
       const categoryId = selectedCategoryId || selectedProduct?.categoryId || '';
       if (!categoryId) return [];
-      return products.filter((product) => String(product.categoryId || '') === String(categoryId));
+      return baseProducts.filter((product) => String(product.categoryId || '') === String(categoryId));
     }
     if (countType === 'supplier') {
       const supplierId = selectedSupplierId || selectedProduct?.supplierId || '';
       if (!supplierId) return [];
-      return products.filter((product) => String(product.supplierId || '') === String(supplierId));
+      return baseProducts.filter((product) => String(product.supplierId || '') === String(supplierId));
     }
     if (selectedProduct) return [selectedProduct];
     return [];
-  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct]);
+  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct, form.locationId, locationStocks]);
 
   const sheetRows: StockCountSheetRow[] = useMemo(() => {
+    const resolveExpected = (pId: string | number, fallback: number) => {
+      const locQty = getProductLocationStock(pId);
+      return locQty !== null ? locQty : fallback;
+    };
+
     if (countType === 'full' || countType === 'category' || countType === 'supplier') {
       return scopeProducts.map((product) => ({
         code: product.styleCode || product.id,
         barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
         name: product.name,
         category: getCategoryName(product.categoryId),
-        expectedQty: product.stock ?? 0,
+        expectedQty: resolveExpected(product.id, product.stock ?? 0),
         countedQty: '',
         note: '',
       }));
@@ -356,16 +380,17 @@ export function StockCountComposerCard({
       barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
       name: product.name,
       category: getCategoryName(product.categoryId),
-      expectedQty: product.stock ?? 0,
+      expectedQty: resolveExpected(product.id, product.stock ?? 0),
       countedQty: '',
       note: '',
     }));
-  }, [countType, items, products, scopeProducts, categories]);
+  }, [countType, items, products, scopeProducts, categories, form.locationId, locationStocks]);
 
   function handlePopulateScopeItems() {
     if (!scopeProducts.length) return;
     onItemsChange(() => scopeProducts.map((p) => {
-      const expectedQty = Number(p.stock || 0);
+      const locQty = getProductLocationStock(p.id);
+      const expectedQty = locQty !== null ? locQty : Number(p.stock || 0);
       return {
         id: `${p.id}-${Date.now()}`,
         productId: p.id,
@@ -381,7 +406,7 @@ export function StockCountComposerCard({
 
   function handlePrintSheet() {
     printStockCountSheet(sheetRows, {
-      title: `شيت عد - ${selectedCountType.label}`,
+      title: `شيت عد - ${selectedLocation ? selectedLocation.name : selectedCountType.label}`,
       locationName: selectedLocation?.name,
       includeExpectedQty: showExpectedInElectronicCount,
     });
@@ -390,6 +415,7 @@ export function StockCountComposerCard({
   function handleExportExcel() {
     exportStockCountSheetExcel(sheetRows, {
       includeExpectedQty: showExpectedInElectronicCount,
+      locationName: selectedLocation?.name,
     });
   }
 

@@ -44,14 +44,26 @@ export function InventoryReportSection({
   ];
   const locationHighlights = summary?.locationHighlights || [];
 
+  const sectionTitle = isDeadStock
+    ? 'تحليل المخزون الراكد ورأس المال المجمد'
+    : inventoryFilter === 'all'
+      ? 'أرصدة وتقييم المخزون'
+      : inventoryFilter === 'low'
+        ? 'أصناف قاربت على النفاد'
+        : inventoryFilter === 'out'
+          ? 'أصناف نافدة المخزون'
+          : 'أصناف تحتاج متابعة';
+
+  const sectionDescription = isDeadStock
+    ? `رصد الأصناف المتوفرة بالمخازن والتي لم تسجل أي حركة بيع خلال آخر ${deadStockDays} يوم، مع حساب رأس المال المعطل فيها.`
+    : inventoryFilter === 'all'
+      ? 'استعراض ومراجعة أرصدة الأصناف وقيمتها المالية في المخازن مع البحث والفلترة والطباعة والتصدير.'
+      : 'مراجعة الأصناف الحرجة مع إبراز النواقص وقيمة المخزون الحالية.';
+
   return (
     <QueryCard
-      title={isDeadStock ? 'تحليل المخزون الراكد ورأس المال المجمد' : 'أصناف تحتاج متابعة'}
-      description={
-        isDeadStock
-          ? `رصد الأصناف المتوفرة بالمخازن والتي لم تسجل أي حركة بيع خلال آخر ${deadStockDays} يوم، مع حساب رأس المال المعطل فيها.`
-          : 'تبويب مستقل لمراجعة المخزون الحرج مع بحث وفلاتر وترقيم صفحات من الخادم، مع إبراز قيمة المخزون الحالية.'
-      }
+      title={sectionTitle}
+      description={sectionDescription}
       actions={
         <div className="actions compact-actions" style={{ flexWrap: 'nowrap', gap: '6px' }}>
           <Button

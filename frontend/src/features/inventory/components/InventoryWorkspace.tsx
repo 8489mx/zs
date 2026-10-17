@@ -175,6 +175,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
               products={inventory.products}
               branches={inventory.branches}
               locations={inventory.locations}
+              locationStocks={Array.isArray(inventory.actionCatalog.locationStocksQuery.data) ? inventory.actionCatalog.locationStocksQuery.data : []}
               form={inventory.countForm}
               items={inventory.countItems}
               canReviewStock={inventory.canAdjustInventory}

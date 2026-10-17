@@ -1,3 +1,4 @@
+import { toast } from '@/shared/components/system-alert';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { reportsApi, type ReportInventoryRow } from '@/features/reports/api/reports.api';
@@ -15,6 +16,8 @@ export function useReportsWorkspaceActions({
   deadStockDays,
   balancesSearch,
   balancesFilter,
+  locationId,
+  locations,
 }: {
   report: ReportSummary | null;
   submittedRange: { from: string; to: string };
@@ -26,14 +29,38 @@ export function useReportsWorkspaceActions({
   deadStockDays?: number;
   balancesSearch: string;
   balancesFilter: 'all' | 'high-balance' | 'over-limit';
+  locationId?: string;
+  locations?: Array<{ id: number | string; name: string }>;
 }) {
   const shortDateRange = `${new Date(submittedRange.from).toLocaleDateString('en-GB').replace(/\//g, '-')} إلى ${new Date(submittedRange.to).toLocaleDateString('en-GB').replace(/\//g, '-')}`;
   const todayDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
   const exportLowStock = async () => {
-    const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter, days: deadStockDays });
-    const title = inventoryFilter === 'dead' ? `المخزون الراكد ${todayDate}.xlsx` : `الأصناف النواقص ${todayDate}.xlsx`;
-    downloadExcelFile(title, ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
+    const effectiveLocationId = locationId && locationId !== 'all' ? locationId : undefined;
+    const selectedLocation = locations?.find((l) => String(l.id) === String(effectiveLocationId));
+    const locationSuffix = selectedLocation ? ` - ${selectedLocation.name}` : '';
+    const rows = await reportsApi.listAllInventory({
+      search: inventorySearch,
+      filter: inventoryFilter,
+      days: deadStockDays,
+      locationId: effectiveLocationId,
+    });
+    const title = inventoryFilter === 'dead'
+      ? `المخزون الراكد${locationSuffix} ${todayDate}.xlsx`
+      : `أرصدة ونواقص المخزون${locationSuffix} ${todayDate}.xlsx`;
+    downloadExcelFile(
+      title,
+      ['الصنف', 'الرصيد في المخزن', 'الحد الأدنى', 'القسم', 'المورد', 'المخزن', 'الحالة'],
+      rows.map((item) => [
+        item.name,
+        item.stock,
+        item.minStock,
+        item.category || '',
+        item.supplier || '',
+        selectedLocation ? selectedLocation.name : (item.topLocationName || ''),
+        item.status === 'ok' ? 'سليم' : item.status === 'low' ? 'منخفض' : item.status === 'out' ? 'نافد' : item.status,
+      ])
+    );
   };
 
   const exportCustomerBalances = async () => {
@@ -85,7 +112,14 @@ export function useReportsWorkspaceActions({
   };
 
   const printInventoryValueReport = async (format: 'A4' | 'receipt' = 'A4') => {
-    const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
+    const effectiveLocationId = locationId && locationId !== 'all' ? locationId : undefined;
+    const selectedLocation = locations?.find((l) => String(l.id) === String(effectiveLocationId));
+    const locationLabel = selectedLocation ? selectedLocation.name : 'كل المخازن';
+    const rows = await reportsApi.listAllInventory({
+      search: inventorySearch,
+      filter: inventoryFilter,
+      locationId: effectiveLocationId,
+    });
     if (!rows.length) return;
     
     const isReceipt = format === 'receipt';
@@ -93,27 +127,28 @@ export function useReportsWorkspaceActions({
     const totalCost = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.costPrice || 0)), 0);
     const totalRetail = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.retailPrice || 0)), 0);
 
-    printHtmlDocument(`تقرير جرد وقيمة المخزون ${todayDate}`, `
+    printHtmlDocument(`تقرير جرد وقيمة المخزون - ${locationLabel} ${todayDate}`, `
       <div class="meta-grid">
+        <div class="meta-box"><strong>المخزن</strong><span>${escapeHtml(locationLabel)}</span></div>
         <div class="meta-box"><strong>إجمالي الأصناف</strong><span>${rows.length}</span></div>
         <div class="meta-box"><strong>إجمالي الكميات</strong><span>${integerFormatter(totalQty)}</span></div>
         <div class="meta-box"><strong>قيمة التكلفة</strong><span>${formatCurrency(totalCost)}</span></div>
         <div class="meta-box"><strong>القيمة التقديرية</strong><span>${formatCurrency(totalRetail)}</span></div>
       </div>
       <table>
-        <thead><tr><th>الصنف</th><th style="text-align: center;">الكمية</th><th style="text-align: left;">التكلفة</th>${!isReceipt ? '<th>القسم</th><th>المورد</th><th>أكبر موقع</th>' : ''}</tr></thead>
+        <thead><tr><th>الصنف</th><th style="text-align: center;">الكمية</th><th style="text-align: left;">التكلفة</th>${!isReceipt ? '<th>القسم</th><th>المورد</th><th>المخزن</th>' : ''}</tr></thead>
         <tbody>${rows.map((item: ReportInventoryRow) => `<tr>
           <td>${escapeHtml(item.name)}</td>
           <td style="text-align: center;">${escapeHtml(String(item.stock))}</td>
           <td style="text-align: left;"><strong>${formatCurrency((item.costPrice || 0) * (item.stock || 0))}</strong></td>
-          ${!isReceipt ? `<td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td><td>${escapeHtml(item.topLocationName || '—')}</td>` : ''}
+          ${!isReceipt ? `<td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td><td>${escapeHtml(selectedLocation ? selectedLocation.name : (item.topLocationName || '—'))}</td>` : ''}
         </tr>`).join('')}</tbody>
       </table>
       <div class="totals">
         <div><span>إجمالي قيمة التكلفة:</span><strong>${formatCurrency(totalCost)}</strong></div>
         <div><span>إجمالي قيمة البيع التقديرية:</span><strong>${formatCurrency(totalRetail)}</strong></div>
       </div>
-    `, { subtitle: 'تقرير تفصيلي لكميات وقيمة البضاعة في المخازن', pageSize: isReceipt ? 'receipt' : 'A4' });
+    `, { subtitle: `تقرير تفصيلي لكميات وقيمة البضاعة (${locationLabel})`, pageSize: isReceipt ? 'receipt' : 'A4' });
   };
 
   const printInventoryMovementsReport = async (locationId: string, detailed: boolean = false, format: 'A4' | 'receipt' = 'A4') => {
@@ -130,7 +165,7 @@ export function useReportsWorkspaceActions({
     });
 
     if (!transfers.length) {
-      alert('لا توجد حركات في هذه الفترة المحددة.');
+      toast.info('لا توجد حركات في هذه الفترة المحددة.');
       return;
     }
 
