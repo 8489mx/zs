@@ -3,10 +3,19 @@ import { reportsSections, type ReportsSectionKey } from '@/features/reports/page
 import { canAccessPath } from '@/app/router/access';
 import { useAuthStore } from '@/stores/auth-store';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ReportsSectionTabs({ currentSection }: { currentSection: ReportsSectionKey }) {
   const user = useAuthStore((state) => state.user);
-  const visibleSections = reportsSections.filter((section) => canAccessPath(user, `/reports/${section.key}`));
+  const { data: settings } = useSettingsQuery();
+  const isRestaurantActive = settings?.restaurantModuleEnabled === true || ['restaurant', 'cafe', 'food_beverage'].includes(settings?.businessIndustry || '');
+
+  const visibleSections = reportsSections.filter((section) => {
+    if (section.restaurantOnly && !isRestaurantActive) {
+      return false;
+    }
+    return canAccessPath(user, `/reports/${section.key}`);
+  });
 
   return (
     <div className="filter-chip-row toolbar-chip-row reports-section-tabs">
