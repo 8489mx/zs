@@ -141,6 +141,11 @@ export interface Location {
 }
 
 export interface AppSettings {
+  printPaymentQrOnReceipt?: boolean;
+  instapayAddress?: string;
+  walletNumber?: string;
+  walletProviderName?: string;
+  paymentLinkBaseUrl?: string;
   storeName: string;
   brandName?: string;
   phone?: string;

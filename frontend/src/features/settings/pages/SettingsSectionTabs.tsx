@@ -14,7 +14,7 @@ import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsSectionTabs({ currentSection, currentUserRole }: { currentSection: SettingsSectionKey; currentUserRole: string }) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isEn = i18n.language === 'en';
   const isPrivilegedUser = currentUserRole === 'super_admin' || currentUserRole === 'admin';
   const user = useAuthStore((state) => state.user);

@@ -29,7 +29,7 @@ import {
 
 type ReviewItem = {
   id: string;
-  priority: 'عاجل' | 'مراجعة' | 'متابعة';
+  priority: 'عاجل' | 'مراجعة' | 'متابعة' | 'Urgent' | 'Review' | 'Follow-up';
   type: string;
   description: string;
   to: string;

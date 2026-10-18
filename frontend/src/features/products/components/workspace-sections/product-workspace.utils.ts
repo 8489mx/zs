@@ -9,6 +9,7 @@ import type { ProductFormOutput } from '@/features/products/schemas/product.sche
 export function toProductFormValues(product: Product): ProductFormOutput {
   return {
     name: product.name || '',
+    nameEn: (product as any).nameEn || '',
     barcode: product.barcode || '',
     itemType: product.itemType || 'product',
     itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',

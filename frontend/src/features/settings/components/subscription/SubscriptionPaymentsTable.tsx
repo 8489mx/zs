@@ -37,11 +37,11 @@ export function SubscriptionPaymentsTable({
             {payments.map((p) => (
               <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700 }}>#{p.id}</td>
-                <td style={{ padding: '10px 14px', fontWeight: 600 }}>{isEn ? translateUiText(p.planName) : p.planName}</td>
+                <td style={{ padding: '10px 14px', fontWeight: 600 }}>{isEn ? (p.planName ? translateUiText(p.planName) || p.planName : '') : p.planName}</td>
                 <td style={{ padding: '10px 14px', fontWeight: 800, color: '#059669' }}>
                   {Number(p.amount).toLocaleString(isEn ? 'en-US' : 'ar-EG')} {p.currency}
                 </td>
-                <td style={{ padding: '10px 14px' }}>{isEn ? translateUiText(p.method) : p.method}</td>
+                <td style={{ padding: '10px 14px' }}>{isEn ? (p.method ? translateUiText(p.method) || p.method : '') : p.method}</td>
                 <td style={{ padding: '10px 14px', color: '#64748b' }}>
                   {p.paidAt ? new Date(p.paidAt).toLocaleDateString(isEn ? 'en-US' : 'ar-EG') : '-'}
                 </td>

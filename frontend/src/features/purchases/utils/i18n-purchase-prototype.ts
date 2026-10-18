@@ -258,12 +258,12 @@ export function useTranslation() {
   return {
     t: (key: string | DictKey, fallback?: string) => {
       if (typeof key === 'string' && key.includes('.')) {
-        return i18nTranslate(key, typeof fallback === 'string' ? fallback : undefined);
+        return (i18nTranslate as any)(key, typeof fallback === 'string' ? fallback : undefined);
       }
       if (dict[key as DictKey]) {
         return dict[key as DictKey][language as 'ar' | 'en'] || (typeof fallback === 'string' ? fallback : key);
       }
-      return i18nTranslate(key, typeof fallback === 'string' ? fallback : key);
+      return (i18nTranslate as any)(key, typeof fallback === 'string' ? fallback : key);
     },
     language,
     setLanguage: (lang: 'ar' | 'en') => {

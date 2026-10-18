@@ -12,7 +12,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export const SubscriptionsListPage: FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
     const [subscriptions, setSubscriptions] = useState<CommercialSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

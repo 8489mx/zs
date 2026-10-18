@@ -170,7 +170,7 @@ export function getAuditActionLabel(action: string, isEn = false): string {
   const mapped = ACTION_PATTERNS.find((entry) => entry.pattern.test(raw));
   if (isEn) {
     if (mapped?.labelEn) return mapped.labelEn;
-    return translateUiText(mapped?.label || raw);
+    return translateUiText(mapped?.label || raw) || mapped?.label || raw;
   }
   return mapped?.label || raw;
 }
@@ -283,7 +283,7 @@ export function normalizeAuditDetailText(detailText: string, isEn = false): stri
       return `Payroll run #${id} ${action} by ${actor}`;
     }
 
-    return translateUiText(raw);
+    return translateUiText(raw) || raw;
   }
 
   // 1. Maintenance ticket status change
