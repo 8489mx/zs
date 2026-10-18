@@ -159,7 +159,7 @@ export function QuotationsPage() {
   };
 
   return (
-    <div className="page-stack page-shell quotations-workspace" dir="rtl">
+    <div className="page-stack page-shell quotations-workspace">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="عروض الأسعار (Quotations)"

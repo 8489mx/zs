@@ -24,7 +24,7 @@ export function QuotationsTable({
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
-          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
+          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'start' }}>
             <th style={{ padding: '12px 16px', fontWeight: 800 }}>رقم العرض</th>
             <th style={{ padding: '12px 16px', fontWeight: 800 }}>العميل</th>
             <th style={{ padding: '12px 16px', fontWeight: 800 }}>الهاتف</th>

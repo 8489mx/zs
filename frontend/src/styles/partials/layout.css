@@ -589,14 +589,23 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
 }
 .brand {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
   padding: 24px 20px 16px;
   background: transparent;
 }
-.brand-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; }
+.brand-copy { 
+  flex: 1; 
+  min-width: 0; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  justify-content: center; 
+  gap: 3px; 
+  text-align: start; 
+}
 .brand-logo { width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; }
 .brand-logo .z-mark { font-size: 22px; }
 .brand-logo .systems-mark { font-size: 8px; margin-top: 2px; }
@@ -605,7 +614,7 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   font-size: 15px;
   font-weight: 800;
   line-height: 1.2;
-  text-align: center;
+  text-align: start;
   white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -615,7 +624,8 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   line-clamp: 2;
   word-break: break-word;
 }
-.brand-sub { width: 100%; font-size: 10px; color: var(--muted); line-height: 1.25; text-align: center; }
+.brand-sub { width: 100%; font-size: 10px; color: var(--muted); line-height: 1.25; text-align: start; }
+.brand-sub-interactive { align-items: flex-start !important; }
 
 /* Sidebar Search Component */
 .sidebar-search-wrapper {
@@ -1637,7 +1647,7 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   color: #475569;
   background: transparent;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
 }
 [dir="ltr"] .sidebar-link .sidebar-label,
 [dir="ltr"] .sidebar-link-sub .sidebar-label,
@@ -1736,10 +1746,10 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
 .sidebar-footer-info { text-align: center; width: 100%; }
 
 
-/* Ensure main sidebar headers are solid black */
+/* Ensure main sidebar headers are clean enterprise slate */
 .sidebar-group-trigger, .sidebar-link:not(.sidebar-link-sub) {
-  color: #000 !important;
-  font-weight: 700 !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
 }
 
 

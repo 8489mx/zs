@@ -119,6 +119,35 @@ const ADJECTIVES: Record<string, string> = {
   'الآجلة': 'Credit',
 };
 
+const COMPOUND_PREFIXES = [
+  { ar: 'كود', enSuffix: 'Code' },
+  { ar: 'رمز', enSuffix: 'Code' },
+  { ar: 'اسم', enSuffix: 'Name' },
+  { ar: 'مسمى', enSuffix: 'Title' },
+  { ar: 'رقم', enSuffix: 'Number' },
+  { ar: 'تاريخ', enSuffix: 'Date' },
+  { ar: 'سعر', enSuffix: 'Price' },
+  { ar: 'تكلفة', enSuffix: 'Cost' },
+  { ar: 'قيمة', enSuffix: 'Value' },
+  { ar: 'رصيد', enSuffix: 'Balance' },
+  { ar: 'إجمالي', enPrefix: 'Total' },
+  { ar: 'اجمالي', enPrefix: 'Total' },
+  { ar: 'صافي', enPrefix: 'Net' },
+  { ar: 'من', enPrefix: 'From' },
+  { ar: 'إلى', enPrefix: 'To' },
+  { ar: 'الى', enPrefix: 'To' },
+  { ar: 'نوع', enSuffix: 'Type' },
+  { ar: 'حالة', enSuffix: 'Status' },
+  { ar: 'سبب', enSuffix: 'Reason' },
+  { ar: 'بيانات', enSuffix: 'Data' },
+  { ar: 'تفاصيل', enSuffix: 'Details' },
+  { ar: 'سجل', enSuffix: 'Log' },
+  { ar: 'تقرير', enSuffix: 'Report' },
+  { ar: 'قائمة', enSuffix: 'List' },
+  { ar: 'مركز', enSuffix: 'Center' },
+  { ar: 'دليل', enSuffix: 'Directory' },
+];
+
 function shouldSkipElement(el: Element): boolean {
   if (IGNORED_TAGS.has(el.tagName)) return true;
   if (el.hasAttribute('data-no-translate') || el.getAttribute('translate') === 'no') return true;
@@ -143,7 +172,7 @@ export function translateUiText(rawText: string): string | null {
   if (raw.length < 1) return null;
 
   // 1. Separate leading/trailing symbols, brackets, arrows, and punctuation
-  const symMatch = raw.match(/^([\s*+\-•–—([{"'«#%/&;rarr;lt;gt;]*)(.*?)([\s*+\-•–—:)\]}"'».:…]*)$/);
+  const symMatch = raw.match(/^([\s*+\-•–—([{"'«#%/&;rarr;lt;gt;]*)(.*?)([\s*+\-•–—:)\]}"'».:…!?؟/\\]*)$/);
   const prefix = symMatch ? symMatch[1] : '';
   const core = symMatch ? symMatch[2].trim() : raw;
   const suffix = symMatch ? symMatch[3] : '';
@@ -166,6 +195,16 @@ export function translateUiText(rawText: string): string | null {
       return prefix + num + ' ' + transNoun + suffix;
     }
   }
+
+  // 3b. Currency amounts: "500 ج.م" -> "500 EGP", "1,200 ريال" -> "1,200 SAR"
+  const currMatch = core.match(/^([\d.,]+)\s*(?:ج\.م|جنيه|جم)$/i);
+  if (currMatch) return prefix + currMatch[1] + ' EGP' + suffix;
+  const sarMatch = core.match(/^([\d.,]+)\s*(?:ر\.س|ريال)$/i);
+  if (sarMatch) return prefix + sarMatch[1] + ' SAR' + suffix;
+  const aedMatch = core.match(/^([\d.,]+)\s*(?:د\.إ|درهم)$/i);
+  if (aedMatch) return prefix + aedMatch[1] + ' AED' + suffix;
+  const usdMatch = core.match(/^([\d.,]+)\s*(?:\$|دولار)$/i);
+  if (usdMatch) return prefix + usdMatch[1] + ' USD' + suffix;
 
   // 4. Coloned labels (e.g. "اسم العميل: " -> "Customer Name: ")
   const colonMatch = core.match(/^([^:]+)[:：]\s*(.*)$/);
@@ -237,7 +276,22 @@ export function translateUiText(rawText: string): string | null {
     }
   }
 
-  // 8. Empty state patterns: "لا توجد أصناف مسجلة" -> "No registered Products found"
+  // 8. Compound prefixes: "كود الموظف" -> "Employee Code", "إجمالي المبيعات" -> "Total Sales"
+  for (const cp of COMPOUND_PREFIXES) {
+    if (core.startsWith(cp.ar + ' ')) {
+      const rest = core.slice(cp.ar.length + 1).trim();
+      const transRest = dictMap.get(rest) || translateUiText(rest);
+      if (transRest) {
+        if (cp.enSuffix) {
+          return prefix + transRest + ' ' + cp.enSuffix + suffix;
+        } else if (cp.enPrefix) {
+          return prefix + cp.enPrefix + ' ' + transRest + suffix;
+        }
+      }
+    }
+  }
+
+  // 9. Empty state patterns: "لا توجد أصناف مسجلة" -> "No registered Products found"
   const emptyMatch = core.match(/^لا (?:توجد|يوجد)\s+(.+?)\s+مسجل[ة|ين]*$/);
   if (emptyMatch) {
     const entity = emptyMatch[1].trim();
@@ -245,12 +299,38 @@ export function translateUiText(rawText: string): string | null {
     return prefix + 'No registered ' + transEntity + ' found' + suffix;
   }
 
-  // 9. Loading pattern: "جاري تحميل الأصناف..." -> "Loading Products..."
-  const loadMatch = core.match(/^جاري تحميل\s+(.+)$/);
-  if (loadMatch) {
-    const entity = loadMatch[1].trim();
-    const transEntity = dictMap.get(entity) || entity;
-    return prefix + 'Loading ' + transEntity + suffix;
+  // 10. Progress/loading: "جارٍ الحفظ...", "جاري التحديث...", "جاري الإرسال...", "جاري تحميل..."
+  const progMatch = core.match(/^(?:جاري|جارٍ)\s*(.*)$/);
+  if (progMatch) {
+    const act = progMatch[1].trim();
+    if (!act) return prefix + 'Loading...' + suffix;
+    const progMap: Record<string, string> = {
+      'الحفظ': 'Saving...',
+      'حفظ': 'Saving...',
+      'التحديث': 'Updating...',
+      'تحديث': 'Updating...',
+      'الإرسال': 'Sending...',
+      'إرسال': 'Sending...',
+      'التسجيل': 'Registering...',
+      'تسجيل': 'Registering...',
+      'المعالجة': 'Processing...',
+      'معالجة': 'Processing...',
+      'التحميل': 'Loading...',
+      'تحميل': 'Loading...',
+      'التسوية': 'Reconciling...',
+      'تسوية': 'Reconciling...',
+      'الإنشاء': 'Creating...',
+      'إنشاء': 'Creating...',
+      'الحذف': 'Deleting...',
+      'حذف': 'Deleting...',
+    };
+    if (progMap[act]) return prefix + progMap[act] + suffix;
+    const loadEntityMatch = act.match(/^(?:تحميل|عرض)\s+(.+)$/);
+    if (loadEntityMatch) {
+      const entity = loadEntityMatch[1].trim();
+      const transEntity = dictMap.get(entity) || entity;
+      return prefix + 'Loading ' + transEntity + suffix;
+    }
   }
 
   // 10. Example pattern: "مثال: 500 جنيه" -> "Example: 500 EGP"

@@ -1875,19 +1875,6 @@ export function AppShell({ children }: PropsWithChildren) {
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">
-              <div className="brand-copy">
-                <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
-                <div 
-                  className="brand-sub-interactive" 
-                  onClick={() => setIsAboutModalOpen(true)}
-                  title="About Z System's & Tech Support"
-                >
-                  <span className="brand-powered-label">Powered by</span>
-                  <span className="brand-powered-name">
-                    Z System's
-                  </span>
-                </div>
-              </div>
               <div 
                 className="brand-logo" 
                 onClick={() => navigate('/')} 
@@ -1905,6 +1892,19 @@ export function AppShell({ children }: PropsWithChildren) {
                     }
                   }}
                 />
+              </div>
+              <div className="brand-copy">
+                <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
+                <div 
+                  className="brand-sub-interactive" 
+                  onClick={() => setIsAboutModalOpen(true)}
+                  title="About Z System's & Tech Support"
+                >
+                  <span className="brand-powered-label">Powered by</span>
+                  <span className="brand-powered-name">
+                    Z System's
+                  </span>
+                </div>
               </div>
             </div>
 
