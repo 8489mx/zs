@@ -13,9 +13,6 @@ function formatUnitName(units?: { name: string; isBaseUnit: boolean }[], isEn = 
     const enMap: Record<string, string> = { 'كيلوجرام': 'kg', 'جرام': 'g', 'قطعة': 'pcs', 'لتر': 'L', 'ملي': 'ml', 'متر': 'm' };
     return enMap[baseUnit.name] || baseUnit.name;
   }
-  if (!units?.length) return '';
-  const baseUnit = units.find(u => u.isBaseUnit) || units[0];
-  if (!baseUnit?.name) return '';
   
   const map: Record<string, string> = {
     'كيلوجرام': 'كجم',
@@ -85,8 +82,12 @@ function buildGroupedRows(rows: Product[]): ProductGroup[] {
   return orderedKeys.map((key) => grouped.get(key)!).filter(Boolean);
 }
 
-function renderStatusBadge(status: 'healthy' | 'low' | 'out') {
-  return <span className={`status-badge ${status === 'out' ? 'status-draft' : status === 'low' ? 'status-warning' : 'status-posted'}`}>{status === 'out' ? 'نافد' : status === 'low' ? 'منخفض' : 'سليم'}</span>;
+function renderStatusBadge(status: 'healthy' | 'low' | 'out', isEn = false) {
+  const label = isEn
+    ? (status === 'out' ? 'Out of Stock' : status === 'low' ? 'Low Stock' : 'In Stock')
+    : (status === 'out' ? 'نافد' : status === 'low' ? 'منخفض' : 'سليم');
+  const badgeClass = status === 'out' ? 'status-draft' : status === 'low' ? 'status-warning' : 'status-posted';
+  return <span className={'status-badge ' + badgeClass}>{label}</span>;
 }
 
 export function InventoryTable({ rows, includeSensitivePricing = true, selectedProductId = '', onProductSelect }: InventoryTableProps) {

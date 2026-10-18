@@ -301,7 +301,7 @@ export function AuditPage() {
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
               {isEn ? 'Activity & Operations Log' : t('audit.audit_page.s9', "سجل العمليات والأنشطة")}
             </h3>
-            <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
+            <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={(val) => setFilterMode(val as 'all' | 'today' | 'withDetails')} />
           </div>
 
           <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={isEn ? 'Search by activity, details, or actor name...' : t('audit.audit_page.s10', "ابحث بالإجراء أو تفاصيل العملية أو اسم المنفذ...")}>

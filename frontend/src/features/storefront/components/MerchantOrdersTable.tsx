@@ -72,8 +72,7 @@ function OrderShippingDropdown({
   onShipGcc: (order: OnlineOrderRecord) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const isEn = i18n.language === 'en';
-  const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);

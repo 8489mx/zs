@@ -63,9 +63,7 @@ export function ActionConfirmDialog({
   const { t } = useTranslation();
   const isEn = i18n.language === 'en';
 
-  const displayTitle = isEn ? (translateUiText(title) || title) : title;
-  const displayDescription = typeof description === 'string' && isEn ? (translateUiText(description) || description) : description;
-  const resolvedConfirmLabel = isEn ? (confirmLabel ? (translateUiText(confirmLabel) || confirmLabel) : 'Confirm') : (confirmLabel || t('common.confirm', 'تأكيد'));
+      const resolvedConfirmLabel = isEn ? (confirmLabel ? (translateUiText(confirmLabel) || confirmLabel) : 'Confirm') : (confirmLabel || t('common.confirm', 'تأكيد'));
   const resolvedCancelLabel = isEn ? (cancelLabel ? (translateUiText(cancelLabel) || cancelLabel) : 'Cancel') : (cancelLabel || t('common.cancel', 'إلغاء'));
   const [confirmationValue, setConfirmationValue] = useState('');
   const [managerPin, setManagerPin] = useState('');

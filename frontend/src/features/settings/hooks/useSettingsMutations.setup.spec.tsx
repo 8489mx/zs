@@ -173,6 +173,7 @@ const baseSettingsMutationValues = {
   importAutoLinkBankExpenses: 'auto_link' as const,
   servicesBillingMethod: 'deliverable' as const,
   servicesContractRenewalNoticeDays: 30,
+        receiptItemLanguageMode: "ar" as const,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

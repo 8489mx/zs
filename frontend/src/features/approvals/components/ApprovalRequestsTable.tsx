@@ -15,8 +15,7 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
   loading,
   onSelectRequest,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isEn = i18n.language === 'en';
+  const { t } = useTranslation();
   const moduleLabels: Record<string, string> = {
     purchase_orders: 'أمر شراء',
     purchases: 'فاتورة مشتريات',

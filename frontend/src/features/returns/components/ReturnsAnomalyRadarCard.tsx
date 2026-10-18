@@ -1,3 +1,4 @@
+import type { SuspectFlag } from '@/features/returns/lib/returns-anomaly-detector';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';

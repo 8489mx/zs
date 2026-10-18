@@ -228,7 +228,7 @@ export function DataTable<T>({
               </tr>
             ) : !visibleRows.length ? (
               <tr>
-                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{empty ? (typeof empty === 'string' && isEn ? (translateUiText(empty) || empty) : empty) : (isEn ? (translateUiText(emptyMessage) || 'No data available.') : emptyMessage)}</td>
+                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{empty ? (typeof empty === 'string' && isEn ? (translateUiText(empty) || empty) : empty) : (isEn ? (translateUiText(String(emptyMessage || "")) || 'No data available.') : emptyMessage)}</td>
               </tr>
             ) : visibleRows.map((row, visibleRowIndex) => {
               const absoluteRowIndex = pagination ? (rangeStart - 1) + visibleRowIndex : visibleRowIndex;

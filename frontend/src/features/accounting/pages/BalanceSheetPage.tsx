@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';

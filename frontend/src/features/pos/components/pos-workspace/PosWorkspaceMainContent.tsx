@@ -74,7 +74,7 @@ export function PosWorkspaceMainContent({
 }: PosWorkspaceMainContentProps) {
   const { t: __t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
   const isRtl = !isEn;
 

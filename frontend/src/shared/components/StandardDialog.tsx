@@ -81,8 +81,7 @@ export function StandardDialog({
   const isVisible = open !== undefined ? open : Boolean(isOpen);
   const displayTitle = typeof title === 'string' && isLtr ? (translateUiText(title) || title) : title;
   const displaySubtitle = typeof subtitle === 'string' && isLtr ? (translateUiText(subtitle) || subtitle) : subtitle;
-  const displayLoadingText = typeof loadingText === 'string' && isLtr ? (translateUiText(loadingText) || loadingText) : loadingText;
-  if (!isVisible) return null;
+    if (!isVisible) return null;
 
   const sizeMap: Record<string, string> = {
     sm: 'min(500px, 90vw)',

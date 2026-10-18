@@ -156,8 +156,7 @@ function ShiftDetailsGrid({
   toggleSubGroup: (shiftId: string, groupKey: string) => void;
   isMobileModal?: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const isEn = i18n.language === 'en';
+  const { t } = useTranslation();
   const movementItems = row.movementItems || [];
   const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
   const deliveryItems = movementItems.filter((i) => i.kind === 'delivery');

@@ -13,8 +13,7 @@ import {
 
 export const SubscriptionsListPage: FC = () => {
   const { t, i18n } = useTranslation();
-  const isEn = i18n.language === 'en';
-  const [subscriptions, setSubscriptions] = useState<CommercialSubscription[]>([]);
+    const [subscriptions, setSubscriptions] = useState<CommercialSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'expired'>('all');
