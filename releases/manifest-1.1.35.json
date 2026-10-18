@@ -1,0 +1,11 @@
+{
+  "version": "1.1.35",
+  "generatedAt": "2026-10-18T05:59:55.808Z",
+  "passcode": "ZS-UPD-1135-2736-5311",
+  "requiresPasscode": true,
+  "changelog": "• ترقية شاملة لواجهة التحديثات بالتصميم الملكي.\n• إعادة بناء شاشة الإقلاع والفتح (Splash Screen) بهوية Z-ERP Enterprise ومراحل التحميل التفاعلية.\n• إضافة نظام كود التفعيل المنبثق وأرشيف الإصدارات السابقة القابل للطي.\n• تحسينات عامة على استقرار النظام ومزامنة قواعد البيانات.",
+  "patchUrl": "https://github.com/8489mx/zs/releases/download/v1.1.35/Z-ERP-Patch-v1.1.35.zip",
+  "sha256": "2bc5906b53f571845933f28b41bbdc8576fd4c1d861238c5e885db36d6263d27",
+  "sizeBytes": 9077695,
+  "filesCount": 3046
+}
