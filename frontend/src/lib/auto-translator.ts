@@ -735,6 +735,13 @@ function handleMutations(mutations: MutationRecord[]): void {
 export function activateAutoTranslator(): void {
   if (typeof document === 'undefined') return;
 
+  if (document.documentElement.dir !== 'ltr') {
+    document.documentElement.dir = 'ltr';
+  }
+  if (document.documentElement.lang !== 'en') {
+    document.documentElement.lang = 'en';
+  }
+
   // Initial full scan
   isTranslating = true;
   walkAndTranslate(document.body);
@@ -755,6 +762,13 @@ export function activateAutoTranslator(): void {
 
 export function deactivateAutoTranslator(): void {
   if (typeof document === 'undefined') return;
+
+  if (document.documentElement.dir !== 'rtl') {
+    document.documentElement.dir = 'rtl';
+  }
+  if (document.documentElement.lang !== 'ar') {
+    document.documentElement.lang = 'ar';
+  }
 
   if (observer) {
     observer.disconnect();

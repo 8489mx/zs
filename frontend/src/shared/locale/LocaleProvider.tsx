@@ -11,6 +11,8 @@ import {
   type UiLanguage,
 } from '@/shared/locale/locale-preference';
 
+import i18n from '@/lib/i18n';
+
 type LocaleContextValue = {
   language: UiLanguage;
   direction: 'rtl' | 'ltr';
@@ -21,7 +23,10 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user);
-  const [language, setLanguageState] = useState<UiLanguage>(() => getStoredUiLanguage());
+  const activeI18nLang = (i18n.language && i18n.language.startsWith('en')) ? 'en' : 'ar';
+  const [language, setLanguageState] = useState<UiLanguage>(() => {
+    return activeI18nLang as UiLanguage || getStoredUiLanguage();
+  });
 
   const isExcludedRoute = typeof window !== 'undefined' && (
     window.location.pathname.startsWith('/van-sales') ||
@@ -39,10 +44,32 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     retry: false,
   });
 
+  // Keep LocaleProvider in sync whenever i18n language changes
   useEffect(() => {
+    const handleLanguageChanged = (lng: string) => {
+      const normalized = normalizeUiLanguage(lng);
+      setLanguageState(normalized);
+    };
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, []);
+
+  // Only take backend uiLanguage if the user has NOT explicitly stored a preference
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasExplicitLocalPref = Boolean(
+      window.localStorage.getItem('zsystems_lang') ||
+      window.localStorage.getItem('zs.uiLanguage')
+    );
+    if (hasExplicitLocalPref) return;
+
     const settingsLanguage = settingsQuery.data?.uiLanguage;
     if (settingsLanguage === 'ar' || settingsLanguage === 'en') {
-      setLanguageState(normalizeUiLanguage(settingsLanguage));
+      const next = normalizeUiLanguage(settingsLanguage);
+      setLanguageState(next);
+      void i18n.changeLanguage(next);
     }
   }, [settingsQuery.data?.uiLanguage]);
 
@@ -54,7 +81,11 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const value = useMemo<LocaleContextValue>(() => ({
     language,
     direction: language === 'en' ? 'ltr' : 'rtl',
-    setLanguage: (next) => setLanguageState(normalizeUiLanguage(next)),
+    setLanguage: (next) => {
+      const normalized = normalizeUiLanguage(next);
+      setLanguageState(normalized);
+      void i18n.changeLanguage(normalized);
+    },
   }), [language]);
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

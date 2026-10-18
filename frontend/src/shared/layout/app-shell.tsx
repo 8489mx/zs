@@ -87,7 +87,20 @@ function formatWorkspaceName(name: string) {
 }
 
 export function AppShell({ children }: PropsWithChildren) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
+
+  useEffect(() => {
+    const targetDir = isEn ? 'ltr' : 'rtl';
+    const targetLang = isEn ? 'en' : 'ar';
+    if (document.documentElement.dir !== targetDir) {
+      document.documentElement.dir = targetDir;
+    }
+    if (document.documentElement.lang !== targetLang) {
+      document.documentElement.lang = targetLang;
+    }
+  }, [isEn]);
+
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1870,7 +1883,10 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
+    <div 
+      dir={isEn ? 'ltr' : 'rtl'}
+      className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}
+    >
       {(!isPosRoute || !isPosChromeHidden || isMobileScreen) ? (
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>

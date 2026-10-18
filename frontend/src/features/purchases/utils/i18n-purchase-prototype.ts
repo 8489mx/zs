@@ -243,11 +243,13 @@ import i18n from '@/lib/i18n';
 export type DictKey = keyof typeof dict;
 
 export function useTranslation() {
-  const authLang = useAuthStore((state) => state.language);
-  const language = authLang || (i18n.language ? (i18n.language.startsWith('en') ? 'en' : 'ar') : 'ar');
+  const language = (i18n.language && i18n.language.startsWith('en')) ? 'en' : 'ar';
   
   useEffect(() => {
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    const expectedDir = language === 'ar' ? 'rtl' : 'ltr';
+    if (document.documentElement.dir !== expectedDir) {
+      document.documentElement.dir = expectedDir;
+    }
   }, [language]);
   
   return {
@@ -258,7 +260,7 @@ export function useTranslation() {
     language,
     setLanguage: (lang: 'ar' | 'en') => {
       useAuthStore.getState().updateSessionMeta({ language: lang });
-      i18n.changeLanguage(lang);
+      void i18n.changeLanguage(lang);
     }
   };
 }
