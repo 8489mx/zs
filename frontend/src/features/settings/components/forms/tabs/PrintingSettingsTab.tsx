@@ -190,6 +190,24 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
           )}
 
           <div className="field">
+            <label>{t('settings.forms.tabs.printing_settings_tab.receipt_item_lang_mode', "نظام لغات أسماء الأصناف في الفواتير وشاشات الإدخال")}</label>
+            <CustomSelect
+              value={form.watch('receiptItemLanguageMode') || 'ar_only'}
+              onChange={(val) => form.setValue('receiptItemLanguageMode', val as any, { shouldDirty: true, shouldValidate: true })}
+              options={[
+                { value: 'ar_only', label: t('settings.forms.tabs.printing_settings_tab.lang_ar_only', "عربي فقط — للمحلات والأنشطة المحلية في مصر (واجهة بسيطة بدون حقول إنجليزية)") },
+                { value: 'ar_primary', label: t('settings.forms.tabs.printing_settings_tab.lang_ar_primary', "ثنائي اللغة: عربي أساسي (كبير) + إنجليزي تحته (أصغر) — قياسي للخليج") },
+                { value: 'en_primary', label: t('settings.forms.tabs.printing_settings_tab.lang_en_primary', "ثنائي اللغة: إنجليزي أساسي (كبير) + عربي تحته (أصغر) — للبراندات والكافيهات") },
+                { value: 'en_only', label: t('settings.forms.tabs.printing_settings_tab.lang_en_only', "إنجليزي فقط — للمناطق الحرة والشركات الدولية") },
+              ]}
+              disabled={disabled}
+            />
+            <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              {t('settings.forms.tabs.printing_settings_tab.lang_help', "عند اختيار «عربي فقط»، يتم تبسيط شاشة إضافة الصنف وإخفاء خانة الإنجليزي تلقائياً لتسريع الإدخال على التجار المحليين.")}
+            </small>
+          </div>
+
+          <div className="field">
             <label>{t('settings.forms.tabs.printing_settings_tab.s16', "نمط ترقيم الفواتير والمرتجعات")}</label>
             <CustomSelect
               value={form.watch('invoiceNumberingScheme') || 'daily'}
