@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { inventorySections, type InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
 
 export function InventorySectionTabs({ currentSection }: { currentSection: InventorySectionKey }) {
+  const { t } = useTranslation();
   return (
     <div className="inventory-section-tabs" style={{ marginBottom: '14px', gap: '10px' }}>
       {inventorySections.map((section) => {
@@ -31,13 +33,13 @@ export function InventorySectionTabs({ currentSection }: { currentSection: Inven
             }}
           >
             <span style={{ fontSize: '0.72rem', color: isActive ? '#2563eb' : '#64748b', fontWeight: 600, letterSpacing: '-0.2px' }}>
-              {section.shortLabel || section.label}
+              {t(section.shortLabel || section.label, section.shortLabel || section.label)}
             </span>
             <strong style={{ fontSize: '0.96rem', color: isActive ? '#1d4ed8' : '#0f172a', margin: '2px 0 1px 0', fontWeight: 700 }}>
-              {section.label}
+              {t(section.label, section.label)}
             </strong>
             <span style={{ fontSize: '0.71rem', color: isActive ? '#475569' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'block' }}>
-              {section.description}
+              {t(section.description, section.description)}
             </span>
           </NavLink>
         );

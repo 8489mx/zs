@@ -119,7 +119,7 @@ export function GlobalAppToolbar() {
       const translated = t(key);
       if (translated && translated !== key) return translated;
     }
-    return rawLabel;
+    return t(rawLabel.trim(), rawLabel);
   };
 
   return (

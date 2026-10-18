@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { demoDataApi } from '@/features/settings/api/demo-data.api';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -12,6 +13,7 @@ import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsSectionTabs({ currentSection, currentUserRole }: { currentSection: SettingsSectionKey; currentUserRole: string }) {
+  const { t } = useTranslation();
   const isPrivilegedUser = currentUserRole === 'super_admin' || currentUserRole === 'admin';
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
@@ -90,8 +92,8 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
             onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
             className={({ isActive }) => `btn ${isActive || isCurrentActive ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <span className="settings-tab-full-label">{labels.label}</span>
-            <span className="settings-tab-short-label">{labels.shortLabel}</span>
+            <span className="settings-tab-full-label">{t(labels.label, labels.label)}</span>
+            <span className="settings-tab-short-label">{t(labels.shortLabel, labels.shortLabel)}</span>
           </NavLink>
         );
       })}

@@ -8,6 +8,7 @@ import { AppNavIcon } from '@/shared/layout/nav-icons';
 import { PlusIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { SidebarContextMenu, type ContextMenuTarget } from '@/shared/layout/SidebarContextMenu';
 import { toast } from '@/shared/components/system-alert';
+import { useTranslation } from 'react-i18next';
 
 export function resolveRouteMetadata(pathname: string): { title: string; iconKey: string } {
   const cleanPath = normalizeAppPath(pathname);
@@ -82,6 +83,7 @@ export function openExternalWindow(routePath: string) {
 export function AppBrowserTabBar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t, i18n } = useTranslation();
 
   const { tabs, activeTabId, closeTab, closeOtherTabs, setActiveTabId, openTab } = useTabsStore();
 
@@ -197,7 +199,7 @@ export function AppBrowserTabBar() {
           overflow: 'hidden',
           height: '100%',
           userSelect: 'none',
-          direction: 'rtl',
+          direction: i18n.dir() === 'rtl' ? 'rtl' : 'ltr',
         }}
       >
         <div
@@ -225,7 +227,7 @@ export function AppBrowserTabBar() {
                 onClick={() => handleTabClick(tab)}
                 onAuxClick={(e) => handleTabAuxClick(e, tab.id)}
                 onContextMenu={(e) => handleTabContextMenu(e, tab)}
-                title={`${tab.title} (${tab.path})`}
+                title={`${t(tab.title, tab.title)} (${tab.path})`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -285,12 +287,12 @@ export function AppBrowserTabBar() {
                     fontWeight: 600,
                   }}
                 >
-                  {tab.title}
+                  {t(tab.title, tab.title)}
                 </span>
 
                 <button
                   type="button"
-                  aria-label={`إغلاق تبويب ${tab.title}`}
+                  aria-label={`${t('common.close', 'إغلاق')} ${t(tab.title, tab.title)}`}
                   onClick={(e) => handleCloseTab(e, tab.id)}
                   style={{
                     display: 'inline-flex',
@@ -328,8 +330,8 @@ export function AppBrowserTabBar() {
           <button
             type="button"
             onClick={handleNewTab}
-            title="فتح تبويب جديد"
-            aria-label="فتح تبويب جديد"
+            title={t('tabs.new_tab', 'فتح تبويب جديد')}
+            aria-label={t('tabs.new_tab', 'فتح تبويب جديد')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

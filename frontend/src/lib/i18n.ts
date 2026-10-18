@@ -3,14 +3,9 @@ import { initReactI18next } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth-store';
 import { getLanguageMeta, DEFAULT_LANGUAGE } from './languages';
 
+import { initAutoTranslator, translateUiText } from './auto-translator';
 import ar from '../locales/ar.json';
 import en from '../locales/en.json';
-import zh from '../locales/zh.json';
-import bn from '../locales/bn.json';
-import ur from '../locales/ur.json';
-import hi from '../locales/hi.json';
-import tl from '../locales/tl.json';
-import fr from '../locales/fr.json';
 
 const savedLang = typeof window !== 'undefined' ? localStorage.getItem('zsystems_lang') : DEFAULT_LANGUAGE;
 const activeMeta = getLanguageMeta(savedLang);
@@ -21,18 +16,22 @@ i18n
     resources: {
       ar: { translation: ar },
       en: { translation: en },
-      zh: { translation: zh },
-      bn: { translation: bn },
-      ur: { translation: ur },
-      hi: { translation: hi },
-      tl: { translation: tl },
-      fr: { translation: fr },
     },
     lng: activeMeta.code,
     fallbackLng: 'ar',
     interpolation: {
-      escapeValue: false // react already safes from xss
-    }
+      escapeValue: false
+    },
+    parseMissingKeyHandler: (key: string, defaultValue?: string) => {
+      if (i18n.language === 'en') {
+        const textToTranslate = (defaultValue && defaultValue !== key) ? defaultValue : key;
+        const translated = translateUiText(textToTranslate);
+        if (translated) {
+          return translated;
+        }
+      }
+      return defaultValue || key;
+    },
   });
 
 i18n.on('languageChanged', (lng) => {
@@ -40,6 +39,7 @@ i18n.on('languageChanged', (lng) => {
   document.documentElement.lang = meta.code;
   document.documentElement.dir = meta.dir;
   localStorage.setItem('zsystems_lang', meta.code);
+  localStorage.setItem('zs.uiLanguage', meta.code);
   try {
     useAuthStore.getState().updateSessionMeta({ language: meta.code as any });
   } catch {}
@@ -49,5 +49,7 @@ if (typeof document !== 'undefined') {
   document.documentElement.lang = activeMeta.code;
   document.documentElement.dir = activeMeta.dir;
 }
+
+initAutoTranslator(i18n);
 
 export default i18n;

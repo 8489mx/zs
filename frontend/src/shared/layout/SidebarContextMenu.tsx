@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   PlusIcon, 
   MonitorIcon, 
@@ -42,6 +43,8 @@ export function SidebarContextMenu({
   onCloseOtherTabs,
   onReloadTab,
 }: SidebarContextMenuProps) {
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,8 +94,8 @@ export function SidebarContextMenu({
     fontSize: '12.5px',
     fontWeight: 600,
     color: '#1e293b',
-    textAlign: 'right',
-    direction: 'rtl',
+    textAlign: isRtl ? 'right' : 'left',
+    direction: isRtl ? 'rtl' : 'ltr',
     transition: 'background-color 0.12s ease, color 0.12s ease',
   };
 
@@ -110,7 +113,7 @@ export function SidebarContextMenu({
     <div
       ref={menuRef}
       role="menu"
-      aria-label="قائمة سياقية للتبويبات"
+      aria-label={t('tabs.context_menu', 'قائمة سياقية للتبويبات')}
       style={{
         position: 'fixed',
         left: `${safeX}px`,
@@ -122,7 +125,7 @@ export function SidebarContextMenu({
         boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 4px 6px -2px rgba(15, 23, 42, 0.05)',
         padding: '6px',
         minWidth: `${menuWidth}px`,
-        direction: 'rtl',
+        direction: isRtl ? 'rtl' : 'ltr',
         userSelect: 'none',
       }}
     >
@@ -139,9 +142,9 @@ export function SidebarContextMenu({
           textOverflow: 'ellipsis',
           maxWidth: '190px',
         }}
-        title={target.label}
+        title={t(target.label, target.label)}
       >
-        {target.label}
+        {t(target.label, target.label)}
       </div>
 
       {mode === 'sidebar' && (
@@ -156,7 +159,7 @@ export function SidebarContextMenu({
           }}
         >
           <PlusIcon size={15} color="#2563eb" strokeWidth={2.4} />
-          <span>فتح في تبويب جديد</span>
+          <span>{t('tabs.open_new_tab', 'فتح في تبويب جديد')}</span>
         </button>
       )}
 
@@ -172,7 +175,7 @@ export function SidebarContextMenu({
           }}
         >
           <RefreshCwIcon size={14} color="#059669" strokeWidth={2.2} />
-          <span>إعادة تحميل التبويب</span>
+          <span>{t('tabs.reload', 'إعادة تحميل التبويب')}</span>
         </button>
       )}
 
@@ -187,7 +190,7 @@ export function SidebarContextMenu({
         }}
       >
         <MonitorIcon size={15} color="#7c3aed" strokeWidth={2} />
-        <span>فتح في نافذة مستقلة</span>
+        <span>{t('tabs.open_new_window', 'فتح في نافذة مستقلة')}</span>
       </button>
 
       <button
@@ -201,7 +204,7 @@ export function SidebarContextMenu({
         }}
       >
         <CopyIcon size={14} color="#475569" strokeWidth={2} />
-        <span>نسخ رابط الصفحة</span>
+        <span>{t('tabs.copy_link', 'نسخ رابط الصفحة')}</span>
       </button>
 
       {mode === 'tab' && target.tabId && (
@@ -225,7 +228,7 @@ export function SidebarContextMenu({
               }}
             >
               <XIcon size={14} color="#dc2626" strokeWidth={2.4} />
-              <span>إغلاق هذا التبويب</span>
+              <span>{t('tabs.close_this', 'إغلاق هذا التبويب')}</span>
             </button>
           )}
           {onCloseOtherTabs && (
@@ -240,7 +243,7 @@ export function SidebarContextMenu({
               }}
             >
               <LayersIcon size={14} color="#475569" strokeWidth={2} />
-              <span>إغلاق التبويبات الأخرى</span>
+              <span>{t('tabs.close_others', 'إغلاق التبويبات الأخرى')}</span>
             </button>
           )}
         </>

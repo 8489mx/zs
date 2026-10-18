@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { HrSectionNav } from '@/features/hr/components/HrSectionNav';
 
 interface PageHeaderProps {
@@ -31,10 +32,13 @@ export function PageHeader({
   navigation,
   children,
 }: PageHeaderProps) {
+  const { t } = useTranslation();
   const resolvedDescription = description ?? subtitle;
+  const displayTitle = typeof title === 'string' ? t(title, title) : title;
+  const displayDescription = typeof resolvedDescription === 'string' ? t(resolvedDescription, resolvedDescription) : resolvedDescription;
   const resolvedActions = actions ?? (actionText && onActionClick ? (
     <button type="button" className="btn btn-primary" onClick={onActionClick}>
-      {actionText}
+      {typeof actionText === 'string' ? t(actionText, actionText) : actionText}
     </button>
   ) : null);
   const location = useLocation();
@@ -89,12 +93,12 @@ export function PageHeader({
                     : undefined,
                 }}
               >
-                {title}
+                {displayTitle}
               </h1>
               {badge ? <div className="page-header-badge" style={{ display: 'inline-flex', alignItems: 'center' }}>{badge}</div> : null}
             </div>
           )}
-          {resolvedDescription ? <div className="page-header-description text-muted" style={{ fontSize: '0.8rem' }}>{resolvedDescription}</div> : null}
+          {displayDescription ? <div className="page-header-description text-muted" style={{ fontSize: '0.8rem' }}>{displayDescription}</div> : null}
         </div>
         {resolvedActions ? <div className="page-header-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>{resolvedActions}</div> : null}
       </div>

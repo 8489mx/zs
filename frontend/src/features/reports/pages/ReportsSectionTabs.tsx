@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { reportsSections, type ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 import { canAccessPath } from '@/app/router/access';
 import { useAuthStore } from '@/stores/auth-store';
@@ -6,6 +7,7 @@ import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ReportsSectionTabs({ currentSection }: { currentSection: ReportsSectionKey }) {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true || ['restaurant', 'cafe', 'food_beverage'].includes(settings?.businessIndustry || '');
@@ -27,7 +29,7 @@ export function ReportsSectionTabs({ currentSection }: { currentSection: Reports
           onTouchStart={() => prefetchRouteData(`/reports/${section.key}`)}
           className={({ isActive }) => `btn ${isActive || currentSection === section.key ? 'btn-primary' : 'btn-secondary'}`}
         >
-          {section.label}
+          {t(section.label, section.label)}
         </NavLink>
       ))}
     </div>
