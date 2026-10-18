@@ -358,6 +358,20 @@ try {
     throw 'frontend/dist not found in patch.'
   }
 
+  # ── Update ZMT maintenance scripts if present in patch ───────────────────────
+  $srcZmt = Join-Path $extractDir 'zmt.bat'
+  if (Test-Path $srcZmt) {
+    Copy-Item -Path $srcZmt -Destination (Join-Path $PortableRoot 'zmt.bat') -Force -ErrorAction SilentlyContinue
+    Write-Log 'zmt.bat updated.'
+  }
+  $srcZmtScripts = Join-Path $extractDir 'scripts'
+  if (Test-Path $srcZmtScripts) {
+    $destScripts = Join-Path $PortableRoot 'scripts'
+    Ensure-Dir -DirPath $destScripts
+    Copy-Item -Path (Join-Path $srcZmtScripts '*') -Destination $destScripts -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Log 'scripts/zmt.* updated.'
+  }
+
   # ── Run database migrations (portable mode only) ──────────────────────────────
   if (-not $isElectronMode) {
     Write-Log 'Running database migrations...'
@@ -430,8 +444,8 @@ if (-not $applySuccess) {
 
 # ── Restart ───────────────────────────────────────────────────────────────────
 if ($isElectronMode) {
-  Write-Log "Starting Electron: $electronExePath"
-  $electronProc = Start-Process -FilePath $electronExePath -WindowStyle Normal -PassThru
+  Write-Log "Starting Electron: $electronExePath (WorkingDirectory: $PortableRoot)"
+  $electronProc = Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal -PassThru
   Write-Log "Electron process started (PID: $($electronProc.Id))"
 } else {
   if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {

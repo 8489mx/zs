@@ -33,18 +33,23 @@ async function main() {
   console.log('\n🚀 Pushing updates to GitHub main branch...');
   run('git push origin main');
 
-  // 4. Publish Release to GitHub via gh CLI
+  // 4. Publish Release to GitHub via native uploader (with gh CLI fallback)
   const zipPath = path.join(rootDir, `release/updates/Z-ERP-Patch-v${version}.zip`);
   if (fs.existsSync(zipPath)) {
     console.log(`\n☁️ Uploading patch to GitHub Releases (v${version})...`);
     try {
-      run(`gh release create v${version} "${zipPath}" --title "Release v${version}" --notes "Z-ERP Automated Update Patch v${version}"`);
-    } catch {
-      console.log(`Release v${version} might already exist, attempting upload/overwrite...`);
+      const { uploadReleaseAsset } = require('./upload-github-release.cjs');
+      await uploadReleaseAsset(version);
+    } catch (err) {
+      console.warn('Native upload failed, attempting gh CLI fallback...', err.message);
       try {
-        run(`gh release upload v${version} "${zipPath}" --clobber`);
-      } catch (err) {
-        console.warn('Could not upload to GitHub release automatically:', err.message);
+        run(`gh release create v${version} "${zipPath}" --title "Release v${version}" --notes "Z-ERP Automated Update Patch v${version}"`);
+      } catch {
+        try {
+          run(`gh release upload v${version} "${zipPath}" --clobber`);
+        } catch (ghErr) {
+          console.warn('Could not upload to GitHub release:', ghErr.message);
+        }
       }
     }
   }

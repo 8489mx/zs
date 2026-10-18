@@ -1,7 +1,7 @@
 @echo off
 setlocal
 chcp 65001 > nul
-title ZSystems Database Maintenance Tool (ZMT)
+title ZSystems System Maintenance & Emergency Tool (ZMT)
 
 :: 1. Check if Node.js is available in PATH
 where node >nul 2>nul
@@ -19,5 +19,6 @@ if exist "%~dp0runtime\node\node.exe" (
 )
 
 :: 3. Fallback to PowerShell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex (Get-Content '%~dp0scripts\zmt.ps1' -Raw -Encoding UTF8)"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\zmt.ps1"
 if %ERRORLEVEL% neq 0 pause
+exit /b %ERRORLEVEL%

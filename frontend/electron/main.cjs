@@ -1134,6 +1134,7 @@ app.whenReady().then(async () => {
     if (!fsLib.existsSync(dataDir)) {
       fsLib.mkdirSync(dataDir, { recursive: true });
     }
+    const versionMarkerPath = path.join(dataDir, '.version');
     fsLib.writeFileSync(versionMarkerPath, packageVersion, 'utf8');
   } catch (err) {
     console.error('Error writing version marker:', err);

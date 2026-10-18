@@ -31,11 +31,16 @@ async function main() {
     }
 
     // Build backend and frontend
-    console.log('[build-update-patch] Building backend...');
-    execSync('npm run build', { cwd: path.join(rootDir, 'backend'), stdio: 'inherit' });
-    
-    console.log('[build-update-patch] Building frontend...');
-    execSync('npm run build', { cwd: path.join(rootDir, 'frontend'), stdio: 'inherit' });
+    const skipBuild = process.argv.includes('--skip-build');
+    if (!skipBuild) {
+      console.log('[build-update-patch] Building backend...');
+      execSync('npm run build', { cwd: path.join(rootDir, 'backend'), stdio: 'inherit' });
+      
+      console.log('[build-update-patch] Building frontend (electron mode)...');
+      execSync('npm run build:electron-frontend', { cwd: path.join(rootDir, 'frontend'), stdio: 'inherit' });
+    } else {
+      console.log('[build-update-patch] Skipping build step (--skip-build specified). Using existing dist folders.');
+    }
 
     // Staging area
     const stagingDir = path.join(rootDir, 'release/updates/staging');
@@ -65,6 +70,21 @@ async function main() {
       fs.copyFileSync(loadingHtml, path.join(stagingDir, 'frontend/dist/loading.html'));
       fs.mkdirSync(path.join(stagingDir, 'frontend/electron'), { recursive: true });
       fs.copyFileSync(loadingHtml, path.join(stagingDir, 'frontend/electron/loading.html'));
+    }
+
+    // Copy zmt.bat and zmt maintenance scripts to patch staging
+    const zmtBat = path.join(rootDir, 'zmt.bat');
+    if (fs.existsSync(zmtBat)) {
+      fs.copyFileSync(zmtBat, path.join(stagingDir, 'zmt.bat'));
+    }
+    const zmtScriptsDir = path.join(rootDir, 'scripts');
+    const zmtTargetScripts = path.join(stagingDir, 'scripts');
+    fs.mkdirSync(zmtTargetScripts, { recursive: true });
+    for (const file of ['zmt.cjs', 'zmt.ps1']) {
+      const srcFile = path.join(zmtScriptsDir, file);
+      if (fs.existsSync(srcFile)) {
+        fs.copyFileSync(srcFile, path.join(zmtTargetScripts, file));
+      }
     }
 
     // Generate update-manifest.json

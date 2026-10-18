@@ -19,12 +19,17 @@ export const migration = {
     // Existing rows were fully dispatched and fully received by definition of the old model.
     await sql`
       UPDATE stock_transfer_items
-      SET dispatched_qty = qty,
+      SET dispatched_qty = CASE
+            WHEN EXISTS (
+              SELECT 1 FROM stock_transfers t
+              WHERE t.id = stock_transfer_items.transfer_id AND t.status = 'received'
+            ) THEN qty ELSE 0 END,
           received_qty = CASE
             WHEN EXISTS (
               SELECT 1 FROM stock_transfers t
               WHERE t.id = stock_transfer_items.transfer_id AND t.status = 'received'
-            ) THEN qty ELSE 0 END
+            ) THEN qty ELSE 0 END,
+          variance_qty = 0
       WHERE dispatched_qty = 0;
     `.execute(db);
 
@@ -38,7 +43,10 @@ export const migration = {
               dispatched_qty >= 0
               AND received_qty >= 0
               AND received_qty <= dispatched_qty
-              AND variance_qty = dispatched_qty - received_qty
+              AND (
+                (received_qty = 0 AND variance_qty = 0)
+                OR variance_qty = dispatched_qty - received_qty
+              )
             );
         END IF;
       END $$;

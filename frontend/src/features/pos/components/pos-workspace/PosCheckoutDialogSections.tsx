@@ -409,7 +409,7 @@ export function PosCheckoutPaymentSection({
   const activeTerminals = useMemo(() => {
     const list = pos.settingsQuery?.data?.posTerminals;
     if (Array.isArray(list) && list.length > 0) {
-      return list.filter((t) => {
+      const filtered = list.filter((t) => {
         if (!t || t.enabled === false) return false;
         const prov = String(t.provider || '').toLowerCase();
         // Strict country isolation:
@@ -421,11 +421,36 @@ export function PosCheckoutPaymentSection({
         if (countryCode === 'SA' && (prov === 'fawry' || prov === 'paymob' || prov === 'knet_pos')) return false;
         return true;
       });
+      if (filtered.length > 0) return filtered;
+    }
+
+    // Direct fallback to single configured terminal in settings
+    const singleIp = pos.settingsQuery?.data?.posTerminalIp || (currentSettings as any)?.posTerminalIp;
+    if (singleIp && (pos.settingsQuery?.data?.posTerminalEnabled !== false)) {
+      return [{
+        id: 'default-terminal',
+        name: pos.settingsQuery?.data?.posTerminalName || (currentSettings as any)?.posTerminalName || 'ماكينة الدفع (Sunmi / EDC)',
+        ip: String(singleIp).trim(),
+        port: Number(pos.settingsQuery?.data?.posTerminalPort || (currentSettings as any)?.posTerminalPort || 8080),
+        provider: pos.settingsQuery?.data?.posTerminalProvider || (currentSettings as any)?.posTerminalProvider || 'fawry',
+        isDefault: true,
+        enabled: true,
+      }];
     }
     return [];
-  }, [pos.settingsQuery?.data?.posTerminals, countryCode]);
+  }, [
+    pos.settingsQuery?.data?.posTerminals,
+    pos.settingsQuery?.data?.posTerminalIp,
+    pos.settingsQuery?.data?.posTerminalPort,
+    pos.settingsQuery?.data?.posTerminalName,
+    pos.settingsQuery?.data?.posTerminalProvider,
+    pos.settingsQuery?.data?.posTerminalEnabled,
+    currentSettings,
+    countryCode,
+  ]);
 
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>('');
+
 
   useEffect(() => {
     if (activeTerminals.length > 0 && !selectedTerminalId) {
@@ -515,14 +540,18 @@ export function PosCheckoutPaymentSection({
     if (amount <= 0) return;
 
     const currentCurrency = getGlobalSystemCurrency() || pos.settings?.currency || (pos.settingsQuery?.data as any)?.currency || 'EGP';
-    const targetTerminal = activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0];
+    const targetTerminal = (activeTerminals.find((t) => t.id === selectedTerminalId) || activeTerminals[0]) as any;
+    const rawIp = String(targetTerminal?.ip || targetTerminal?.ipAddress || '').trim();
+    const cleanIp = rawIp ? (rawIp.includes(':') ? rawIp.split(':')[0] : rawIp) : '192.168.1.3';
+    const cleanPort = targetTerminal?.port || (rawIp && rawIp.includes(':') ? Number(rawIp.split(':')[1]) : 8080);
+    const prov = targetTerminal?.provider || 'fawry';
 
-    setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بجهاز الدفع...' });
+    setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بماكينة الدفع...' });
 
     // 1. Direct Local Hardware Bridge dispatch (if bridge is active on 127.0.0.1:18181)
     try {
       const isBridge = await HardwareBridgeClient.isAvailable();
-      if (isBridge && targetTerminal?.ip) {
+      if (isBridge && cleanIp) {
         const refId = `ECR-${Date.now()}`;
         setTerminalSession({
           status: 'waiting',
@@ -531,14 +560,14 @@ export function PosCheckoutPaymentSection({
         });
 
         const bridgeRes = await HardwareBridgeClient.chargeTerminal({
-          ip: targetTerminal.ip,
-          port: targetTerminal.port,
-          provider: targetTerminal.provider,
+          ip: cleanIp,
+          port: cleanPort,
+          provider: prov,
           amount,
           currency: currentCurrency,
           referenceId: refId,
-          pairingKey: targetTerminal.pairingKey,
-          terminalTid: targetTerminal.terminalTid,
+          pairingKey: targetTerminal?.pairingKey,
+          terminalTid: targetTerminal?.terminalTid,
         });
 
         if (bridgeRes.status === 'approved') {
@@ -564,7 +593,7 @@ export function PosCheckoutPaymentSection({
             rrn,
             cardScheme,
             cardLastFour,
-            provider: targetTerminal.provider,
+            provider: targetTerminal?.provider,
           });
 
           if (pos.settingsQuery?.data?.posTerminalAutoFinalize && onConfirmSale) {
@@ -574,7 +603,7 @@ export function PosCheckoutPaymentSection({
         } else {
           setTerminalSession({
             status: bridgeRes.status === 'cancelled' ? 'cancelled' : 'declined',
-            message: bridgeRes.message || 'تم رفض العملية من البنك',
+            message: bridgeRes.message || 'تم إلغاء أو رفض العملية من الماكينة',
           });
           return;
         }
@@ -658,13 +687,13 @@ export function PosCheckoutPaymentSection({
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>
             {transferSelected
               ? (pos.paymentChannel === 'instapay'
-                  ? (isKwdStore ? 'رابط دفع' : isKsaStore ? 'تحويل بنكي' : 'InstaPay')
-                  : (isKwdStore ? 'محفظة رقمية' : 'محفظة'))
+                  ? (isKwdStore ? 'رابط دفع' : 'InstaPay')
+                  : (isKwdStore ? 'محفظة رقمية' : 'محافظ إلكترونية'))
               : (isKwdStore && pos.terminalPaymentDetails?.cardScheme === 'knet'
                   ? 'كي نت K-NET'
                   : isKsaStore && pos.terminalPaymentDetails?.cardScheme === 'mada'
                   ? 'مدى mada'
-                  : 'فيزا')}
+                  : 'فيزا / كارت')}
           </span>
           <input
             type="number"
@@ -876,11 +905,11 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 700 }}
           >
-            تحويل بنكي / محافظ
+            دفع إلكتروني / محافظ
           </Button>
         </div>
       ) : (
-        /* Egypt & Other Countries Mode: Cash, Visa/Master, Credit, Transfers (Strictly 4 Clean Buttons, ZERO K-NET/Mada) */
+        /* Universal 4 Main Presets: Cash, Card, Transfers/Wallets, Credit */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
           <Button
             type="button"
@@ -900,12 +929,23 @@ export function PosCheckoutPaymentSection({
               onSelectPaymentPreset('card');
               pos.setTerminalPaymentDetails?.({
                 ...(pos.terminalPaymentDetails || {}),
-                cardScheme: 'visa',
+                cardScheme: isKwdStore ? 'knet' : isKsaStore ? 'mada' : 'visa',
               });
             }}
-            style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
+            style={{ minHeight: '38px', fontSize: '12px', fontWeight: 700 }}
           >
-            فيزا / ماستر
+            {isKwdStore ? 'KNET كي نت' : isKsaStore ? 'شبكة / مدى' : 'فيزا / كارت'}
+          </Button>
+          <Button
+            type="button"
+            variant={transferSelected ? 'primary' : 'secondary'}
+            onClick={() => {
+              onSelectPaymentPreset(pos.paymentChannel === 'wallet' ? 'wallet' : 'instapay');
+              pos.setTerminalPaymentDetails?.(null);
+            }}
+            style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 700 }}
+          >
+            تحويلات / محافظ
           </Button>
           <Button
             type="button"
@@ -918,22 +958,45 @@ export function PosCheckoutPaymentSection({
           >
             آجل
           </Button>
-          <Button
-            type="button"
-            variant={transferSelected ? 'primary' : 'secondary'}
-            onClick={() => {
-              onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet');
-              pos.setTerminalPaymentDetails?.(null);
-            }}
-            style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
-          >
-            تحويلات
-          </Button>
         </div>
       )}
 
-      {/* EDC POS Terminal Direct Dispatch Banner */}
-      {(isPaymentActive('card') || pos.cardAmount > 0) && (pos.settingsQuery?.data?.posTerminalEnabled !== false) && (
+      {/* Sub-presets row for Transfers / Digital Wallets */}
+      {transferSelected ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', padding: '6px', background: '#f1f0fa', borderRadius: '6px' }}>
+          {isKwdStore ? (
+            <>
+              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
+                رابط دفع K-NET
+              </Button>
+              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
+                Apple Pay / محفظة
+              </Button>
+            </>
+          ) : isKsaStore ? (
+            <>
+              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
+                STC Pay / محفظة
+              </Button>
+              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
+                Apple Pay / سداد
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '12px', fontWeight: 800 }}>
+                InstaPay
+              </Button>
+              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '12px', fontWeight: 700 }}>
+                محافظ إلكترونية
+              </Button>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {/* EDC / Sunmi POS Terminal Direct Dispatch Banner (Active for Card payments when terminal exists) */}
+      {(isPaymentActive('card') || pos.cardAmount > 0) && (pos.settingsQuery?.data?.posTerminalEnabled !== false) && activeTerminals.length > 0 && (
         <div style={{
           padding: '8px 12px',
           background: '#f8fafc',
@@ -981,10 +1044,10 @@ export function PosCheckoutPaymentSection({
               <CreditCardIcon size={18} color="#170e5e" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  {activeTerminals.find((t) => t.id === selectedTerminalId)?.name || pos.settingsQuery?.data?.posTerminalName || (isKwdStore ? 'جهاز نقاط البيع (EDC / كي نت / فيزا)' : isKsaStore ? 'جهاز نقاط البيع (EDC / مدى / فيزا)' : 'جهاز نقاط البيع (EDC / فيزا / ماستر)')}
+                  {activeTerminals.find((t) => t.id === selectedTerminalId)?.name || pos.settingsQuery?.data?.posTerminalName || 'ماكينة الدفع (Sunmi / EDC)'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b' }}>
-                  إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة الجهاز آلياً
+                  إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة جهاز الدفع آلياً
                 </div>
               </div>
             </div>
@@ -995,7 +1058,7 @@ export function PosCheckoutPaymentSection({
                 onClick={handleDispatchTerminal}
                 style={{ minHeight: '32px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}
               >
-                إرسال للجهاز
+                إرسال للماكينة
               </Button>
             ) : terminalSession.status === 'approved' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1056,38 +1119,7 @@ export function PosCheckoutPaymentSection({
         </div>
       )}
 
-      {transferSelected ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', padding: '6px', background: '#f1f0fa', borderRadius: '6px' }}>
-          {isKwdStore ? (
-            <>
-              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                رابط دفع K-NET
-              </Button>
-              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                Apple Pay / محفظة
-              </Button>
-            </>
-          ) : isKsaStore ? (
-            <>
-              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                STC Pay / محفظة
-              </Button>
-              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                تحويل بنكي / Apple Pay
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '12px', fontWeight: 700 }}>
-                محفظة إلكترونية
-              </Button>
-              <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '12px', fontWeight: 700 }}>
-                InstaPay
-              </Button>
-            </>
-          )}
-        </div>
-      ) : null}
+
 
       {managerApprovalOpen && isDiscountLocked && !pos.discountApprovalGranted ? (
         <div className="pos-checkout-manager-approval" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onInlineManagerApproval(); } }}>
