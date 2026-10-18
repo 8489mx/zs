@@ -51,6 +51,7 @@ function getDefaultValues(
 ): ProductFormInput {
   return {
     name: initialName,
+    nameEn: '',
     barcode: initialBarcode,
     itemType: 'product',
     itemKind,
@@ -361,7 +362,7 @@ export function NewProductForm({
   }
 
   return (
-    <div className={`new-product-form-root ${mode === 'modal' ? 'new-product-form-root--modal' : 'page-shell document-prototype-shell purchase-new-prototype'}`} dir="rtl">
+    <div className={`new-product-form-root ${mode === 'modal' ? 'new-product-form-root--modal' : 'page-shell document-prototype-shell purchase-new-prototype'}`}>
       <div className={mode === 'modal' ? 'modal-sticky-header' : 'purchase-prototype-sticky-stack'}>
         <div className={mode === 'modal' ? 'modal-header-surface' : 'purchase-prototype-document-surface'}>
           <div className="document-prototype-topbar">
@@ -507,10 +508,10 @@ export function NewProductForm({
             </div>
           </div>
 
-          {/* Row 1: Product Name, Item Type & Barcode (3 balanced columns on one line) */}
-          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+          {/* Row 1: Product Names (Arabic & English side-by-side) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)', gap: '12px', marginBottom: '0.85rem' }}>
             <ProductNameField
-              label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
+              label={usesVariantBuilder ? 'اسم الصنف الأساسي (بالعربية)' : 'اسم الصنف (بالعربية)'}
               value={watchedName || ''}
               onChange={(v) => {
                 form.setValue('name', v, { shouldDirty: true, shouldValidate: true });
@@ -521,7 +522,7 @@ export function NewProductForm({
               }}
               allProducts={allProducts}
               disabled={isFormDisabled}
-              placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
+              placeholder={usesVariantBuilder ? 'مثال: مزيل عرق نيفيا / تيشيرت بولو' : 'اكتب اسم الصنف بالعربية'}
               error={form.formState.errors.name?.message}
               iconPicker={
                 <ProductIconPicker
@@ -533,6 +534,23 @@ export function NewProductForm({
               }
             />
 
+            <div className="field">
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>اسم الصنف بالإنجليزي (Item Name)</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>اختياري للفاتورة والكاشير</span>
+              </label>
+              <input
+                className="purchase-prototype-field-input"
+                style={{ width: '100%', direction: 'ltr', textAlign: 'left' }}
+                {...form.register('nameEn')}
+                disabled={isFormDisabled}
+                placeholder="e.g. Almarai Milk 1L / Nivea Deo"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Item Type & Barcode/Model */}
+          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>
@@ -545,10 +563,7 @@ export function NewProductForm({
 
             {usesVariantBuilder ? (
               <div className="field">
-                <label>
-                  <span className="hidden md:inline">كود الصنف الأساسي / الموديل</span>
-                  <span className="md:hidden">كود الموديل</span>
-                </label>
+                <label>كود الصنف الأساسي / الموديل</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="1001" style={{ flex: 1 }} />
                   <Button type="button" variant="secondary" onClick={() => void handleGenerateStyleCode()} disabled={isFormDisabled || isGeneratingStyleCode}>{isGeneratingStyleCode ? '...' : 'توليد كود'}</Button>
@@ -575,17 +590,11 @@ export function NewProductForm({
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
               <div className="field">
-                <label>
-                  <span className="hidden md:inline">سعر الشراء (التكلفة)</span>
-                  <span className="md:hidden">سعر التكلفة</span>
-                </label>
+                <label>سعر الشراء (التكلفة)</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
               </div>
               <div className="field product-retail-price-field">
-                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>
-                  <span className="hidden md:inline">سعر البيع (قطاعي)</span>
-                  <span className="md:hidden">سعر البيع</span>
-                </label>
+                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
               </div>
               <Field label="سعر الجملة">

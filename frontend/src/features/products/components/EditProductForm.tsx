@@ -137,7 +137,7 @@ export function EditProductForm({
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      name: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
+      name: '', nameEn: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
       costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
     }
   });
@@ -319,7 +319,7 @@ export function EditProductForm({
   }
 
   return (
-    <div className={mode === 'modal' ? 'edit-product-modal-mode' : 'page-shell document-prototype-shell purchase-new-prototype'} dir="rtl">
+    <div className={mode === 'modal' ? 'edit-product-modal-mode' : 'page-shell document-prototype-shell purchase-new-prototype'}>
       <div className={mode === 'modal' ? 'edit-product-modal-topbar-wrapper' : 'purchase-prototype-sticky-stack'}>
         <div className={mode === 'modal' ? 'edit-product-modal-topbar' : 'purchase-prototype-document-surface'}>
           <div
@@ -568,10 +568,10 @@ export function EditProductForm({
             </div>
           </div>
 
-          {/* Row 1: Product Name, Item Type & Barcode (3 balanced columns on one line) */}
-          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+          {/* Row 1: Product Names (Arabic & English side-by-side) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)', gap: '12px', marginBottom: '0.85rem' }}>
             <div className="field">
-              <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
+              <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي (بالعربية)' : 'اسم الصنف (بالعربية)'}</label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <ProductIconPicker
                   value={form.watch('icon')}
@@ -591,12 +591,29 @@ export function EditProductForm({
                   }}
                   disabled={isFormDisabled}
                   style={{ flex: 1, fontWeight: 600 }}
-                  placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
+                  placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق نيفيا / تيشيرت بولو' : 'اكتب اسم الصنف بالعربية'}
                 />
               </div>
               {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
             </div>
 
+            <div className="field">
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>اسم الصنف بالإنجليزي (Item Name)</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>اختياري للفاتورة والكاشير</span>
+              </label>
+              <input
+                className="purchase-prototype-field-input"
+                style={{ width: '100%', direction: 'ltr', textAlign: 'left' }}
+                {...form.register('nameEn')}
+                disabled={isFormDisabled}
+                placeholder="e.g. Almarai Milk 1L / Nivea Deo"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Item Type & Barcode/Model */}
+          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>
@@ -609,10 +626,7 @@ export function EditProductForm({
 
             {watchedItemKind === 'fashion' ? (
               <div className="field">
-                <label>
-                  <span className="hidden md:inline">كود الصنف الأساسي / الموديل</span>
-                  <span className="md:hidden">كود الموديل</span>
-                </label>
+                <label>كود الصنف الأساسي / الموديل</label>
                 <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="1001" />
               </div>
             ) : (
@@ -625,17 +639,11 @@ export function EditProductForm({
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
               <div className="field">
-                <label>
-                  <span className="hidden md:inline">سعر الشراء (التكلفة)</span>
-                  <span className="md:hidden">سعر التكلفة</span>
-                </label>
+                <label>سعر الشراء (التكلفة)</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
               </div>
               <div className="field product-retail-price-field">
-                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>
-                  <span className="hidden md:inline">سعر البيع (قطاعي)</span>
-                  <span className="md:hidden">سعر البيع</span>
-                </label>
+                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
               </div>
               <Field label="سعر الجملة">

@@ -28,7 +28,6 @@ const ARABIC_CHAR_REGEX = /[\u0600-\u06FF]/;
 const IGNORED_TAGS = new Set([
   'SCRIPT',
   'STYLE',
-  'TEXTAREA',
   'CODE',
   'PRE',
   'SVG',
@@ -37,6 +36,8 @@ const IGNORED_TAGS = new Set([
 ]);
 
 const VERB_PREFIXES = [
+  { ar: 'حفظ', en: 'Save' },
+  { ar: 'اكتب', en: 'Enter' },
   { ar: 'إضافة أول', en: 'Add First' },
   { ar: 'إضافة', en: 'Add' },
   { ar: 'إنشاء', en: 'Create' },
@@ -72,6 +73,11 @@ const VERB_PREFIXES = [
   { ar: 'إدخال', en: 'Enter / Check-in' },
   { ar: 'أدخل', en: 'Enter' },
   { ar: 'ادخل', en: 'Enter' },
+  { ar: 'تفريغ', en: 'Reset' },
+  { ar: 'إعادة تعيين', en: 'Reset' },
+  { ar: 'إعادة ضبط', en: 'Reset' },
+  { ar: 'توليد', en: 'Generate' },
+  { ar: 'حساب', en: 'Calculate' },
   { ar: 'تصفية حسب', en: 'Filter by' },
   { ar: 'فرز حسب', en: 'Sort by' },
   { ar: 'ترتيب حسب', en: 'Sort by' },
@@ -194,6 +200,12 @@ const COMPOUND_PREFIXES = [
   { ar: 'مستوى', enSuffix: 'Level' },
   { ar: 'حجم', enSuffix: 'Size' },
   { ar: 'وزن', enSuffix: 'Weight' },
+  { ar: 'هامش ربح', enSuffix: 'Profit Margin' },
+  { ar: 'هامش', enSuffix: 'Margin' },
+  { ar: 'مكان', enSuffix: 'Location' },
+  { ar: 'موقع', enSuffix: 'Location' },
+  { ar: 'فترة', enSuffix: 'Period' },
+  { ar: 'مدة', enSuffix: 'Duration' },
 ];
 
 function shouldSkipElement(el: Element): boolean {
@@ -223,16 +235,18 @@ export function translateUiText(rawText: string): string | null {
   const directRaw = dictMap.get(raw);
   if (directRaw) return directRaw;
 
-  // 2. Parentheses match on raw string: "إغلاق (Esc)", "مدين (Debit)"
+  // 2. Parentheses match on raw string: "إغلاق (Esc)", "مدين (Debit)", "Credit Selling Price (التوزيع والجملة)"
   const parenMatch = raw.match(/^([^(]+?)\s*\(([^)]+)\)\s*([:!?.:…]*)$/);
   if (parenMatch) {
     const mainK = parenMatch[1].trim();
     const inner = parenMatch[2].trim();
     const trail = parenMatch[3];
-    const transMain = dictMap.get(mainK) || translateUiText(mainK);
+    const transMain = dictMap.get(mainK) || translateUiText(mainK) || (!ARABIC_CHAR_REGEX.test(mainK) ? mainK : null);
     const transInner = dictMap.get(inner) || translateUiText(inner) || inner;
     if (transMain) {
-      if (transMain.trim().toLowerCase() === transInner.trim().toLowerCase()) {
+      const lowerMain = transMain.trim().toLowerCase();
+      const lowerInner = transInner.trim().toLowerCase();
+      if (lowerMain === lowerInner || lowerMain.includes(lowerInner)) {
         return transMain + trail;
       }
       return transMain + ' (' + transInner + ')' + trail;
@@ -299,6 +313,65 @@ export function translateUiText(rawText: string): string | null {
   const direct = dictMap.get(core);
   if (direct) {
     return prefix + direct + suffix;
+  }
+
+  // 5-b. Save action variants: "حفظ وإضافة للسلة", "حفظ الصنف بجميع المتغيرات", etc.
+  if (core.startsWith('حفظ ')) {
+    const rest = core.slice(4).trim();
+    if (rest === 'وإضافة للسلة' || rest === 'واضافة للسلة') {
+      return prefix + 'Save & Add to Cart' + suffix;
+    }
+    if (rest === 'الصنف بجميع المتغيرات') {
+      return prefix + 'Save Product with All Variants' + suffix;
+    }
+    if (rest === 'الصنف والمتغيرات وإضافة للسلة') {
+      return prefix + 'Save Product & Variants and Add to Cart' + suffix;
+    }
+    if (rest === 'الصنف وإضافته' || rest === 'الصنف واضافته') {
+      return prefix + 'Save Item & Add' + suffix;
+    }
+    if (rest === 'وإغلاق' || rest === 'واغلاق') {
+      return prefix + 'Save & Close' + suffix;
+    }
+    if (rest === 'ومتابعة') {
+      return prefix + 'Save & Continue' + suffix;
+    }
+    if (rest === 'وطباعة') {
+      return prefix + 'Save & Print' + suffix;
+    }
+    if (rest === 'وإرسال' || rest === 'وارسال') {
+      return prefix + 'Save & Send' + suffix;
+    }
+    if (rest === 'كمسودة') {
+      return prefix + 'Save as Draft' + suffix;
+    }
+    if (rest === 'وإنشاء جديد') {
+      return prefix + 'Save & Create New' + suffix;
+    }
+    const transRest = dictMap.get(rest) || translateUiText(rest);
+    if (transRest) {
+      return prefix + 'Save ' + transRest + suffix;
+    }
+  }
+
+  // 5-c. Input placeholders: "اكتب اسم الصنف", "اكتب اسم العميل", "أدخل كود...", "ادخل..."
+  if (core.startsWith('اكتب ') || core.startsWith('أدخل ') || core.startsWith('ادخل ')) {
+    const spaceIdx = core.indexOf(' ');
+    const rest = core.slice(spaceIdx + 1).trim();
+    const transRest = dictMap.get(rest) || translateUiText(rest);
+    if (transRest) {
+      return prefix + 'Enter ' + transRest.toLowerCase() + suffix;
+    }
+  }
+
+  // 5-d. Optional barcode or manual entry patterns
+  if (core === 'اختياري أو امسحه بالماسح' || core === 'اختياري أو امسحه بالباركود') {
+    return prefix + 'Optional or scan with barcode reader' + suffix;
+  }
+  if (core.startsWith('اختياري أو ')) {
+    const rest = core.slice(11).trim();
+    const transRest = dictMap.get(rest) || translateUiText(rest);
+    return prefix + 'Optional or ' + (transRest || rest) + suffix;
   }
 
   // Shortcut key trailing/leading (e.g. "إتمام البيع F2", "F2 إتمام البيع", "إعادة طباعة F9", "تعليق F4")
@@ -469,11 +542,12 @@ export function translateUiText(rawText: string): string | null {
     }
   }
 
-  // 10. Example pattern: "مثال: 500 جنيه" -> "Example: 500 EGP"
+  // 10. Example pattern: "مثال: 500 جنيه" -> "Example: 500 EGP", "مثال: رف 5" -> "Example: Shelf 5"
   const egMatch = core.match(/^مثال[:：]\s*(.*)$/);
   if (egMatch) {
     const egVal = egMatch[1].trim();
-    return prefix + 'Example: ' + egVal + suffix;
+    const transEgVal = dictMap.get(egVal) || translateUiText(egVal) || egVal;
+    return prefix + 'Example: ' + transEgVal + suffix;
   }
 
   // 11. Breadcrumbs and slash-separated terms (e.g. "الرئيسية / المبيعات / عروض الأسعار")
@@ -689,7 +763,7 @@ export function translateUiText(rawText: string): string | null {
 
 function processTextNode(node: Text): void {
   const parent = node.parentElement;
-  if (!parent || shouldSkipElement(parent)) return;
+  if (!parent || shouldSkipElement(parent) || parent.tagName === 'TEXTAREA') return;
 
   const currentVal = node.nodeValue;
   if (!currentVal) return;
@@ -783,6 +857,8 @@ function walkAndTranslate(root: Node): void {
     if (shouldSkipElement(el)) return;
     processElementAttributes(el);
 
+    if (el.tagName === 'TEXTAREA') return;
+
     let child = el.firstChild;
     while (child) {
       walkAndTranslate(child);
@@ -837,8 +913,24 @@ function queueNodeForTranslation(node: Node): void {
   }
 }
 
+let originalDocTitle: string | null = null;
+
+function syncDocumentTitle(): void {
+  if (typeof document === 'undefined') return;
+  if (document.title && ARABIC_CHAR_REGEX.test(document.title)) {
+    const orig = document.title;
+    const trans = translateUiText(orig);
+    if (trans && trans !== orig) {
+      if (!originalDocTitle) originalDocTitle = orig;
+      document.title = trans;
+    }
+  }
+}
+
 function handleMutations(mutations: MutationRecord[]): void {
   if (isTranslating) return;
+
+  syncDocumentTitle();
 
   for (const mut of mutations) {
     if (mut.type === 'childList') {
@@ -867,6 +959,8 @@ export function activateAutoTranslator(): void {
     document.documentElement.lang = 'en';
   }
 
+  syncDocumentTitle();
+
   // Initial full scan
   isTranslating = true;
   walkAndTranslate(document.body);
@@ -893,6 +987,11 @@ export function deactivateAutoTranslator(): void {
   }
   if (document.documentElement.lang !== 'ar') {
     document.documentElement.lang = 'ar';
+  }
+
+  if (originalDocTitle) {
+    document.title = originalDocTitle;
+    originalDocTitle = null;
   }
 
   if (observer) {

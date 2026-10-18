@@ -114,7 +114,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
       {/* Header Row */}
       <div className="product-units-header-row">
         <div style={{ flex: '1.4' }}>اسم / نوع الوحدة</div>
-        <div style={{ flex: '0.9' }}>المضاعف ({baseUnitName})</div>
+        <div style={{ flex: '0.9' }}>{`المضاعف (${baseUnitName})`}</div>
         <div style={{ flex: '1.3' }}>باركود الوحدة</div>
         <div style={{ flex: '2.5' }}>دور واستخدام الوحدة الافتراضي</div>
         {normalized.length > 1 && <div style={{ width: '36px' }}></div>}
