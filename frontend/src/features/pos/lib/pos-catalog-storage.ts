@@ -1,6 +1,7 @@
 import type { Product } from '@/types/domain';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { isLikelyBarcodeQuery } from './pos-product-lookup';
+import { requestStoragePersistence } from '@/lib/storage-persistence';
 
 const DB_NAME = 'zsystems_pos_catalog_db';
 const DB_VERSION = 1;
@@ -15,6 +16,7 @@ function isIndexedDbSupported(): boolean {
 }
 
 function openDb(): Promise<IDBDatabase> {
+  void requestStoragePersistence();
   if (dbInstance) return Promise.resolve(dbInstance);
   if (dbPromise) return dbPromise;
 

@@ -48,6 +48,11 @@ if (typeof window !== 'undefined') {
   import('@/shared/native/mobile-bridge').then(({ mobileBridge }) => {
     mobileBridge.initNativeApp();
   }).catch(() => {});
+
+  // Request permanent storage persistence to protect IndexedDB & offline queues against eviction
+  import('@/lib/storage-persistence').then(({ requestStoragePersistence }) => {
+    void requestStoragePersistence();
+  }).catch(() => {});
 }
 
 // Progressive Web App (PWA) Service Worker Registration for Offline Operation

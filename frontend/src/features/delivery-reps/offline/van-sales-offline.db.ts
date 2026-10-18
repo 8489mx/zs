@@ -1,5 +1,6 @@
 import type { VanActiveTripResponse, VanStockItem, DriverWarehouse, DriverAvailableProduct } from '../api/van-sales.api';
 import type { DriverPortalUser } from '@/shared/api/delivery-reps.api';
+import { requestStoragePersistence } from '@/lib/storage-persistence';
 
 const DB_NAME = 'zsystems_van_sales_offline_db';
 const DB_VERSION = 1;
@@ -27,6 +28,7 @@ function isIndexedDbSupported(): boolean {
 }
 
 function openDb(): Promise<IDBDatabase> {
+  void requestStoragePersistence();
   if (dbInstance) return Promise.resolve(dbInstance);
   if (dbPromise) return dbPromise;
 

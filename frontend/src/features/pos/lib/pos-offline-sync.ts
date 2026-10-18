@@ -1,5 +1,6 @@
 import { CreatePosSaleInput } from '@/features/pos/contracts';
 import { useAuthStore } from '@/stores/auth-store';
+import { requestStoragePersistence } from '@/lib/storage-persistence';
 
 const OFFLINE_QUEUE_KEY = 'zsystems_pos_offline_sales_queue';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
@@ -105,6 +106,7 @@ export function generateOfflineDocNo(): string {
 }
 
 export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
+  void requestStoragePersistence();
   let queue: OfflinePosSale[];
   try {
     queue = readStoredOfflineQueue();
